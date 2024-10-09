@@ -10,8 +10,16 @@ import {
   StepLabel,
   Checkbox,
   FormControlLabel,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import "./Registration.css";
+import {
+  Visibility,
+  VisibilityOff,
+  ArrowForward,
+  ArrowBack,
+} from "@mui/icons-material";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -48,8 +56,11 @@ interface FormErrors {
 
 // Regex for validation
 const nameRegex = /^[A-Za-z\s]+$/;
-const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zAZ0-9.-]+\.[A-Z|a-z]{2,}$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
+const strongPasswordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
+const zipCodeRegex = /^[0-9]{6}$/;
 
 const steps = ["Basic Info", "Address", "Additional Details", "Confirmation"];
 
@@ -58,10 +69,9 @@ interface RegistrationProps {
 }
 
 const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
-
   const handleBackLogin = (e: any) => {
-    onBackToLogin(e)
-  }
+    onBackToLogin(e);
+  };
 
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
@@ -80,6 +90,17 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     hobbies: "",
     language: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleToggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -106,8 +127,9 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (!formData.email || !emailRegex.test(formData.email)) {
         tempErrors.email = "Valid email is required.";
       }
-      if (!formData.password || formData.password.length < 8) {
-        tempErrors.password = "Password must be at least 8 characters long.";
+      if (!formData.password || !strongPasswordRegex.test(formData.password)) {
+        tempErrors.password =
+          "Password must be at least 8 characters long, include uppercase and lowercase letters, a number, and a special character.";
       }
       if (formData.password !== formData.confirmPassword) {
         tempErrors.confirmPassword = "Passwords do not match.";
@@ -127,15 +149,14 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (!formData.state) {
         tempErrors.state = "State is required.";
       }
-      if (!formData.zipCode) {
-        tempErrors.zipCode = "Zip/Postal Code is required.";
+      if (!formData.zipCode || !zipCodeRegex.test(formData.zipCode)) {
+        tempErrors.zipCode = 'Zip/Postal Code must be exactly 6 digits.';
       }
     }
 
     if (activeStep === 3) {
       if (!formData.agreeToTerms) {
-        tempErrors.agreeToTerms =
-          "You must agree to the Terms of Service and Privacy Policy.";
+        tempErrors.agreeToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
       }
     }
 
@@ -231,7 +252,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               <Grid item xs={12}>
                 <TextField
                   label="Password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   fullWidth
                   required
@@ -239,16 +260,25 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   onChange={handleChange}
                   error={!!errors.password}
                   helperText={errors.password}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleTogglePasswordVisibility}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   label="Confirm Password"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   fullWidth
                   required
@@ -256,9 +286,22 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   onChange={handleChange}
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleToggleConfirmPasswordVisibility}
+                          edge="end"
+                          aria-label="toggle confirm password visibility"
+                        >
+                          {showConfirmPassword ? (
+                            <VisibilityOff />
+                          ) : (
+                            <Visibility />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
                 />
               </Grid>
@@ -413,11 +456,11 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   };
 
   return (
-    <Box sx={{ maxWidth: 600, margin: "auto", padding: 2 }} className="parent">
+    <Box sx={{ maxWidth: 600, margin: "auto", padding: 2, display: 'block' }} className="parent">
       <Typography variant="h5" gutterBottom className="text">
         User Registration
       </Typography>
-      <Stepper activeStep={activeStep} alternativeLabel>
+      <Stepper activeStep={activeStep} alternativeLabel style={{ overflow: 'overlay' }}>
         {steps.map((label, index) => (
           <Step key={index}>
             <StepLabel>{label}</StepLabel>
@@ -434,21 +477,27 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
           }}
         >
           <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            variant="contained"
-            color="secondary"
-          >
-            Back
-          </Button>
+              disabled={activeStep === 0}
+              onClick={handleBack}
+              variant="contained"
+              color="primary"
+              startIcon={<ArrowBack />} // Add the icon here
+            >
+              Back
+            </Button>
           {activeStep === steps.length - 1 ? (
             <Button type="submit" variant="contained" color="primary">
               Submit
             </Button>
           ) : (
-            <Button onClick={handleNext} variant="contained" color="primary">
+            <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+                endIcon={<ArrowForward />} // This will place the icon after the text
+              >
               Next
-            </Button>
+              </Button>
           )}
         </Box>
 
@@ -456,7 +505,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
           <h3 className="dark:text-gray-300">
             Already have an account?{" "}
             <button
-              className="text-blue-400 ml-2 underline"
+              className="text-blue-500 ml-2 underline"
               onClick={(e) => handleBackLogin("false")}
             >
               Sign in
