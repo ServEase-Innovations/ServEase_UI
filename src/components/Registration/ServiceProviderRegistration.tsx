@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   TextField,Input, Button, Grid, Typography, Box, Stepper, Step, StepLabel, Checkbox, FormControlLabel
 } from '@mui/material';
+import './ServiceProvider.css';
 
 // Define the shape of formData using an interface
 interface FormData {

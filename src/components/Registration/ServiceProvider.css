@@ -1,0 +1,86 @@
+/* General styles for mobile-first */
+.container {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    width: 100%;
+  }
+  
+  input[type="text"], input[type="number"], input[type="file"], select {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+  }
+  
+  button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+  }
+  
+  /* Media query for tablets (768px and up) */
+  @media screen and (min-width: 768px) {
+    .container {
+      width: 80%;
+      margin: 0 auto;
+    }
+  
+    .input-group {
+      display: flex;
+      justify-content: space-between;
+    }
+  
+    .input-group > * {
+      width: 48%;
+    }
+  
+    button {
+      width: 40%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  
+  /* Media query for desktops (1024px and up) */
+  @media screen and (min-width: 1024px) {
+    .container {
+      width: 60%;
+    }
+  
+    .input-group {
+      display: flex;
+      justify-content: space-between;
+    }
+  
+    .input-group > * {
+      width: 48%;
+    }
+  
+    button {
+      width: 30%;
+    }
+  }
+  
+  /* Profile images - make sure they don't get too big */
+  .profile-pic-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    margin-bottom: 10px;
+  }
+  
+  @media screen and (min-width: 768px) {
+    .profile-pic-preview {
+      width: 150px;
+      height: 150px;
+    }
+  }
+  
+  @media screen and (min-width: 1024px) {
+    .profile-pic-preview {
+      width: 200px;
+      height: 200px;
+    }
+  }
+  
