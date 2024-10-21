@@ -1,6 +1,6 @@
 /* Base styles for the landing container */
 body{
-  background-color: rgba(202, 214, 227, 0.59);
+  background-color: rgba(249, 252, 255, 0.59);
 }
 .landing-container {
     display: flex;

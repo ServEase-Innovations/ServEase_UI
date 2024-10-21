@@ -5,6 +5,7 @@
   justify-content: flex-start;
   width: 100%;
   height: 100%;
+  background-color: rgb(204, 209, 213);
    /* Ensures the navbar takes up 100% of its container's height */
   border: 1px solid gray;
 }
@@ -44,17 +45,17 @@
 
 .home-text {
   font-size: 13px; /* Font size for 'Home' */
-  font-weight: 500;
-  color: #007bff; 
-  opacity: 90%;
+  font-weight: 600;
+  color: #0683f9; 
+  
   
 }
 
 .servease-text {
   font-size: 20px; /* Font size for 'ServEase' */
-  font-weight: 550;
-  color: #007bff; 
-  opacity: 90%;
+  font-weight: 650;
+  color: #0683f9; 
+  
 }
 
 /* Dropdown container */
