@@ -1,4 +1,4 @@
-import React, { useState ,SyntheticEvent} from 'react';
+import React, { useState ,ChangeEvent,SyntheticEvent,useRef} from 'react';
 import {
   TextField,
   Input,
@@ -20,11 +20,13 @@ import {
   Radio,
   FormControl, 
   FormLabel,
-  FormHelperText
+  FormHelperText,
+  Avatar
 } from '@mui/material';
 import Snackbar, { SnackbarCloseReason } from '@mui/material/Snackbar';
-import { Visibility, VisibilityOff,ArrowForward,ArrowBack  } from '@mui/icons-material';
+import { Visibility, VisibilityOff,ArrowForward,ArrowBack,CameraAlt as CameraAltIcon   } from '@mui/icons-material';
 import { px } from 'framer-motion';
+import ProfileImageUpload from './ProfileImageUpload';
 import axios from 'axios';
 
 // Define the shape of formData using an interface
@@ -58,6 +60,8 @@ interface FormData {
   kyc: string;
   documentDetails: string;
   documentImage: File | null;
+  profileImage: File | null; // New field for Profile Image
+  speciality: string;
 }
 
 // Define the shape of errors to hold string messages
@@ -87,6 +91,7 @@ interface FormErrors {
   kyc?: string;
   documentDetails?: string;
   documentImage?: string;
+  speciality?: string;
 }
  
 // Regex for validation
@@ -115,6 +120,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success'); // Use AlertColor for correct typing
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null!);
+  const [isCookSelected, setIsCookSelected] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     middleName:'',
@@ -145,9 +154,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
     kyc : '',
     documentDetails: '',
     documentImage: null,
-  });
+    profileImage: null,
+    speciality: '',
+    });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  
 
   // States for image previews and names
 const [documentImageName, setDocumentImageName] = useState<string>('');
@@ -161,6 +173,15 @@ const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(
   // States for password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+   // File change handler to update the profile picture
+   const handleImageSelect = (file: File | null) => {
+    setFormData((prevData) => ({ ...prevData, profileImage: file }));
+  };
+  
+  // Click handler to trigger file input click
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
 
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -168,6 +189,26 @@ const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(
 
   const handleToggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
+  };
+   // Handle changes in service type selection
+   const handleServiceTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setFormData((prevData) => ({ ...prevData, housekeepingRole: value }));
+
+    // Check if 'COOK' is selected and update isCookSelected accordingly
+    if (value === 'COOK') {
+      setIsCookSelected(true);
+    } else {
+      setIsCookSelected(false);
+      // Reset speciality if not cook
+      setFormData((prevData) => ({ ...prevData, speciality: '' }));
+    }
+  };
+
+  // Handle changes in speciality selection
+  const handleSpecialityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setFormData((prevData) => ({ ...prevData, speciality: value }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -247,6 +288,9 @@ const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(
       }
       if (!formData.housekeepingRole) {
         tempErrors.housekeepingRole = 'Please select a service type.';
+      }
+      if (formData.housekeepingRole === 'COOK' && !formData.speciality) {
+        tempErrors.speciality = 'Please select a speciality for the cook service.';
       }
       // Optional fields (uncomment if needed)
       // if (!formData.description) {
@@ -360,163 +404,101 @@ const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(
       case 0:
         return (
           <Grid container spacing={3}>
-               <Grid item xs={12} className="pt-5">
-                <TextField
-                  label="First Name"
-                  name="firstName"
-                  fullWidth
-                  required
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Middle Name"
-                  name="middleName"
-                  fullWidth
-                  value={formData.middleName}
-                  onChange={handleChange}
-                  // error={!!errors.lastName}
-                  // helperText={errors.lastName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Last Name"
-                  name="lastName"
-                  fullWidth
-                  required
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  error={!!errors.lastName}
-                  helperText={errors.lastName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
-                />
-              </Grid>
+            
+        {/* Profile Picture Upload Section */}
+      <Grid item xs={12}>
+        <ProfileImageUpload onImageSelect={handleImageSelect} />
+      </Grid>
 
-           {/* Gender Radio Button Group */}
-<Grid item xs={12}>
-  <FormControl component="fieldset" error={!!errors.gender}>
-    <FormLabel component="legend">Gender</FormLabel>
-    <RadioGroup
-      row
-      name="gender"
-      value={formData.gender}
-      onChange={handleChange}
-    >
-      <FormControlLabel value="MALE" control={<Radio />} label="Male" />
-      <FormControlLabel value="FEMALE" control={<Radio />} label="Female" />
-      <FormControlLabel value="OTHER" control={<Radio />} label="Other" />
-    </RadioGroup>
-    {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
-  </FormControl>
-</Grid>
+      <Grid item xs={12}>
+        <TextField
+          label="First Name"
+          name="firstName"
+          fullWidth
+          required
+          value={formData.firstName}
+          onChange={handleChange}
+          error={!!errors.firstName}
+          helperText={errors.firstName}
+        />
+      </Grid>
 
+      <Grid item xs={12}>
+        <TextField
+          label="Middle Name"
+          name="middleName"
+          fullWidth
+          value={formData.middleName}
+          onChange={handleChange}
+        />
+      </Grid>
 
+      <Grid item xs={12}>
+        <TextField
+          label="Last Name"
+          name="lastName"
+          fullWidth
+          required
+          value={formData.lastName}
+          onChange={handleChange}
+          error={!!errors.lastName}
+          helperText={errors.lastName}
+        />
+      </Grid>
 
-            <Grid item xs={12}>
-              <TextField
-                label="Email"
-                name="emailId"
-                fullWidth
-                required
-                value={formData.emailId}
-                onChange={handleChange}
-                error={!!errors.emailId}
-                helperText={errors.emailId}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                fullWidth
-                required
-                value={formData.password}
-                onChange={handleChange}
-                error={!!errors.password}
-                helperText={errors.password}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={handleTogglePasswordVisibility}
-                        edge="end"
-                        aria-label="toggle password visibility"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+      <Grid item xs={12}>
+        <FormControl component="fieldset" error={!!errors.gender}>
+          <FormLabel component="legend">Gender</FormLabel>
+          <RadioGroup
+            row
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+          >
+            <FormControlLabel value="MALE" control={<Radio />} label="Male" />
+            <FormControlLabel value="FEMALE" control={<Radio />} label="Female" />
+            <FormControlLabel value="OTHER" control={<Radio />} label="Other" />
+          </RadioGroup>
+          {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
+        </FormControl>
+      </Grid>
 
-            <Grid item xs={12}>
-              <TextField
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                fullWidth
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                error={!!errors.confirmPassword}
-                helperText={errors.confirmPassword}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={handleToggleConfirmPasswordVisibility}
-                        edge="end"
-                        aria-label="toggle confirm password visibility"
-                      >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Mobile Number"
-                name="mobileNo"
-                fullWidth
-                required
-                value={formData.mobileNo}
-                onChange={handleChange}
-                error={!!errors.mobileNo}
-                helperText={errors.mobileNo}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Alternate Number"
-                name="AlternateNumber"
-                fullWidth
-                value={formData.AlternateNumber}
-                onChange={handleChange}
-                // error={!!errors.phoneNumber}
-                // helperText={errors.phoneNumber}
-              />
-            </Grid>
-          </Grid>
+      <Grid item xs={12}>
+        <TextField
+          label="Email"
+          name="emailId"
+          fullWidth
+          required
+          value={formData.emailId}
+          onChange={handleChange}
+          error={!!errors.emailId}
+          helperText={errors.emailId}
+        />
+      </Grid>
+
+      <Grid item xs={12}>
+        <TextField
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          name="password"
+          fullWidth
+          required
+          value={formData.password}
+          onChange={handleChange}
+          error={!!errors.password}
+          helperText={errors.password}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={handleTogglePasswordVisibility} edge="end">
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Grid>
+    </Grid>
         );
       case 1:
         return (
@@ -632,73 +614,92 @@ const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(
         );
       case 2: // Additional Details
       return (
-        <> 
-            <Grid container spacing={2}>
-            {/* serviceType Dropdown */}
-              <Grid item xs={12} sm={6}  className='pt-4'>
-                <TextField
-                select
-                label="Select Service Type"
-                name="housekeepingRole"
-                fullWidth
-                required
-                value={formData.housekeepingRole || ""}  // Ensure a default empty value
-                onChange={handleChange}  // Handle the state update
-                error={!!errors.housekeepingRole}  // Show error if validation fails
-                helperText={errors.housekeepingRole}
-                >
-                <MenuItem value="" disabled>
-                Select Service Type
-                </MenuItem>
-                <MenuItem value="COOK">Cook</MenuItem>
-                <MenuItem value="NANNY">Nanny</MenuItem>
-                <MenuItem value="MAID">Maid</MenuItem>
-                </TextField>
-              </Grid>
-                {/* Description */}
-                <Grid item xs={12} >
-                    <TextField
-                        label="Description"
-                        name="description"
-                        fullWidth
-                        value={formData.description}
-                        onChange={handleChange}
-                    />
-                </Grid>
-            {/* Experience Field */}
-          <Grid item xs={12} sm={6}>
-            <TextField
-            label="Experience"
-            name="experience"
+        <>
+  <Grid container spacing={2}>
+     {/* Service Type Dropdown */}
+     <Grid item xs={12} sm={6}>
+          <TextField
+            select
+            label="Select Service Type"
+            name="housekeepingRole"
             fullWidth
+            value={formData.housekeepingRole}
+            onChange={handleServiceTypeChange}
+            error={!!errors.housekeepingRole}
+            helperText={errors.housekeepingRole}
             required
-            value={formData.experience}
-            onChange={handleChange}
-             error={!!errors.experience}
-            helperText={errors.experience || 'Years in business or relevant experience'}
-             />
-          </Grid>
-         
+          >
+            <MenuItem value="" disabled>
+              Select Service Type
+            </MenuItem>
+            <MenuItem value="COOK">Cook</MenuItem>
+            <MenuItem value="NANNY">Nanny</MenuItem>
+            <MenuItem value="MAID">Maid</MenuItem>
+          </TextField>
+        </Grid>
 
-            {/* Checkbox for agreeing to Terms of Service */}
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.agreeToTerms}
-                    onChange={handleChange}
-                    name="agreeToTerms"
-                    required
-                  />
-                }
-                label="I agree to the Terms of Service and Privacy Policy"
-              />
-              {errors.agreeToTerms && (
-                <Typography color="error">{errors.agreeToTerms}</Typography>
-              )}
-            </Grid>
+        {/* Speciality Radio Buttons (Visible if 'COOK' is selected) */}
+        {isCookSelected && (
+          <Grid item xs={12} sm={6}>
+            <FormControl component="fieldset" error={!!errors.speciality} required>
+              <FormLabel component="legend">Speciality</FormLabel>
+              <RadioGroup
+                name="speciality"
+                value={formData.speciality}
+                onChange={handleSpecialityChange}
+              >
+                <FormControlLabel value="veg" control={<Radio />} label="Veg" />
+                <FormControlLabel value="non-veg" control={<Radio />} label="Non-Veg" />
+                <FormControlLabel value="both" control={<Radio />} label="Both" />
+              </RadioGroup>
+              <FormHelperText>{errors.speciality}</FormHelperText>
+            </FormControl>
           </Grid>
-        </>
+        )}
+    {/* Description Field */}
+    <Grid item xs={12}>
+      <TextField
+        label="Description"
+        name="description"
+        fullWidth
+        value={formData.description}
+        onChange={handleChange}
+      />
+    </Grid>
+
+    {/* Experience Field */}
+    <Grid item xs={12} sm={6}>
+      <TextField
+        label="Experience"
+        name="experience"
+        fullWidth
+        required
+        value={formData.experience}
+        onChange={handleChange}
+        error={!!errors.experience}
+        helperText={errors.experience || "Years in business or relevant experience"}
+      />
+    </Grid>
+
+    {/* Checkbox for Terms of Service */}
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={formData.agreeToTerms}
+            onChange={handleChange}
+            name="agreeToTerms"
+            required
+          />
+        }
+        label="I agree to the Terms of Service and Privacy Policy"
+      />
+      {errors.agreeToTerms && (
+        <Typography color="error">{errors.agreeToTerms}</Typography>
+      )}
+    </Grid>
+  </Grid>
+</>
       );
 
 
