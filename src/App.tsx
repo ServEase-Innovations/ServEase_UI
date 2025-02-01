@@ -19,6 +19,8 @@ import AgentRegistrationForm from "./components/Registration/AgentRegistrationFo
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { add } from "./features/pricing/pricingSlice";
+import { NotificationContainer } from 'react-notifications';
+
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); // State to manage selections
@@ -129,9 +131,10 @@ function App() {
       </section>
       {/* <Checkout /> */}
       {/* <AgentRegistrationForm /> */}
-      <footer className="footer-container">
+      {/* <footer className="footer-container">
         <Footer />
-      </footer> 
+      </footer>  */}
+      <NotificationContainer />
     </div>
   );
 }

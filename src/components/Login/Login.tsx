@@ -11,6 +11,8 @@ import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
 import { PROFILE } from "../../Constants/pagesConstants";
+import { NotificationManager } from "react-notifications";
+import "react-notifications/lib/notifications.css";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -86,8 +88,39 @@ export const Login: React.FC<ChildComponentProps> = ({
 
       // Check if the response is successful
       if (response.status === 200 && response.data) {
-        const { message, role } = response.data;
-        dispatch(add(response.data));
+        const { message, role, customerDetails, serviceProviderDetails } = response.data;
+
+        const firstName =
+          role === "CUSTOMER"
+            ? customerDetails?.firstName || "unknown"
+            : role === "SERVICE_PROVIDER"
+              ? serviceProviderDetails?.firstName || "unknown"
+              : "unknown";
+
+        dispatch(add(response.data));        
+
+        const notificationMessage = `Hello ${firstName}`;
+        NotificationManager.success(notificationMessage, "Welcome!", 5000);
+
+        //WebSocket connection for service providers
+        if (role === "SERVICE_PROVIDER" && serviceProviderDetails?.serviceproviderId) {
+          const ws = new WebSocket("ws://localhost:8081");
+
+          ws.onopen = () => {
+            ws.send(JSON.stringify({
+              type: "LOGIN",
+              role: "SERVICE_PROVIDER",
+              serviceproviderId: serviceProviderDetails.serviceproviderId
+            }));
+          };
+
+          ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "NOTIFICATION") {
+              NotificationManager.success(data.message, "Alert", 5000);
+            }
+          };
+        }
 
         // Display success message
         setSnackbarMessage(message || "Login successful!");
