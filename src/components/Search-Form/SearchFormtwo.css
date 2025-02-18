@@ -1,0 +1,145 @@
+/* General styling for the search form inside the MUI Drawer */
+.search-form {
+  width: 100%;
+  max-width: 450px; /* Adjust based on drawer size */
+  margin: 0 auto;
+  padding: 20px 30px;
+  background-color: #ffffff;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-sizing: border-box; /* Ensures padding does not add to overall width */
+}
+
+/* Heading Styling */
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333333;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Form Row styling for the general form layout */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 15px; /* Ensure consistent gap between the fields */
+}
+
+/* Form Group styling */
+.form-group {
+  flex: 1 1 48%;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555555;
+  margin-bottom: 8px;
+}
+
+/* Text Input Styling */
+.form-group input[type="text"] {
+  padding: 8px;
+  font-size: 14px;
+  color: #333333;
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+/* Focus State of Input Fields */
+.form-group input[type="text"]:focus {
+  border-color: #1976d2; /* Matches MUI primary color */
+}
+
+/* Gender Section */
+.gender label {
+  margin-right: 15px;
+  font-size: 14px;
+  display: inline-flex; /* Keep labels inline with the checkboxes */
+  align-items: center;
+}
+
+.gender input.second-radio {
+  margin-left: 10px; /* Move the second radio button to the right */
+}
+
+/* Shift Time Section Layout */
+.flex-container1 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shift-group {
+  display: flex;
+  flex-direction: column; /* Stack the slider and checkbox on top of each other */
+  margin-top: 10px;
+}
+
+.shift-group label {
+  margin-right: 15px;
+}
+
+.shift-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* Slider Styling */
+.MuiSlider-root {
+  color: #1976d2 !important;
+  width: 200px !important; /* Adjust width of the slider */
+}
+
+/* Buttons Styling */
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Style for the search and reset buttons */
+.search-button,
+.reset-button {
+  border: 1px solid #1976d2; /* Border color */
+  color: #1976d2;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: border-color 0.3s; /* Smooth transition for hover */
+  background-color: transparent;
+}
+
+/* Button hover effect */
+.search-button:hover,
+.reset-button:hover {
+  background-color: #1976d2;
+  color: #ffffff;
+  border-color: #1976d2; /* Maintain border color consistency */
+}
+
+/* Apply responsive adjustments */
+@media (max-width: 600px) {
+  .form-row {
+      flex-direction: column; /* Stack the form fields vertically */
+      align-items: center;
+  }
+
+  .form-group {
+      flex: 1 1 100%; /* Allow input fields to fill full width on smaller screens */
+      margin-bottom: 15px;
+  }
+
+  .MuiSlider-root {
+      width: 100%; /* Allow the slider to take full width on smaller screens */
+  }
+}

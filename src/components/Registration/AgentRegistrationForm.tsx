@@ -12,6 +12,7 @@ import {
   InputAdornment
 } from "@mui/material";
 import { Visibility, VisibilityOff, FileCopy } from "@mui/icons-material";
+import axiosInstance from "../../services/axiosInstance";
 
 const AgentRegistrationForm = ({ onBackToLogin }) => {
   const [formData, setFormData] = useState({
@@ -91,29 +92,66 @@ const AgentRegistrationForm = ({ onBackToLogin }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Submit the form data (you would do an API call here)
-    console.log("Submitted Form Data:", formData);
-
-    // Setting success message and referral code
-    const generatedReferralCode = "REF1234567"; // Example hard-coded referral code
-    setReferralCode(generatedReferralCode);
-    setMessage("Agent added successfully!");
-    setOpenSnackbar(true); // Open the Snackbar on form submission
+  
+    // Prepare the request body to match the API format
+    const requestData = {
+      companyName: formData.companyName,
+      emailId: formData.email, // Change 'email' to 'emailId'
+      phoneNo: Number(formData.mobileNumber), // Change 'mobileNumber' to 'phoneNo' and ensure it's a number
+      address: formData.address,
+      password: formData.password,
+    };
+  
+    try {
+      const response = await axiosInstance.post(
+        "http://43.205.212.94:8080/vendors/add", 
+        requestData, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      if (response.status === 200) {
+        const generatedReferralCode = response.data.referralCode || "REF1234567"; // Use referral code from response
+        setReferralCode(generatedReferralCode);
+        setMessage("Vendor added successfully!");
+        setOpenSnackbar(true);
+  
+        // Automatically copy the referral code to the clipboard
+        navigator.clipboard.writeText(generatedReferralCode).then(() => {
+          alert("Referral code copied to clipboard!");
+        }).catch((err) => {
+          console.error("Failed to copy referral code: ", err);
+        });
+      } else {
+        setMessage(response.data.error || "Failed to add vendor.");
+        setOpenSnackbar(true);
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      setMessage("An error occurred while connecting to the API.");
+      setOpenSnackbar(true);
+    }
   };
-
+  
+  // Close the Snackbar when clicked
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
-
+  
+  // Manually copy the referral code to clipboard
   const handleCopyReferralCode = () => {
     navigator.clipboard.writeText(referralCode).then(() => {
       alert("Referral code copied to clipboard!");
+    }).catch((err) => {
+      console.error("Failed to copy referral code: ", err);
     });
   };
-
+  
   return (
     <Box sx={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Container maxWidth="sm">

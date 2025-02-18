@@ -7,6 +7,8 @@ import store from './store/userStore';
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // Importing routing components
 import Admin from "./components/Admin/Admin";
+import AppleHomeScreen from "./components/test/AppleHomeScreen";
+import StylishLayout from "./components/test/StylishLayout";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -19,6 +21,8 @@ root.render(
         <Routes>
           <Route path="/" element={<App />} /> 
           <Route path="/admin" element={<Admin />} />
+          <Route path="/test1" element={ <AppleHomeScreen />} />
+          <Route path="/test2" element={ <StylishLayout />} />
         </Routes>
       </Router>
     </Provider>

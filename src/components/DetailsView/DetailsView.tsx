@@ -90,33 +90,23 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       ) : (
         <div className="details-view-container">
           {/* Material-UI Drawer */}
-          <Drawer
-  anchor="left"
-  open={drawerOpen}
-  onClose={() => toggleDrawer(false)}
->
-  <Box sx={{ width: 300, padding: 2, position: "relative" }}>
-    {/* Close button styled to appear at the top-right corner */}
-    <Button
-      variant="outlined"
-      onClick={() => toggleDrawer(false)}
-      sx={{
-        position: "absolute",
-        top: 10,
-        right: 10,
-        // backgroundColor: "#ffffff",
-        // color: "#000000",
-        // border: "1px solid #000",
-        // "&:hover": {
-        //   backgroundColor: "#f0f0f0",
-        // },
-      }}
-    >
-      Close
-    </Button>
+          <Drawer anchor="right" open={drawerOpen} onClose={() => toggleDrawer(false)}>
+            <Box sx={{ width: 300, padding: 2, position: "relative" }}>
+              {/* Close button styled to appear at the top-right corner */}
+              <Button
+                variant="outlined"
+                onClick={() => toggleDrawer(false)}
+                sx={{
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                }}
+              >
+                Close
+              </Button>
               <Search_form
                 open={drawerOpen}
-                selectedValue={""}
+                selectedValue={selectedProviderType} // Pass the selectedProviderType here
                 onClose={() => toggleDrawer(false)}
                 onSearch={handleSearchResults}
               />
@@ -130,29 +120,22 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
                 <Button onClick={handleBackClick} variant="outlined">
                   Back
                 </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => toggleDrawer(true)}
-                >
+                <Button variant="outlined" onClick={() => toggleDrawer(true)}>
                   Search
                 </Button>
               </header>
 
               <div className="providers-view">
-                {(searchResults.length > 0
-                  ? searchResults
-                  : ServiceProvidersData
-                ).map((provider) => (
-                  <div
-                    className="views"
-                    key={provider.serviceproviderId}
-                  >
-                    <ProviderDetails
-                      {...provider}
-                      selectedProvider={handleSelectedProvider}
-                    />
-                  </div>
-                ))}
+                {(searchResults.length > 0 ? searchResults : ServiceProvidersData).map(
+                  (provider) => (
+                    <div className="views" key={provider.serviceproviderId}>
+                      <ProviderDetails
+                        {...provider}
+                        selectedProvider={handleSelectedProvider}
+                      />
+                    </div>
+                  )
+                )}
               </div>
             </>
           </div>

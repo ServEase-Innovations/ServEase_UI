@@ -17,105 +17,117 @@ import AddToCart from "./components/add/AddToCart";
 import New from "./components/add/New";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux"; // Import useSelector
 import { add } from "./features/pricing/pricingSlice";
-import { NotificationContainer } from 'react-notifications';
+import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 
+import { RootState } from './store/userStore'; 
 
 function App() {
-  const [selection, setSelection] = useState<string | undefined>(); // State to manage selections
-  const [handleDropDownValue, setDropDownValue] = useState<
-    string | undefined
-  >(); // Fixed typo
+  const [selection, setSelection] = useState<string | undefined>(); 
+  const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
   const [checkoutData, setCheckoutData] = useState<any>();
-  const [selectedBookingType, setSelectedBookingType] = useState<
-    string | undefined
-  >(); // Fixed typo
-  const [serviceProviderDetails , setServiceProvidersData ] = useState<string | undefined>();
-  const selectedBookingTypeValue = {selectedBookingType, setSelectedBookingType};
+  const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
+  const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
+  const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
 
   const dispatch = useDispatch();
 
-  // Function to handle child component communication
+  // Access user slice from the Redux store
+  // const user = useSelector((state: RootState) => state.user);
+  // console.log("user name is :",user);
+  
+  // const userRole = user?.value; 
+  // console.log("Logged-in user role:", userRole); 
+// Define the expected user type
+type UserState = {
+  value?: {
+    role?: string;
+    customerDetails?: any;
+  } | null;
+};
+
+// Extract user data from Redux with correct type
+const user = useSelector((state: RootState) => state.user as UserState);
+
+// Ensure `value` is not null before accessing `role`
+const userRole = user?.value?.role ?? "No Role";
+console.log("Logged-in user role:", userRole);
+
+if (userRole === "CUSTOMER") {
+  console.log("User is a Customer");
+} else if (userRole === "SERVICE_PROVIDER") {
+  console.log("User is a Service Provider");
+} else {
+  console.log("User role is unknown");
+}
+
+
   const handleDataFromChild = (e: string) => {
-    console.log("data from child ==> ", e)
-    setSelection(e); // Update selection based on child component's input
+    console.log("data from child ==> ", e);
+    setSelection(e);
   };
 
   const handleCheckoutItems = (item: any) => {
     console.log("checkout Item => ", item);
-    setCheckoutData(item); // Save the checkout data
+    setCheckoutData(item);
   };
 
   const getSelectedFromDropDown = (e: string) => {
     setSelection(undefined);
-    setCheckoutData(undefined); // Reset selection on dropdown change
+    setCheckoutData(undefined);
     setDropDownValue(e);
   };
 
   const handleSelectedBookingType = (e: string) => {
     console.log("Selected booking type:", e);
-    setSelectedBookingType(e); // Update selected booking type
+    setSelectedBookingType(e);
   };
 
-  const handleSelectedProvider = (e : any) =>{
-    console.log(e)
+  const handleSelectedProvider = (e: any) => {
+    console.log(e);
     setServiceProvidersData(e);
-  }
+  };
 
-  useEffect(() =>{
+  useEffect(() => {
     getPricingData();
-  })
+  });
 
-  
-  const getPricingData = () =>{
+  const getPricingData = () => {
     axios.get('http://3.110.168.35:3000/records').then(function (response) {
-      console.log(response.data)
-      dispatch(add(response.data))
-    }).catch(function (error) {console.log(error)})
+      console.log(response.data);
+      dispatch(add(response.data));
+    }).catch(function (error) { console.log(error) });
+  };
 
-  }
-
-  // Render content based on different conditions
   const renderContent = () => {
-    if(!selection){
-      return <ServiceProviderContext.Provider  value={selectedBookingTypeValue}>
-      <Landingpage
-        sendDataToParent={handleDataFromChild}
-        bookingType={handleSelectedBookingType}
-      />
-      </ServiceProviderContext.Provider>
-    } else if(selection){
-      if(selection === DETAILS){
-        return <DetailsView
-          selected={selectedBookingType}
-          sendDataToParent={handleDataFromChild}
-          selectedProvider={handleSelectedProvider}
-      />
-      }else if(selection === CONFIRMATION){
-        console.log("seleced details -> ",serviceProviderDetails )
-        return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>
-      } else if(selection === CHECKOUT){
-        return <Checkout providerDetails={serviceProviderDetails}/>
-      }else if(selection === LOGIN){
-          return (
-        <div className="w-full max-w-4xl h-[75%]">
-          <Login sendDataToParent={handleDataFromChild}/>
-        </div>
-      );
+    if (!selection) {
+      return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
+        <Landingpage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType} />
+      </ServiceProviderContext.Provider>;
+    } else if (selection) {
+      if (selection === DETAILS) {
+        return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider} />;
+      } else if (selection === CONFIRMATION) {
+        console.log("selected details -> ", serviceProviderDetails);
+        return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
+      } else if (selection === CHECKOUT) {
+        return <Checkout providerDetails={serviceProviderDetails} />;
+      } else if (selection === LOGIN) {
+        return (
+          <div className="w-full max-w-4xl h-[75%]">
+            <Login sendDataToParent={handleDataFromChild} />
+          </div>
+        );
       } else if (selection === BOOKINGS) {
-          return <Booking />;
-        }else if(selection === PROFILE){
-      return <UserProfile goBack={function (): void {
-        throw new Error("Function not implemented.");
-      } }/>
+        return <Booking />;
+      } else if (selection === PROFILE) {
+        return <UserProfile goBack={() => { throw new Error("Function not implemented."); }} />;
+      } else if (selection === ADMIN) {
+        console.log("I am in admin");
+        return <Admin />;
+      }
     }
-    else if (selection === ADMIN) {
-      console.log("i am in admin")
-      return <Admin />;
-    }
-    }
-    
   };
 
   return (
@@ -123,22 +135,14 @@ function App() {
       <div className="header-class">
         <Header sendDataToParent={handleDataFromChild} />
       </div>
-{/* 
-      <AddToCart/> */}
-      {/* <New/> */}
       <section className="flex-grow flex justify-center items-center px-4 py-6 relative">
         {renderContent()}
       </section>
-      {/* <Checkout /> */}
-      {/* <AgentRegistrationForm /> */}
-      {/* <footer className="footer-container">
+      <footer className="footer-container">
         <Footer />
-      </footer>  */}
-      <NotificationContainer />
+      </footer>
     </div>
   );
 }
 
 export default App;
-
-

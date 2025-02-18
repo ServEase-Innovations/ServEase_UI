@@ -50,6 +50,8 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   };
 
   const handleSave = () => {
+    console.log("Selected Start Date:", startDate);
+    console.log("Selected End Date:", endDate);
     const booking: Bookingtype = {
       startDate,  // Use the state directly
       endDate,    // Use the state directly
@@ -98,7 +100,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
       <div className="selector-container">
         <Tooltip title="Cook" arrow>
           <div className="selectors" onClick={() => handleClick(COOK)}>
-            <img src="../new2.png" alt="Cook" />
+            <img src="../cooking.png" alt="Cook" />
           </div>
         </Tooltip>
         <p className="label-text">Cook</p>
@@ -107,7 +109,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
       <div className="selector-container">
         <Tooltip title="Maid" arrow>
           <div className="selectors" onClick={() => handleClick(MAID)}>
-            <img src="../new1.png" alt="Maid" />
+            <img src="../cleaner.png" alt="Maid" />
           </div>
         </Tooltip>
         <p className="label-text">Maid</p>
@@ -116,7 +118,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
       <div className="selector-container">
         <Tooltip title="Nanny" arrow>
           <div className="selectors" onClick={() => handleClick(NANNY)}>
-            <img src="../new3.png" alt="Nanny" />
+            <img src="../babysitter.png" alt="Nanny" />
           </div>
         </Tooltip>
         <p className="label-text">Nanny</p>
@@ -144,17 +146,21 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
           </RadioGroup>
         </FormControl>
         {selectedRadioButtonValue === "Date" && (
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label htmlFor="startDate">Date</label>
-              <DateCalendar
-                value={startDate ? dayjs(startDate) : null}
-                onChange={handleStartDateChange}
-                disablePast
-              />
-            </div>
-          </LocalizationProvider>
-        )}
+  <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <label htmlFor="startDate">Date</label>
+      <DateCalendar
+        value={startDate ? dayjs(startDate) : null}
+        onChange={(newDate) => {
+          const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
+          setStartDate(formattedDate);
+          setEndDate(formattedDate); // Auto-set end date to start date
+        }}
+        disablePast
+      />
+    </div>
+  </LocalizationProvider>
+)}
     {selectedRadioButtonValue === "Short term" && (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
     <div className="date-container">
@@ -189,18 +195,22 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
 )}
 
 
-        {selectedRadioButtonValue === "Monthly" && (
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label htmlFor="startDate">Start Date</label>
-              <DateCalendar
-                value={startDate ? dayjs(startDate) : null}
-                onChange={handleStartDateChange}
-                disablePast
-              />
-            </div>
-          </LocalizationProvider>
-        )}
+{selectedRadioButtonValue === "Monthly" && (
+  <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <label htmlFor="startDate">Start Date</label>
+      <DateCalendar
+        value={startDate ? dayjs(startDate) : null}
+        onChange={(newDate) => {
+          const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
+          setStartDate(formattedDate);
+          setEndDate(newDate ? newDate.add(1, 'month').format('YYYY-MM-DD') : null); // Auto-set end date to 1 month later
+        }}
+        disablePast
+      />
+    </div>
+  </LocalizationProvider>
+)}
       </DialogComponent>
     </section>
   );

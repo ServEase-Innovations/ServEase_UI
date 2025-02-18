@@ -6,6 +6,10 @@
   width: 100%;
 } */
 
+.container{
+  max-width: 100%;
+}
+
 .details-container{
   height:80%;
   width: 100%;

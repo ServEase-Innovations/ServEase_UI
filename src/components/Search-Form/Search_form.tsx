@@ -1,10 +1,9 @@
-import React, { useState } from "react";
-import "./Search_form.css";
-import Button from "react-bootstrap/Button";
-import { useForm, Controller } from "react-hook-form";
+import React, { useEffect, useState } from "react";
+import "./SearchFormtwo.css";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
+import { FormLabel, Slider } from "@mui/material";
 import axiosInstance from "../../services/axiosInstance";
-import ChipInput from "../Common/ChipInput/ChipInput";
+
 interface SearchFormProps {
   open: boolean;
   selectedValue: string;
@@ -12,292 +11,259 @@ interface SearchFormProps {
   onSearch: (data: any[]) => void;
 }
 
-interface FormData {
-  gender: string;
-  age: number;
-  language: string[];
-  shift: string;
-  availability: string;
-  cookingspeciality: string;
-  diet: string;
-  rating: string[];
-  speciality: string[];
-}
 
 export const Search_form: React.FC<SearchFormProps> = ({
   open,
   selectedValue,
-  onClose,
+ onClose,
   onSearch,
 }) => {
-  const { handleSubmit, control, register, reset, watch} =
-    useForm<FormData>({
-      defaultValues: {
-        gender: "",
-        age: 18,
-        language: [],
-        shift: "",
-        availability: "8.00 AM, 12.00 PM",
-        cookingspeciality: "",
-        diet: "",
-        speciality: [],
-        rating: [],
-      },
-    });
-  
-  // const [foodSpecialitySearch, setFoodSpecialitySearch] = useState("");
-
+  const [sliderValueAge, setSliderValueAge] = useState([18, 25]);
+  const [morningTime, setMorningTime] = useState(6);
+  const [eveningTime, setEveningTime] = useState(14);
+  const [isMorningChecked, setIsMorningChecked] = useState(false);
+  const [isEveningChecked, setIsEveningChecked] = useState(false);
+  const [selectedGender, setSelectedGender] = useState<string | undefined>(undefined); // Gender selection
+  const [language, setLanguage] = useState('');  // Language input
   const [loading, setLoading] = useState(false);
-  const [availableLanguages] = useState<string[]>([
-    "Assamese",
-    "Bengali",
-    "Gujarati",
-    "HINDI",
-    "Kannada",
-    "Kashmiri",
-    "Marathi",
-    "Malayalam",
-    "Oriya",
-    "Punjabi",
-    "Sanskrit",
-    "Tamil",
-    "Telugu",
-    "Urdu",
-    "Sindhi",
-    "Konkani",
-    "Nepali",
-    "Manipuri",
-    "Bodo",
-    "Dogri",
-    "Maithili",
-    "Santhali",
-  ]);
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
-
-  const handleChipChange = (newChips: string[]) => {
-    setSelectedChips(newChips);
-    console.log(selectedChips)
+  
+  useEffect(() => {
+    console.log("Selected Value on Component Render: ", selectedValue);
+  }, [selectedValue]); // This will log when selectedValue changes or when the component is mounted
+  
+  // Format function for displaying age range
+  const formatDisplayAge = (value: number) => {
+    return `${value} yrs`;
   };
 
-  const [availableFoodSpecialities] = useState<string[]>([
-    "CHINESE",
-    "Butter Chicken",
-    "Rogan Josh",
-    "Chole Bhature",
-    "Dal Makhani",
-    "Paneer Tikka",
-    "Aloo Paratha",
-    "Tandoori Chicken",
-    "Kadhi Pakora",
-    "Rajma-Chawal",
-    "Pindi Chana",
-    "Masala Dosa",
-    "Idli-Sambar",
-    "Vada",
-    "Hyderabadi Biryani",
-    "Pongal",
-    "Appam with Stew",
-    "Chettinad Chicken",
-    "Puliyodarai",
-    "Malabar Parotta",
-    "Puttu and Kadala Curry",
-    "Macher Jhol",
-    "Litti Chokha",
-    "Pakhala Bhata",
-    "Sandesh",
-    "Chingri Malai Curry",
-    "Rosogolla",
-    "Momos",
-    "Thukpa",
-    "Aloo Pitika",
-    "Bamboo Shoot Curry",
-    "Pav Bhaji",
-    "Dhokla",
-    "Thepla",
-    "Dal Baati Churma",
-    "Gatte Ki Sabzi",
-    "Goan Fish Curry",
-    "Puran Poli",
-    "Shrikhand",
-    "Laal Maas",
-    "Handvo",
-    "Pani Puri/Golgappa",
-    "Samosa",
-    "Kachori",
-    "Sev Puri",
-    "Aloo Tikki Chaat",
-    "Jalebi",
-    "Bhutta (Roasted Corn)",
-    "Chaat Papdi",
-    "Dabeli",
-  ]);
+  // Handle slider value changes
+  const handleAgeChange = (event: any, newValue: number | number[]) => {
+    setSliderValueAge(newValue as number[]);
+  };
 
-  // const toggleFoodSpecialitySelection = (speciality: string) => {
-  //   const selectedSpecialities = watch("speciality");
-  //   if (selectedSpecialities.includes(speciality)) {
-  //     setValue(
-  //       "speciality",
-  //       selectedSpecialities.filter((item) => item !== speciality)
-  //     );
-  //   } else {
-  //     setValue("speciality", [...selectedSpecialities, speciality]);
-  //   }
-  // };
-  // const filteredFoodSpecialities = availableFoodSpecialities.filter(
-  //   (speciality) =>
-  //     speciality.toLowerCase().includes(foodSpecialitySearch.toLowerCase())
-  // );
+  // Handle slider value changes (morning and evening)
+  const handleMorningTimeChange = (event: Event, value: number | number[], activeThumb: number) => {
+    setMorningTime(value as number); // Update to use 'value' instead of 'newValue'
+  };
 
-  // const handleFoodSearchChange = (
-  //   event: React.ChangeEvent<HTMLInputElement>
-  // ) => {
-  //   setFoodSpecialitySearch(event.target.value);
-  // };
+  const handleEveningTimeChange = (event: Event, value: number | number[], activeThumb: number) => {
+    setEveningTime(value as number); // Update to use 'value' instead of 'newValue'
+  };
 
-  // const toggleLanguageSelection = (language: string) => {
-  //   const selectedLanguages = watch("language");
-  //   if (selectedLanguages.includes(language)) {
-  //     setValue(
-  //       "language",
-  //       selectedLanguages.filter((item) => item !== language)
-  //     );
-  //   } else {
-  //     setValue("language", [...selectedLanguages, language]);
-  //   }
-  // };
+  const handleMorningCheckboxChange = (event: any) => {
+    setIsMorningChecked(event.target.checked);
+  };
 
- 
-  const onSubmit = async (data: FormData) => {
-    console.log("Form Data:", data);
-  
+  const handleEveningCheckboxChange = (event: any) => {
+    setIsEveningChecked(event.target.checked);
+  };
+
+  const handleGenderChange = (event: any) => {
+    setSelectedGender(event.target.value); // Setting selected gender
+  };
+
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLanguage(event.target.value.toUpperCase()); // Ensure the language is always in uppercase
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const selectedRole = selectedValue ? selectedValue.toUpperCase() : undefined;
+    // Construct payload regardless of gender
+    const minAge = sliderValueAge[0];
+    const maxAge = sliderValueAge[1];
+
+    if (minAge >= maxAge) {
+      alert("Please ensure the min age is less than the max age");
+      return;
+    }
+
+    const payload: any = {
+      gender: selectedGender,
+      minAge,
+      maxAge,
+      morningShift: isMorningChecked ? morningTime : undefined,
+      eveningShift: isEveningChecked ? eveningTime : undefined,
+      language: language,  // Include the language in the payload
+      housekeepingRole: selectedRole, 
+    };
+
     try {
       setLoading(true);
+      // Call your API with the prepared payload
       const response = await axiosInstance.get(
         "/api/serviceproviders/get-by-filters",
+        { params: payload }
       );
-  
-      onSearch(response.data); // Pass the response data to the onSearch callback
-    } catch (err) {
-      console.error("There was a problem with the fetch operation:", err);
+
+      // Handle the search results
+      onSearch(response.data); // Pass the response to the onSearch function
+
+    } catch (error) {
+      console.error("Error during search:", error);
     } finally {
       setLoading(false);
     }
   };
-
+ 
   return (
-    <div className="all">
-      {loading ? (
+    <div className="search-form">
+      <h1>Search Your Preferences</h1>
+      {loading ? ( // Toggle with `loading` state
         <LoadingIndicator />
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Gender selection */}
-          <div className="flex-container1">
-            <div className="gender">
-              <label>Gender: </label>
-              <input type="radio" value="MALE" {...register("gender")} /> Male
-              <input type="radio" value="FEMALE" {...register("gender")} />{" "}
-              Female
+        <form onSubmit={handleSubmit}>
+          {/* First Row: Gender, Age, Languages */}
+          <div className="form-row">
+ 
+            {/* Gender Section */}
+            <div className="form-group">
+              <div className="gender">
+                <label>Gender: </label>
+                <input
+                  type="radio"
+                  value="MALE"
+                  checked={selectedGender === "MALE"}
+                  onChange={handleGenderChange}
+                  
+                />{" "}
+                Male
+                <input
+                  type="radio"
+                  value="FEMALE"
+                  checked={selectedGender === "FEMALE"}
+                  onChange={handleGenderChange}
+                  className="second-radio" 
+                />{" "}
+                Female
+              </div>
+            </div>
+
+            {/* Age Section */}
+            <div className="form-group" style={{ display: "flex", alignItems: "center" }}>
+              <FormLabel style={{ marginRight: "170px" , fontWeight: "bold"}}>Age:</FormLabel>
+              <Slider
+                value={sliderValueAge}
+                onChange={handleAgeChange}
+                valueLabelDisplay="on"
+                valueLabelFormat={formatDisplayAge}
+                min={18}
+                max={50}
+                step={5}
+                marks={[
+                  { value: 18, label: "18 yrs" },
+                  { value: 25, label: "25 yrs" },
+                  { value: 35, label: "35 yrs" },
+                  { value: 50, label: "50 yrs" },
+                ]}
+                style={{ width: "200px" }}
+              />
             </div>
           </div>
 
-          {/* Age slider */}
-          <div className="flex-container1">
-            <label>Age: </label>
-            <Controller
-              name="age"
-              control={control}
-              render={({ field }) => (
-                <input
-                  type="range"
-                  min="18"
-                  max="50"
-                  {...field}
-                  value={field.value}
-                />
-              )}
+          {/* Languages Section */}
+          <div className="form-group">
+            <label htmlFor="languages">Languages:</label>
+            <input
+              type="text"
+              id="languages"
+              value={language}
+              onChange={handleLanguageChange}
+              placeholder="Enter languages"
+              style={{ marginLeft: "10px", padding: "5px" }}
             />
-            {watch("age")} years
           </div>
 
-          {/* Language selection */}
-          <div className="language">
-{/* {To be used by Subhrajit for chip input}  */}
-      <ChipInput options={availableLanguages} onChange={handleChipChange} label="languages" placeholder="Pick/Type Your Languages" />
-            {/* <Button
-              variant="outline-primary"
-              onClick={() => setLanguageModalVisible(true)}
-            >
-              {watch("languages").length > 0
-                ? watch("languages").join(", ")
-                : "Pick Language"}
-            </Button>
-            {languageModalVisible && (
-              <div className="modal">
-                <div className="modal-content">
-                  <ul className="language-list">
-                    <Button
-                      variant="outline-primary"
-                      onClick={() => setLanguageModalVisible(false)}
-                    >
-                      Close
-                    </Button>
-                    {availableLanguages.map((language) => (
-                      <li
-                        key={language}
-                        className={`language-item ${
-                          watch("languages").includes(language)
-                            ? "selected"
-                            : ""
-                        }`}
-                        onClick={() => toggleLanguageSelection(language)}
-                      >
-                        {language}
-                      </li>
-                    ))}
-                  </ul>
-                  
-                </div>
-              </div>
-            )} */}
-          </div>
-          <div className="language">
-          <ChipInput options={availableFoodSpecialities} onChange={handleChipChange} label="Pick Food" placeholder="Pick/Type Your Food Speciality" />
-          </div>
+      {/* Second Row: Shift Time, Availability */}
+<div className="form-row">
+  {/* Shift Time Section */}
+  <div className="form-group">
+    <div className="flex-container1">
+      <label style={{ display: "block", marginBottom: "10px" }}>Shift Time:</label>
 
-          {/* Shift time */}
-          <div className="flex-container1">
-            <label>Shift Time: </label>
-            <input type="radio" value="Morning" {...register("shift")} />{" "}
-            Morning
-            <input type="radio" value="Afternoon" {...register("shift")} />{" "}
-            Afternoon
-            <input type="radio" value="Evening" {...register("shift")} />{" "}
-            Evening
-          </div>
+     {/* Morning Shift Section */}
+  <div className="shift-group" style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
+    <label htmlFor="morning" style={{ marginRight: "15px", display: "inline-flex", alignItems: "center" }}>
+      Morning (6 AM - 12 PM)
+    </label>
+    <input
+      type="checkbox"
+      id="morning"
+      checked={isMorningChecked}
+      onChange={handleMorningCheckboxChange}
+      style={{ transform: "scale(1.2)", marginRight: "15px" }}  // Adjust checkbox size and spacing
+    />
+    <Slider
+      value={morningTime}
+      onChange={handleMorningTimeChange}
+      valueLabelDisplay="on"
+      min={6}
+      max={12}
+      step={1}
+      marks={[
+        { value: 6, label: "6 AM" },
+        { value: 8, label: "8 AM" },
+        { value: 10, label: "10 AM" },
+        { value: 12, label: "12 PM" },
+      ]}
+      style={{ width: "300px", flex: 2 }}
+      disabled={!isMorningChecked}  // Disable slider if checkbox is not checked
+    />
+  </div>
 
-          {/* Availability */}
-          <div className="flex-container1">
-            <label>Availability: </label>
-            <select {...register("availability")}>
-              <option value="8.00 AM">8.00 AM</option>
-              <option value="12.00 PM">12.00 PM</option>
-              <option value="4.00 PM">4.00 PM</option>
-            </select>
-          </div>
+      {/* Evening Shift Section */}
+      <div className="shift-group" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <label htmlFor="evening" style={{ marginRight: "15px", flex: 1 }}>
+          Evening (2 PM - 8 PM)
+        </label>
+        <input
+          type="checkbox"
+          id="evening"
+          checked={isEveningChecked}
+          onChange={handleEveningCheckboxChange}
+          style={{ transform: "scale(1.2)" }} // Make checkbox bigger
+        />
+        <Slider
+          value={eveningTime}
+          onChange={handleEveningTimeChange}
+          valueLabelDisplay="on"
+          min={14}
+          max={20}
+          step={1}
+          marks={[
+            { value: 14, label: "2 PM" },
+            { value: 16, label: "4 PM" },
+            { value: 18, label: "6 PM" },
+            { value: 20, label: "8 PM" },
+          ]}
+          style={{ width: "300px", flex: 2 }}
+          disabled={!isEveningChecked}  // Disable slider if checkbox is not checked
+        />
+      </div>
+    </div>
+  </div>
+</div>
 
-          {/* Submit and Reset buttons */}
-          <div className="button">
-            <Button type="submit" id="button1" variant="outline-primary">
+          {/* Buttons Row */}
+          <div className="button-row">
+            <button type="submit" className="search-button">
               Search
-            </Button>
-            <Button
-              type="button"
-              id="button2"
-              variant="outline-primary"
-              onClick={() => reset()}
+            </button>
+            <button
+              type="reset"
+              className="reset-button"
+              onClick={() => {
+                setSelectedGender(undefined);
+                setSliderValueAge([18, 25]);
+                setIsMorningChecked(false);
+                setIsEveningChecked(false);
+                setMorningTime(6);
+                setEveningTime(14);
+                setLanguage('');
+              }}
             >
               Reset
-            </Button>
+            </button>
           </div>
         </form>
       )}

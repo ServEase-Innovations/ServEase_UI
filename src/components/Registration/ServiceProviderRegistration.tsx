@@ -67,7 +67,7 @@ interface FormData {
   diet:string;
   dob:'';
   profilePic:string;
-  timeSlot: string,
+  timeslot: string,
   referralCode:'',
   
 }
@@ -137,9 +137,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
   // const [profileImage, setProfileImage] = useState<File | null>(null);
   // const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // const fileInputRef = useRef<HTMLInputElement>(null!);
+  const [sliderDisabled, setSliderDisabled] = useState(true);
   const [sliderValueMorning, setSliderValueMorning] = useState([6, 12]);
-  const [sliderValueEvening, setSliderValueEvening] = useState([12, 20]);
-  const [sliderDisabled, setSliderDisabled] = React.useState(true); 
+  const [sliderValueEvening, setSliderValueEvening] = useState([12, 20]); 
   const [isCookSelected, setIsCookSelected] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -176,7 +176,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
     diet:'',
     dob:'',
     profilePic:'',
-    timeSlot: '6.00-20.00',
+    timeslot: '06:00-20:00',
     referralCode:'',
     });
 
@@ -760,18 +760,26 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   //   setSnackbarOpen(true);
   // };
   const updateFormTimeSlot = (morningRange: number[], eveningRange: number[]) => {
-    const formattedTimeSlot = `${morningRange[0]}-${morningRange[1]}, ${eveningRange[0]}-${eveningRange[1]}`;
-    setFormData({ ...formData, timeSlot: formattedTimeSlot });
+    const startMorning = formatDisplayTime(morningRange[0]);
+    const endMorning = formatDisplayTime(morningRange[1]);
+    const startEvening = formatDisplayTime(eveningRange[0]);
+    const endEvening = formatDisplayTime(eveningRange[1]);
+  
+    // Format as "HH:MM-HH:MM, HH:MM-HH:MM"
+    const formattedTimeSlot = `${startMorning}-${endMorning}, ${startEvening}-${endEvening}`;
+  
+    setFormData((prev) => ({ ...prev, timeslot: formattedTimeSlot }));
   };
   
-    // Format slider labels for display
-    const formatDisplayTime = (value: number) => {
-      const hour = Math.floor(value);
-      const minutes = value % 1 === 0.5 ? ":30" : ":00";
-      const suffix = hour < 12 ? "AM" : "PM";
-      const formattedHour = hour <= 12 ? hour : hour - 12;
-      return `${formattedHour}${minutes} ${suffix}`;
-    };
+  // Convert time to 24-hour format (HH:MM)
+  const formatDisplayTime = (value: number) => {
+    const hour = Math.floor(value);
+    const minutes = value % 1 === 0.5 ? "30" : "00";
+    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`; // Add leading zero
+  
+    return `${formattedHour}:${minutes}`;
+  };
+  
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -1201,84 +1209,89 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       />
     </Grid>
     <Grid item xs={12}>
-  <FormControl component="fieldset">
-    <FormLabel component="legend">Select Time Slot</FormLabel>
-    <FormGroup>
-      {/* Checkbox for Full Day Availability */}
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={formData.timeSlot === "6.00-20.00"} // Reflect full-day time slot
-            onChange={(e) => {
-              if (e.target.checked) {
-                // Disable sliders and set full-day range
-                setFormData({ ...formData, timeSlot: "6.00-20.00" });
-                setSliderDisabled(true);
-              } else {
-                // Enable sliders and clear timeSlot
-                setFormData({ ...formData, timeSlot: "" });
-                setSliderDisabled(false);
+        <FormControl component="fieldset">
+          <FormLabel component="legend">Select Time Slot</FormLabel>
+          <FormGroup>
+            {/* Checkbox for Full Day Availability */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.timeslot === "06:00-20:00"} // Default checked
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({ ...formData, timeslot: "06:00-20:00" });
+                      setSliderDisabled(true);
+                    } else {
+                      setFormData({ ...formData, timeslot: "" });
+                      setSliderDisabled(false);
+                    }
+                  }}
+                />
               }
-            }}
-          />
-        }
-        label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
-      />
+              label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
+            />
 
-      {/* Morning Slider */}
-      <div style={{ marginTop: "16px", padding: "0 18px" }}>
-        <FormLabel component="legend">Morning (6:00 AM - 12:00 PM)</FormLabel>
-        <Slider
-          value={sliderValueMorning}
-          onChange={(e, newValue) => {
-            const selectedRange = newValue as number[];
-            setSliderValueMorning(selectedRange);
-            updateFormTimeSlot(selectedRange, sliderValueEvening);
-          }}
-          valueLabelDisplay="on"
-          valueLabelFormat={(value) => formatDisplayTime(value)}
-          min={6}
-          max={12}
-          step={0.5}
-          marks={[
-            { value: 6, label: "6:00 AM" },
-            { value: 8, label: "8:00 AM" },
-            { value: 10, label: "10:00 AM" },
-            { value: 12, label: "12:00 PM" },
-          ]}
-          disabled={sliderDisabled} // Disable/Enable based on checkbox state
-          aria-labelledby="morning-slider"
-        />
-      </div>
+            {/* Morning Slider */}
+            <div style={{ marginTop: "16px", padding: "0 18px" }}>
+              <FormLabel component="legend">Morning (6:00 AM - 12:00 PM)</FormLabel>
+              <Slider
+                value={sliderValueMorning}
+                onChange={(e, newValue) => {
+                  const selectedRange = newValue as number[];
+                  setSliderValueMorning(selectedRange);
+                  updateFormTimeSlot(selectedRange, sliderValueEvening);
+                }}
+                valueLabelDisplay="on"
+                valueLabelFormat={(value) => formatDisplayTime(value)}
+                min={6}
+                max={12}
+                step={0.5}
+                marks={[
+                  { value: 6, label: "6:00 AM" },
+                  { value: 8, label: "8:00 AM" },
+                  { value: 10, label: "10:00 AM" },
+                  { value: 12, label: "12:00 PM" },
+                ]}
+                disabled={sliderDisabled} // Disable/Enable based on checkbox state
+                sx={{
+                  color: sliderDisabled ? "grey.500" : "primary.main",
+                }}
+                aria-labelledby="morning-slider"
+              />
+            </div>
 
-      {/* Evening Slider */}
-      <div style={{ marginTop: "16px", padding: "0 18px" }}>
-        <FormLabel component="legend">Evening (12:00 PM - 8:00 PM)</FormLabel>
-        <Slider
-          value={sliderValueEvening}
-          onChange={(e, newValue) => {
-            const selectedRange = newValue as number[];
-            setSliderValueEvening(selectedRange);
-            updateFormTimeSlot(sliderValueMorning, selectedRange);
-          }}
-          valueLabelDisplay="on"
-          valueLabelFormat={(value) => formatDisplayTime(value)}
-          min={12}
-          max={20}
-          step={0.5}
-          marks={[
-            { value: 12, label: "12:00 PM" },
-            { value: 14, label: "2:00 PM" },
-            { value: 16, label: "4:00 PM" },
-            { value: 20, label: "8:00 PM" },
-          ]}
-          disabled={sliderDisabled} // Disable/Enable based on checkbox state
-          aria-labelledby="evening-slider"
-        />
-      </div>
-    </FormGroup>
-  </FormControl>
-</Grid>
+            {/* Evening Slider */}
+            <div style={{ marginTop: "16px", padding: "0 18px" }}>
+              <FormLabel component="legend">Evening (12:00 PM - 8:00 PM)</FormLabel>
+              <Slider
+                value={sliderValueEvening}
+                onChange={(e, newValue) => {
+                  const selectedRange = newValue as number[];
+                  setSliderValueEvening(selectedRange);
+                  updateFormTimeSlot(sliderValueMorning, selectedRange);
+                }}
+                valueLabelDisplay="on"
+                valueLabelFormat={(value) => formatDisplayTime(value)}
+                min={12}
+                max={20}
+                step={0.5}
+                marks={[
+                  { value: 12, label: "12:00 PM" },
+                  { value: 14, label: "2:00 PM" },
+                  { value: 16, label: "4:00 PM" },
+                  { value: 20, label: "8:00 PM" },
+                ]}
+                disabled={sliderDisabled} // Disable/Enable based on checkbox state
+                sx={{
+                  color: sliderDisabled ? "grey.500" : "primary.main",
+                }}
+                aria-labelledby="evening-slider"
+              />
+            </div>
+          </FormGroup>
+        </FormControl>
+      </Grid>
+
 
 
     {/* Checkbox for Terms of Service */}
