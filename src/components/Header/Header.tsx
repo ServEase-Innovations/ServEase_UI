@@ -63,6 +63,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   useEffect(() => {
     setLoggedInUser(user);
+    console.log("User role is:", user?.role); 
   }, [user]);
 
   useEffect(() => {
@@ -325,15 +326,18 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
               >
                 Profile
               </MenuItem> )}
-              {user && ( <MenuItem
-                onClick={() => {
-                  handleClick(BOOKINGS);
-                  handleAccountMenuClose();
-                }}
-              >
-                Bookings
-              </MenuItem> )}
-              {user && ( <MenuItem
+              {user?.role === "CUSTOMER" && ( 
+             <MenuItem
+              onClick={() => {
+             handleClick(BOOKINGS);
+             handleAccountMenuClose();
+            }}
+            >
+            Bookings
+            </MenuItem> 
+            )}
+
+              {user?.role==="SERVICE_PROVIDER"&& ( <MenuItem
                 onClick={() => {
                   handleClick(DASHBOARD);
                   handleAccountMenuClose();
