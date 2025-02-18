@@ -20,6 +20,7 @@ type UserState = {
       customerId: number;
       firstName: string;
       lastName: string;
+      emailId: string;
     };
   } | null;
 };
@@ -138,10 +139,33 @@ const Booking: React.FC = () => {
       const response = await axiosInstance.put(
         `/api/serviceproviders/update/engagement/${booking.id}`,
         updatePayload
-      );
-  
+      );  
       console.log("Update Response:", response.data);
-  
+
+      //mail
+      try {
+        const emailResponse = await axiosInstance.post(
+          "http://localhost:4000/send-cancel-email",
+          {
+            email: user?.value?.customerDetails?.emailId,
+            userName: booking.customerName,
+            serviceType: booking.role,
+            spName: booking.serviceProviderName,
+            dateTime: booking.bookingDate,
+            phoneNumber: "+91 1234567890",
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log("email sent!");
+
+      } catch (emailError) {
+        console.error("Error sending cancellation email:", emailError);
+      }
+
       // Update state to reflect the change
       setCurrentBookings((prev) =>
         prev.map((b) =>

@@ -11,6 +11,8 @@ import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
 import { PROFILE } from "../../Constants/pagesConstants";
+import { NotificationManager } from "react-notifications";
+import "react-notifications/lib/notifications.css";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -84,15 +86,9 @@ export const Login: React.FC<ChildComponentProps> = ({
         password: password,
       });
 
-       // Log the full response data to the console
-    console.log("Response Data:", response.data);
-   
       // Check if the response is successful
       if (response.status === 200 && response.data) {
-        const { message, role,customerDetails } = response.data;
-        const firstName = customerDetails?.firstName || "Unknown";
-       
-        console.log("First Name:", firstName);
+        const { message, role } = response.data;
         dispatch(add(response.data));
 
         // Display success message

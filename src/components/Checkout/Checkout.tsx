@@ -41,9 +41,9 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
   const [open, setOpen] = useState(false);
   const [loggedInUser , setLoggedInUser ] = useState();
 
-  const cart = useSelector((state : any) => state.cart?.value);
-  const bookingType = useSelector((state : any) => state.bookingType?.value)
-  const user = useSelector((state : any) => state.user?.value);
+  const cart = useSelector((state: any) => state.cart?.value);
+  const bookingType = useSelector((state: any) => state.bookingType?.value)
+  const user = useSelector((state: any) => state.user?.value);
   const dispatch = useDispatch();
   const customerId = user?.customerDetails?.customerId || null;
   // console.log('customer details:',user)
@@ -52,7 +52,8 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
   const firstName = user?.customerDetails?.firstName;
   const lastName = user?.customerDetails?.lastName;
   const customerName = `${firstName} ${lastName}`;
- 
+  const useremail = user?.customerDetails?.emailId;
+  const userfirstName = user?.customerDetails?.firstName;
 
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
  
@@ -78,7 +79,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
   useEffect(() => {
     setCheckout(cart);
     setBookingTypeFromSelection(bookingType);
-  }, [cart , bookingType]);
+  }, [cart, bookingType]);
 
   const handleRemoveItem = (index: number) => {
     const updatedCheckout = checkout['selecteditem']?.filter((_, i) => i !== index);
@@ -161,11 +162,41 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
             );
 
             if (response.status === 201) {
-              setSnackbarMessage(response.data || "Booking successful!");
-              setSnackbarSeverity("success");
+
+              try {
+                const emailResponse = await axiosInstance.post(
+                  "http://localhost:4000/send-booking-email",
+                  {
+                    email: useremail,
+                    userName: userfirstName,
+                    serviceType: providerDetails.housekeepingRole,
+                    spName: providerDetails.firstName,
+                    dateTime: bookingDetails.startDate,
+                    confirmCode: "123456",
+                    phoneNumber: "+91 1234567890",
+                  },
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+
+                if (emailResponse.status === 200) {
+                  setSnackbarMessage("Booking successful! Confirmation email sent.");
+                  setSnackbarSeverity("success");
+                } else {
+                  console.error("Error sending email:", emailResponse.data);
+                  setSnackbarMessage("Booking successful, but error sending confirmation email.");
+                  setSnackbarSeverity("error");
+                }
+              } catch (emailError) {
+                console.error("Error sending email:", emailError);
+                setSnackbarMessage("Booking successful, but error sending confirmation email.");
+                setSnackbarSeverity("error");
+              }
+
               setOpenSnackbar(true);
-              sendDataToParent(BOOKINGS)
-              dispatch(remove())
             }
           },
           prefill: {
@@ -219,7 +250,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
         display: "flex",
         justifyContent: "flex-start",
         alignItems: "center",
-        marginTop:'65px'
+        marginTop: '65px'
       }}>
         <Button variant="outlined" style={{marginRight:'30%'}} onClick={handleBackClick}>
                         Back
