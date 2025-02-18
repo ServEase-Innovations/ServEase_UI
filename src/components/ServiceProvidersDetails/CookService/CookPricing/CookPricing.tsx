@@ -1,12 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid, Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { SyntheticEvent, useEffect, useState } from "react";
 import AddShoppingCartIcon  from '@mui/icons-material/AddShoppingCart';
 import './Cookpricing.css'
 import { CHECKOUT } from "../../../../Constants/pagesConstants";
 import { useDispatch } from "react-redux";
 import { add } from "../../../../features/cart/cartSlice";
-
+import MuiAlert from "@mui/material/Alert";
 interface CookPricingProps {
   onPriceChange: (priceData: { price: number, selecteditem: any }) => void; 
   onAddToCart:(priceData: { price: number, selecteditem: any }) => void; // Add the onPriceChange function as a prop
@@ -21,6 +21,7 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       const [price , setPrice] = useState<number>(0)
       const [selecteditem , setSelectedItems] = useState<any>([])
       const [addtoCartSelected , setAddToCartSelected] = useState<boolean>(false)
+      const [openSnackbar, setOpenSnackbar] = useState(false);
 
       const typeButtonsSelector = [
         { key: 1, value: 'Regular' },
@@ -51,7 +52,18 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       onAddToCart({ price, selecteditem })
       dispatch(add({ price, selecteditem }));
       setAddToCartSelected(true)
+      setOpenSnackbar(true);
     }
+     const handleCloseSnackbar = (
+           event: Event | SyntheticEvent<any, Event>, 
+           reason?: SnackbarCloseReason 
+         ) => {
+           if (reason === "clickaway") {
+             return; // Ignore clicks outside Snackbar
+           }
+           setOpenSnackbar(false);
+         };
+    
 
     const handleForButtonClick = ( newValue) =>{
       setServiceType(newValue)
@@ -317,6 +329,21 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       <h1></h1>
       <h1></h1>
       </Box>
+      <Snackbar
+              open={openSnackbar}
+              autoHideDuration={6000}
+              onClose={handleCloseSnackbar}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              sx={{ marginTop: "60px" }}
+            >
+              <MuiAlert
+                onClose={handleCloseSnackbar}
+                severity="success"
+                sx={{ width: "100%" }}
+              >
+                Item added to cart successfully!
+              </MuiAlert>
+            </Snackbar>
       <h1></h1>
       <h1></h1>
        </Grid>

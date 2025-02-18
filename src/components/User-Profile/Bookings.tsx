@@ -20,6 +20,7 @@ type UserState = {
       customerId: number;
       firstName: string;
       lastName: string;
+      emailId: string;
     };
   } | null;
 };
@@ -41,7 +42,7 @@ interface Booking {
   serviceProviderName: string;
   taskStatus: string;
   bookingDate: string;
-  engagements: string;
+  engagements:string;
 }
 
 const Booking: React.FC = () => {
@@ -58,42 +59,46 @@ const Booking: React.FC = () => {
 
   useEffect(() => {
     if (customerId !== null) {
+      const page = 0; // Default page
+      const size = 100; // Default size
+  
       axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history`)
+        .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
-
+          console.log('Past Bookings:', past);
           const mapBookingData = (data: any[]) =>
             Array.isArray(data)
               ? data
-                .filter((item) => item.customerId === customerId)
-                .map((item) => {
-                  console.log("Service Provider ID:", item.serviceProviderId);
-
-                  return {
-                    id: item.id,
-                    customerId: item.customerId,
-                    serviceProviderId: item.serviceProviderId,
-                    name: item.customerName,
-                    role: item.serviceeType,
-                    timeSlot: item.timeslot,
-                    date: new Date(item.startDate).toLocaleDateString(),
-                    startDate: item.startDate,
-                    endDate: item.endDate,
-                    bookingType: item.bookingType,
-                    monthlyAmount: item.monthlyAmount,
-                    paymentMode: item.paymentMode,
-                    address: item.address,
-                    customerName: item.customerName,
-                    serviceProviderName: item.serviceProviderName,
-                    taskStatus: item.taskStatus,
-                    engagements: item.engagements,
-                    bookingDate: item.bookingDate,
-                  };
-                })
+                  .filter((item) => item.customerId === customerId)
+                  .map((item) => {
+                    console.log("Service Provider ID:", item.serviceProviderId); 
+  
+                    return {
+                      id: item.id, 
+                      customerId: item.customerId, 
+                      serviceProviderId: item.serviceProviderId, 
+                      name: item.customerName,
+                      role: item.serviceeType,
+                      timeSlot: item.timeslot,
+                      date: new Date(item.startDate).toLocaleDateString(),
+                      startDate: item.startDate,
+                      endDate: item.endDate,
+                      bookingType: item.bookingType,
+                      monthlyAmount: item.monthlyAmount,
+                      paymentMode: item.paymentMode,
+                      address: item.address,
+                      customerName: item.customerName,
+                      serviceProviderName: item.serviceProviderName,
+                      taskStatus: item.taskStatus,
+                      engagements:item.engagements,
+                      bookingDate: item.bookingDate,
+                    };
+                  })
               : [];
-
+  
           setPastBookings(mapBookingData(past));
+          console.log('Past :', setPastBookings);
           setCurrentBookings(mapBookingData(current));
           setFutureBookings(mapBookingData(future));
         })
@@ -102,7 +107,7 @@ const Booking: React.FC = () => {
         });
     }
   }, [customerId]);
-
+  
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -111,32 +116,55 @@ const Booking: React.FC = () => {
     console.log(`Modify booking with ID: ${bookingId}`);
     // Add logic for modifying the booking
   };
-
+  
   const handleCancelBooking = async (booking: Booking) => {
     const updatedStatus = "CANCELLED";
-
+  
     const updatePayload = {
       id: booking.id,
       serviceProviderId: booking.serviceProviderId,
       customerId: customerId,
       startDate: booking.startDate,
       endDate: booking.endDate,
-      engagements: booking.engagements,
+      engagements:booking.engagements, 
       timeslot: booking.timeSlot,
       bookingDate: booking.bookingDate,
       customerName: booking.customerName,
       serviceProviderName: booking.serviceProviderName,
       taskStatus: updatedStatus,
     };
-
+  
     try {
       console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
       const response = await axiosInstance.put(
         `/api/serviceproviders/update/engagement/${booking.id}`,
         updatePayload
-      );
-
+      );  
       console.log("Update Response:", response.data);
+
+      //mail
+      try {
+        const emailResponse = await axiosInstance.post(
+          "http://localhost:4000/send-cancel-email",
+          {
+            email: user?.value?.customerDetails?.emailId,
+            userName: booking.customerName,
+            serviceType: booking.role,
+            spName: booking.serviceProviderName,
+            dateTime: booking.bookingDate,
+            phoneNumber: "+91 1234567890",
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log("email sent!");
+
+      } catch (emailError) {
+        console.error("Error sending cancellation email:", emailError);
+      }
 
       // Update state to reflect the change
       setCurrentBookings((prev) =>
@@ -160,21 +188,40 @@ const Booking: React.FC = () => {
       }
     }
   };
-
+  
   const renderBookings = (bookings: Booking[]) => (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
       {bookings.length > 0 ? (
         bookings.map((booking) => (
           <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
             <CardContent>
-              <Typography variant="body2" color="textSecondary">
+            {booking.taskStatus === "CANCELLED" && (
+  <Typography
+    variant="body2"
+    color="white"
+    sx={{
+      backgroundColor: "rgba(255, 0, 0, 0.5)", 
+      color: "rgba(255, 255, 255, 0.9)", 
+      padding: "8px 16px",
+      borderRadius: "4px",
+      fontWeight: "bold",
+      marginBottom: "16px",
+      textAlign: "center",  
+    }}
+    gutterBottom
+  >
+    Task Status: CANCELLED
+  </Typography>
+)}
+
+            {/* <Typography variant="body2" color="textSecondary">
                 Booking ID: {booking.id}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Service Provider ID: {booking.serviceProviderId}
-              </Typography>
+  Service Provider ID: {booking.serviceProviderId}
+</Typography> */}
               <Typography variant="h6" gutterBottom>
-                Service Provider: {booking.serviceProviderName}
+              Service Provider: {booking.serviceProviderName}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Role: {booking.role}
@@ -212,34 +259,38 @@ const Booking: React.FC = () => {
               <Typography variant="body2" color="textSecondary">
                 Booking Date: {booking.bookingDate}
               </Typography>
-              {/* Buttons Section */}
-              <Box display="flex" justifyContent="space-between" marginTop={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleModifyBooking(booking.id)}
-                >
-                  Modify
-                </Button>
+               {/* Buttons Section */}
+            <Box display="flex" justifyContent="space-between" marginTop={2}>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={() => handleModifyBooking(booking.id)}
+                style={{
+                  padding: "8px 16px",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",}}
+              >
+                Modify
+              </Button>
                 {/* Cancel Button */}
-                {booking.taskStatus !== "CANCELLED" && (
-                  <Box mt={2} display="flex" gap={2}>
-                    <button
-                      onClick={() => handleCancelBooking(booking)}
-                      style={{
-                        backgroundColor: "red",
-                        color: "white",
-                        padding: "8px 16px",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </Box>
-                )}
-              </Box>
+            {booking.taskStatus !== "CANCELLED" && (
+                <button
+                  onClick={() => handleCancelBooking(booking)}
+                  style={{
+                    backgroundColor: "red",
+                    color: "white",
+                    padding: "8px 16px",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+            
+            )}
+            </Box>
             </CardContent>
           </Card>
         ))

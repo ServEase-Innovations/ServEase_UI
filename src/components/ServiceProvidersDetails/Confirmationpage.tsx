@@ -30,7 +30,7 @@ import CookPricing from './CookService/CookPricing/CookPricing';
 import AddShoppingCartIcon  from '@mui/icons-material/AddShoppingCart';
 import { useDispatch, useSelector } from 'react-redux';
 import { add } from '../../features/cart/cartSlice';
-import { CHECKOUT } from '../../Constants/pagesConstants';
+import { CHECKOUT, DETAILS } from '../../Constants/pagesConstants';
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import PaymentIcon from "@mui/icons-material/Payment";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
@@ -73,7 +73,6 @@ const  Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails , ro
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
    const [clickedIndex, setClickedIndex] = useState<number | null>(null);
    const pricing = useSelector((state : any) => state.pricing?.groupedServices)
-   console.log("Pricng 123 ====> ", pricing)
   // Callback function to update the price in the parent component
   const handlePriceChange = (data) => {
   // setData(data.entry)
@@ -130,10 +129,22 @@ const  Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails , ro
       lunch: false,
       dinner: false,
     });
+
+    const handleBackClick = () =>{
+      sendDataToParent(DETAILS)
+    }
   
     
   return (
     <div className="details-container">
+      <header className="headers">
+                <Button onClick={handleBackClick} variant="outlined">
+                  Back
+                </Button>
+                {/* <Button variant="outlined" onClick={() => toggleDrawer(true)}>
+                  Search
+                </Button> */}
+              </header>
      {providerDetails && <div style={{width:'100%'}}> 
       <Card style={{ width: '100%'}}> 
         <div style={{display:'flex',marginLeft: '20px'}}>

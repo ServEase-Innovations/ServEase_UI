@@ -11,6 +11,11 @@ import { add } from "../../features/bookingType/bookingTypeSlice";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Login from "../Login/Login";
 import axiosInstance from "../../services/axiosInstance";
+import TimeRange from 'react-time-range';
+import TimePicker from "react-time-picker";
+import "react-time-picker/dist/TimePicker.css";
+import "react-clock/dist/Clock.css";
+import { FaTimes } from "react-icons/fa";
 
 const ProviderDetails = (props) => {
 const [isExpanded, setIsExpanded] = useState(false);
@@ -23,6 +28,10 @@ const [isExpanded, setIsExpanded] = useState(false);
   const [engagementData, setEngagementData] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [missingTimeSlots, setMissingTimeSlots] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("12:00");
+  const [warning, setWarning] = useState("");
+  
 
   const dietImages = {
     VEG: "veg.png",
@@ -58,10 +67,17 @@ const handleSelection = (hour: number, isEvening: boolean, time: number) => {
   console.log("Payload being sent:", payload); // Check if this logs the correct format without seconds
 };
 
+const clearSelection = (isEvening: boolean) => {
+  if (isEvening) {
+    setEveningSelection(null);
+    setEveningSelectionTime(null);
+  } else {
+    setMorningSelection(null);
+    setMorningSelectionTime(null);
+  }
+};
 const [missingSlots, setMissingSlots] = useState<string[]>([]);
 const hasCheckedRef = useRef(false); // Track if the function has been called
-// console.log("Service Provider Data: ", props.serviceproviderId);
-// console.log("Service time: ", props.availableTimeSlots);
 console.log("Service data: ", props);
 // Call this function to check missing time slots
 const checkMissingTimeSlots = () => {
@@ -91,50 +107,6 @@ if (!hasCheckedRef.current) {
   checkMissingTimeSlots(); 
   hasCheckedRef.current = true;
 }
-//for texting 
-// const data = [ 
-//   {
-//       "id": 252,
-//       "availableTimeSlots": [
-//           "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
-//           "07:00", "08:00", "09:00", "10:00", "11:00", "13:00", 
-//           "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", 
-//           "20:00", "21:00", "22:00", "23:00"
-//       ]
-//   },
-//   {
-//       "id": 253,
-//       "availableTimeSlots": [
-//           "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
-//           "07:00", "08:00", "09:00", "10:00", "11:00", "13:00", 
-//           "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", 
-//           "20:00", "21:00", "22:00", "23:00"
-//       ]
-//   },
-//   {
-//       "id": 302,
-//       "availableTimeSlots": [
-//           "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
-//           "06:00", "07:00", "09:00", "10:00", "11:00", "12:00", 
-//           "13:00", "15:00", "16:00", "17:00", "18:00", "19:00", 
-//           "20:00", "21:00", "22:00", "23:00"
-//       ]
-//   }
-// ];
-
-// // Step 1: Generate the full list of time slots (00:00 - 23:00)
-// const fullTimeSlots = Array.from({ length: 24 }, (_, i) => 
-//   `${i.toString().padStart(2, "0")}:00`
-// );
-
-// // Step 2: Find missing time slots for each entry
-// const missingTimeSlotsPerEntry = data.map(entry => {
-//   const missingSlots = fullTimeSlots.filter(slot => !entry.availableTimeSlots.includes(slot));
-//   return { id: entry.id, missingTimeSlots: missingSlots };
-// });
-
-// console.log("Missing Time Slots per ID:", missingTimeSlotsPerEntry);
-
 
   // Toggle expanded content
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
@@ -178,14 +150,14 @@ if (!hasCheckedRef.current) {
               console.log("Processed Slots with Missing Time Slots:", processedSlots);
               console.log("All Missing Time Slots:", processedSlots.map(slot => slot.missingTimeSlots));
   
-              // ✅ Ensure TypeScript correctly identifies it as string[]
+              //  Ensure TypeScript correctly identifies it as string[]
               const uniqueMissingSlots: string[] = Array.from(
                   new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
               ).sort() as string[];
   
               console.log("Unique Missing Time Slots:", uniqueMissingSlots);
   
-              // ✅ Store unique missing slots in state
+              // Store unique missing slots in state
               setUniqueMissingSlots(uniqueMissingSlots);
   
               setAvailableTimeSlots(processedSlots.map(entry => entry.uniqueAvailableTimeSlots));
@@ -206,13 +178,25 @@ if (!hasCheckedRef.current) {
   };
 
   const handleBookNow = () => {
-    const booking: Bookingtype = {
+    let booking : Bookingtype;
+    if(props.housekeepingRole !== "NANNY"){
+       booking = {
         eveningSelection : eveningSelectionTime,
         morningSelection : morningSelectionTime,
         ...bookingType
+        
+    }
+    } else {
+      booking = {
+        timeRange: `${startTime} - ${endTime}`,
+        duration: getHoursDifference(startTime, endTime),
+        ...bookingType
+    };
+     
     }
 
-    console.log('booking .... ', booking)
+    
+
     dispatch(add(booking)) 
 
     const providerDetails = {
@@ -223,6 +207,16 @@ if (!hasCheckedRef.current) {
     props.selectedProvider(providerDetails); // Send selected provider back to parent
   };
 
+  const getHoursDifference = (start, end) => {
+    const [startHours, startMinutes] = start.split(":").map(Number);
+    const [endHours, endMinutes] = end.split(":").map(Number);
+
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+
+    return (endTotalMinutes - startTotalMinutes) / 60; // Convert minutes to hours
+};
+
   const handleLogin = () =>{
     setOpen(true)
   }
@@ -230,6 +224,8 @@ if (!hasCheckedRef.current) {
   const handleClose = () => {
     setOpen(false);
   };
+
+  
 
   const dietImage = dietImages[props.diet];
 
@@ -249,6 +245,30 @@ if (!hasCheckedRef.current) {
       setOpen(false)
     }
 
+    const handleStartTimeChange = (newStartTime) => {
+      setStartTime(newStartTime);
+      validateTimeRange(newStartTime, endTime);
+    };
+  
+    const handleEndTimeChange = (newEndTime) => {
+      setEndTime(newEndTime);
+      validateTimeRange(startTime, newEndTime);
+    };
+  
+    const validateTimeRange = (start, end) => {
+      const [startHours, startMinutes] = start.split(":").map(Number);
+      const [endHours, endMinutes] = end.split(":").map(Number);
+      
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+      
+      if (endTotalMinutes - startTotalMinutes < 240) {
+        setWarning("The time range must be at least 4 hours.");
+      } else {
+        setWarning("");
+      }
+    };
+  
 
 
   return (
@@ -341,6 +361,8 @@ if (!hasCheckedRef.current) {
                 </span>
               </Typography>
 
+              {props.housekeepingRole !== "NANNY" && (
+
               <div className="availability-section">
   <div className="availability-header">
     <Typography variant="subtitle1" className="section-title">
@@ -424,88 +446,106 @@ if (!hasCheckedRef.current) {
       );
     })}
 </div>
+{morningSelectionTime && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      backgroundColor: "#f0f0f0",
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontSize: "16px",
+    }}
+  >
+    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
+    <span>{morningSelectionTime}</span>
+    <FaTimes
+      onClick={() => clearSelection(false)}
+      style={{
+        color: "red",
+        cursor: "pointer",
+        fontSize: "18px",
+      }}
+    />
+  </div>
+)}
+
+{eveningSelectionTime && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      backgroundColor: "#f0f0f0",
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontSize: "16px",
+    }}
+  >
+    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
+    <span>{eveningSelectionTime}</span>
+    <FaTimes
+      onClick={() => clearSelection(true)}
+      style={{
+        color: "red",
+        cursor: "pointer",
+        fontSize: "18px",
+      }}
+    />
+  </div>
+)}
+
 
   </div>
 </div>
+)}
+{props.housekeepingRole === "NANNY" && (
+ <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md w-80" style={{width:'100%'}}>
+ <h2 className="text-xl font-semibold">Select Time Range</h2>
+ <div className="flex items-center gap-2">
+   <label className="text-gray-700">Start:</label>
+   <TimePicker
+     onChange={handleStartTimeChange}
+     value={startTime}
+     disableClock
+     format="HH:mm"
+     className="border p-2 rounded"
+   />
+ </div>
+ <div className="flex items-center gap-2">
+   <label className="text-gray-700">End:</label>
+   <TimePicker
+     value={endTime}
+     onChange={handleEndTimeChange}
+     disableClock
+     format="HH:mm"
+     className="border p-2 rounded"
+   />
+ </div>
+ <p className="text-gray-600">Selected Time: {startTime} - {endTime}</p>
+</div>
+
+)}
 <div>
   
-  {/* Display Missing Time Slots */}
-  {/* {missingSlots.length > 0 ? (
-    <div className="missing-time-slots-section">
-      <h3>Missing Time Slots:</h3>
-      <div className="missing-time-buttons">
-        {missingSlots.map((slot, index) => (
-          <button
-            key={index}
-            className="missing-time-slot-button"
-            style={{
-              backgroundColor: '#f44336', // Red color for missing slots
-              color: 'white',
-              padding: '10px 20px',
-              margin: '5px',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer', // Make it clickable
-            }}
-            onClick={() => {
-              // Handle the click event here
-              console.log(`Clicked on slot: ${slot}`);
-            }}
-          >
-            {slot}
-          </button>
-        ))}
-      </div>
-    </div>
-  ) : (
-    <p>All expected time slots are available.</p>
-  )} */}
+ 
 </div>
 
-
-
-{/* <div className="missing-time-slots">
-  <Typography variant="subtitle1" className="section-title">
-    Missing Time Slots (Unavailable)
-  </Typography>
-
-  <div className="time-slot-container">
-    {missingTimeSlots.map((missingSlot, index) => (
-      <div key={index}>
-        <button
-          className="missing-time-button"
-          disabled // Disable these buttons by default
-          style={{
-            backgroundColor: '#bdbdbd',
-            color: '#888',
-            padding: '12px 24px',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'not-allowed',
-            fontSize: '16px',
-            display: 'inline-block',
-            textAlign: 'center',
-            margin: '10px 0',
-          }}
-        >
-          {missingSlot}
-        </button>
-      </div>
-    ))}
-  </div>
-</div> */}
-
               <div style={{ float: 'right', display: 'flex' }}>
-                {!loggedInUser && <Button onClick={handleLogin} variant="outlined">Login</Button>}
-                <Tooltip
+                {/* {!loggedInUser && <Button onClick={handleLogin} variant="outlined">Login</Button>} */}
+                {/* <Tooltip
                   style={{ display: isBookNowEnabled ? 'none' : 'block' }}
                   title="You need to login and select your timings to continue booking"
                 >
                   <IconButton>
                     <InfoOutlinedIcon />
                   </IconButton>
-                </Tooltip>
-                <Button onClick={handleBookNow} disabled={!isBookNowEnabled} variant="outlined">Book Now</Button>
+                </Tooltip> */}
+                {warning && <p className="text-red-500">{warning}</p>}
+                {!warning && <Button onClick={handleBookNow}  variant="outlined">Book Now</Button>}
               </div>
 
             </div>

@@ -194,7 +194,6 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   </LocalizationProvider>
 )}
 
-
 {selectedRadioButtonValue === "Monthly" && (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

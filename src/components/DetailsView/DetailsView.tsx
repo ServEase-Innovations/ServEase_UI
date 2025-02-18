@@ -6,6 +6,8 @@ import axiosInstance from "../../services/axiosInstance";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import { CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
+import { useDispatch } from "react-redux";
+import { add } from "../../features/detailsData/detailsDataSlice";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -25,6 +27,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProviderType, setSelectedProviderType] = useState("");
+
+  const dispatch = useDispatch();
 
   const handleCheckoutData = (data: any) => {
     console.log("Received checkout data:", data);
@@ -52,6 +56,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
           );
         }
         setServiceProvidersData(response?.data);
+        dispatch(add(response?.data))
+
       } catch (err) {
         console.error("There was a problem with the fetch operation:", err);
       } finally {
