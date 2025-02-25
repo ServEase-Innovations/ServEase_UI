@@ -281,6 +281,7 @@ const toggleExpand = async () => {
       }
     }, [user]);
 
+
     const handleBookingPage = (e : string | undefined) =>{
       setOpen(false)
     }
@@ -437,6 +438,7 @@ const toggleExpand = async () => {
         (hour) => moment({ hour }).format("HH:mm") === missingSlot
       )
     )
+
     .map((missingSlot, index) => {
       const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
       const startTime = moment({ hour }).format("HH:mm");

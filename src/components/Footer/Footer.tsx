@@ -24,7 +24,6 @@ const Footer = () => {
     <FaFacebook size={30} className="facebook" />
   </a>
 </div>
-
     </footer>
   );
 };
