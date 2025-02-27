@@ -205,6 +205,34 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
 
    
   }, [bookingType]);
+  const [meals, setMeals] = useState([
+    { id: 1, type: "Breakfast", service: "Regular", persons: 0, time: "10:00 am - 11:00 am", price: 50, selected: true },
+    { id: 2, type: "Lunch", service: "Premium", persons: 0, time: "1:00 pm - 2:00 pm", price: 120, selected: true },
+    { id: 3, type: "Dinner", service: "Regular", persons: 0, time: "7:00 pm - 8:00 pm", price: 60, selected: true },
+  ]);
+
+  const updatePersons = (id, change) => {
+    setMeals((prevMeals) =>
+      prevMeals.map((meal) =>
+        meal.id === id ? { ...meal, persons: Math.max(0, meal.persons + change) } : meal
+      )
+    );
+  };
+
+  const toggleMealSelection = (id) => {
+    setMeals((prevMeals) =>
+      prevMeals.map((meal) =>
+        meal.id === id ? { ...meal, selected: !meal.selected } : meal
+      )
+    );
+  };
+  const subtotal = meals.reduce((acc, meal) => acc + meal.price * meal.persons, 0);
+  const gst = subtotal * 0.18;
+  const total = subtotal + gst;
+  const totalPrice = meals
+    .filter((meal) => meal.selected)
+    .reduce((sum, meal) => sum + meal.price * meal.persons, 0);
+
   return (
     <>
     <Box sx={{
@@ -253,50 +281,145 @@ flexDirection: "column",
 <Typography variant="h6">No items selected</Typography>
 ) : (
   checkout['selecteditem']?.map((item, index) => (
-<Box key={index} sx={{
-width: "100%",
-justifyContent: "center",
-margin: "10px 0",
-}}>
-<Card sx={{
-height: '100%',
-width: "80%",
-padding: "20px",
-display: "flex",
-flexDirection: "column",
-borderRadius: "16px",
-boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.1)",
-transition: "transform 0.3s ease, box-shadow 0.3s ease",
-"&:hover": {
-transform: "scale(1.05)",
-boxShadow: "0px 12px 24px rgba(0, 0, 0, 0.15)",
-},
-}}>
-<Typography variant="h6" sx={{
-fontWeight: "600",
-fontSize: "1.2rem",
-color: "#333",
-display: "flex",
-justifyContent: "space-between",
-alignItems: "center",
-}}>
-{item.Service}
-<Tooltip title="Remove this service">
-<IconButton sx={{ color: "#d32f2f" }} onClick={() => handleRemoveItem(index)}>
-<DeleteOutlineIcon />
-</IconButton>
-</Tooltip>
-</Typography>
-<hr />
-<Typography variant="body1"><strong>Type:</strong> {item.Type}</Typography>
-<Typography variant="body1"><strong>{item["Sub-Categories"]}</strong> {item['Numbers/Size']}</Typography>
-<Typography variant="body1"><strong>Fooding:</strong> {item.Categories}</Typography>
-{/* <Typography variant="body1"><strong>People Range:</strong> {item.entry.peopleRange}</Typography>
-<Typography variant="body1"><strong>Frequency:</strong> {item.entry.frequency} times a week</Typography>
-<Typography variant="body1"><strong>Price per Month:</strong> Rs.{item.entry.pricePerMonth}</Typography> */}
+    <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "40px",
+      gap: "20px",
+      fontFamily: "Poppins, sans-serif",
+      // background: "#E1F5FE", // Light sky blue background
+       background: "#f8f9fa"
+    }}
+  >
+      {/* Left Section - Service Cart */}
+      <div style={{ width: "60%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>COOK</h2>
+          <Tooltip title="Remove this service">
+            <IconButton sx={{ color: "#d32f2f" }}>
+              <DeleteOutlineIcon />
+            </IconButton>
+          </Tooltip>
+        </div>
 
-</Card>
-</Box>
+        <table style={{ width: "100%", marginTop: "10px", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ textAlign: "left", borderBottom: "2px solid #ddd", fontSize: "18px", fontWeight: "bold" }}>
+              {/* <th style={{ padding: "15px 10px" }}>Select</th> */}
+              <th style={{ padding: "15px 10px" }}>Meal Type</th>
+              <th style={{ padding: "15px 10px" }}>Service Type</th>
+              <th style={{ padding: "15px 10px" }}>No of Person</th>
+              <th style={{ padding: "15px 10px" }}>Time Slot</th>
+              <th style={{ padding: "15px 10px" }}>Total Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {meals.map((meal) => (
+              <tr key={meal.id} style={{ borderBottom: "1px solid #ddd", fontSize: "16px", height: "50px" }}>
+                {/* <td>
+                  <input
+                    type="checkbox"
+                    checked={meal.selected}
+                    onChange={() => toggleMealSelection(meal.id)}
+                  />
+                </td> */}
+                <td>{meal.type}</td>
+                <td>{meal.service}</td>
+                <td>
+                <button style={{ margin: "0 10px", cursor: "pointer", padding: "5px 10px", borderRadius: "5px", border: "1px solid #0288D1", background: "#E3F2FD" }} onClick={() => updatePersons(meal.id, -1)}>-</button>
+                  {meal.persons}
+                  <button style={{ margin: "0 10px", cursor: "pointer", padding: "5px 10px", borderRadius: "5px", border: "1px solid #0288D1", background: "#E3F2FD" }} onClick={() => updatePersons(meal.id, 1)}>+</button>
+                </td>
+                <td>{meal.time}</td>
+                <td>${meal.price * meal.persons}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+       
+      </div>
+
+      {/* Right Section - Payment Info */}
+      {/* <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}> */}
+      
+        {/* <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>Payment Info</h2> */}
+        {/* <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "block", marginBottom: "10px" }}>
+            <input type="radio" name="payment" defaultChecked style={{ marginRight: "10px" }} /> Credit Card
+          </label>
+          <label style={{ display: "block" }}>
+            <input type="radio" name="payment" style={{ marginRight: "10px" }} /> PayPal
+          </label>
+        </div>
+        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Name on Card: <strong>John Carter</strong></p>
+        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Card Number: <strong>**** **** **** 2153</strong></p>
+        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Expiration Date: <strong>05/2025</strong></p>
+        <p style={{ marginBottom: "20px", fontSize: "16px" }}>CVV: <strong>156</strong></p> */}
+              {/* <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
+            <input type="radio" name="payment" defaultChecked style={{ marginRight: "10px" }} />
+            <span>💳 Credit Card</span>
+          </label>
+          <label style={{ display: "flex", alignItems: "center" }}>
+            <input type="radio" name="payment" style={{ marginRight: "10px" }} />
+            <span>🅿️ PayPal</span>
+          </label>
+        </div>
+          <div
+          style={{
+            background: "linear-gradient(135deg, #1976D2, #0D47A1)",
+            padding: "20px",
+            borderRadius: "12px",
+            textAlign: "center",
+            color: "#FFFFFF",
+            fontWeight: "bold",
+            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
+            opacity: "0.85", // Slight transparency for a sleek effect
+          }}
+        >
+          <p style={{ marginBottom: "10px", fontSize: "18px" }}>John Carter</p>
+          <p style={{ marginBottom: "10px", fontSize: "18px" }}>**** **** **** 2153</p>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px" }}>
+            <p>Exp: 05/2025</p>
+            <p>CVV: 156</p>
+          </div> */}
+      {/* </div> */}
+        {/* </div> */}
+        <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Price Details</h2>
+        <div className="space-y-3 text-gray-800">
+          <div className="flex justify-between text-lg">
+            <span>Subtotal:</span>
+            <span className="font-semibold">$340.00</span>
+          </div>
+          <div className="flex justify-between text-lg">
+            <span>GST (18%):</span>
+            <span className="font-semibold">$61.20</span>
+          </div>
+          <div className="flex justify-between text-lg">
+            <span>Service Fee:</span>
+            <span className="font-semibold">$10.00</span>
+          </div>
+          <hr className="my-4 border-gray-400" />
+          <div className="flex justify-between text-xl font-bold text-blue-700">
+          <p style={{ fontSize: "22px", fontWeight: "bold", marginTop: "20px" }}>Grand Total: ${totalPrice}</p>
+          </div>
+        </div>
+        <div className="mt-4">
+  <input
+    type="text"
+    placeholder="Voucher"
+    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+  />
+  <button className="mt-2 w-full border border-red-400 text-red-500 py-2 rounded-lg font-semibold hover:bg-red-100 transition">
+    Apply Voucher
+  </button>
+</div>
+    
+      </div>
+
+    </div>
 ))
 )}
 </Box>
