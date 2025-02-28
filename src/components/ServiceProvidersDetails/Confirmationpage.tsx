@@ -52,7 +52,6 @@ interface ChildComponentProps {
 
 const  Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails , role , sendDataToParent }) => {
 
-  
   // const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
   console.log("role ==> ", role)
   console.log("providerDetails => ", providerDetails)

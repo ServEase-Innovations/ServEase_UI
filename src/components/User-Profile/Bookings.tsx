@@ -8,12 +8,20 @@ import {
   Card,
   CardContent,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  DialogActions,
   Snackbar,
   Alert,
+  MenuItem,
 } from '@mui/material';
 import axiosInstance from '../../services/axiosInstance';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/userStore';
+import { update } from "../../features/bookingType/bookingTypeSlice";
+import ProviderDetails from '../ProviderDetails/ProviderDetails';
 
 type UserState = {
   value?: {
@@ -42,14 +50,14 @@ interface Booking {
   serviceProviderName: string;
   taskStatus: string;
   bookingDate: string;
-  engagements:string;
-  serviceeType:string;
-  serviceType:string;
-  childAge:string;
-  experience:string;
-  noOfPersons:string;
-  mealType:string;
-  responsibilities:string;
+  engagements: string;
+  serviceeType: string;
+  serviceType: string;
+  childAge: string;
+  experience: string;
+  noOfPersons: string;
+  mealType: string;
+  responsibilities: string;
 }
 
 const Booking: React.FC = () => {
@@ -57,18 +65,61 @@ const Booking: React.FC = () => {
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
-
   const user = useSelector((state: RootState) => state.user as UserState);
   const customerId = user?.value?.customerDetails?.customerId ?? null;
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
 
-  console.log('Booking user details:', user);
-  console.log('Customer ID:', customerId);
+  // Fetch available time slots for a service provider
+  const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
+    try {
+      const response = await axiosInstance.get(
+        `/api/serviceproviders/get/engagement/by/serviceProvider/${serviceProviderId}`
+      );
+
+      const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
+        id: engagement.id ?? Math.random(),
+        availableTimeSlots: engagement.availableTimeSlots || [],
+      }));
+
+      const fullTimeSlots: string[] = Array.from({ length: 15 }, (_, i) =>
+        `${(i + 6).toString().padStart(2, "0")}:00`
+      );
+      
+
+      const processedSlots = engagementData.map(entry => {
+        const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
+        const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
+
+        return {
+          id: entry.id,
+          uniqueAvailableTimeSlots,
+          missingTimeSlots,
+        };
+      });
+
+      const uniqueMissingSlots: string[] = Array.from(
+        new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
+      ).sort() as string[];
+
+      setUniqueMissingSlots(uniqueMissingSlots);
+
+      return fullTimeSlots.filter(slot => !uniqueMissingSlots.includes(slot));
+    } catch (error) {
+      console.error("Error fetching engagement data:", error);
+      return [];
+    }
+  };
 
   useEffect(() => {
     if (customerId !== null) {
       const page = 0; // Default page
       const size = 100; // Default size
-  
+
       axiosInstance
         .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
         .then((response) => {
@@ -79,12 +130,12 @@ const Booking: React.FC = () => {
               ? data
                   .filter((item) => item.customerId === customerId)
                   .map((item) => {
-                    console.log("Service Provider ID:", item.serviceProviderId); 
-  
+                    console.log("Service Provider ID:", item.serviceProviderId);
+
                     return {
-                      id: item.id, 
-                      customerId: item.customerId, 
-                      serviceProviderId: item.serviceProviderId, 
+                      id: item.id,
+                      customerId: item.customerId,
+                      serviceProviderId: item.serviceProviderId,
                       name: item.customerName,
                       serviceeType: item.serviceeType,
                       timeSlot: item.timeslot,
@@ -98,18 +149,18 @@ const Booking: React.FC = () => {
                       customerName: item.customerName,
                       serviceProviderName: item.serviceProviderName,
                       taskStatus: item.taskStatus,
-                      engagements:item.engagements,
+                      engagements: item.engagements,
                       bookingDate: item.bookingDate,
-                      serviceType:item.serviceType,
-                      childAge:item.childAge,
-                      experience:item.experience,
-                      noOfPersons:item.noOfPersons,
-                      mealType:item.mealType,
-                      responsibilities:item.responsibilities,
+                      serviceType: item.serviceType,
+                      childAge: item.childAge,
+                      experience: item.experience,
+                      noOfPersons: item.noOfPersons,
+                      mealType: item.mealType,
+                      responsibilities: item.responsibilities,
                     };
                   })
               : [];
-  
+
           setPastBookings(mapBookingData(past));
           console.log('Past :', setPastBookings);
           setCurrentBookings(mapBookingData(current));
@@ -120,19 +171,97 @@ const Booking: React.FC = () => {
         });
     }
   }, [customerId]);
-  
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
-  const handleModifyBooking = (bookingId: number) => {
-    console.log(`Modify booking with ID: ${bookingId}`);
-    // Add logic for modifying the booking
+
+  const handleModifyBooking = async (booking: Booking) => {
+    setSelectedBooking(booking);
+    setSelectedTimeSlot(booking.timeSlot);
+
+    // Fetch available time slots for the service provider
+    const availableSlots = await generateTimeSlots(booking.serviceProviderId);
+    setTimeSlots(availableSlots);
+
+    setOpenDialog(true);
   };
-  const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+    setSelectedBooking(null);
+  };
+
+  const handleTimeSlotChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedTimeSlot(event.target.value as string);
+  };
+
+  const handleSave = async () => {
+    if (selectedBooking && selectedTimeSlot) {
+      const updatePayload = {
+        id: selectedBooking.id,
+        serviceProviderId: selectedBooking.serviceProviderId,
+        customerId: customerId,
+        startDate: selectedBooking.startDate,
+        endDate: selectedBooking.endDate,
+        engagements: selectedBooking.engagements,
+        timeslot: selectedTimeSlot, // Updated time slot
+        monthlyAmount: selectedBooking.monthlyAmount,
+        paymentMode: selectedBooking.paymentMode,
+        bookingType: selectedBooking.bookingType,
+        bookingDate: selectedBooking.bookingDate,
+        responsibilities: selectedBooking.responsibilities,
+        serviceType: selectedBooking.serviceType,
+        mealType: selectedBooking.mealType,
+        noOfPersons: selectedBooking.noOfPersons,
+        experience: selectedBooking.experience,
+        childAge: selectedBooking.childAge,
+        serviceeType: selectedBooking.serviceeType,
+        customerName: selectedBooking.customerName,
+        serviceProviderName: selectedBooking.serviceProviderName,
+        address: selectedBooking.address,
+        taskStatus: selectedBooking.taskStatus,
+      };
+
+      try {
+        const response = await axiosInstance.put(
+          `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
+          updatePayload
+        );
+
+        console.log("Update Response:", response.data);
+
+        // Update state to reflect the change
+        setCurrentBookings((prev) =>
+          prev.map((b) =>
+            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
+          )
+        );
+        setFutureBookings((prev) =>
+          prev.map((b) =>
+            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
+          )
+        );
+
+        setOpenDialog(false);
+        setSelectedBooking(null);
+        setOpenSnackbar(true);
+      } catch (error: any) {
+        console.error("Error updating task status:", error);
+        if (error.response) {
+          console.error("Full error response:", error.response.data);
+        } else if (error.message) {
+          console.error("Error message:", error.message);
+        } else {
+          console.error("Unknown error occurred");
+        }
+      }
+    }
+  };
+
   const handleCancelBooking = async (booking: Booking) => {
     const updatedStatus = "CANCELLED";
-  
+
     const updatePayload = {
       id: booking.id,
       serviceProviderId: booking.serviceProviderId,
@@ -156,19 +285,17 @@ const Booking: React.FC = () => {
       serviceProviderName: booking.serviceProviderName,
       address: booking.address,
       taskStatus: updatedStatus, // Updated task status
-   
-    
     };
-  
+
     try {
       console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
       const response = await axiosInstance.put(
         `/api/serviceproviders/update/engagement/${booking.id}`,
         updatePayload
       );
-  
+
       console.log("Update Response:", response.data);
-  
+
       // Update state to reflect the change
       setCurrentBookings((prev) =>
         prev.map((b) =>
@@ -192,117 +319,109 @@ const Booking: React.FC = () => {
     }
     setOpenSnackbar(true);
   };
-  
+
   const renderBookings = (bookings: Booking[]) => (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
       {bookings.length > 0 ? (
         bookings.map((booking) => (
           <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
             <CardContent>
-            {booking.taskStatus === "CANCELLED" && (
-  <Typography
-    variant="body2"
-    color="white"
-    sx={{
-      backgroundColor: "rgba(255, 0, 0, 0.5)", 
-      color: "rgba(255, 255, 255, 0.9)", 
-      padding: "8px 16px",
-      borderRadius: "4px",
-      fontWeight: "bold",
-      marginBottom: "16px",
-      textAlign: "center",  
-    }}
-    gutterBottom
-  >
-    Task Status: CANCELLED
-  </Typography>
-)}
+              {booking.taskStatus === "CANCELLED" && (
+                <Typography
+                  variant="body2"
+                  color="white"
+                  sx={{
+                    backgroundColor: "rgba(255, 0, 0, 0.5)",
+                    color: "rgba(255, 255, 255, 0.9)",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    fontWeight: "bold",
+                    marginBottom: "16px",
+                    textAlign: "center",
+                  }}
+                  gutterBottom
+                >
+                  Task Status: CANCELLED
+                </Typography>
+              )}
 
-            {/* <Typography variant="body2" color="textSecondary">
-                Booking ID: {booking.id}
+              <Typography variant="h6" gutterBottom>
+                Service Provider: {booking.serviceProviderName}
               </Typography>
+
               <Typography variant="body2" color="textSecondary">
-  Service Provider ID: {booking.serviceProviderId}
-</Typography> */}
-             <Typography variant="h6" gutterBottom>
-  Service Provider: {booking.serviceProviderName}
-</Typography>
+                Service Type: {booking.serviceeType}
+              </Typography>
 
-<Typography variant="body2" color="textSecondary">
-  Service Type: {booking.serviceeType}
-</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Start Date: {booking.startDate}
+              </Typography>
 
-<Typography variant="body2" color="textSecondary">
-  Start Date: {booking.startDate}
-</Typography>
+              <Typography variant="body2" color="textSecondary">
+                End Date: {booking.endDate}
+              </Typography>
 
-<Typography variant="body2" color="textSecondary">
-  End Date: {booking.endDate}
-</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Payment Mode: {booking.paymentMode}
+              </Typography>
 
-<Typography variant="body2" color="textSecondary">
-  Payment Mode: {booking.paymentMode}
-</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Booking Date: {booking.bookingDate}
+              </Typography>
 
-<Typography variant="body2" color="textSecondary">
-  Booking Date: {booking.bookingDate}
-</Typography>
+              {booking.taskStatus !== "CANCELLED" && (
+                <>
+                  <Typography variant="body2" color="textSecondary">
+                    Time Slot: {booking.timeSlot}
+                  </Typography>
 
-{booking.taskStatus !== "CANCELLED" && (
-  <>
-    <Typography variant="body2" color="textSecondary">
-      Time Slot: {booking.timeSlot}
-    </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Booking Type: {booking.bookingType}
+                  </Typography>
 
-    <Typography variant="body2" color="textSecondary">
-      Booking Type: {booking.bookingType}
-    </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Monthly Amount: ₹{booking.monthlyAmount}
+                  </Typography>
 
-    <Typography variant="body2" color="textSecondary">
-      Monthly Amount: ₹{booking.monthlyAmount}
-    </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Address: {booking.address}
+                  </Typography>
 
-    <Typography variant="body2" color="textSecondary">
-      Address: {booking.address}
-    </Typography>
-
-    <Typography variant="body2" color="textSecondary">
-      Task Status: {booking.taskStatus}
-    </Typography>
-  </>
-)}
-               {/* Buttons Section */}
-            <Box display="flex" justifyContent="space-between" marginTop={2}>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={() => handleModifyBooking(booking.id)}
-                style={{
-                  padding: "8px 16px",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",}}
-              >
-                Modify
-              </Button>
-                {/* Cancel Button */}
-            {booking.taskStatus !== "CANCELLED" && (
-                <button
-                  onClick={() => handleCancelBooking(booking)}
+                  <Typography variant="body2" color="textSecondary">
+                    Task Status: {booking.taskStatus}
+                  </Typography>
+                </>
+              )}
+              <Box display="flex" justifyContent="space-between" marginTop={2}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleModifyBooking(booking)}
                   style={{
-                    backgroundColor: "red",
-                    color: "white",
                     padding: "8px 16px",
                     border: "none",
                     borderRadius: "4px",
                     cursor: "pointer",
                   }}
                 >
-                  Cancel
-                </button>
-            
-            )}
-            </Box>
+                  Modify
+                </Button>
+                {booking.taskStatus !== "CANCELLED" && (
+                  <button
+                    onClick={() => handleCancelBooking(booking)}
+                    style={{
+                      backgroundColor: "red",
+                      color: "white",
+                      padding: "8px 16px",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </Box>
             </CardContent>
           </Card>
         ))
@@ -337,17 +456,44 @@ const Booking: React.FC = () => {
           {selectedTab === 2 && renderBookings(futureBookings)}
         </Box>
       </Paper>
-       {/* Snackbar Component */}
-       <Snackbar
+
+      {/* Dialog for modifying bookings */}
+      <Dialog open={openDialog} onClose={handleDialogClose}>
+        <DialogTitle>Modify Booking</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" gutterBottom>
+            Change the time slot for your booking:
+          </Typography>
+          <TextField
+            select
+            fullWidth
+            value={selectedTimeSlot}
+            onChange={handleTimeSlotChange}
+          >
+            {timeSlots.map((slot) => (
+              <MenuItem key={slot} value={slot}>
+                {slot}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSave} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
         open={openSnackbar}
-        autoHideDuration={3000} // Snackbar disappears after 3 seconds
+        autoHideDuration={3000}
         onClose={() => setOpenSnackbar(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} 
-        sx={{ marginTop: '60px' }} 
       >
-        <Alert onClose={() => setOpenSnackbar(false)} severity="success">
-          Booking successfully canceled!
-        </Alert>
+        <Alert severity="success">Booking updated successfully!</Alert>
       </Snackbar>
     </Box>
   );
