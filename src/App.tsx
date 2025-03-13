@@ -22,6 +22,7 @@ import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 
 import { RootState } from './store/userStore'; 
+import Chatbot from "./components/chat/Chatbot";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -144,6 +145,7 @@ if (userRole === "CUSTOMER") {
        <section className="flex-grow flex justify-center items-center px-4 py-6 relative">
         {renderContent()}
       </section>
+      <Chatbot/>
       <footer className="footer-container">
         <Footer />
       </footer>

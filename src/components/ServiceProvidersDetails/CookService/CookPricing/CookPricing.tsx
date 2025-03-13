@@ -35,6 +35,14 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       const bookingType = useSelector((state: any) => state.bookingType?.value);
 
 
+      
+      if(bookingType.bookingPreference != "Date"){
+        pricing = pricing.filter((item) => item.BookingType === "Regular")
+      } else{
+        pricing = pricing.filter((item) => item.BookingType === "On Demand")
+      }
+
+
     function handleButtonClick(value: string): void {
         setMealType((prevState : any) => 
           prevState.includes(value) 
@@ -80,8 +88,10 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
     };
     const calculatePriceAndEntry = () => {
         let totalPrice = 0;
+        console.log("mealType", mealType)
         mealType.forEach((category) => {
           const categoryData = pricing.find(item => item.Categories === category);
+          console.log("categoryData", categoryData)
           if (categoryData) {
             totalPrice += getPeopleCount(categoryData);
             setSelectedItems((prevState : any) => 
@@ -109,7 +119,6 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
           setPrice(totalPrice);
         }
 
-        console.log("serviceType ", serviceType)
         if(serviceType === 2){
           totalPrice = totalPrice = (Number(totalPrice)) +  Number(totalPrice) * 30 / 100;
           setPrice(totalPrice);
@@ -117,17 +126,23 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       }
 
       const getPeopleCount = (data) => {
+        let field = "";
+        if(bookingType.bookingPreference != "Date"){
+          field = "Price /Month (INR)"
+        } else {
+          field = "Price /Day (INR)"
+        }
         const paxToNumber = Number(pax);
       
         if (paxToNumber <= 3) {
-          return data["Price /Month (INR)"];
+          return data[field];
         } else if (paxToNumber > 3 && paxToNumber <= 6) {
-          const basePrice = data["Price /Month (INR)"];
+          const basePrice = data[field];
           const extraPeople = paxToNumber - 3;
           const increasedPrice = basePrice + basePrice * 0.2 * extraPeople;
           return increasedPrice;
         } else if (paxToNumber > 6 && paxToNumber <= 9) {
-          const basePrice = data["Price /Month (INR)"];
+          const basePrice = data[field];
           // First, calculate the price for the first 6 people
           const extraPeopleTier1 = 3; // From 4 to 6 (3 people total)
           const priceForTier1 = basePrice + basePrice * 0.2 * extraPeopleTier1;
@@ -138,7 +153,7 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
       
           return increasedPrice;
         } else if (paxToNumber > 9) {
-          const basePrice = data["Price /Month (INR)"];
+          const basePrice = data[field];
           // First, calculate the price for the first 6 people
           const extraPeopleTier1 = 3; // From 4 to 6 (3 people total)
           const priceForTier1 = basePrice + basePrice * 0.2 * extraPeopleTier1;
