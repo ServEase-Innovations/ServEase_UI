@@ -314,12 +314,22 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       });
   
       console.log("Filtered Nanny Pricing:", filteredNanny); // Log filtered Nanny data
-  
-      const subCategories = filteredNanny.map(item => item["Sub-Categories"]);
-      console.log("All Sub-Categories:", subCategories);
+  // Get all categories from filteredNannyPricing
+      const allCategories = filteredNannyPricing.map((service) => service.Categories);
+      console.log("All Categories:", allCategories );
+// Remove duplicates
+      const uniqueCategories = Array.from(new Set(allCategories));
+
+console.log("Unique Categories for Dropdown:", uniqueCategories);
+
+      // const subCategories = filteredNanny.map(item => item["Sub-Categories"]);
+      // console.log("All Sub-Categories:", subCategories);
   
       const numbersSizeArray = filteredNanny.map(item => item["Numbers/Size"]);
       console.log("All Numbers/Size:", numbersSizeArray);
+      const uniquenumbersSizeArray = Array.from(new Set(numbersSizeArray));
+
+console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
   
       // ✅ Pick the correct price field based on bookingPreference
       const priceField = bookingType.bookingPreference !== "Date" 
@@ -1036,56 +1046,84 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
           </td>
 
           {/* Service Category Dropdown */}
-          <td style={{ padding: "15px 10px" }}>
-            <select
-              value={nannyStates?.serviceCategory || ""}
-              onChange={(e) =>
-                setNannyStates((prev) => ({
-                  ...prev,
-                  serviceCategory: e.target.value,
-                }))
-              }
-              style={{
-                padding: "5px",
-                borderRadius: "5px",
-                border: "1px solid #0288D1",
-                background: "#E3F2FD",
-                cursor: "pointer",
-              }}
-            >
-              {filteredNannyPricing.map((service, index) => (
-                <option key={index} value={service.Categories}>
-                  {service.Categories}
-                </option>
-              ))}
-            </select>
-          </td>
+<td style={{ padding: "15px 10px" }}>
+  {(() => {
+    const allCategories = filteredNannyPricing.map((service) => service.Categories);
+    const uniqueCategories = Array.from(new Set(allCategories));
+
+    return (
+      <select
+        value={nannyStates?.serviceCategory || ""}
+        onChange={(e) =>
+          setNannyStates((prev) => ({
+            ...prev,
+            serviceCategory: e.target.value,
+          }))
+        }
+        style={{
+          padding: "5px",
+          borderRadius: "5px",
+          border: "1px solid #0288D1",
+          background: "#E3F2FD",
+          cursor: "pointer",
+        }}
+      >
+            {/* Default option */}
+            <option value="" disabled>
+          Select Category
+        </option>
+        {uniqueCategories.map((category, index) => (
+          <option key={index} value={category}>
+            {category}
+          </option>
+        ))}
+      </select>
+    );
+  })()}
+</td>
+
 
           {/* Age Dropdown */}
-          <td style={{ padding: "15px 10px" }}>
-            <select
-              value={nannyStates?.age || ""}
-              onChange={(e) =>
-                setNannyStates((prev) => ({
-                  ...prev,
-                  age: e.target.value,
-                }))
-              }
-              style={{
-                padding: "5px",
-                borderRadius: "5px",
-                border: "1px solid #0288D1",
-                background: "#E3F2FD",
-                cursor: "pointer",
-              }}
-            >
-              {filteredNannyPricing.map((service, index) => (
-                <option key={index} value={service["Numbers/Size"]}>
-                  {service["Numbers/Size"]}
-                </option>
-              ))}
-            </select>
-          </td>
+<td style={{ padding: "15px 10px" }}>
+  {(() => {
+    // Extract all Numbers/Size values
+    const allAges = filteredNannyPricing.map((service) => service["Numbers/Size"]);
+    
+    // Remove duplicates
+    const uniqueAges = Array.from(new Set(allAges));
+
+    return (
+      <select
+        value={nannyStates?.age || ""}
+        onChange={(e) =>
+          setNannyStates((prev) => ({
+            ...prev,
+            age: e.target.value,
+          }))
+        }
+        style={{
+          padding: "5px",
+          borderRadius: "5px",
+          border: "1px solid #0288D1",
+          background: "#E3F2FD",
+          cursor: "pointer",
+        }}
+      >
+        {/* Default option */}
+        <option value="" disabled>
+          Select Age
+        </option>
+
+        {/* Unique age options */}
+        {uniqueAges.map((age, index) => (
+          <option key={index} value={age}>
+            {age}
+          </option>
+        ))}
+      </select>
+    );
+  })()}
+</td>
 
           {/* Time Slot */}
         
