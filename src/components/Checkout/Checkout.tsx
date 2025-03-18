@@ -24,6 +24,7 @@ import Login from "../Login/Login";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { BOOKINGS, CONFIRMATION } from "../../Constants/pagesConstants";
 import { add, remove } from "../../features/cart/cartSlice";
+import moment from "moment";
 
 // Define the structure of each item in selectedItems
 interface Item {
@@ -44,11 +45,17 @@ interface ChildComponentProps {
   sendDataToParent: (data: any) => void;
 }
 
-const Checkout: React.FC<ChildComponentProps> = ({ providerDetails, sendDataToParent }) => {
+const Checkout: React.FC<ChildComponentProps> = ({
+  providerDetails,
+  sendDataToParent,
+}) => {
   const [checkout, setCheckout] = useState<any>([]);
-  const [bookingTypeFromSelection, setBookingTypeFromSelection] = useState<Bookingtype>();
+  const [bookingTypeFromSelection, setBookingTypeFromSelection] =
+    useState<Bookingtype>();
   const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
+    "success"
+  );
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [open, setOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState();
@@ -63,9 +70,10 @@ const Checkout: React.FC<ChildComponentProps> = ({ providerDetails, sendDataToPa
   const firstName = user?.customerDetails?.firstName;
   const lastName = user?.customerDetails?.lastName;
   const customerName = `${firstName} ${lastName}`;
-  console.log("pricing data ",pricing);
+  console.log("pricing data ", pricing);
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-
+console.log("providerFullName::",providerFullName);
+console.log(providerDetails);
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
     serviceProviderName: "",
@@ -88,7 +96,10 @@ const Checkout: React.FC<ChildComponentProps> = ({ providerDetails, sendDataToPa
     { key: 2, value: "Premium" },
   ];
   // Handle service type change for a specific meal
-  const handleServiceTypeChange = (mealType: string, newServiceType: number) => {
+  const handleServiceTypeChange = (
+    mealType: string,
+    newServiceType: number
+  ) => {
     setMealStates((prev) => ({
       ...prev,
       [mealType]: {
@@ -98,43 +109,55 @@ const Checkout: React.FC<ChildComponentProps> = ({ providerDetails, sendDataToPa
     }));
   };
   // Handle service type change for Nanny
-const handleNannyServiceTypeChange = (serviceType: string, newServiceType: number) => {
-  setNannyStates((prev) => ({
-    ...prev,
-    [serviceType]: {
-      serviceType: newServiceType,
-    },
-  }));
-};
+  const handleNannyServiceTypeChange = (
+    serviceType: string,
+    newServiceType: number
+  ) => {
+    setNannyStates((prev) => ({
+      ...prev,
+      [serviceType]: {
+        serviceType: newServiceType,
+      },
+    }));
+  };
 
-// Handle service type change for Maid
-const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number) => {
-  setMaidStates((prev) => ({
-    ...prev,
-    [serviceType]: {
-      ...prev[serviceType],
-      serviceType: newServiceType,
-    },
-  }));
-};
-  const [serviceType, setServiceType] = useState<number>(typeButtonsSelector[0].key); // Default to Regular
+  // Handle service type change for Maid
+  const handleMaidServiceTypeChange = (
+    serviceType: string,
+    newServiceType: number
+  ) => {
+    setMaidStates((prev) => ({
+      ...prev,
+      [serviceType]: {
+        ...prev[serviceType],
+        serviceType: newServiceType,
+      },
+    }));
+  };
+  const [serviceType, setServiceType] = useState<number>(
+    typeButtonsSelector[0].key
+  ); // Default to Regular
   const [filteredCookPricing, setFilteredCookPricing] = useState<any[]>([]);
-  const [mealStates, setMealStates] = useState<Record<string, { serviceType: number; pax: number }>>({});
+  const [mealStates, setMealStates] = useState<
+    Record<string, { serviceType: number; pax: number }>
+  >({});
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
 
   const toggleMealSelection = (mealType: string) => {
-    setSelectedMeals((prevSelected) =>
-      prevSelected.includes(mealType)
-        ? prevSelected.filter((meal) => meal !== mealType) // Remove if already selected
-        : [...prevSelected, mealType] // Add if not selected
+    setSelectedMeals(
+      (prevSelected) =>
+        prevSelected.includes(mealType)
+          ? prevSelected.filter((meal) => meal !== mealType) // Remove if already selected
+          : [...prevSelected, mealType] // Add if not selected
     );
   };
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const toggleServiceSelection = (serviceType: string) => {
-    setSelectedServices((prevSelected) =>
-      prevSelected.includes(serviceType)
-        ? prevSelected.filter((service) => service !== serviceType) // Remove if already selected
-        : [...prevSelected, serviceType] // Add if not selected
+    setSelectedServices(
+      (prevSelected) =>
+        prevSelected.includes(serviceType)
+          ? prevSelected.filter((service) => service !== serviceType) // Remove if already selected
+          : [...prevSelected, serviceType] // Add if not selected
     );
   };
 
@@ -160,7 +183,10 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
   // Initialize meal states when filteredCookPricing changes
   useEffect(() => {
     if (bookingTypes?.role === "cook") {
-      const initialMealStates: Record<string, { serviceType: number; pax: number }> = {};
+      const initialMealStates: Record<
+        string,
+        { serviceType: number; pax: number }
+      > = {};
       filteredCookPricing.forEach((meal) => {
         initialMealStates[meal.Categories] = {
           serviceType: 1, // Default to Regular
@@ -170,8 +196,6 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       setMealStates(initialMealStates);
     }
   }, [filteredCookPricing]);
-
-
 
   // Increment number of persons for a specific meal
   const incrementPax = (mealType: string) => {
@@ -183,7 +207,7 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       },
     }));
   };
-  
+
   const updatePax = (mealType, newValue) => {
     setMealStates((prev) => ({
       ...prev,
@@ -193,7 +217,7 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       },
     }));
   };
-  
+
   // Decrement number of persons for a specific meal
   const decrementPax = (mealType: string) => {
     setMealStates((prev) => ({
@@ -208,7 +232,9 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
   // Calculate price based on number of persons and service type
   const getPeopleCount = (data: any, pax: number, serviceType: number) => {
     let field =
-      bookingType.bookingPreference !== "Date" ? "Price /Month (INR)" : "Price /Day (INR)";
+      bookingType.bookingPreference !== "Date"
+        ? "Price /Month (INR)"
+        : "Price /Day (INR)";
     const basePrice = data[field];
 
     let totalPrice = basePrice;
@@ -218,7 +244,10 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
     } else if (pax > 6 && pax <= 9) {
       totalPrice += basePrice * 0.2 * 3 + basePrice * 0.1 * (pax - 6);
     } else if (pax > 9) {
-      totalPrice += basePrice * 0.2 * 3 + basePrice * 0.1 * 3 + basePrice * 0.05 * (pax - 9);
+      totalPrice +=
+        basePrice * 0.2 * 3 +
+        basePrice * 0.1 * 3 +
+        basePrice * 0.05 * (pax - 9);
     }
 
     if (serviceType === 2) {
@@ -228,14 +257,16 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
     return totalPrice;
   };
   const [filteredMaidPricing, setFilteredMaidPricing] = useState<any[]>([]);
-  const [maidStates, setMaidStates] = useState<Record<string, { serviceType: number; pax: number }>>({});
-  
+  const [maidStates, setMaidStates] = useState<
+    Record<string, { serviceType: number; pax: number }>
+  >({});
+
   // Filter Maid data based on booking type
   useEffect(() => {
     if (bookingTypes?.role === "maid") {
       const maidPricing = pricing?.Maid || []; // Extract Maid data
       console.log("Maid Pricing:", maidPricing); // Log Maid data
-  
+
       const filteredMaid = maidPricing.filter((item) => {
         if (bookingType.bookingPreference !== "Date") {
           return item.BookingType === "Regular";
@@ -243,11 +274,11 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
           return item.BookingType === "On Demand";
         }
       });
-  
+
       console.log("Filtered Maid Pricing:", filteredMaid); // Log filtered Maid data
-      const subCategories = filteredMaid.map(item => item["Sub-Categories"]);
+      const subCategories = filteredMaid.map((item) => item["Sub-Categories"]);
       console.log("All Sub-Categories:", subCategories);
-      const numbersSizeArray = filteredMaid.map(item => item["Numbers/Size"]);
+      const numbersSizeArray = filteredMaid.map((item) => item["Numbers/Size"]);
       console.log("All Numbers/Size:", numbersSizeArray);
       setFilteredMaidPricing(filteredMaid);
     }
@@ -261,7 +292,7 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       },
     }));
   };
-  
+
   const decrementNo = (serviceType: string) => {
     setMaidStates((prevState) => ({
       ...prevState,
@@ -274,7 +305,10 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
   // Initialize maid states when filteredMaidPricing changes
   useEffect(() => {
     if (bookingTypes?.role === "maid") {
-      const initialMaidStates: Record<string, { serviceType: number; pax: number }> = {};
+      const initialMaidStates: Record<
+        string,
+        { serviceType: number; pax: number }
+      > = {};
       filteredMaidPricing.forEach((service) => {
         initialMaidStates[service.Categories] = {
           serviceType: 1, // Default to Regular
@@ -284,10 +318,10 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
       setMaidStates(initialMaidStates);
     }
   }, [filteredMaidPricing]);
+
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
 
-  
   const [filteredNannyPricing, setFilteredNannyPricing] = useState<any[]>([]);
   const [nannyStates, setNannyStates] = useState<{
     serviceType: number;
@@ -304,7 +338,7 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
     if (bookingTypes?.role === "nanny") {
       const nannyPricing = pricing?.Nanny || []; // Extract Nanny data
       console.log("Nanny Pricing:", nannyPricing); // Log Nanny data
-  
+
       const filteredNanny = nannyPricing.filter((item) => {
         if (bookingType.bookingPreference !== "Date") {
           return item.BookingType === "Regular";
@@ -312,42 +346,46 @@ const handleMaidServiceTypeChange = (serviceType: string, newServiceType: number
           return item.BookingType === "On Demand";
         }
       });
-  
+
       console.log("Filtered Nanny Pricing:", filteredNanny); // Log filtered Nanny data
-  // Get all categories from filteredNannyPricing
-      const allCategories = filteredNannyPricing.map((service) => service.Categories);
-      console.log("All Categories:", allCategories );
-// Remove duplicates
+      // Get all categories from filteredNannyPricing
+      const allCategories = filteredNannyPricing.map(
+        (service) => service.Categories
+      );
+      console.log("All Categories:", allCategories);
+      // Remove duplicates
       const uniqueCategories = Array.from(new Set(allCategories));
 
-console.log("Unique Categories for Dropdown:", uniqueCategories);
+      console.log("Unique Categories for Dropdown:", uniqueCategories);
 
       // const subCategories = filteredNanny.map(item => item["Sub-Categories"]);
       // console.log("All Sub-Categories:", subCategories);
-  
-      const numbersSizeArray = filteredNanny.map(item => item["Numbers/Size"]);
+
+      const numbersSizeArray = filteredNanny.map(
+        (item) => item["Numbers/Size"]
+      );
       console.log("All Numbers/Size:", numbersSizeArray);
       const uniquenumbersSizeArray = Array.from(new Set(numbersSizeArray));
 
-console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
-  
+      console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
+
       // ✅ Pick the correct price field based on bookingPreference
-      const priceField = bookingType.bookingPreference !== "Date" 
-        ? "Price /Month (INR)" 
-        : "Price /Day (INR)";
-  
+      const priceField =
+        bookingType.bookingPreference !== "Date"
+          ? "Price /Month (INR)"
+          : "Price /Day (INR)";
+
       // ✅ Map the prices using the selected field
-      const pricesArray = filteredNanny.map(item => item[priceField]);
-  
-      console.log(`Prices (${priceField}):`, pricesArray);
-  
+      const pricesArray = filteredNanny.map((item) => item[priceField]);
+
+      console.log("Prices (${priceField}):", pricesArray);
+
       const basePrice = Math.min(...pricesArray);
-      console.log(`Base Price (${priceField}):`, basePrice);
-  
+      console.log("Base Price (${priceField}):", basePrice);
+
       setFilteredNannyPricing(filteredNanny);
     }
   }, [bookingType, pricing]);
-  
 
   // Initialize nanny states when filteredNannyPricing changes
   useEffect(() => {
@@ -362,70 +400,62 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
     }
   }, [filteredNannyPricing]);
   const calculateTotalPrice = () => {
-  // Step 1: Find the selected service based on category and age
-  const selectedService = filteredNannyPricing.find(
-    (item) =>
-      item.Categories === nannyStates.serviceCategory &&
-      item["Numbers/Size"] === nannyStates.age
-  );
+    // Step 1: Find the selected service based on category and age
+    const selectedService = filteredNannyPricing.find(
+      (item) =>
+        item.Categories === nannyStates.serviceCategory &&
+        item["Numbers/Size"] === nannyStates.age
+    );
 
-  if (!selectedService) {
-    return 0; // Return 0 if no matching service is found
-  }
+    if (!selectedService) {
+      return 0; // Return 0 if no matching service is found
+    }
 
-  // Step 2: Determine the price field based on booking preference
-  const priceField =
-    bookingType.bookingPreference !== "Date" ? "Price /Month (INR)" : "Price /Day (INR)";
+    // Step 2: Determine the price field based on booking preference
+    const priceField =
+      bookingType.bookingPreference !== "Date"
+        ? "Price /Month (INR)"
+        : "Price /Day (INR)";
 
-  // Step 3: Get the base price from the selected service
-  let price = selectedService[priceField];
+    // Step 3: Get the base price from the selected service
+    let price = selectedService[priceField];
 
-  // Step 4: Ensure price is a valid number
-  if (typeof price !== "number" || isNaN(price)) {
-    console.error("Invalid price value");
-    return 0;
-  }
+    // Step 4: Ensure price is a valid number
+    if (typeof price !== "number" || isNaN(price)) {
+      console.error("Invalid price value");
+      return 0;
+    }
 
-  // Step 5: Apply service type multiplier
-  if (nannyStates.serviceType === 2) { // Premium
-    price *= 1.5; // Example multiplier for Premium
-  }
+    // Step 5: Apply service type multiplier
+    if (nannyStates.serviceType === 2) {
+      // Premium
+      price *= 1.5; // Example multiplier for Premium
+    }
 
-  // Step 6: Handle date-based booking (if applicable)
-  if (bookingType.bookingPreference === "Date") {
-    
-    // Step 7: Calculate total price for date-based booking
-    return price ;
-  }
+    // Step 6: Handle date-based booking (if applicable)
+    if (bookingType.bookingPreference === "Date") {
+      // Step 7: Calculate total price for date-based booking
+      return price;
+    }
 
-  // Step 8: Return monthly price for non-date-based booking
-  return price;
-};
-
-  // Handle service type change for a specific service
-  // const handleServiceTypeChange = (serviceType: string, newServiceType: number) => {
-  //   setNannyStates((prev) => ({
-  //     ...prev,
-  //     [serviceType]: {
-  //       serviceType: newServiceType,
-  //     },
-  //   }));
-  // };
+    // Step 8: Return monthly price for non-date-based booking
+    return price;
+  };
 
   // Calculate price based on service type
   const getPrice = (data: any, serviceType: number) => {
-    if (!data) return 0;
-  
-    const field =
-      bookingType.bookingPreference !== "Date" ? "Price /Month (INR)" : "Price /Day (INR)";
+    let field =
+      bookingType.bookingPreference !== "Date"
+        ? "Price /Month (INR)"
+        : "Price /Day (INR)";
     const basePrice = data[field];
-  
+
     let totalPrice = basePrice;
-  console.log(basePrice);
+
     if (serviceType === 2) {
       totalPrice += totalPrice * 0.3; // Premium service adds 30%
     }
-  
+
     return totalPrice;
   };
 
@@ -435,7 +465,9 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
   }, [cart, bookingType]);
 
   const handleRemoveItem = (index: number) => {
-    const updatedCheckout = checkout["selecteditem"]?.filter((_, i) => i !== index);
+    const updatedCheckout = checkout["selecteditem"]?.filter(
+      (_, i) => i !== index
+    );
     setCheckout(updatedCheckout);
     dispatch(add({ grandTotal, selecteditem: updatedCheckout }));
   };
@@ -481,9 +513,12 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
           description: "Booking Payment",
           order_id: orderId,
           handler: async function (razorpayResponse: any) {
-            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+            alert(
+              `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
+            );
 
-            bookingDetails.serviceProviderId = providerDetails.serviceproviderId;
+            bookingDetails.serviceProviderId =
+              providerDetails.serviceproviderId;
             bookingDetails.serviceProviderName = providerFullName;
             bookingDetails.customerId = customerId;
             bookingDetails.customerName = customerName;
@@ -495,7 +530,10 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
             bookingDetails.taskStatus = "NOT_STARTED";
             bookingDetails.bookingType = bookingType.bookingPreference;
             bookingDetails.serviceeType = checkout.selecteditem[0].Service;
-            bookingDetails.timeslot = [bookingType.morningSelection, bookingType.eveningSelection]
+            bookingDetails.timeslot = [
+              bookingType.morningSelection,
+              bookingType.eveningSelection,
+            ]
               .filter(Boolean)
               .join(", ");
 
@@ -539,21 +577,26 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
       setOpenSnackbar(true);
     }
   };
-  const calculateNannySubtotal = () => {
-    let subtotal = 0;
   
-    filteredNannyPricing.forEach((service) => {
-      if (selectedServices.includes(service.Categories)) {
-        const selectedServiceType = nannyStates?.[service.Categories]?.serviceType || 1;
-        subtotal += getPrice(service, selectedServiceType);
-      }
-    });
-  
-    return subtotal;
+  const calculateAge = (dob) => {
+    if (!dob) return ""; // Handle cases where dob is not provided
+    const age = moment().diff(moment(dob), 'years'); // Get the age in years
+    return age;
   };
+  const handleNumbersSizeChange = (serviceType: string, value: string) => {
+    setMaidStates((prev) => ({
+      ...prev,
+      [serviceType]: {
+        ...prev[serviceType],
+        numbersSize: value,
+      },
+    }));
+  };
+
+  // Calculate subtotal for all selected services
   const calculateSubtotal = () => {
     let subtotal = 0;
-  
+
     // Calculate Cook subtotal
     filteredCookPricing.forEach((meal) => {
       if (selectedMeals.includes(meal.Categories)) {
@@ -564,25 +607,104 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
         subtotal += getPeopleCount(meal, pax, serviceType);
       }
     });
-  
+
     // Calculate Maid subtotal
     filteredMaidPricing.forEach((service) => {
       if (selectedServices.includes(service.Categories)) {
-        const { serviceType: selectedServiceType, pax } =
-          maidStates[service.Categories] || {
-            serviceType: 1,
-            pax: 3,
-          };
+        const { serviceType: selectedServiceType, pax } = maidStates[
+          service.Categories
+        ] || {
+          serviceType: 1,
+          pax: 3,
+        };
         subtotal += getPeopleCount(service, pax, selectedServiceType);
       }
     });
-  
+
     // Calculate Nanny subtotal
     subtotal += calculateNannySubtotal();
-  
+
     return subtotal;
   };
-  const grandTotal = checkout?.price ? checkout?.price : 0;
+
+  // Calculate Nanny subtotal
+  const calculateNannySubtotal = () => {
+    let subtotal = 0;
+
+    if (nannyStates.serviceCategory && nannyStates.age) {
+      const selectedService = filteredNannyPricing.find(
+        (item) =>
+          item.Categories === nannyStates.serviceCategory &&
+          item["Numbers/Size"] === nannyStates.age
+      );
+
+      if (selectedService) {
+        const priceField =
+          bookingType.bookingPreference !== "Date"
+            ? "Price /Month (INR)"
+            : "Price /Day (INR)";
+        let price = selectedService[priceField];
+
+        if (nannyStates.serviceType === 2) {
+          price *= 1.5; // Premium service adds 50%
+        }
+
+        subtotal += price;
+      }
+    }
+
+    return subtotal;
+  };
+
+  // Calculate grand total
+  const grandTotal = calculateSubtotal() + calculateSubtotal() * 0.18 + 10;
+  // const calculateNannySubtotal = () => {
+  //   let subtotal = 0;
+
+  //   filteredNannyPricing.forEach((service) => {
+  //     if (selectedServices.includes(service.Categories)) {
+  //       const selectedServiceType =
+  //         nannyStates?.[service.Categories]?.serviceType || 1;
+  //       subtotal += getPrice(service, selectedServiceType);
+  //     }
+  //   });
+
+  //   return subtotal;
+  // };
+
+  // const calculateSubtotal = () => {
+  //   let subtotal = 0;
+
+  //   // Calculate Cook subtotal
+  //   filteredCookPricing.forEach((meal) => {
+  //     if (selectedMeals.includes(meal.Categories)) {
+  //       const { serviceType, pax } = mealStates[meal.Categories] || {
+  //         serviceType: 1,
+  //         pax: 3,
+  //       };
+  //       subtotal += getPeopleCount(meal, pax, serviceType);
+  //     }
+  //   });
+
+  //   // Calculate Maid subtotal
+  //   filteredMaidPricing.forEach((service) => {
+  //     if (selectedServices.includes(service.Categories)) {
+  //       const { serviceType: selectedServiceType, pax } = maidStates[
+  //         service.Categories
+  //       ] || {
+  //         serviceType: 1,
+  //         pax: 3,
+  //       };
+  //       subtotal += getPeopleCount(service, pax, selectedServiceType);
+  //     }
+  //   });
+
+  //   // Calculate Nanny subtotal
+  //   subtotal += calculateNannySubtotal();
+
+  //   return subtotal;
+  // };
+  // const grandTotal = checkout?.price ? checkout?.price : 0;
 
   const handleBackClick = () => {
     sendDataToParent(CONFIRMATION);
@@ -594,7 +716,7 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
     console.log("Booking Type from Redux Store for checkout:", bookingTypes);
     console.log("Morning checkout:", bookingTypes?.morningSelection);
     console.log("Evening checkout:", bookingTypes?.eveningSelection);
-    console.log("role checkout",bookingTypes?.role);
+    console.log("role checkout", bookingTypes?.role);
   }, [bookingType]);
 
   return (
@@ -607,32 +729,58 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
           width: "100%",
         }}
       >
-        {/* Fixed Header */}
-        <Box
-          sx={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            padding: "20px",
-            backgroundColor: "#fff",
-            zIndex: 10,
-            boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
-            textAlign: "center",
-            height: "8%",
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "center",
-            marginTop: "65px",
-          }}
+       {/* Fixed Header */}
+       <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          padding: "20px",
+          backgroundColor: "#fff",
+          zIndex: 10,
+          boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
+          textAlign: "center",
+          height: "12%",
+          display: "flex",
+          justifyContent: "space-between", // Adjusted to space-between
+          alignItems: "center",
+          marginTop: "65px",
+        }}
+      >
+        <Button
+          variant="outlined"
+          onClick={handleBackClick}
         >
-          <Button variant="outlined" style={{ marginRight: "30%" }} onClick={handleBackClick}>
-            Back
-          </Button>
-          <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.5rem" }}>
-            Selected Services
-          </Typography>
-        </Box>
+          Back
+        </Button>
+
+        {/* Provider Details Section */}
+{bookingType.bookingPreference !== "Date" && (
+  <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
+    <div style={{ display: 'grid', gap: '4px', textAlign: 'left' }}>
+      <Typography variant="h6" style={{ display: 'flex', alignItems: 'center' }}>
+        {providerDetails.firstName} {providerDetails.lastName}, (
+        {providerDetails.gender === 'FEMALE' ? 'F ' : providerDetails.gender === 'MALE' ? 'M ' : 'O '}
+        {calculateAge(providerDetails.dob)})
+        <img
+          src="nonveg.png"
+          alt="Diet Symbol"
+          style={{ width: '20px', height: '20px', marginLeft: '10px' }}
+        />
+      </Typography>
+      <div style={{ display: 'flex', gap: '16px' }}>
+        <Typography variant="body1" style={{ fontWeight: '500' }}>
+          Languages: {providerDetails.languages || 'N/A'}
+        </Typography>
+        <Typography variant="body1" style={{ fontWeight: '500' }}>
+          Specialities: {providerDetails.cookingSpeciality || 'N/A'}
+        </Typography>
+      </div>
+    </div>
+  </div>
+)}
+      </Box>
 
         {/* Scrollable Content Section */}
         <Box
@@ -662,595 +810,744 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
                   background: "#f8f9fa",
                 }}
               >
-                {/* Left Section - Service Cart */}
+                
+                {/* Left Section - Service Cart  Cook*/}
+
                 {bookingTypes?.role === "cook" && (
-  <div
-    style={{
-      width: "60%",
-      background: "#fff",
-      padding: "30px",
-      borderRadius: "12px",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "20px",
-      }}
-    >
-      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>COOK</h2>
-      <Tooltip title="Remove this service">
-        <IconButton sx={{ color: "#d32f2f" }} onClick={() => handleRemoveItem(index)}>
-          <DeleteOutlineIcon />
-        </IconButton>
-      </Tooltip>
-    </div>
-    <table style={{ width: "100%", marginTop: "10px", borderCollapse: "collapse" }}>
-      <thead>
-        <tr
-          style={{
-            textAlign: "left",
-            borderBottom: "2px solid #ddd",
-            fontSize: "18px",
-            fontWeight: "bold",
-          }}
-        >
-          <th style={{ padding: "15px 10px" }}>Select</th> {/* New column for checkboxes */}
-          <th style={{ padding: "15px 10px" }}>Meal Type</th>
-          <th style={{ padding: "15px 10px" }}>Service Type</th>
-          <th style={{ padding: "15px 10px" }}>No of Person</th>
-          <th style={{ padding: "15px 10px" }}>Time Slot</th>
-          <th style={{ padding: "15px 10px" }}>Total Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredCookPricing.map((meal, index) => {
-          const mealType = meal.Categories;
-          const { serviceType, pax } = mealStates[mealType] || {
-            serviceType: 1,
-            pax: 3,
-          };
+                  <div
+                    style={{
+                      width: "60%",
+                      background: "#fff",
+                      padding: "30px",
+                      borderRadius: "12px",
+                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>
+                        COOK
+                      </h2>
+                      <Tooltip title="Remove this service">
+                        <IconButton
+                          sx={{ color: "#d32f2f" }}
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
+                    <table
+                      style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            textAlign: "left",
+                            borderBottom: "2px solid #ddd",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <th style={{ padding: "15px 10px" }}>Select</th>
+                          <th style={{ padding: "15px 10px" }}>Meal Type</th>
+                          <th style={{ padding: "15px 10px" }}>Service Type</th>
+                          <th style={{ padding: "15px 10px" }}>No of Person</th>
+                          <th style={{ padding: "15px 10px" }}>Time Slot</th>
+                          <th style={{ padding: "15px 10px" }}>Total Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredCookPricing.map((meal, index) => {
+                          const mealType = meal.Categories;
+                          const { serviceType, pax } = mealStates[mealType] || {
+                            serviceType: 1,
+                            pax: 3,
+                          };
 
-          return (
-            <tr
-              key={`${mealType}-${serviceType}-${pax}`}
-              style={{
-                borderBottom: "1px solid #ddd",
-                fontSize: "16px",
-                height: "50px",
-              }}
-            >
-              {/* Checkbox for selecting meal */}
-              <td style={{ padding: "15px 10px" }}>
-                <input
-                  type="checkbox"
-                  checked={selectedMeals.includes(mealType)}
-                  onChange={() => toggleMealSelection(mealType)}
-                />
-              </td>
-              <td style={{ padding: "15px 10px" }}>{mealType}</td>
-              <td style={{ padding: "15px 10px" }}>
-                <select
-                  value={serviceType === 1 ? "Regular" : "Premium"}
-                  onChange={(e) =>
-                    handleServiceTypeChange(mealType, e.target.value === "Regular" ? 1 : 2)
-                  }
-                  style={{
-                    padding: "5px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="Regular">Regular</option>
-                  <option value="Premium">Premium</option>
-                </select>
-              </td>
-              <td style={{ padding: "15px 10px", display: "flex", alignItems: "center" }}>
-                <button
-                  style={{
-                    margin: "0 10px",
-                    cursor: "pointer",
-                    padding: "5px 10px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                  }}
-                  onClick={() => decrementPax(mealType)}
-                >
-                  -
-                </button>
-
-                <input
-                  type="number"
-                  value={pax}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value, 10);
-                    if (!isNaN(newValue) && newValue > 0) {
-                      updatePax(mealType, newValue);
-                    }
-                  }}
-                  style={{
-                    width: "50px",
-                    textAlign: "center",
-                    padding: "5px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                  }}
-                />
-
-                <button
-                  style={{
-                    margin: "0 10px",
-                    cursor: "pointer",
-                    padding: "5px 10px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                  }}
-                  onClick={() => incrementPax(mealType)}
-                >
-                  +
-                </button>
-              </td>
-              <td style={{ padding: "15px 10px" }}>
-                {mealType.includes(meal.Categories) && (
-                  <>
-                    {bookingType.morningSelection && <span>{bookingType.morningSelection}</span>}
-                    {bookingType.eveningSelection && <span>{bookingType.eveningSelection}</span>}
-                  </>
+                          return (
+                            <tr
+                              key={`${mealType}-${serviceType}-${pax}`}
+                              style={{
+                                borderBottom: "1px solid #ddd",
+                                fontSize: "16px",
+                                height: "50px",
+                              }}
+                            >
+                              <td style={{ padding: "15px 10px" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMeals.includes(mealType)}
+                                  onChange={() => toggleMealSelection(mealType)}
+                                />
+                              </td>
+                              <td style={{ padding: "15px 10px" }}>
+                                {mealType}
+                              </td>
+                              <td style={{ padding: "15px 10px" }}>
+                                <select
+                                  value={
+                                    serviceType === 1 ? "Regular" : "Premium"
+                                  }
+                                  onChange={(e) =>
+                                    handleServiceTypeChange(
+                                      mealType,
+                                      e.target.value === "Regular" ? 1 : 2
+                                    )
+                                  }
+                                  style={{
+                                    padding: "5px",
+                                    borderRadius: "5px",
+                                    border: "1px solid #0288D1",
+                                    background: "#E3F2FD",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <option value="Regular">Regular</option>
+                                  <option value="Premium">Premium</option>
+                                </select>
+                              </td>
+                              <td style={{ padding: "15px 10px" }}>
+                                <select
+                                  value={pax || 1}
+                                  onChange={(e) =>
+                                    updatePax(
+                                      mealType,
+                                      parseInt(e.target.value, 10)
+                                    )
+                                  }
+                                  style={{
+                                    padding: "5px",
+                                    borderRadius: "5px",
+                                    border: "1px solid #0288D1",
+                                    background: "#E3F2FD",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {Array.from({ length: 10 }, (_, i) => (
+                                    <option key={i + 1} value={i + 1}>
+                                      {i + 1}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td style={{ padding: "15px 10px" }}>
+                                {mealType.includes(meal.Categories) && (
+                                  <>
+                                    {bookingType.morningSelection && (
+                                      <span>
+                                        {bookingType.morningSelection}
+                                      </span>
+                                    )}
+                                    {bookingType.eveningSelection && (
+                                      <span>
+                                        {bookingType.eveningSelection}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </td>
+                              <td style={{ padding: "15px 10px" }}>
+                                ₹{getPeopleCount(meal, pax, serviceType)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
-              </td>
-              <td style={{ padding: "15px 10px" }}>
-                ₹{getPeopleCount(meal, pax, serviceType)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
-)}
-
 
                 {/* MAID Table */}
                 {bookingTypes?.role === "maid" && (
-  <div
-    style={{
-      width: "60%",
-      background: "#fff",
-      padding: "30px",
-      borderRadius: "12px",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "20px",
-      }}
-    >
-      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>MAID</h2>
-      <Tooltip title="Remove this service">
-        <IconButton
-          sx={{ color: "#d32f2f" }}
-          onClick={() => handleRemoveItem(index)}
-        >
-          <DeleteOutlineIcon />
-        </IconButton>
-      </Tooltip>
-    </div>
-    <table style={{ width: "100%", marginTop: "10px", borderCollapse: "collapse" }}>
-      <thead>
-        <tr
-          style={{
-            textAlign: "left",
-            borderBottom: "2px solid #ddd",
-            fontSize: "18px",
-            fontWeight: "bold",
-          }}
-        >
-          <th style={{ padding: "15px 10px" }}>Select</th> {/* New column for checkboxes */}
-          <th style={{ padding: "15px 10px" }}>Service Type</th>
-          <th style={{ padding: "15px 10px" }}>Service Category</th>
-          <th style={{ padding: "15px 10px" }}>Sub-Category</th>
-          <th style={{ padding: "15px 10px" }}>Numbers/Size</th>
-          <th style={{ padding: "15px 10px" }}>No of Person</th>
-          <th style={{ padding: "15px 10px" }}>Time Slot</th>
-          <th style={{ padding: "15px 10px" }}>Total Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredMaidPricing.map((service, index) => {
-          const serviceType = service.Categories;
-          const subCategory = service["Sub-Categories"] || "N/A";
-          const numbersSize = service["Numbers/Size"] || "N/A"; // Retrieve Numbers/Size
-          const { serviceType: selectedServiceType, pax } =
-            maidStates[serviceType] || {
-              serviceType: 1,
-              pax: 3,
-            };
+                  <div
+                    style={{
+                      width: "60%",
+                      background: "#fff",
+                      padding: "30px",
+                      borderRadius: "12px",
+                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>
+                        MAID
+                      </h2>
+                      <Tooltip title="Remove this service">
+                        <IconButton
+                          sx={{ color: "#d32f2f" }}
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
+                    <table
+                      style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            textAlign: "left",
+                            borderBottom: "2px solid #ddd",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <th style={{ padding: "15px 10px" }}>Select</th>
+                          <th style={{ padding: "15px 10px" }}>Service Type</th>
+                          <th style={{ padding: "15px 10px" }}>
+                            Service Category
+                          </th>
+                          <th style={{ padding: "15px 10px" }}>Sub-Category</th>
+                          <th
+                            style={{
+                              padding: "15px 10px",
+                              textAlign: "center",
+                            }}
+                          >
+                            Numbers/Size
+                          </th>
+                          <th style={{ padding: "15px 10px" }}>Time Slot</th>
+                          <th style={{ padding: "15px 10px" }}>Total Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredMaidPricing.map((service, index) => {
+                          const serviceType = service.Categories;
+                          const subCategory =
+                            service["Sub-Categories"] || "N/A";
+                          const numbersSize = service["Numbers/Size"] || "N/A";
+                          const { serviceType: selectedServiceType, pax } =
+                            maidStates[serviceType] || {
+                              serviceType: 1,
+                              pax: 3,
+                            };
 
-          return (
-            <tr
-              key={`${serviceType}-${selectedServiceType}-${pax}`}
-              style={{
-                borderBottom: "1px solid #ddd",
-                fontSize: "16px",
-                height: "50px",
-              }}
-            >
-              {/* Checkbox for selecting service */}
-              <td style={{ padding: "15px 10px" }}>
-                <input
-                  type="checkbox"
-                  checked={selectedServices.includes(serviceType)}
-                  onChange={() => toggleServiceSelection(serviceType)}
-                />
-              </td>
-              <td style={{ padding: "15px 10px" }}>{serviceType}</td>
-              <td style={{ padding: "15px 10px" }}>
-                <select
-                  value={selectedServiceType === 1 ? "Regular" : "Premium"}
-                  onChange={(e) =>
-                    handleMaidServiceTypeChange(
-                      serviceType,
-                      e.target.value === "Regular" ? 1 : 2
-                    )
-                  }
-                  style={{
-                    padding: "5px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="Regular">Regular</option>
-                  <option value="Premium">Premium</option>
-                </select>
-              </td>
-              <td style={{ padding: "15px 10px" }}>{subCategory}</td>
-              <td style={{ padding: "15px 10px" }}>{numbersSize}</td> {/* Display Numbers/Size */}
-              <td style={{ padding: "15px 10px" }}>
-                <button
-                  style={{
-                    margin: "0 10px",
-                    cursor: "pointer",
-                    padding: "5px 10px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                  }}
-                  onClick={() => decrementNo(serviceType)}
-                >
-                  -
-                </button>
-                {pax}
-                <button
-                  style={{
-                    margin: "0 10px",
-                    cursor: "pointer",
-                    padding: "5px 10px",
-                    borderRadius: "5px",
-                    border: "1px solid #0288D1",
-                    background: "#E3F2FD",
-                  }}
-                  onClick={() => incrementNO(serviceType)}
-                >
-                  +
-                </button>
-              </td>
-              <td style={{ padding: "15px 10px" }}>
-                {serviceType.includes(service.Categories) && (
-                  <>
-                    {bookingType.morningSelection && (
-                      <span>{bookingType.morningSelection}</span>
-                    )}
-                    {bookingType.eveningSelection && (
-                      <span>{bookingType.eveningSelection}</span>
-                    )}
-                  </>
+                          const isMajorOption = index < 3;
+                          const isMajorSelected = selectedServices.some(
+                            (selected) =>
+                              filteredMaidPricing
+                                .slice(0, 3)
+                                .map((s) => s.Categories)
+                                .includes(selected)
+                          );
+
+                          if (isMajorOption || isMajorSelected) {
+                            return (
+                              <tr
+                                key={`${serviceType}-${selectedServiceType}`}
+                                style={{
+                                  borderBottom: "1px solid #ddd",
+                                  fontSize: "16px",
+                                  height: "50px",
+                                }}
+                              >
+                                <td style={{ padding: "15px 10px" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedServices.includes(
+                                      serviceType
+                                    )}
+                                    onChange={() =>
+                                      toggleServiceSelection(serviceType)
+                                    }
+                                  />
+                                </td>
+                                <td style={{ padding: "15px 10px" }}>
+                                  {serviceType}
+                                </td>
+                                <td style={{ padding: "15px 10px" }}>
+                                  <select
+                                    value={
+                                      selectedServiceType === 1
+                                        ? "Regular"
+                                        : "Premium"
+                                    }
+                                    onChange={(e) =>
+                                      handleMaidServiceTypeChange(
+                                        serviceType,
+                                        e.target.value === "Regular" ? 1 : 2
+                                      )
+                                    }
+                                    style={{
+                                      padding: "5px",
+                                      borderRadius: "5px",
+                                      border: "1px solid #0288D1",
+                                      background: "#E3F2FD",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <option value="Regular">Regular</option>
+                                    <option value="Premium">Premium</option>
+                                  </select>
+                                </td>
+                                <td style={{ padding: "15px 10px" }}>
+                                  {subCategory}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "15px 10px",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: "10px",
+                                    }}
+                                  >
+                                    <button
+                                      style={{
+                                        cursor: "pointer",
+                                        padding: "5px 10px",
+                                        borderRadius: "5px",
+                                        border: "1px solid #0288D1",
+                                        background: "#E3F2FD",
+                                      }}
+                                      onClick={() => decrementNo(serviceType)}
+                                    >
+                                      -
+                                    </button>
+                                    <span
+                                      style={{
+                                        minWidth: "50px",
+                                        textAlign: "center",
+                                      }}
+                                    >
+                                      {subCategory === "House"
+                                        ? `${pax} BHK`
+                                        : pax}
+                                    </span>
+                                    <button
+                                      style={{
+                                        cursor: "pointer",
+                                        padding: "5px 10px",
+                                        borderRadius: "5px",
+                                        border: "1px solid #0288D1",
+                                        background: "#E3F2FD",
+                                      }}
+                                      onClick={() => incrementNO(serviceType)}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </td>
+                                <td style={{ padding: "15px 10px" }}>
+                                  {serviceType.includes(service.Categories) && (
+                                    <>
+                                      {bookingType.morningSelection && (
+                                        <span>
+                                          {bookingType.morningSelection}
+                                        </span>
+                                      )}
+                                      {bookingType.eveningSelection && (
+                                        <span>
+                                          {bookingType.eveningSelection}
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </td>
+                                <td style={{ padding: "15px 10px" }}>
+                                  ₹
+                                  {getPeopleCount(
+                                    service,
+                                    pax,
+                                    selectedServiceType
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          } else {
+                            return null;
+                          }
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
-              </td>
-              <td style={{ padding: "15px 10px" }}>
-                ₹{getPeopleCount(service, pax, selectedServiceType)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
-)}
 
-{/* NANNY Table */}
-{bookingTypes?.role === "nanny" && (
-  <div
-    style={{
-      width: "60%",
-      background: "#fff",
-      padding: "30px",
-      borderRadius: "12px",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "20px",
-      }}
-    >
-      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>NANNY</h2>
-      <Tooltip title="Remove this service">
-        <IconButton sx={{ color: "#d32f2f" }} onClick={() => handleRemoveItem(index)}>
-          <DeleteOutlineIcon />
-        </IconButton>
-      </Tooltip>
-    </div>
-    <table style={{ width: "100%", marginTop: "10px", borderCollapse: "collapse" }}>
-      <thead>
-        <tr
-          style={{
-            textAlign: "left",
-            borderBottom: "2px solid #ddd",
-            fontSize: "18px",
-            fontWeight: "bold",
-          }}
-        >
-          <th style={{ padding: "15px 10px" }}>Service Type</th>
-          <th style={{ padding: "15px 10px" }}>Service Category</th>
-          <th style={{ padding: "15px 10px" }}>Age</th>
-          <th style={{ padding: "15px 10px" }}>Time Slot</th>
-          <th style={{ padding: "15px 10px" }}>Total Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          style={{
-            borderBottom: "1px solid #ddd",
-            fontSize: "16px",
-            height: "50px",
-          }}
-        >
-          {/* Service Type Dropdown */}
-          <td style={{ padding: "15px 10px" }}>
-            <select
-              value={nannyStates?.serviceType || 1}
-              onChange={(e) =>
-                setNannyStates((prev) => ({
-                  ...prev,
-                  serviceType: parseInt(e.target.value, 10),
-                }))
-              }
-              style={{
-                padding: "5px",
-                borderRadius: "5px",
-                border: "1px solid #0288D1",
-                background: "#E3F2FD",
-                cursor: "pointer",
-              }}
-            >
-              <option value={1}>Regular</option>
-              <option value={2}>Premium</option>
-            </select>
-          </td>
+                {/* NANNY Table */}
+                {/* NANNY Table */}
+                {bookingTypes?.role === "nanny" && (
+                  <div
+                    style={{
+                      width: "60%",
+                      background: "#fff",
+                      padding: "30px",
+                      borderRadius: "12px",
+                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "20px",
+                      }}
+                    >
+                      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>
+                        NANNY
+                      </h2>
+                      <Tooltip title="Remove this service">
+                        <IconButton
+                          sx={{ color: "#d32f2f" }}
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
+                    <table
+                      style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr
+                          style={{
+                            textAlign: "left",
+                            borderBottom: "2px solid #ddd",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <th style={{ padding: "15px 10px" }}>Service Type</th>
+                          <th style={{ padding: "15px 10px" }}>
+                            Service Category
+                          </th>
+                          <th style={{ padding: "15px 10px" }}>Age</th>
+                          <th style={{ padding: "15px 10px" }}>Time Slot</th>
+                          <th style={{ padding: "15px 10px" }}>Total Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          style={{
+                            borderBottom: "1px solid #ddd",
+                            fontSize: "16px",
+                            height: "50px",
+                          }}
+                        >
+                          {/* Service Type Dropdown */}
+                          <td style={{ padding: "15px 10px" }}>
+                            <select
+                              value={nannyStates?.serviceType || 1}
+                              onChange={(e) =>
+                                setNannyStates((prev) => ({
+                                  ...prev,
+                                  serviceType: parseInt(e.target.value, 10),
+                                }))
+                              }
+                              style={{
+                                padding: "5px",
+                                borderRadius: "5px",
+                                border: "1px solid #0288D1",
+                                background: "#E3F2FD",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <option value={1}>Regular</option>
+                              <option value={2}>Premium</option>
+                            </select>
+                          </td>
 
-          {/* Service Category Dropdown */}
-<td style={{ padding: "15px 10px" }}>
-  {(() => {
-    const allCategories = filteredNannyPricing.map((service) => service.Categories);
-    const uniqueCategories = Array.from(new Set(allCategories));
+                          {/* Service Category Dropdown */}
+                          <td style={{ padding: "15px 10px" }}>
+                            {(() => {
+                              const allCategories = filteredNannyPricing.map(
+                                (service) => service.Categories
+                              );
+                              const uniqueCategories = Array.from(
+                                new Set(allCategories)
+                              );
 
-    return (
-      <select
-        value={nannyStates?.serviceCategory || ""}
-        onChange={(e) =>
-          setNannyStates((prev) => ({
-            ...prev,
-            serviceCategory: e.target.value,
-          }))
-        }
-        style={{
-          padding: "5px",
-          borderRadius: "5px",
-          border: "1px solid #0288D1",
-          background: "#E3F2FD",
-          cursor: "pointer",
-        }}
-      >
-            {/* Default option */}
-            <option value="" disabled>
-          Select Category
-        </option>
-        {uniqueCategories.map((category, index) => (
-          <option key={index} value={category}>
-            {category}
-          </option>
-        ))}
-      </select>
-    );
-  })()}
-</td>
+                              return (
+                                <select
+                                  value={nannyStates?.serviceCategory || ""}
+                                  onChange={(e) =>
+                                    setNannyStates((prev) => ({
+                                      ...prev,
+                                      serviceCategory: e.target.value,
+                                    }))
+                                  }
+                                  style={{
+                                    padding: "5px",
+                                    borderRadius: "5px",
+                                    border: "1px solid #0288D1",
+                                    background: "#E3F2FD",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <option value="" disabled>
+                                    Select Category
+                                  </option>
+                                  {uniqueCategories.map((category, index) => (
+                                    <option key={index} value={category}>
+                                      {category}
+                                    </option>
+                                  ))}
+                                </select>
+                              );
+                            })()}
+                          </td>
 
+                          {/* Age Dropdown */}
+                          <td style={{ padding: "15px 10px" }}>
+                            {(() => {
+                              // Determine age options based on selected service category
+                              const ageOptions =
+                                nannyStates?.serviceCategory?.includes(
+                                  "Baby care "
+                                )
+                                  ? ["<=3", ">3"]
+                                  : nannyStates?.serviceCategory?.includes(
+                                      "Baby Care "
+                                    )
+                                  ? ["<=3", ">3"]
+                                  : nannyStates?.serviceCategory?.includes(
+                                      "Elderly Care"
+                                    )
+                                  ? ["<=65", ">65"]
+                                  : nannyStates?.serviceCategory?.includes(
+                                      "Elderly care"
+                                    )
+                                  ? ["<=65", ">65"]
+                                  : [];
 
-          {/* Age Dropdown */}
-<td style={{ padding: "15px 10px" }}>
-  {(() => {
-    // Extract all Numbers/Size values
-    const allAges = filteredNannyPricing.map((service) => service["Numbers/Size"]);
-    
-    // Remove duplicates
-    const uniqueAges = Array.from(new Set(allAges));
+                              return (
+                                <select
+                                  value={nannyStates?.age || ""}
+                                  onChange={(e) =>
+                                    setNannyStates((prev) => ({
+                                      ...prev,
+                                      age: e.target.value,
+                                    }))
+                                  }
+                                  style={{
+                                    padding: "5px",
+                                    borderRadius: "5px",
+                                    border: "1px solid #0288D1",
+                                    background: "#E3F2FD",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <option value="" disabled>
+                                    Select Age
+                                  </option>
+                                  {ageOptions.map((age, index) => (
+                                    <option key={index} value={age}>
+                                      {age}
+                                    </option>
+                                  ))}
+                                </select>
+                              );
+                            })()}
+                          </td>
 
-    return (
-      <select
-        value={nannyStates?.age || ""}
-        onChange={(e) =>
-          setNannyStates((prev) => ({
-            ...prev,
-            age: e.target.value,
-          }))
-        }
-        style={{
-          padding: "5px",
-          borderRadius: "5px",
-          border: "1px solid #0288D1",
-          background: "#E3F2FD",
-          cursor: "pointer",
-        }}
-      >
-        {/* Default option */}
-        <option value="" disabled>
-          Select Age
-        </option>
+                          {/* Time Slot Input */}
+                          <td style={{ padding: "15px 10px" }}>
+                            <input
+                              type="time"
+                              value={startTime}
+                              onChange={(e) => setStartTime(e.target.value)}
+                              style={{
+                                padding: "5px",
+                                borderRadius: "5px",
+                                border: "1px solid #0288D1",
+                                background: "#E3F2FD",
+                              }}
+                            />
+                            <span> to </span>
+                            <input
+                              type="time"
+                              value={endTime}
+                              onChange={(e) => setEndTime(e.target.value)}
+                              style={{
+                                padding: "5px",
+                                borderRadius: "5px",
+                                border: "1px solid #0288D1",
+                                background: "#E3F2FD",
+                              }}
+                            />
+                          </td>
 
-        {/* Unique age options */}
-        {uniqueAges.map((age, index) => (
-          <option key={index} value={age}>
-            {age}
-          </option>
-        ))}
-      </select>
-    );
-  })()}
-</td>
-
-          {/* Time Slot */}
-        
-          {/* Time Slot Input */}
-          <td style={{ padding: "15px 10px" }}>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              style={{
-                padding: "5px",
-                borderRadius: "5px",
-                border: "1px solid #0288D1",
-                background: "#E3F2FD",
-              }}
-            />
-            <span> to </span>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              style={{
-                padding: "5px",
-                borderRadius: "5px",
-                border: "1px solid #0288D1",
-                background: "#E3F2FD",
-              }}
-            />
-          </td>
-
-          {/* Total Price */}
-          <td style={{ padding: "15px 10px" }}>
-  {calculateTotalPrice().toFixed(2)} INR
-</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-)}
+                          {/* Total Price */}
+                          <td style={{ padding: "15px 10px" }}>
+                            {calculateTotalPrice().toFixed(2)} INR
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
                 {/* Right Section - Payment Info */}
                 <div
-  style={{
-    width: "35%",
-    background: "#fff",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-  }}
->
-  <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Price Details</h2>
-  <div className="space-y-3 text-gray-800">
-  <div className="flex justify-between text-lg">
-    <span>Subtotal:</span>
-    <span className="font-semibold">₹{calculateSubtotal()}</span>
-  </div>
-  <div className="flex justify-between text-lg">
-    <span>GST (18%):</span>
-    <span className="font-semibold">
-      ₹{calculateSubtotal() * 0.18}
-    </span>
-  </div>
-  <div className="flex justify-between text-lg">
-    <span>Service Fee:</span>
-    <span className="font-semibold">₹10.00</span>
-  </div>
-  <hr className="my-4 border-gray-400" />
-  <div className="flex justify-between text-xl font-bold text-blue-700">
-    <p
-      style={{
-        fontSize: "22px",
-        fontWeight: "bold",
-        marginTop: "20px",
-      }}
-    >
-      Grand Total: ₹
-      {calculateSubtotal() + calculateSubtotal() * 0.18 + 10}
-    </p>
-  </div>
-</div>
-  <div className="mt-4">
-    <input
-      type="text"
-      placeholder="Voucher"
-      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-    />
-    <button className="mt-2 w-full border border-red-400 text-red-500 py-2 rounded-lg font-semibold hover:bg-red-100 transition">
-      Apply Voucher
-    </button>
-  </div>
-</div>
+                  style={{
+                    width: "35%",
+                    background: "#fff",
+                    padding: "30px",
+                    borderRadius: "12px",
+                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                  }}
+                >
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">
+                    Price Details
+                  </h2>
+                  <div className="space-y-3 text-gray-800">
+                    <div className="flex justify-between text-lg">
+                      <span>Subtotal:</span>
+                      <span className="font-semibold">
+                        ₹{calculateSubtotal().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-lg">
+                      <span>GST (18%):</span>
+                      <span className="font-semibold">
+                        ₹{(calculateSubtotal() * 0.18).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-lg">
+                      <span>Service Fee:</span>
+                      <span className="font-semibold">₹10.00</span>
+                    </div>
+                    <hr className="my-4 border-gray-400" />
+                    <div className="flex justify-between text-xl font-bold text-blue-700">
+                      <p
+                        style={{
+                          fontSize: "22px",
+                          fontWeight: "bold",
+                          marginTop: "20px",
+                        }}
+                      >
+                        Grand Total: ₹{grandTotal.toFixed(2)}
+                      </p>
+                        {/* Login/Checkout Button */}
+      {!loggedInUser && (
+        <Tooltip title="Proceed to checkout">
+          <Button
+            startIcon={<ShoppingCartCheckoutIcon />}
+            variant="contained"
+            style={{
+              fontWeight: "600",
+              color: "#fff",
+              background: loggedInUser
+                ? "linear-gradient(to right, #1a73e8, #1565c0)"
+                : "#b0bec5",
+              border: "1px solid rgb(63, 70, 146)",
+              padding: "10px 24px",
+              borderRadius: "8px",
+              marginTop: "20px",
+            }}
+            onClick={handleLogin}
+          >
+            Login
+          </Button>
+        </Tooltip>
+      )}
+      {loggedInUser && (
+        <Tooltip title="Proceed to checkout">
+          <Button
+            startIcon={<ShoppingCartCheckoutIcon />}
+            variant="contained"
+            style={{
+              fontWeight: "600",
+              color: "#fff",
+              background: loggedInUser
+                ? "linear-gradient(to right, #1a73e8, #1565c0)"
+                : "#b0bec5",
+              border: "1px solid rgb(63, 70, 146)",
+              padding: "10px 24px",
+              borderRadius: "8px",
+              marginTop: "20px",
+            }}
+            onClick={handleCheckout}
+          >
+            Checkout
+          </Button>
+        </Tooltip>
+      )}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      placeholder="Voucher"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                    <button className="mt-2 w-full border border-red-400 text-red-500 py-2 rounded-lg font-semibold hover:bg-red-100 transition">
+                      Apply Voucher
+                    </button>
+                  </div>
+                </div>
               </div>
             ))
           )}
         </Box>
         {/* Fixed Footer */}
-        {checkout['selecteditem']?.length > 0 && (
-          <Box sx={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "20px",
-            backgroundColor: "#fff",
-            zIndex: 10,
-            boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
-            display: "flex",
-            justifyContent: "end",
-            alignItems: "center",
-            height: '8%',
-            marginBottom: '65px'
-          }}>
-            <div style={{
-              fontWeight: "600",
-              fontSize: "1.1rem",
-              color: "#2e7d32",
-              backgroundColor: "#e8f5e9",
-              border: "1px solid #2e7d32",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              textAlign: "center",
-              marginRight: "20px",
-            }}>
+        {/* {checkout["selecteditem"]?.length > 0 && (
+          <Box
+            sx={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: "20px",
+              backgroundColor: "#fff",
+              zIndex: 10,
+              boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              justifyContent: "end",
+              alignItems: "center",
+              height: "8%",
+              marginBottom: "65px",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: "600",
+                fontSize: "1.1rem",
+                color: "#2e7d32",
+                backgroundColor: "#e8f5e9",
+                border: "1px solid #2e7d32",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                textAlign: "center",
+                marginRight: "20px",
+              }}
+            >
               Grand Total: Rs. {grandTotal}
             </div>
 
-            <div style={{ float: 'right', display: 'flex' }}>
+            <div style={{ float: "right", display: "flex" }}>
               {!loggedInUser && (
                 <Tooltip title="Proceed to checkout">
                   <Button
@@ -1259,7 +1556,9 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
                     style={{
                       fontWeight: "600",
                       color: "#fff",
-                      background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",
+                      background: loggedInUser
+                        ? "linear-gradient(to right, #1a73e8, #1565c0)"
+                        : "#b0bec5",
                       border: "1px solid rgb(63, 70, 146)",
                       padding: "10px 24px",
                       borderRadius: "8px",
@@ -1279,7 +1578,9 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
                     style={{
                       fontWeight: "600",
                       color: "#fff",
-                      background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",
+                      background: loggedInUser
+                        ? "linear-gradient(to right, #1a73e8, #1565c0)"
+                        : "#b0bec5",
                       border: "1px solid rgb(63, 70, 146)",
                       padding: "10px 24px",
                       borderRadius: "8px",
@@ -1292,27 +1593,27 @@ console.log("Unique numbersSizeArray:", uniquenumbersSizeArray);
               )}
             </div>
           </Box>
-        )}
+        )} */}
 
         {/* Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
           onClose={handleClose}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          sx={{ marginTop: '60px' }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          sx={{ marginTop: "60px" }}
         >
           <Alert
             onClose={handleClose}
             severity={snackbarSeverity}
             variant="filled"
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
             {snackbarMessage}
           </Alert>
         </Snackbar>
         <Dialog
-          style={{ padding: '0px' }}
+          style={{ padding: "0px" }}
           open={open}
           onClose={handleClose}
           aria-labelledby="alert-dialog-title"
