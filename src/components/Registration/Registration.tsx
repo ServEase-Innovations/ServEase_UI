@@ -121,7 +121,7 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         const { latitude, longitude } = position.coords;
         try {
           const response = await axios.get(
-            `https://maps.googleapis.com/maps/api/geocode/json`,
+            `http://3.108.250.8:5000/maps/api/geocode/json`,
             {
               params: {
                 latlng: `${latitude},${longitude}`,

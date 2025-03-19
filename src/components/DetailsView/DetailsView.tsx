@@ -4,7 +4,7 @@ import Search_form from "../Search-Form/Search_form";
 import "./DetailsView.css";
 import axiosInstance from "../../services/axiosInstance";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
-import { CONFIRMATION } from "../../Constants/pagesConstants";
+import { CHECKOUT, CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/detailsData/detailsDataSlice";
@@ -84,7 +84,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (selectedProvider) {
       selectedProvider(provider); // Ensure selectedProvider is defined before calling it
     }
-    sendDataToParent(CONFIRMATION);
+    sendDataToParent(CHECKOUT);
   };
 
   return (

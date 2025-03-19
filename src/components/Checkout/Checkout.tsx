@@ -55,6 +55,17 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
  
 
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
+
+  let pricing = useSelector((state : any) => state.pricing?.groupedServices)
+
+  console.log("booking  => ",bookingType)
+
+  // if(pricing){ 
+  //   pricing = pricing.filter((item : any) => item.serviceProviderId === providerDetails.serviceproviderId)
+
+  // }
+
+
  
   
   // Declare customerName in bookingDetails

@@ -73,7 +73,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
           const { latitude, longitude } = position.coords;
           try {
             const response = await axios.get(
-              `https://maps.googleapis.com/maps/api/geocode/json`,
+              `http://3.108.250.8:5000/maps/api/geocode/json`,
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
@@ -102,7 +102,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
   const PLACES_API_URL =
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json";
+    "http://3.108.250.8:5000/maps/api/place/autocomplete/json";
 
   useEffect(() => {
     if (inputValue.trim() === "") {

@@ -110,6 +110,8 @@ if (userRole === "CUSTOMER") {
         console.log("selected details -> ", serviceProviderDetails);
         return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
       } else if (selection === CHECKOUT) {
+        console.log("IN CHECKOUT ===")
+        console.log("selected details in checkout -> ", selectedBookingType);
         return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
       } else if (selection === LOGIN) {
         return (

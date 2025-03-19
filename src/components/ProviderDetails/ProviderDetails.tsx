@@ -41,10 +41,6 @@ const [isExpanded, setIsExpanded] = useState(false);
 
   const dispatch = useDispatch();
   const bookingType = useSelector((state : any) => state.bookingType?.value);
-  console.log(" store details :---- ",bookingType);
-  console.log("Morning details:", bookingType?.morningSelection);
-  console.log("Evening details:", bookingType?.eveningSelection);
-  console.log("serviceproviderId details:", bookingType?.serviceproviderId);
 
   
 // Handle selection for morning or evening availability
