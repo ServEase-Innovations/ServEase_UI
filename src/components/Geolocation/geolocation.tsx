@@ -15,7 +15,7 @@ const GeolocationComponent = () => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            const response = await axios.get(`http://3.108.250.8:5000/maps/api/geocode/json`, {
+            const response = await axios.get(`http://13.126.203.209:5000/maps/api/geocode/json`, {
               params: {
                 latlng: `${latitude},${longitude}`,
                 key: keys.api_key // Replace with your API key
