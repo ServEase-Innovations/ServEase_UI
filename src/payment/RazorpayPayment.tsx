@@ -7,7 +7,7 @@ const RazorpayPayment = () => {
   // Function to call the backend to create an order
   const createOrder = async (amount) => {
     try {
-      const response = await axios.post('http://localhost:5000/create-order', { amount });
+      const response = await axios.post('http://localhost:3000/create-order', { amount });
       return response.data.orderId;
     } catch (error) {
       console.error('Error creating order:', error);

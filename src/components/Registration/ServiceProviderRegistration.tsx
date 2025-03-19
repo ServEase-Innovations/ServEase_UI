@@ -188,7 +188,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
             const { latitude, longitude } = position.coords;
             try {
               // Use the latitude and longitude to fetch location data from the Geocode API
-              const response = await axios.get("http://13.126.203.209:5000/maps/api/geocode/json", {
+              const response = await axios.get("http://13.126.203.209:3000/maps/api/geocode/json", {
                 params: {
                   latlng: `${latitude},${longitude}`,
                   key: keys.api_key, // Ensure your API key is here
