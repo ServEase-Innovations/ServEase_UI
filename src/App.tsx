@@ -23,7 +23,7 @@ import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDa
 
 import { RootState } from './store/userStore'; 
 import Chatbot from "./components/chat/Chatbot";
-import FlightSearch from "./components/FlightSearch";
+
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -147,7 +147,7 @@ if (userRole === "CUSTOMER") {
         {renderContent()}
       </section>
       <Chatbot/>
-      {/* <FlightSearch/> */}
+    
       <footer className="footer-container">
         <Footer />
       </footer>
