@@ -315,155 +315,163 @@ const toggleExpand = async () => {
     };
     
   
-    const [serviceType, setServiceType] = useState("Regular");
-    const [start, setStart] = useState("");
-    const [date, setDate] = useState("");
-    const [serviceCategory, setServiceCategory] = useState("Breakfast");
-    const [numberOfPersons, setNumberOfPersons] = useState(1);
-
-
-// Whenever bookingType changes, update the date field.
-useEffect(() => {
-  if (bookingType?.startDate) {
-    setDate(bookingType.startDate);
-  }
-}, [bookingType]);
-
+    const [bookingDetails, setBookingDetails] = useState({
+      serviceType: 'Regular',
+      startTime: '',
+      date: '',
+      serviceCategory: 'Breakfast',
+      numberOfPersons: 1,
+    });
+  
+    // Whenever bookingType changes, update the date field.
+    useEffect(() => {
+      if (bookingType?.startDate) {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          date: bookingType.startDate,
+        }));
+      }
+    }, [bookingType]);
+  
+    const handleChange = (field, value) => {
+      setBookingDetails((prevDetails) => ({
+        ...prevDetails,
+        [field]: value,
+      }));
+    };
+  
     const handleSearch = () => {
       const params = new URLSearchParams({
-        serviceType,
-        startTime,
-        date,
-        serviceCategory,
-        numberOfPersons: numberOfPersons.toString(),
+        serviceType: bookingDetails.serviceType,
+        startTime: bookingDetails.startTime,
+        date: bookingDetails.date,
+        serviceCategory: bookingDetails.serviceCategory,
+        numberOfPersons: bookingDetails.numberOfPersons.toString(),
       });
-    
+  
       fetch(`https://your-api-url.com/search?${params.toString()}`)
         .then((response) => response.json())
         .then((data) => {
-          console.log("Response:", data);
+          console.log('Response:', data);
         })
         .catch((error) => {
-          console.error("Error:", error);
+          console.error('Error:', error);
         });
     };
     
   return (
-    <><Paper elevation={3}>
-        <Box
-  sx={{
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    padding: "20px",
-    backgroundColor: "#e7f1ff",
-    // backgroundColor: "#E9F3FF",
-    zIndex: 10,
-    boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
-    textAlign: "center",
-    height: "12%",
-    display: "flex",
-    flexDirection: "column", /* Changed to column to stack elements vertically */
-    alignItems: "center", // Center horizontally
-    marginTop: "65px",
-    gap: "9px", // Adds spacing between the fields and fare container
-  }}
->
-  <div className="fields">
-    <div className="field">
-      <div className="input-with-label">
-        <span className="inline-label">Service Type</span>
-        <select
-  value={serviceType}
-  onChange={(e) => setServiceType(e.target.value)}
->
-  <option>Regular</option>
-  <option>Premium</option>
-</select>
+    <> <Paper elevation={3}>
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '20px',
+        backgroundColor: '#e7f1ff',
+        zIndex: 10,
+        boxShadow: '0 -4px 8px rgba(0, 0, 0, 0.1)',
+        textAlign: 'center',
+        height: '12%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginTop: '65px',
+        gap: '9px',
+      }}
+    >
+      <div className="fields">
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Service Type</span>
+            <select
+              value={bookingDetails.serviceType}
+              onChange={(e) => handleChange('serviceType', e.target.value)}
+            >
+              <option>Regular</option>
+              <option>Premium</option>
+            </select>
+          </div>
+        </div>
 
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Time Slot</span>
+            <input
+              type="time"
+              value={bookingDetails.startTime}
+              onChange={(e) => handleChange('startTime', e.target.value)}
+              className="time-input"
+            />
+          </div>
+        </div>
+
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Date</span>
+            <input
+              type="text"
+              value={bookingDetails.date}
+              onChange={(e) => handleChange('date', e.target.value)}
+              className="custom-input"
+            />
+          </div>
+        </div>
+
+        <button className="search-button" onClick={handleSearch}>
+          SEARCH
+        </button>
       </div>
-    </div>
 
-    <div className="field">
-      <div className="input-with-label">
-        <span className="inline-label">Time Slot</span>
-        <input
-  type="time"
-  value={start}
-  onChange={(e) => setStart(e.target.value)}
-  className="time-input"
-/>
+      <div className="fare-type-container">
+        <span className="fare-label">Meal Type:</span>
+        <div className="fare-options">
+          <label>
+            <input
+              type="radio"
+              value="Breakfast"
+              checked={bookingDetails.serviceCategory === 'Breakfast'}
+              onChange={() => handleChange('serviceCategory', 'Breakfast')}
+            />
+            Breakfast
+          </label>
 
+          <label>
+            <input
+              type="radio"
+              value="Lunch"
+              checked={bookingDetails.serviceCategory === 'Lunch'}
+              onChange={() => handleChange('serviceCategory', 'Lunch')}
+            />
+            Lunch
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              value="Dinner"
+              checked={bookingDetails.serviceCategory === 'Dinner'}
+              onChange={() => handleChange('serviceCategory', 'Dinner')}
+            />
+            Dinner
+          </label>
+
+          <div className="person-count">
+            <span className="fare-label">No. of Persons :</span>
+            <input
+              type="number"
+              min="1"
+              value={bookingDetails.numberOfPersons}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                handleChange('numberOfPersons', isNaN(value) ? 1 : value);
+              }}
+              className="person-input"
+            />
+          </div>
+        </div>
       </div>
-    </div>
-    <div className="field">
-              <div className="input-with-label">
-                <span className="inline-label">Date</span>
-                <input
-                  type="text"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="custom-input"
-                />
-              </div>
-            </div>
-    
-<button className="search-button" onClick={handleSearch}>
-  SEARCH
-</button>
-
-  </div>
-
-  <div className="fare-type-container">
-    <span className="fare-label">Meal Type:</span>
-    <div className="fare-options">
-      <label>
-      <input
-    type="radio"
-    value="Breakfast"
-    checked={serviceCategory === 'Breakfast'}
-    onChange={() => setServiceCategory('Breakfast')}
-  />
-        Breakfast
-      </label>
-
-      <label>
-      <input
-    type="radio"
-    value="Lunch"
-    checked={serviceCategory === 'Lunch'}
-    onChange={() => setServiceCategory('Lunch')}
-  />
-        Lunch
-      </label>
-
-      <label>
-      <input
-    type="radio"
-    value="Dinner"
-    checked={serviceCategory === 'Dinner'}
-    onChange={() => setServiceCategory('Dinner')}
-  />
-        Dinner
-      </label>
-      <div className="person-count">
-    <span className="fare-label">No. of Persons  :</span>
-    <input
-  type="number"
-  min="1"
-  value={numberOfPersons}
-  onChange={(e) => {
-    const value = parseInt(e.target.value);
-    setNumberOfPersons(isNaN(value) ? 1 : value);
-  }}
-  className="person-input"
-/>
-
-  </div>
-    </div>
-  </div>
-</Box>
+    </Box>
       <div className="container-provider">
        
         {/* This button toggles expansion and collapse */}
@@ -552,13 +560,6 @@ useEffect(() => {
                   {props.otherServices || "N/A"}
                 </span>
               </Typography>
-              
-            
-
-
-
-
-
 {props.housekeepingRole === "NANNY" && (
  <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md w-80" style={{width:'100%'}}>
  <h2 className="text-xl font-semibold">Select Time Range</h2>
