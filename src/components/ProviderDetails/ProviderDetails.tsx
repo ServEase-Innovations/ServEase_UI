@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
 import moment from "moment";
 import "./ProviderDetails.css"; 
 import AddIcon from '@mui/icons-material/Add';
@@ -42,8 +42,9 @@ const [isExpanded, setIsExpanded] = useState(false);
   const dispatch = useDispatch();
   const bookingType = useSelector((state : any) => state.bookingType?.value);
   console.log(" store details :---- ",bookingType);
-  console.log("Morning details:", bookingType?.morningSelection);
-  console.log("Evening details:", bookingType?.eveningSelection);
+  // console.log("Morning details:", bookingType?.morningSelection);
+  // console.log("Evening details:", bookingType?.eveningSelection);
+  console.log("startDate:", bookingType?.startDate);
   console.log("serviceproviderId details:", bookingType?.serviceproviderId);
 
   
@@ -234,10 +235,7 @@ const toggleExpand = async () => {
           dispatch(add(booking));
       }
   
-     
-  
-
-    const providerDetails = {
+      const providerDetails = {
       ...props, // Spread the provider details from props
       selectedMorningTime: morningSelection,
       selectedEveningTime: eveningSelection
@@ -317,11 +315,157 @@ const toggleExpand = async () => {
     };
     
   
+    const [serviceType, setServiceType] = useState("Regular");
+    const [start, setStart] = useState("");
+    const [date, setDate] = useState("");
+    const [serviceCategory, setServiceCategory] = useState("Breakfast");
+    const [numberOfPersons, setNumberOfPersons] = useState(1);
 
 
+// Whenever bookingType changes, update the date field.
+useEffect(() => {
+  if (bookingType?.startDate) {
+    setDate(bookingType.startDate);
+  }
+}, [bookingType]);
+
+    const handleSearch = () => {
+      const params = new URLSearchParams({
+        serviceType,
+        startTime,
+        date,
+        serviceCategory,
+        numberOfPersons: numberOfPersons.toString(),
+      });
+    
+      fetch(`https://your-api-url.com/search?${params.toString()}`)
+        .then((response) => response.json())
+        .then((data) => {
+          console.log("Response:", data);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        });
+    };
+    
   return (
     <><Paper elevation={3}>
+        <Box
+  sx={{
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: "20px",
+    backgroundColor: "#e7f1ff",
+    // backgroundColor: "#E9F3FF",
+    zIndex: 10,
+    boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
+    textAlign: "center",
+    height: "12%",
+    display: "flex",
+    flexDirection: "column", /* Changed to column to stack elements vertically */
+    alignItems: "center", // Center horizontally
+    marginTop: "65px",
+    gap: "9px", // Adds spacing between the fields and fare container
+  }}
+>
+  <div className="fields">
+    <div className="field">
+      <div className="input-with-label">
+        <span className="inline-label">Service Type</span>
+        <select
+  value={serviceType}
+  onChange={(e) => setServiceType(e.target.value)}
+>
+  <option>Regular</option>
+  <option>Premium</option>
+</select>
+
+      </div>
+    </div>
+
+    <div className="field">
+      <div className="input-with-label">
+        <span className="inline-label">Time Slot</span>
+        <input
+  type="time"
+  value={start}
+  onChange={(e) => setStart(e.target.value)}
+  className="time-input"
+/>
+
+      </div>
+    </div>
+    <div className="field">
+              <div className="input-with-label">
+                <span className="inline-label">Date</span>
+                <input
+                  type="text"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="custom-input"
+                />
+              </div>
+            </div>
+    
+<button className="search-button" onClick={handleSearch}>
+  SEARCH
+</button>
+
+  </div>
+
+  <div className="fare-type-container">
+    <span className="fare-label">Meal Type:</span>
+    <div className="fare-options">
+      <label>
+      <input
+    type="radio"
+    value="Breakfast"
+    checked={serviceCategory === 'Breakfast'}
+    onChange={() => setServiceCategory('Breakfast')}
+  />
+        Breakfast
+      </label>
+
+      <label>
+      <input
+    type="radio"
+    value="Lunch"
+    checked={serviceCategory === 'Lunch'}
+    onChange={() => setServiceCategory('Lunch')}
+  />
+        Lunch
+      </label>
+
+      <label>
+      <input
+    type="radio"
+    value="Dinner"
+    checked={serviceCategory === 'Dinner'}
+    onChange={() => setServiceCategory('Dinner')}
+  />
+        Dinner
+      </label>
+      <div className="person-count">
+    <span className="fare-label">No. of Persons  :</span>
+    <input
+  type="number"
+  min="1"
+  value={numberOfPersons}
+  onChange={(e) => {
+    const value = parseInt(e.target.value);
+    setNumberOfPersons(isNaN(value) ? 1 : value);
+  }}
+  className="person-input"
+/>
+
+  </div>
+    </div>
+  </div>
+</Box>
       <div className="container-provider">
+       
         {/* This button toggles expansion and collapse */}
         <Button
           variant="outlined" // Ensures outlined style is applied
@@ -410,219 +554,10 @@ const toggleExpand = async () => {
               </Typography>
               
             
-              {/* {selectedMorningSlot ? (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedMorningSlot}</span>
-    </Typography>
-) : (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
-    </Typography>
-)}
 
-{selectedEveningSlot ? (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedEveningSlot}</span>
-    </Typography>
-) : (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
-    </Typography>
-)} */}
-  {props.housekeepingRole !== "NANNY" && (
 
-<div className="availability-section">
-<div className="availability-header">
-<Typography variant="subtitle1" className="section-title">
-Morning Availability (6 AM - 12 PM)
-</Typography>
 
-{/* Morning Availability Buttons */}
-<div className="time-slot-container">
-{missingSlots
-.filter((missingSlot) =>
-[6, 7, 8, 9, 10, 11].some(
-(hour) => moment({ hour }).format("HH:mm") === missingSlot
-)
-)
 
-.map((missingSlot, index) => {
-const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-const startTime = moment({ hour }).format("HH:mm");
-const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-const timeRange = `${startTime}-${endTime}`;
-
-// ✅ Use uniqueMissingSlots for disabling
-const isDisabled =
-matchedMorningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-return (
-<div key={index}>
-<button
-className={`availability-button ${morningSelection === index ? "selected" : ""}`}
-onClick={() => handleSelection(index, false, hour)}
-disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-style={{
-backgroundColor: isDisabled ? '#bdbdbd' : '',
-cursor: isDisabled ? 'not-allowed' : 'pointer',
-opacity: isDisabled ? 0.6 : 1,
-}}
->
-{timeRange}
-</button>
-</div>
-);
-})}
-</div>
-
-</div>
-
-<div className="availability-header">
-<Typography variant="subtitle1" className="section-title">
-Evening Availability (12 PM - 8 PM)
-</Typography>
-
-<div className="time-slot-container">
-{missingSlots
-.filter((missingSlot) =>
-[12, 13, 14, 15, 16, 17, 18, 19].some(
-(hour) => moment({ hour }).format("HH:mm") === missingSlot
-)
-)
-.map((missingSlot, index) => {
-const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-const startTime = moment({ hour }).format("HH:mm");
-const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-const timeRange = `${startTime}-${endTime}`;
-
-// Check if this time slot should be disabled based on unique missing slots
-const isDisabled =
-matchedEveningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-return (
-<div key={index}>
-<button
-className={`availability-button ${eveningSelection === index ? "selected" : ""}`}
-onClick={() => handleSelection(index, true, hour)}
-disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-style={{
-backgroundColor: isDisabled ? '#bdbdbd' : '',
-cursor: isDisabled ? 'not-allowed' : 'pointer',
-opacity: isDisabled ? 0.6 : 1,
-}}
->
-{timeRange}
-</button>
-</div>
-);
-})}
-</div>
-{(matchedMorningSelection || morningSelectionTime) && (
-<div
-style={{
-marginTop: "10px",
-padding: "10px",
-backgroundColor: "#f0f0f0",
-borderRadius: "5px",
-display: "flex",
-alignItems: "center",
-gap: "10px",
-fontSize: "16px",
-}}
->
-<span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-<span>{matchedMorningSelection || morningSelectionTime}</span>
-<FaTimes
-onClick={() => clearSelection(false)}
-style={{
-color: "red",
-cursor: "pointer",
-fontSize: "18px",
-}}
-/>
-</div>
-)}
-{(matchedEveningSelection || eveningSelectionTime) && (
-<div
-style={{
-marginTop: "10px",
-padding: "10px",
-backgroundColor: "#f0f0f0",
-borderRadius: "5px",
-display: "flex",
-alignItems: "center",
-gap: "10px",
-fontSize: "16px",
-}}
->
-<span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-<span>{matchedEveningSelection || eveningSelectionTime}</span>
-<FaTimes
-onClick={() => clearSelection(true)}
-style={{
-color: "red",
-cursor: "pointer",
-fontSize: "18px",
-}}
-/>
-</div>
-)}
-
-{/* {matchedMorningSelection && (
-<div
-style={{
-marginTop: "10px",
-padding: "10px",
-backgroundColor: "#f0f0f0",
-borderRadius: "5px",
-display: "flex",
-alignItems: "center",
-gap: "10px",
-fontSize: "16px",
-}}
->
-<span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-<span>{matchedMorningSelection}</span>
-<FaTimes
-onClick={() => setMatchedMorningSelection(null)}
-style={{
-color: "red",
-cursor: "pointer",
-fontSize: "18px",
-}}
-/>
-</div>
-)}
-
-{matchedEveningSelection && (
-<div
-style={{
-marginTop: "10px",
-padding: "10px",
-backgroundColor: "#f0f0f0",
-borderRadius: "5px",
-display: "flex",
-alignItems: "center",
-gap: "10px",
-fontSize: "16px",
-}}
->
-<span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-<span>{matchedEveningSelection}</span>
-<FaTimes
-onClick={() => setMatchedEveningSelection(null)}
-style={{
-color: "red",
-cursor: "pointer",
-fontSize: "18px",
-}}
-/>
-</div>
-)} */}
-
-</div>
-</div>
-)}
 
 {props.housekeepingRole === "NANNY" && (
  <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md w-80" style={{width:'100%'}}>
