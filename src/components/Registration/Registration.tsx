@@ -1,24 +1,6 @@
 import React, { useState } from "react";
 import {
-  TextField,
-  Button,
-  Grid,
-  Typography,
-  Box,
-  Stepper,
-  Step,
-  StepLabel,
-  Radio,
-  RadioGroup,
-  Checkbox,
-  FormControlLabel,
-  InputAdornment,
-  IconButton,
-  FormLabel,
-  FormControl,
-  Alert,
-  Snackbar,
-  AlertColor
+  TextField,Button, Grid,Typography,Box,Stepper,Step, StepLabel,Radio,RadioGroup, Checkbox, FormControlLabel,InputAdornment, IconButton,FormLabel,FormControl, Alert, Snackbar,AlertColor
 } from "@mui/material";
 import "./Registration.css";
 import {

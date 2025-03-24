@@ -7,7 +7,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { Bookingtype } from "../../types/bookingTypeData";
 import { useDispatch, useSelector } from "react-redux";
-import { add } from "../../features/bookingType/bookingTypeSlice";
+import { add, update } from "../../features/bookingType/bookingTypeSlice";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Login from "../Login/Login";
 import axiosInstance from "../../services/axiosInstance";
@@ -40,8 +40,13 @@ const [isExpanded, setIsExpanded] = useState(false);
   };
 
   const dispatch = useDispatch();
-  const bookingType = useSelector((state : any) => state.bookingType?.value)
+  const bookingType = useSelector((state : any) => state.bookingType?.value);
+  console.log(" store details :---- ",bookingType);
+  console.log("Morning details:", bookingType?.morningSelection);
+  console.log("Evening details:", bookingType?.eveningSelection);
+  console.log("serviceproviderId details:", bookingType?.serviceproviderId);
 
+  
 // Handle selection for morning or evening availability
 const handleSelection = (hour: number, isEvening: boolean, time: number) => {
   // Format the start and end times in HH:mm format (without seconds)
@@ -55,9 +60,15 @@ const handleSelection = (hour: number, isEvening: boolean, time: number) => {
   if (isEvening) {
     setEveningSelection(hour);
     setEveningSelectionTime(formattedTime); // Store "06:00-07:00"
+    setMatchedEveningSelection(formattedTime);
+    dispatch(update({ eveningSelection: formattedTime })); 
+    
+
   } else {
     setMorningSelection(hour);
     setMorningSelectionTime(formattedTime); // Store "06:00-07:00"
+    setMatchedMorningSelection(formattedTime);
+    dispatch(update({ morningSelection: formattedTime }));
   }
 
   // Ensure you are sending the formatted data to the payload correctly.
@@ -71,14 +82,19 @@ const clearSelection = (isEvening: boolean) => {
   if (isEvening) {
     setEveningSelection(null);
     setEveningSelectionTime(null);
+    setMatchedEveningSelection(null);
+    dispatch(update({ eveningSelection: null })); // Update store
+    
   } else {
     setMorningSelection(null);
     setMorningSelectionTime(null);
+    setMatchedMorningSelection(null);
+    dispatch(update({ morningSelection: null })); // Update store
   }
 };
 const [missingSlots, setMissingSlots] = useState<string[]>([]);
 const hasCheckedRef = useRef(false); // Track if the function has been called
-console.log("Service data: ", props);
+// console.log("Service data: ", props);
 // Call this function to check missing time slots
 const checkMissingTimeSlots = () => {
   // console.log("Service Provider Data: ", props.availableTimeSlots);
@@ -111,65 +127,79 @@ if (!hasCheckedRef.current) {
   // Toggle expanded content
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
 
-  const toggleExpand = async () => {
-      setIsExpanded(!isExpanded);
-  
-      if (!isExpanded) {
-          try {
-              console.log("Service Provider Details:", props);
-              console.log("Service serviceproviderId:", props.serviceproviderId);
-  
-              const response = await axiosInstance.get(
-                  `/api/serviceproviders/get/engagement/by/serviceProvider/${props.serviceproviderId}`
-              );
-  
-              const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-                  id: engagement.id ?? Math.random(),
-                  availableTimeSlots: engagement.availableTimeSlots || [],
-              }));
-  
-              console.log("Raw Engagement Data:", engagementData);
-  
-              const fullTimeSlots: string[] = Array.from({ length: 24 }, (_, i) =>
-                  `${i.toString().padStart(2, "0")}:00`
-              );
-  
-              console.log("Full Time Slots:", fullTimeSlots);
-  
-              const processedSlots = engagementData.map(entry => {
-                  const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-                  const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-  
-                  return {
-                      id: entry.id,
-                      uniqueAvailableTimeSlots,
-                      missingTimeSlots,
-                  };
-              });
-  
-              console.log("Processed Slots with Missing Time Slots:", processedSlots);
-              console.log("All Missing Time Slots:", processedSlots.map(slot => slot.missingTimeSlots));
-  
-              //  Ensure TypeScript correctly identifies it as string[]
-              const uniqueMissingSlots: string[] = Array.from(
-                  new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
-              ).sort() as string[];
-  
-              console.log("Unique Missing Time Slots:", uniqueMissingSlots);
-  
-              // Store unique missing slots in state
-              setUniqueMissingSlots(uniqueMissingSlots);
-  
-              setAvailableTimeSlots(processedSlots.map(entry => entry.uniqueAvailableTimeSlots));
-              setMissingTimeSlots(processedSlots.map(entry => ({ id: entry.id, missingSlots: entry.missingTimeSlots })));
-  
-          } catch (error) {
-              console.error("Error fetching engagement data:", error);
-          }
-      }
-  };
-  
+  const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
+const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
 
+const toggleExpand = async () => {
+    setIsExpanded(!isExpanded);
+
+    if (!isExpanded) {
+        try {
+            console.log("Expanding for Service Provider ID:", props.serviceproviderId);
+            console.log("Stored Service Provider ID in Redux:", bookingType?.serviceproviderId);
+            
+            // Check if expanded service provider ID matches the Redux store
+            if (props.serviceproviderId === bookingType?.serviceproviderId) {
+                setMatchedMorningSelection(bookingType?.morningSelection || null);
+                setMatchedEveningSelection(bookingType?.eveningSelection || null);
+
+                console.log("Matched! Morning Selection:", bookingType?.morningSelection);
+                console.log("Matched! Evening Selection:", bookingType?.eveningSelection);
+            } else {
+                setMatchedMorningSelection(null);
+                setMatchedEveningSelection(null);
+                console.log("No match found. Clearing selection.");
+            }
+
+            const response = await axiosInstance.get(
+                `/api/serviceproviders/get/engagement/by/serviceProvider/${props.serviceproviderId}`
+            );
+
+            const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
+                id: engagement.id ?? Math.random(),
+                availableTimeSlots: engagement.availableTimeSlots || [],
+            }));
+
+            console.log("Raw Engagement Data:", engagementData);
+
+            const fullTimeSlots: string[] = Array.from({ length: 24 }, (_, i) =>
+                `${i.toString().padStart(2, "0")}:00`
+            );
+
+            console.log("Full Time Slots:", fullTimeSlots);
+
+            const processedSlots = engagementData.map(entry => {
+                const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
+                const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
+
+                return {
+                    id: entry.id,
+                    uniqueAvailableTimeSlots,
+                    missingTimeSlots,
+                };
+            });
+
+            console.log("Processed Slots with Missing Time Slots:", processedSlots);
+            console.log("All Missing Time Slots:", processedSlots.map(slot => slot.missingTimeSlots));
+
+            // Store unique missing slots in state
+            const uniqueMissingSlots: string[] = Array.from(
+                new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
+            ).sort() as string[];
+
+            console.log("Unique Missing Time Slots:", uniqueMissingSlots);
+
+            setUniqueMissingSlots(uniqueMissingSlots);
+            setAvailableTimeSlots(processedSlots.map(entry => entry.uniqueAvailableTimeSlots));
+            setMissingTimeSlots(processedSlots.map(entry => ({ id: entry.id, missingSlots: entry.missingTimeSlots })));
+
+        } catch (error) {
+            console.error("Error fetching engagement data:", error);
+        }
+    }
+};
+
+  
   // Calculate age from date of birth
   const calculateAge = (dob) => {
     if (!dob) return ""; // Handle cases where dob is not provided
@@ -178,26 +208,34 @@ if (!hasCheckedRef.current) {
   };
 
   const handleBookNow = () => {
-    let booking : Bookingtype;
-    if(props.housekeepingRole !== "NANNY"){
-       booking = {
-        eveningSelection : eveningSelectionTime,
-        morningSelection : morningSelectionTime,
-        ...bookingType
-        
-    }
-    } else {
-      booking = {
-        timeRange: `${startTime} - ${endTime}`,
-        duration: getHoursDifference(startTime, endTime),
-        ...bookingType
-    };
+    let booking: Bookingtype;
+
+      if (props.housekeepingRole !== "NANNY") {
+          booking = {
+              serviceproviderId: props.serviceproviderId,
+              eveningSelection: eveningSelectionTime,
+              morningSelection: morningSelectionTime,
+              ...bookingType
+          };
+      } else {
+          booking = {
+              serviceproviderId: props.serviceproviderId,
+              timeRange: `${startTime} - ${endTime}`,
+              duration: getHoursDifference(startTime, endTime),
+              ...bookingType
+          };
+      }
+  
+      console.log("Booking Data Before Dispatch:", booking);
+  
+      if (bookingType) {
+          dispatch(update(booking));
+      } else {
+          dispatch(add(booking));
+      }
+  
      
-    }
-
-    
-
-    dispatch(add(booking)) 
+  
 
     const providerDetails = {
       ...props, // Spread the provider details from props
@@ -230,7 +268,9 @@ if (!hasCheckedRef.current) {
   const dietImage = dietImages[props.diet];
 
   // Enable the Book Now button if any time is selected
-  const isBookNowEnabled = (morningSelection !== null || eveningSelection !== null) && loggedInUser;
+  const isBookNowEnabled = 
+  (morningSelection !== null || eveningSelection !== null) || 
+  (matchedMorningSelection !== null || matchedEveningSelection !== null) ;
 
   const user = useSelector((state : any) => state.user?.value);
 
@@ -240,6 +280,7 @@ if (!hasCheckedRef.current) {
         setLoggedInUser(user);
       }
     }, [user]);
+
 
     const handleBookingPage = (e : string | undefined) =>{
       setOpen(false)
@@ -360,6 +401,26 @@ if (!hasCheckedRef.current) {
                   {props.otherServices || "N/A"}
                 </span>
               </Typography>
+            
+              {/* {selectedMorningSlot ? (
+    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedMorningSlot}</span>
+    </Typography>
+) : (
+    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
+    </Typography>
+)}
+
+{selectedEveningSlot ? (
+    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedEveningSlot}</span>
+    </Typography>
+) : (
+    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
+    </Typography>
+)} */}
 
               {props.housekeepingRole !== "NANNY" && (
 
@@ -377,6 +438,7 @@ if (!hasCheckedRef.current) {
         (hour) => moment({ hour }).format("HH:mm") === missingSlot
       )
     )
+
     .map((missingSlot, index) => {
       const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
       const startTime = moment({ hour }).format("HH:mm");
@@ -384,7 +446,8 @@ if (!hasCheckedRef.current) {
       const timeRange = `${startTime}-${endTime}`;
 
       // ✅ Use uniqueMissingSlots for disabling
-      const isDisabled = uniqueMissingSlots.includes(startTime);
+      const isDisabled =
+      matchedMorningSelection === timeRange || uniqueMissingSlots.includes(startTime);
 
       return (
         <div key={index}>
@@ -426,7 +489,8 @@ if (!hasCheckedRef.current) {
       const timeRange = `${startTime}-${endTime}`;
 
       // Check if this time slot should be disabled based on unique missing slots
-      const isDisabled = uniqueMissingSlots.includes(startTime);
+      const isDisabled =
+      matchedEveningSelection === timeRange || uniqueMissingSlots.includes(startTime);
 
       return (
         <div key={index}>
@@ -446,7 +510,7 @@ if (!hasCheckedRef.current) {
       );
     })}
 </div>
-{morningSelectionTime && (
+{(matchedMorningSelection || morningSelectionTime) && (
   <div
     style={{
       marginTop: "10px",
@@ -460,7 +524,7 @@ if (!hasCheckedRef.current) {
     }}
   >
     <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-    <span>{morningSelectionTime}</span>
+    <span>{matchedMorningSelection || morningSelectionTime}</span>
     <FaTimes
       onClick={() => clearSelection(false)}
       style={{
@@ -471,8 +535,7 @@ if (!hasCheckedRef.current) {
     />
   </div>
 )}
-
-{eveningSelectionTime && (
+{(matchedEveningSelection || eveningSelectionTime) && (
   <div
     style={{
       marginTop: "10px",
@@ -486,7 +549,7 @@ if (!hasCheckedRef.current) {
     }}
   >
     <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-    <span>{eveningSelectionTime}</span>
+    <span>{matchedEveningSelection || eveningSelectionTime}</span>
     <FaTimes
       onClick={() => clearSelection(true)}
       style={{
@@ -498,6 +561,57 @@ if (!hasCheckedRef.current) {
   </div>
 )}
 
+{/* {matchedMorningSelection && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      backgroundColor: "#f0f0f0",
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontSize: "16px",
+    }}
+  >
+    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
+    <span>{matchedMorningSelection}</span>
+    <FaTimes
+      onClick={() => setMatchedMorningSelection(null)}
+      style={{
+        color: "red",
+        cursor: "pointer",
+        fontSize: "18px",
+      }}
+    />
+  </div>
+)}
+
+{matchedEveningSelection && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      backgroundColor: "#f0f0f0",
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontSize: "16px",
+    }}
+  >
+    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
+    <span>{matchedEveningSelection}</span>
+    <FaTimes
+      onClick={() => setMatchedEveningSelection(null)}
+      style={{
+        color: "red",
+        cursor: "pointer",
+        fontSize: "18px",
+      }}
+    />
+  </div>
+)} */}
 
   </div>
 </div>
@@ -534,19 +648,23 @@ if (!hasCheckedRef.current) {
  
 </div>
 
-              <div style={{ float: 'right', display: 'flex' }}>
-                {/* {!loggedInUser && <Button onClick={handleLogin} variant="outlined">Login</Button>} */}
-                {/* <Tooltip
-                  style={{ display: isBookNowEnabled ? 'none' : 'block' }}
-                  title="You need to login and select your timings to continue booking"
-                >
-                  <IconButton>
-                    <InfoOutlinedIcon />
-                  </IconButton>
-                </Tooltip> */}
-                {warning && <p className="text-red-500">{warning}</p>}
-                {!warning && <Button onClick={handleBookNow}  variant="outlined">Book Now</Button>}
-              </div>
+<div style={{ float: 'right', display: 'flex' }}>
+    {warning && <p className="text-red-500">{warning}</p>}
+
+    <Button 
+      onClick={handleBookNow} 
+      variant="outlined"
+      disabled={!isBookNowEnabled} // ✅ Uses state instead of inline condition
+      style={{
+        opacity: isBookNowEnabled ? 1 : 0.6, 
+        cursor: isBookNowEnabled ? "pointer" : "not-allowed"
+      }}
+    >
+      Book Now
+    </Button>
+  </div>
+
+
 
             </div>
           )}

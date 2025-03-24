@@ -133,24 +133,29 @@ const ServiceProviderDashboard: React.FC = () => {
   useEffect(() => {
     const fetchBookingHistory = async () => {
       try {
-        const response = await axiosInstance.get("/api/serviceproviders/get-sp-booking-history");
+        const page = 0;
+        const size = 100;
+  
+        const response = await axiosInstance.get(
+          `/api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`
+        );
+  
         console.log("API Response:", response.data);
+        console.log("ServiceProviderIdd:", serviceProviderIdd);
   
-        if (response.data && response.data.current && response.data.future && response.data.past) {
-          console.log("Current Bookings:", response.data.current);
-          console.log("Future Bookings:", response.data.future);
-          console.log("Past Bookings:", response.data.past);
+        if (response.data) {
+          // Ensure we don't get undefined errors by using optional chaining (?.) and defaulting to empty arrays
+          const currentBookings = response.data.current?.filter(booking => booking.serviceProviderId === serviceProviderIdd) || [];
+          const futureBookings = response.data.future?.filter(booking => booking.serviceProviderId === serviceProviderIdd) || [];
+          const pastBookings = response.data.past?.filter(booking => booking.serviceProviderId === serviceProviderIdd) || [];
   
-          // Extracting bookings and setting engagementId
-          const filteredBookings = [
-            ...response.data.current.filter(booking => booking.serviceProviderId === serviceProviderIdd),
-            ...response.data.future.filter(booking => booking.serviceProviderId === serviceProviderIdd),
-            ...response.data.past.filter(booking => booking.serviceProviderId === serviceProviderIdd)
-          ].map(booking => ({
+          // Combine all filtered bookings
+          const filteredBookings = [...currentBookings, ...futureBookings, ...pastBookings].map(booking => ({
             ...booking,
-            engagementId: booking.id, // Set engagementId from API response id
+            engagementId: booking.id, // Set engagementId
           }));
   
+          console.log("Filtered Bookings:", filteredBookings);
           setBookings(filteredBookings);
         } else {
           console.error("Error: Invalid API response structure");
@@ -162,8 +167,12 @@ const ServiceProviderDashboard: React.FC = () => {
       }
     };
   
-    fetchBookingHistory();
-  }, []);
+    if (serviceProviderIdd) {
+      fetchBookingHistory();
+    }
+  }, [serviceProviderIdd]); // Dependency to re-run when ID changes  
+  
+  
    // The empty dependency array ensures this effect runs once on component mount
    const [snackbarOpen, setSnackbarOpen] = useState(false);
    const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -362,147 +371,149 @@ const handleCancelBooking = async (index) => {
       {selectedTab === 0 && (
   <Box sx={{ marginTop: '20px' }}>
     <Grid container spacing={3}>
-      {/* Booking Cards Section */}
       <Grid item xs={12}>
         <Grid container spacing={3} justifyContent="center">
-          {bookings.map((booking, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <DashboardCard>
-      
-                  
-                  {/* Task Status at the Top */}
-                  
-                    <CardContent>
-  {/* Centered Task Status Section */}
-  <Box sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
-    <Typography
-      variant="body2"
-      sx={{
-        padding: "8px 16px",
-        borderRadius: "6px",
-        fontWeight: "bold",
-        textAlign: "center",
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
-        backgroundColor:
-          booking.taskStatus === "NOT_STARTED"
-            ? "rgba(200, 200, 200, 0.3)"
-            : booking.taskStatus === "STARTED"
-            ? "rgba(255, 215, 0, 0.3)"
-            : booking.taskStatus === "IN_PROGRESS"
-            ? "rgba(30, 144, 255, 0.3)"
-            : booking.taskStatus === "CANCELLED"
-            ? "rgba(255, 0, 0, 0.5)"
-            : booking.taskStatus === "COMPLETED"
-            ? "rgba(50, 205, 50, 0.5)"
-            : "#ccc",
-        color:
-          booking.taskStatus === "NOT_STARTED"
-            ? "#555"
-            : booking.taskStatus === "STARTED"
-            ? "#8B6508"
-            : booking.taskStatus === "IN_PROGRESS"
-            ? "#007BFF"
-            : booking.taskStatus === "CANCELLED"
-            ? "#fff"
-            : booking.taskStatus === "COMPLETED"
-            ? "#fff"
-            : "#000",
-        boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      Task Status: {booking.taskStatus}
-    </Typography>
-  </Box>
-                  
-
-                  {/* Booking Details */}
-                  <Typography variant="subtitle1" color="#555">Customer</Typography>
-                  <Typography variant="h5" color="#0056b3">{booking.customerName}</Typography>
-
-                  <Typography variant="subtitle1" color="#555">Time Slot</Typography>
-                  <Typography variant="h6" color="#2a7f62">{booking.timeslot}</Typography>
-
-                  <Typography variant="subtitle1" color="#555">Booking Start Date</Typography>
-                  <Typography variant="h6" color="#2a7f62">{new Date(booking.startDate).toLocaleDateString()}</Typography>
-
-                  {booking.endDate && (
-                    <>
-                      <Typography variant="subtitle1" color="#555">Booking End Date</Typography>
-                      <Typography variant="h6" color="#2a7f62">{new Date(booking.endDate).toLocaleDateString()}</Typography>
-                    </>
-                  )}
-
-                  <Typography variant="subtitle1" color="#555">Address</Typography>
-                  <Typography variant="body2" color="#555">{booking.address}</Typography>
-
-                  {/* Action Buttons */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                    <IconButton color="primary" href={`tel:${booking.phone}`} sx={{ fontSize: 26 }}>
-                      <CallIcon />
-                    </IconButton>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        variant={booking.status === 'Pending' ? 'outlined' : 'contained'}
+          {bookings
+            .filter(
+              (booking) =>
+                booking.taskStatus !== "CANCELLED" // Optionally exclude cancelled ones
+            )
+            .map((booking, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <DashboardCard>
+                  <CardContent>
+                    {/* Task Status */}
+                    <Box sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
+                      <Typography
+                        variant="body2"
                         sx={{
-                          color: booking.status === 'Pending' ? 'orange' : 'white',
-                          backgroundColor: booking.status === 'Pending' ? 'transparent' : 'green',
-                          borderColor: booking.status === 'Pending' ? 'orange' : 'green',
-                          fontWeight: 'bold',
-                          borderRadius: '8px',
-                          padding: '6px 16px',
-                          fontSize: '14px',
-                          boxShadow: booking.status !== 'Pending' ? '0px 4px 10px rgba(0, 128, 0, 0.3)' : 'none',
-                          transition: '0.3s ease-in-out',
-                          '&:hover': {
-                            backgroundColor: booking.status === 'Pending' ? 'orange' : 'darkgreen',
-                            color: 'white',
-                            borderColor: 'darkgreen',
-                          },
+                          padding: "8px 16px",
+                          borderRadius: "6px",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          textTransform: "uppercase",
+                          backgroundColor:
+                            booking.taskStatus === "NOT_STARTED"
+                              ? "rgba(200, 200, 200, 0.3)"
+                              : booking.taskStatus === "STARTED"
+                              ? "rgba(255, 215, 0, 0.3)"
+                              : booking.taskStatus === "IN_PROGRESS"
+                              ? "rgba(30, 144, 255, 0.3)"
+                              : booking.taskStatus === "CANCELLED"
+                              ? "rgba(255, 0, 0, 0.5)"
+                              : booking.taskStatus === "COMPLETED"
+                              ? "rgba(50, 205, 50, 0.5)"
+                              : "#ccc",
+                          color:
+                            booking.taskStatus === "NOT_STARTED"
+                              ? "#555"
+                              : booking.taskStatus === "STARTED"
+                              ? "#8B6508"
+                              : booking.taskStatus === "IN_PROGRESS"
+                              ? "#007BFF"
+                              : booking.taskStatus === "CANCELLED"
+                              ? "#fff"
+                              : booking.taskStatus === "COMPLETED"
+                              ? "#fff"
+                              : "#000",
+                          boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        {booking.status === 'Pending' ? 'Confirm Booking' : 'Confirmed'}
-                      </Button>
-
-                      <Button
-  variant="outlined"
-  sx={{
-    color: 'red',
-    borderColor: 'red',
-    fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: '0.3s',
-    '&:hover': {
-      backgroundColor: 'red',
-      color: 'white',
-    },
-  }}
-  onClick={() => handleCancelBooking(index)}
-  disabled={["STARTED", "IN_PROGRESS", "COMPLETED"].includes(booking.taskStatus)}
->
-  Cancel
-</Button>
+                        Task Status: {booking.taskStatus}
+                      </Typography>
                     </Box>
 
-                    <Box>
-                    <Switch
-  checked={bookings[index].taskStatus === "STARTED"}
-  onChange={(e) => handleSwitchChange(e, index)}
-  disabled={bookings[index].taskStatus === "CANCELLED"} // Disable switch when task is cancelled
-/>
+                    {/* Booking Details */}
+                    <Typography variant="subtitle1" color="#555">Customer</Typography>
+                    <Typography variant="h5" color="#0056b3">{booking.customerName}</Typography>
 
+                    <Typography variant="subtitle1" color="#555">Time Slot</Typography>
+                    <Typography variant="h6" color="#2a7f62">{booking.timeslot}</Typography>
+
+                    <Typography variant="subtitle1" color="#555">Booking Start Date</Typography>
+                    <Typography variant="h6" color="#2a7f62">
+                      {new Date(booking.startDate).toLocaleDateString()}
+                    </Typography>
+
+                    {booking.endDate && (
+                      <>
+                        <Typography variant="subtitle1" color="#555">Booking End Date</Typography>
+                        <Typography variant="h6" color="#2a7f62">
+                          {new Date(booking.endDate).toLocaleDateString()}
+                        </Typography>
+                      </>
+                    )}
+
+                    <Typography variant="subtitle1" color="#555">Address</Typography>
+                    <Typography variant="body2" color="#555">{booking.address}</Typography>
+
+                    {/* Action Buttons */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                      <IconButton color="primary" href={`tel:${booking.phone}`} sx={{ fontSize: 26 }}>
+                        <CallIcon />
+                      </IconButton>
+
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant={booking.status === 'Pending' ? 'outlined' : 'contained'}
+                          sx={{
+                            color: booking.status === 'Pending' ? 'orange' : 'white',
+                            backgroundColor: booking.status === 'Pending' ? 'transparent' : 'green',
+                            borderColor: booking.status === 'Pending' ? 'orange' : 'green',
+                            fontWeight: 'bold',
+                            borderRadius: '8px',
+                            padding: '6px 16px',
+                            fontSize: '14px',
+                            boxShadow: booking.status !== 'Pending' ? '0px 4px 10px rgba(0, 128, 0, 0.3)' : 'none',
+                            transition: '0.3s ease-in-out',
+                            '&:hover': {
+                              backgroundColor: booking.status === 'Pending' ? 'orange' : 'darkgreen',
+                              color: 'white',
+                              borderColor: 'darkgreen',
+                            },
+                          }}
+                        >
+                          {booking.status === 'Pending' ? 'Confirm Booking' : 'Confirmed'}
+                        </Button>
+
+                        <Button
+                          variant="outlined"
+                          sx={{
+                            color: 'red',
+                            borderColor: 'red',
+                            fontWeight: 'bold',
+                            borderRadius: '5px',
+                            transition: '0.3s',
+                            '&:hover': {
+                              backgroundColor: 'red',
+                              color: 'white',
+                            },
+                          }}
+                          onClick={() => handleCancelBooking(index)}
+                          disabled={["STARTED", "IN_PROGRESS", "COMPLETED"].includes(booking.taskStatus)}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+
+                      <Box>
+                        <Switch
+                          checked={booking.taskStatus === "STARTED"}
+                          onChange={(e) => handleSwitchChange(e, index)}
+                          disabled={booking.taskStatus === "CANCELLED"} // Disable switch when task is cancelled
+                        />
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </DashboardCard>
-            </Grid>
-          ))}
+                  </CardContent>
+                </DashboardCard>
+              </Grid>
+            ))}
         </Grid>
       </Grid>
     </Grid>
   </Box>
 )}
+
 
 
 
@@ -565,7 +576,7 @@ const handleCancelBooking = async (index) => {
  {selectedTab === 2 && (
          <Box
          sx={{
-           height: "100vh",
+          //  height: "100vh",
            display: "flex",
            justifyContent: "center",
            alignItems: "center",

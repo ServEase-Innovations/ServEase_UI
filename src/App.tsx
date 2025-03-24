@@ -20,7 +20,6 @@ import axios from "axios";
 import { useDispatch, useSelector } from "react-redux"; // Import useSelector
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
-
 import { RootState } from './store/userStore'; 
 import Chatbot from "./components/chat/Chatbot";
 
@@ -31,16 +30,15 @@ function App() {
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
-
   const dispatch = useDispatch();
 
   // Access user slice from the Redux store
   // const user = useSelector((state: RootState) => state.user);
   // console.log("user name is :",user);
-  
   // const userRole = user?.value; 
   // console.log("Logged-in user role:", userRole); 
 // Define the expected user type
+
 type UserState = {
   value?: {
     role?: string;
@@ -62,7 +60,6 @@ if (userRole === "CUSTOMER") {
 } else {
   console.log("User role is unknown");
 }
-
 
   const handleDataFromChild = (e: string) => {
     console.log("data from child ==> ", e);
@@ -135,6 +132,7 @@ if (userRole === "CUSTOMER") {
       }
     }
   };
+  
 
   return (
     <div className="App">

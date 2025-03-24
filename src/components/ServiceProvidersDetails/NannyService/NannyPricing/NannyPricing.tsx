@@ -28,7 +28,7 @@ const NannyPricing = ({ onPriceChange, onAddToCart, pricing, sendToParent }: Nan
 
   const bookingType = useSelector((state : any) => state.bookingType?.value)
   
-  const pric = pricing.reduce((acc: Record<string, any[]>, item: { Categories: string }) => {
+  const pric = pricing?.reduce((acc: Record<string, any[]>, item: { Categories: string }) => {
     if (!acc[item.Categories]) {
       acc[item.Categories] = [];
     }

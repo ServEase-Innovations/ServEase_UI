@@ -5,7 +5,7 @@ import PaymentIcon from "@mui/icons-material/Payment";
 import { SyntheticEvent, useEffect, useState } from "react";
 import { getPriceByNumber, getPriceByvalue } from "../../../customServices/PricingService";
 import AddIcon from '@mui/icons-material/Add';
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { add } from "../../../features/cart/cartSlice";
 import { CHECKOUT } from "../../../Constants/pagesConstants";
 import MuiAlert from "@mui/material/Alert";
@@ -27,17 +27,31 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
     const [isExpanded, setIsExpanded] = useState(false);
     const [ cartItem , setCartItems ] = useState<any>([])
     const [isAddedToCart, setIsAddedToCart] = useState(false);
+
+    const bookingType = useSelector((state: any) => state.bookingType?.value);
+
+
+    console.log("bookingType => ", bookingType)
+
+    if(bookingType.bookingPreference != "Date"){
+      pricing = pricing.filter((item) => item.BookingType === "Regular")
+    } else{
+      pricing = pricing.filter((item) => item.BookingType === "On Demand")
+    }
+
+    console.log("pricing => ", pricing)
     
-    const groupedServices = pricing.reduce((acc, item) => {
-        const groupKey = item.Type === "Regular Add-on" ? "Regular Add-on" : item.Categories;
+    const groupedServices = pricing?.reduce((acc, item) => {
+        const groupKey = bookingType.bookingPreference != "Date" ? item.Type === "Regular Add-on" ? "Regular Add-on" : item.Categories : item.Type === "On Demand" ? "On Demand" : item.Type ;
         if (!acc[groupKey]) {
           acc[groupKey] = [];
         }
         acc[groupKey].push(item);
         return acc;
       }, {});
+      
+      const [services, setServices] = useState(groupedServices ?? {});
 
-      const [services , setServices] = useState(groupedServices)
 
       const getImage = ( category) => {
         if(category === 'Utensil Cleaning'){
@@ -65,6 +79,8 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
             setPrice(0)
         }
     };
+
+
     
     function handleNumberOfPersons(value: string ,  data? ): void {
 
