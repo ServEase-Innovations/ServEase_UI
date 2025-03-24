@@ -2,7 +2,7 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL:'http://15.207.55.19:8080' ,
+  baseURL:'http://localhost:8080' ,
    //  'http://localhost:8080' ,
    // 'http://43.205.212.94:8080',
   // 'http://43.205.212.94:8080'

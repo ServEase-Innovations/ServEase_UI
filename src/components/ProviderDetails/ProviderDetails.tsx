@@ -48,159 +48,6 @@ const [isExpanded, setIsExpanded] = useState(false);
   console.log("serviceproviderId details:", bookingType?.serviceproviderId);
 
   
-// Handle selection for morning or evening availability
-const handleSelection = (hour: number, isEvening: boolean, time: number) => {
-  // Format the start and end times in HH:mm format (without seconds)
-  const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
-  const endTime = moment({ hour: time + 1, minute: 0 }).format("HH:mm");
-
-  const formattedTime = `${startTime}-${endTime}`;
-  console.log(`Start Time: ${startTime}, End Time: ${endTime}`); // Should show "06:00-07:00"
-
-  // For morning or evening availability selection
-  if (isEvening) {
-    setEveningSelection(hour);
-    setEveningSelectionTime(formattedTime); // Store "06:00-07:00"
-    setMatchedEveningSelection(formattedTime);
-    dispatch(update({ eveningSelection: formattedTime })); 
-    
-
-  } else {
-    setMorningSelection(hour);
-    setMorningSelectionTime(formattedTime); // Store "06:00-07:00"
-    setMatchedMorningSelection(formattedTime);
-    dispatch(update({ morningSelection: formattedTime }));
-  }
-
-  // Ensure you are sending the formatted data to the payload correctly.
-  const payload = {
-    timeslot: `${startTime}-${endTime}`, // Make sure the payload uses the correctly formatted time
-  };
-  console.log("Payload being sent:", payload); // Check if this logs the correct format without seconds
-};
-
-const clearSelection = (isEvening: boolean) => {
-  if (isEvening) {
-    setEveningSelection(null);
-    setEveningSelectionTime(null);
-    setMatchedEveningSelection(null);
-    dispatch(update({ eveningSelection: null })); // Update store
-    
-  } else {
-    setMorningSelection(null);
-    setMorningSelectionTime(null);
-    setMatchedMorningSelection(null);
-    dispatch(update({ morningSelection: null })); // Update store
-  }
-};
-const [missingSlots, setMissingSlots] = useState<string[]>([]);
-const hasCheckedRef = useRef(false); // Track if the function has been called
-// console.log("Service data: ", props);
-// Call this function to check missing time slots
-const checkMissingTimeSlots = () => {
-  // console.log("Service Provider Data: ", props.availableTimeSlots);
-
-  const expectedTimeSlots = [
-    "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
-    "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
-  ];
-
-  // Get missing time slots
-  const missing = expectedTimeSlots.filter(slot => !props.availableTimeSlots.includes(slot));
-
-  // Set the missing slots to state
-  setMissingSlots(missing);
-
-  // Log the missing time slots
-  if (missing.length > 0) {
-    console.log("Missing time slots:", missing);
-  } else {
-    console.log("All expected time slots are available.");
-  }
-};
-
-// Run this function only once on initial render
-if (!hasCheckedRef.current) {
-  checkMissingTimeSlots(); 
-  hasCheckedRef.current = true;
-}
-
-  // Toggle expanded content
-  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
-
-  const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
-const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
-
-const toggleExpand = async () => {
-    setIsExpanded(!isExpanded);
-
-    if (!isExpanded) {
-        try {
-            console.log("Expanding for Service Provider ID:", props.serviceproviderId);
-            console.log("Stored Service Provider ID in Redux:", bookingType?.serviceproviderId);
-            
-            // Check if expanded service provider ID matches the Redux store
-            if (props.serviceproviderId === bookingType?.serviceproviderId) {
-                setMatchedMorningSelection(bookingType?.morningSelection || null);
-                setMatchedEveningSelection(bookingType?.eveningSelection || null);
-
-                console.log("Matched! Morning Selection:", bookingType?.morningSelection);
-                console.log("Matched! Evening Selection:", bookingType?.eveningSelection);
-            } else {
-                setMatchedMorningSelection(null);
-                setMatchedEveningSelection(null);
-                console.log("No match found. Clearing selection.");
-            }
-
-            const response = await axiosInstance.get(
-                `/api/serviceproviders/get/engagement/by/serviceProvider/${props.serviceproviderId}`
-            );
-
-            const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-                id: engagement.id ?? Math.random(),
-                availableTimeSlots: engagement.availableTimeSlots || [],
-            }));
-
-            console.log("Raw Engagement Data:", engagementData);
-
-            const fullTimeSlots: string[] = Array.from({ length: 24 }, (_, i) =>
-                `${i.toString().padStart(2, "0")}:00`
-            );
-
-            console.log("Full Time Slots:", fullTimeSlots);
-
-            const processedSlots = engagementData.map(entry => {
-                const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-                const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-
-                return {
-                    id: entry.id,
-                    uniqueAvailableTimeSlots,
-                    missingTimeSlots,
-                };
-            });
-
-            console.log("Processed Slots with Missing Time Slots:", processedSlots);
-            console.log("All Missing Time Slots:", processedSlots.map(slot => slot.missingTimeSlots));
-
-            // Store unique missing slots in state
-            const uniqueMissingSlots: string[] = Array.from(
-                new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
-            ).sort() as string[];
-
-            console.log("Unique Missing Time Slots:", uniqueMissingSlots);
-
-            setUniqueMissingSlots(uniqueMissingSlots);
-            setAvailableTimeSlots(processedSlots.map(entry => entry.uniqueAvailableTimeSlots));
-            setMissingTimeSlots(processedSlots.map(entry => ({ id: entry.id, missingSlots: entry.missingTimeSlots })));
-
-        } catch (error) {
-            console.error("Error fetching engagement data:", error);
-        }
-    }
-};
-
-  
   // Calculate age from date of birth
   const calculateAge = (dob) => {
     if (!dob) return ""; // Handle cases where dob is not provided
@@ -265,11 +112,8 @@ const toggleExpand = async () => {
 
   const dietImage = dietImages[props.diet];
 
-  // Enable the Book Now button if any time is selected
-  const isBookNowEnabled = 
-  props.housekeepingRole === "NANNY" || 
-  (morningSelection !== null || eveningSelection !== null) || 
-  (matchedMorningSelection !== null || matchedEveningSelection !== null);
+  
+  
 
   const user = useSelector((state : any) => state.user?.value);
 
@@ -340,24 +184,22 @@ const toggleExpand = async () => {
       }));
     };
   
-    const handleSearch = () => {
-      const params = new URLSearchParams({
-        serviceType: bookingDetails.serviceType,
-        startTime: bookingDetails.startTime,
-        date: bookingDetails.date,
-        serviceCategory: bookingDetails.serviceCategory,
-        numberOfPersons: bookingDetails.numberOfPersons.toString(),
-      });
-  
-      fetch(`https://your-api-url.com/search?${params.toString()}`)
-        .then((response) => response.json())
-        .then((data) => {
-          console.log('Response:', data);
-        })
-        .catch((error) => {
-          console.error('Error:', error);
-        });
+    const handleSearch = async () => {
+      const params = {
+        startDate: bookingDetails.date,
+        endDate: bookingType.endDate, // You can modify this if needed
+        timeslot: bookingDetails.startTime,
+        housekeepingRole:props.housekeepingRole ,
+      };
+    
+      try {
+        const response = await axiosInstance.get('/api/serviceproviders/search', { params });
+        console.log('Response:', response.data);
+      } catch (error) {
+        console.error('Error:', error);
+      }
     };
+    
     
   return (
     <> <Paper elevation={3}>
@@ -478,7 +320,7 @@ const toggleExpand = async () => {
         <Button
           variant="outlined" // Ensures outlined style is applied
           className="expand-toggle"
-          onClick={toggleExpand}
+          // onClick={toggleExpand}
           sx={{ border: '1px solid #1976d2', color: '#1976d2', padding: '8px', fontSize: '24px', position: 'absolute', top: 10, right: 10 }} // Override if necessary
         >
           {isExpanded ? <RemoveIcon /> : <AddIcon />}
@@ -591,7 +433,7 @@ const toggleExpand = async () => {
 <div>
  
 </div>
-
+{/* 
 <div style={{ float: 'right', display: 'flex' }}>
     {warning && <p className="text-red-500">{warning}</p>}
 
@@ -606,7 +448,7 @@ const toggleExpand = async () => {
     >
       Book Now
     </Button>
-  </div>
+  </div> */}
 
 
 
