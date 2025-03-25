@@ -59,7 +59,7 @@ export const Login: React.FC<ChildComponentProps> = ({
   const handleSignUpClickAgent = () => {
     setAgentRegistration(true);
   };
-  
+
   const handleForgotPasswordClick = () => {
     setIsForgotPassword(true);
   };
@@ -86,7 +86,7 @@ export const Login: React.FC<ChildComponentProps> = ({
 
        // Log the full response data to the console
     console.log("Response Data:", response.data);
-   
+
       // Check if the response is successful
       if (response.status === 200 && response.data) {
         const { message, role,customerDetails } = response.data;
@@ -130,8 +130,6 @@ export const Login: React.FC<ChildComponentProps> = ({
         //   }
         // }, 1000);
 
-       
-        
       } else {
         // Handle unexpected responses
         throw new Error(

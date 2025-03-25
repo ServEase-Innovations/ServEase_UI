@@ -24,7 +24,18 @@ interface ChildComponentProps {
   sendDataToParent: (data: any) => void;
 }
 
-const Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails, role, sendDataToParent }) => {
+// interface ConfirmationpageProps {
+//   role: string | undefined;
+//   providerDetails: string | undefined;
+// }
+
+const  Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails , role , sendDataToParent }) => {
+
+  // const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
+  console.log("role ==> ", role)
+  console.log("providerDetails => ", providerDetails)
+  // console.log("Selected Booking Type from Context:", selectedBookingType);
+
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);

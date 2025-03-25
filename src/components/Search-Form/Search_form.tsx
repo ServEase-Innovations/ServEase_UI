@@ -11,7 +11,6 @@ interface SearchFormProps {
   onSearch: (data: any[]) => void;
 }
 
-
 export const Search_form: React.FC<SearchFormProps> = ({
   open,
   selectedValue,

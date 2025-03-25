@@ -190,6 +190,7 @@ const [isExpanded, setIsExpanded] = useState(false);
         endDate: bookingType.endDate, // You can modify this if needed
         timeslot: bookingDetails.startTime,
         housekeepingRole:props.housekeepingRole ,
+
       };
     
       try {

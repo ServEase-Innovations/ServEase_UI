@@ -20,6 +20,7 @@ interface UserProfileProps {
   goBack: () => void;
 }
 
+
 const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
   const dispatch = useDispatch();
 
