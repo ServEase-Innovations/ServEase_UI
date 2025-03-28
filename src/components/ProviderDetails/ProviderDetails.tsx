@@ -16,6 +16,7 @@ import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import "react-clock/dist/Clock.css";
 import { FaTimes } from "react-icons/fa";
+import axios from "axios";
 
 const ProviderDetails = (props) => {
 const [isExpanded, setIsExpanded] = useState(false);
@@ -46,6 +47,12 @@ const [isExpanded, setIsExpanded] = useState(false);
   // console.log("Evening details:", bookingType?.eveningSelection);
   console.log("startDate:", bookingType?.startDate);
   console.log("serviceproviderId details:", bookingType?.serviceproviderId);
+  const toggleExpand = async () => {
+    setIsExpanded(!isExpanded);
+
+   
+};
+
 
   
   // Calculate age from date of birth
@@ -56,39 +63,43 @@ const [isExpanded, setIsExpanded] = useState(false);
   };
 
   const handleBookNow = () => {
-    let booking: Bookingtype;
-
-      if (props.housekeepingRole !== "NANNY") {
-          booking = {
-              serviceproviderId: props.serviceproviderId,
-              eveningSelection: eveningSelectionTime,
-              morningSelection: morningSelectionTime,
-              ...bookingType
-          };
-      } else {
-          booking = {
-              serviceproviderId: props.serviceproviderId,
-              timeRange: `${startTime} - ${endTime}`,
-              duration: getHoursDifference(startTime, endTime),
-              ...bookingType
-          };
-      }
-  
-      console.log("Booking Data Before Dispatch:", booking);
-  
-      if (bookingType) {
-          dispatch(update(booking));
-      } else {
-          dispatch(add(booking));
-      }
-  
-      const providerDetails = {
-      ...props, // Spread the provider details from props
-      selectedMorningTime: morningSelection,
-      selectedEveningTime: eveningSelection
-    };
-    props.selectedProvider(providerDetails); // Send selected provider back to parent
+    setOpen(true);
   };
+
+  // const handleBookNow = () => {
+  //   let booking: Bookingtype;
+
+  //     if (props.housekeepingRole !== "NANNY") {
+  //         booking = {
+  //             serviceproviderId: props.serviceproviderId,
+  //             eveningSelection: eveningSelectionTime,
+  //             morningSelection: morningSelectionTime,
+  //             ...bookingType
+  //         };
+  //     } else {
+  //         booking = {
+  //             serviceproviderId: props.serviceproviderId,
+  //             timeRange: `${startTime} - ${endTime}`,
+  //             duration: getHoursDifference(startTime, endTime),
+  //             ...bookingType
+  //         };
+  //     }
+  
+  //     console.log("Booking Data Before Dispatch:", booking);
+  
+  //     if (bookingType) {
+  //         dispatch(update(booking));
+  //     } else {
+  //         dispatch(add(booking));
+  //     }
+  
+  //     const providerDetails = {
+  //     ...props, // Spread the provider details from props
+  //     selectedMorningTime: morningSelection,
+  //     selectedEveningTime: eveningSelection
+  //   };
+  //   props.selectedProvider(providerDetails); // Send selected provider back to parent
+  // };
 
   const getHoursDifference = (start, end) => {
     const [startHours, startMinutes] = start.split(":").map(Number);
@@ -161,11 +172,12 @@ const [isExpanded, setIsExpanded] = useState(false);
   
     const [bookingDetails, setBookingDetails] = useState({
       serviceType: 'Regular',
-      startTime: '',
+      timeSlot: { startTime: '', endTime: '' }, // Store start & end time together
       date: '',
       serviceCategory: 'Breakfast',
       numberOfPersons: 1,
     });
+    
   
     // Whenever bookingType changes, update the date field.
     useEffect(() => {
@@ -178,19 +190,34 @@ const [isExpanded, setIsExpanded] = useState(false);
     }, [bookingType]);
   
     const handleChange = (field, value) => {
-      setBookingDetails((prevDetails) => ({
-        ...prevDetails,
-        [field]: value,
-      }));
+      if (field === 'startTime' || field === 'endTime') {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          timeSlot: {
+            ...prevDetails.timeSlot,
+            [field]: value, // Update either startTime or endTime inside timeSlot
+          },
+        }));
+      } else {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          [field]: value,
+        }));
+      }
     };
-  
+    
     const handleSearch = async () => {
+      const timeSlotFormatted = `${bookingDetails.timeSlot.startTime}-${bookingDetails.timeSlot.endTime}`;
       const params = {
-        startDate: bookingDetails.date,
-        endDate: bookingType.endDate, // You can modify this if needed
-        timeslot: bookingDetails.startTime,
+        // startDate: bookingDetails.date,
+        // endDate: bookingType.endDate, 
+        // timeslot: timeSlotFormatted, 
+        startDate: "2025-04-01",
+        endDate: "2025-04-30", 
+        timeslot: "9:00-10:00", 
         housekeepingRole:props.housekeepingRole ,
-
+        latitude: 28.47672988933282,  
+        longitude: 77.51833532306142, 
       };
     
       try {
@@ -200,7 +227,53 @@ const [isExpanded, setIsExpanded] = useState(false);
         console.error('Error:', error);
       }
     };
-    
+    const handleCheckout = async () => {
+      try {
+        const response = await axios.post(
+          "http://13.127.47.159:3000/create-order",
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        if (response.status != 200) {
+          const { id: orderId, currency, amount } = response.data;
+  
+          const options = {
+            key: "rzp_test_lTdgjtSRlEwreA",
+            amount: amount,
+            currency: currency,
+            name: "Serveaso",
+            description: "Booking Payment",
+            order_id: orderId,
+            handler: async function (razorpayResponse) {
+              alert(
+                `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
+              );
+  
+              // Here, implement your post-payment logic (e.g., saving booking details)
+              console.log("Booking Details Saved!");
+            },
+            prefill: {
+              name: "Customer Name", // Replace with actual customer details
+              email: "customer@example.com",
+              contact: "9876543210",
+            },
+            theme: {
+              color: "#3399cc",
+            },
+          };
+  
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        }
+      } catch (error) {
+        console.error("Error while creating Razorpay order:", error);
+        alert("Failed to initiate payment. Please try again.");
+      }
+    };
     
   return (
     <> <Paper elevation={3}>
@@ -239,10 +312,10 @@ const [isExpanded, setIsExpanded] = useState(false);
 
         <div className="field">
           <div className="input-with-label">
-            <span className="inline-label">Time Slot</span>
+            <span className="inline-label">Start Time</span>
             <input
               type="time"
-              value={bookingDetails.startTime}
+              value={bookingDetails.timeSlot.startTime}
               onChange={(e) => handleChange('startTime', e.target.value)}
               className="time-input"
             />
@@ -251,12 +324,12 @@ const [isExpanded, setIsExpanded] = useState(false);
 
         <div className="field">
           <div className="input-with-label">
-            <span className="inline-label">Date</span>
+          <span className="inline-label">End Time</span>
             <input
-              type="text"
-              value={bookingDetails.date}
-              onChange={(e) => handleChange('date', e.target.value)}
-              className="custom-input"
+              type="time"
+              value={bookingDetails.timeSlot.endTime}
+              onChange={(e) => handleChange('endTime', e.target.value)}
+              className="time-input"
             />
           </div>
         </div>
@@ -321,7 +394,7 @@ const [isExpanded, setIsExpanded] = useState(false);
         <Button
           variant="outlined" // Ensures outlined style is applied
           className="expand-toggle"
-          // onClick={toggleExpand}
+          onClick={toggleExpand}
           sx={{ border: '1px solid #1976d2', color: '#1976d2', padding: '8px', fontSize: '24px', position: 'absolute', top: 10, right: 10 }} // Override if necessary
         >
           {isExpanded ? <RemoveIcon /> : <AddIcon />}
@@ -434,54 +507,38 @@ const [isExpanded, setIsExpanded] = useState(false);
 <div>
  
 </div>
-{/* 
-<div style={{ float: 'right', display: 'flex' }}>
-    {warning && <p className="text-red-500">{warning}</p>}
 
-    <Button 
-      onClick={handleBookNow} 
-      variant="outlined"
-      disabled={!isBookNowEnabled} // ✅ Uses state instead of inline condition
-      style={{
-        opacity: isBookNowEnabled ? 1 : 0.6, 
-        cursor: isBookNowEnabled ? "pointer" : "not-allowed"
-      }}
-    >
-      Book Now
-    </Button>
-  </div> */}
+<div style={{ float: "right", display: "flex" }}>
+      {warning && <p className="text-red-500">{warning}</p>}
 
+      <Button onClick={handleBookNow} variant="outlined">
+        Book Now
+      </Button>
+
+      {/* Dialog Box */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Confirm Booking</DialogTitle>
+        <DialogContent>
+          <p>Are you ready to proceed to checkout?</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleCheckout} color="primary" variant="contained">
+            Checkout
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
 
 
             </div>
           )}
         </div>
-
-        {/* Book Now button */}
-        {/* { isBookNowEnabled && } */}
-
-        {/* {isBookNowEnabled && (
-      <Button
-        variant="contained"
-        color="primary"
-        className="book-now-button"
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          padding: '10px 20px',
-          fontSize: '16px',
-          display: 'flex',
-        }}
-        onClick={handleBookNow}
-      >
-        Book Now
-      </Button>
-    )} */}
-        {/* <Button disabled={!isBookNowEnabled} variant="outlined">Book Now</Button> */}
       </div>
     </Paper>
-    <Dialog 
+    {/* <Dialog 
     style={{padding:'0px'}}
       open={open}
       onClose={handleClose}
@@ -491,7 +548,8 @@ const [isExpanded, setIsExpanded] = useState(false);
         <DialogContent>
         <Login bookingPage={handleBookingPage}/>
         </DialogContent>
-      </Dialog></>
+      </Dialog> */}
+      </>
   );
 };
 

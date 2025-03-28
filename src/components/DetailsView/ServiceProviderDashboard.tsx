@@ -17,7 +17,7 @@ import WarningIcon from '@mui/icons-material/Warning'; // for Pending
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/userStore";
-
+import './ProfileHeader.css';
 const ProfileHeader = styled(Box)({
   display: 'flex',
   alignItems: 'center',
@@ -25,16 +25,34 @@ const ProfileHeader = styled(Box)({
   padding: '20px',
   backgroundColor: '#ffffff',
   color: '#333',
-  borderRadius: '10px',
   boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.1)',
+  position: 'fixed',
+  top: '65px',
+  left: 0,
+  right: 0,
+  height: '80px',
+  zIndex: 1000,
+  gap: '9px',
 });
 
+
+
+// Remove the margin from DashboardCard
 const DashboardCard = styled(Card)({
-  minHeight: '180px',
+  width: '350px',       // Fixed width
+  height: '450px',      // Fixed height
   textAlign: 'center',
+  marginTop: '30px',
   borderRadius: '12px',
   transition: '0.3s',
   backgroundColor: '#f8f9fa',
+  position:'relative',
+  // left:' 100x',
+  zIndex: 1,
+  boxSizing: 'border-box',
+  overflow: 'hidden',   // Ensures content stays within bounds
+  display: 'flex',      // For better content organization
+  flexDirection: 'column', // Stack content vertically
   '&:hover': {
     transform: 'scale(1.05)',
     boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.2)',
@@ -301,75 +319,57 @@ const handleCancelBooking = async (index) => {
     setSelectedTab(newValue);
   };
 
-  return isEditing ? (
-    <EditProvider goBack={() => setIsEditing(false)} />
-  ) : (
+  return  (
+    
     <div style={{display:'grid'}} >
-     <ProfileHeader>
-   {/* Profile Section: Avatar, Name & Icons */}
-   <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <Avatar sx={{ width: 60, height: 60, bgcolor: '#0056b3', color: 'white' }}>
-        <AccountCircleIcon fontSize="large" />
-      </Avatar>
-      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-  {`${firstName } ${lastName }`}
-</Typography>
+  
+  <ProfileHeader className="ProfileHeader">
+  <div className="profile-section">
+    {/* <Avatar className="avatar">
+      <AccountCircleIcon  />
+    </Avatar> */}
+    <Typography variant="h6" className="name">
+      {`${firstName} ${lastName}`}
+    </Typography>
+    <div className="icons-section">
+      {/* Icons here */}  <Tooltip title="Total Bookings">
+          <Badge badgeContent={bookings.length} color="primary">
+            <EventIcon fontSize="medium" style={{ color: '#1976d2' }} />
+          </Badge>
+        </Tooltip>
 
+        <Tooltip title="Confirmed Bookings">
+          <Badge badgeContent={bookings.filter((b) => b.status === 'Confirmed').length} color="primary">
+            <CheckCircleIcon fontSize="medium" style={{ color: '#388e3c' }} />
+          </Badge>
+        </Tooltip>
 
-      {/* Icons beside name */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-  <Tooltip title="Total Bookings">
-    <Badge badgeContent={bookings.length} color="primary">
-      <EventIcon fontSize="medium" sx={{ color: '#1976d2' }} />
-    </Badge>
-  </Tooltip>
+        <Tooltip title="Pending Bookings">
+          <Badge badgeContent={bookings.filter((b) => b.status === 'Pending').length} color="secondary">
+            <WarningIcon fontSize="medium" style={{ color: '#f57c00' }} />
+          </Badge>
+        </Tooltip>
+    </div>
+  </div>
+  <div className="tabs-section">
+    <Tabs value={selectedTab} onChange={handleTabChange} aria-label="service recap tabs" centered>
+      <Tab label="Profile" />
+      <Tab label="Service Recap" />
+      <Tab label="Attendance Calendar" />
+      <Tab label="Earnings Summary" />
+    </Tabs>
+  </div>
+  <div className="rating-section">
+    <Rating value={4} precision={0.5} readOnly />
+  </div>
+</ProfileHeader>
 
-  <Tooltip title="Confirmed Bookings">
-    <Badge badgeContent={bookings.filter((b) => b.status === 'Confirmed').length} color="primary">
-      <CheckCircleIcon fontSize="medium" sx={{ color: '#388e3c' }} />
-    </Badge>
-  </Tooltip>
-
-  <Tooltip title="Pending Bookings">
-    <Badge badgeContent={bookings.filter((b) => b.status === 'Pending').length} color="secondary">
-      <WarningIcon fontSize="medium" sx={{ color: '#f57c00' }} />
-    </Badge>
-  </Tooltip>
-</Box>
-
-    </Box>
-
- 
-   <Box sx={{ marginTop: '20px' }}>
-        <Tabs value={selectedTab} onChange={handleTabChange} aria-label="service recap tabs" centered>
-          <Tab label="Profile" />
-          <Tab label="Service Recap" />
-          <Tab label="Attendance Calender" />
-          <Tab label="Earnings Summary" />
-        </Tabs>
-      </Box>
-        {/* Add the Rating component beside the profile name */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Rating value={4} precision={0.5} readOnly sx={{ marginRight: '10px' }} /> {/* Example rating */}
-          {/* <Button variant="outlined" sx={{ color: '#0056b3', fontWeight: 'bold' }} onClick={handleEditClick}>
-            Edit
-          </Button> */}
-        </Box>
-      </ProfileHeader>
-
-      {/* Tabs to toggle between Profile and Service Recap */}
-      {/* <Box sx={{ marginTop: '20px' }}>
-        <Tabs value={selectedTab} onChange={handleTabChange} aria-label="service recap tabs" centered>
-          <Tab label="Profile" />
-          <Tab label="Service Recap" />
-        </Tabs>
-      </Box> */}
-
+   
       {/* Show Profile Section if Profile Tab is Selected */}
 
 
       {selectedTab === 0 && (
-  <Box sx={{ marginTop: '20px' }}>
+  <Box className="responsive-container" sx={{ marginTop: '20px' }}>
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <Grid container spacing={3} justifyContent="center">
@@ -379,11 +379,11 @@ const handleCancelBooking = async (index) => {
                 booking.taskStatus !== "CANCELLED" // Optionally exclude cancelled ones
             )
             .map((booking, index) => (
-              <Grid item xs={12} md={4} key={index}>
+              <Grid item xs={12} md={4} key={index} className="grid-item">
                 <DashboardCard>
                   <CardContent>
                     {/* Task Status */}
-                    <Box sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
+                    <Box className="status-box" sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
                       <Typography
                         variant="body2"
                         sx={{
@@ -448,7 +448,7 @@ const handleCancelBooking = async (index) => {
                     <Typography variant="body2" color="#555">{booking.address}</Typography>
 
                     {/* Action Buttons */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                    <Box className="action-buttons" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                       <IconButton color="primary" href={`tel:${booking.phone}`} sx={{ fontSize: 26 }}>
                         <CallIcon />
                       </IconButton>
@@ -496,7 +496,7 @@ const handleCancelBooking = async (index) => {
                         </Button>
                       </Box>
 
-                      <Box>
+                      <Box className="switch-container">
                         <Switch
                           checked={booking.taskStatus === "STARTED"}
                           onChange={(e) => handleSwitchChange(e, index)}
@@ -513,7 +513,6 @@ const handleCancelBooking = async (index) => {
     </Grid>
   </Box>
 )}
-
 
 
 

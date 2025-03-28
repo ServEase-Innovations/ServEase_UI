@@ -1,30 +1,17 @@
-import {
-  Card,
-  Button,
-  Box,
-  Typography,
-  Snackbar,
-  Alert,
-  IconButton,
-  Tooltip,
-  DialogContent,
-  Dialog,
-  Tabs,
-  Tab,
-} from "@mui/material";
+import { Card, Button, Box, Typography, Snackbar, Alert, IconButton, Tooltip, DialogContent, Dialog } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BookingDetails } from "../../types/engagementRequest";
 import { Bookingtype } from "../../types/bookingTypeData";
 import axiosInstance from "../../services/axiosInstance";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ShoppingCartCheckoutIcon from "@mui/icons-material/ShoppingCartCheckout";
+import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import axios from "axios";
 import Login from "../Login/Login";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { BOOKINGS, CONFIRMATION } from "../../Constants/pagesConstants";
 import { add, remove } from "../../features/cart/cartSlice";
-import moment from "moment";
+
 
 // Define the structure of each item in selectedItems
 interface Item {
@@ -41,44 +28,41 @@ interface Item {
 }
 
 interface ChildComponentProps {
-  providerDetails: any;
-  sendDataToParent: (data: any) => void;
+  providerDetails : any;
+  sendDataToParent : (data : any) => void;
 }
 
-const Checkout: React.FC<ChildComponentProps> = ({
-  providerDetails,
-  sendDataToParent,
-}) => {
+const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataToParent }) => {
   const [checkout, setCheckout] = useState<any>([]);
-  const [bookingTypeFromSelection, setBookingTypeFromSelection] =
-    useState<Bookingtype>();
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success"
-  );
+  const [bookingTypeFromSelection , setBookingTypeFromSelection] = useState<Bookingtype>();
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [open, setOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState();
+  const [loggedInUser , setLoggedInUser ] = useState();
 
   const cart = useSelector((state: any) => state.cart?.value);
-  const bookingType = useSelector((state: any) => state.bookingType?.value);
+  const bookingType = useSelector((state: any) => state.bookingType?.value)
   const user = useSelector((state: any) => state.user?.value);
-  const pricing = useSelector((state: any) => state.pricing?.groupedServices); // Get groupedServices from the store
   const dispatch = useDispatch();
   const customerId = user?.customerDetails?.customerId || null;
+  // console.log('customer details:',user)
   const currentLocation = user?.customerDetails?.currentLocation;
+  console.log("current location :",currentLocation)
   const firstName = user?.customerDetails?.firstName;
   const lastName = user?.customerDetails?.lastName;
   const customerName = `${firstName} ${lastName}`;
-  console.log("pricing data ", pricing);
+ 
+
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-console.log("providerFullName::",providerFullName);
-console.log(providerDetails);
+ 
+  
+  // Declare customerName in bookingDetails
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
     serviceProviderName: "",
     customerId: 0,
-    customerName: "",
+    customerName: "", 
     startDate: "",
     endDate: "",
     engagements: "",
@@ -87,151 +71,9 @@ console.log(providerDetails);
     monthlyAmount: 0,
     paymentMode: "CASH",
     bookingType: "",
-    taskStatus: "NOT_STARTED",
+    taskStatus: "NOT_STARTED", 
     responsibilities: [],
   };
-
-  const typeButtonsSelector = [
-    { key: 1, value: "Regular" },
-    { key: 2, value: "Premium" },
-  ];
-  // Handle service type change for a specific meal
-  const handleServiceTypeChange = (
-    mealType: string,
-    newServiceType: number
-  ) => {
-    setMealStates((prev) => ({
-      ...prev,
-      [mealType]: {
-        ...prev[mealType],
-        serviceType: newServiceType,
-      },
-    }));
-  };
-
-  const [serviceType, setServiceType] = useState<number>(
-    typeButtonsSelector[0].key
-  ); // Default to Regular
-  const [filteredCookPricing, setFilteredCookPricing] = useState<any[]>([]);
-  const [mealStates, setMealStates] = useState<
-    Record<string, { serviceType: number; pax: number }>
-  >({});
-  const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
-
-  const toggleMealSelection = (mealType: string) => {
-    setSelectedMeals(
-      (prevSelected) =>
-        prevSelected.includes(mealType)
-          ? prevSelected.filter((meal) => meal !== mealType) // Remove if already selected
-          : [...prevSelected, mealType] // Add if not selected
-    );
-  };
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const toggleServiceSelection = (serviceType: string) => {
-    setSelectedServices(
-      (prevSelected) =>
-        prevSelected.includes(serviceType)
-          ? prevSelected.filter((service) => service !== serviceType) // Remove if already selected
-          : [...prevSelected, serviceType] // Add if not selected
-    );
-  };
-
-  // Filter Cook data based on booking type
-  useEffect(() => {
-    if (bookingTypes?.role === "cook") {
-      const cookPricing = pricing?.Cook || []; // Extract Cook data
-      console.log("Cook Pricing:", cookPricing); // Log Cook data
-
-      const filteredCook = cookPricing.filter((item) => {
-        if (bookingType.bookingPreference !== "Date") {
-          return item.BookingType === "Regular";
-        } else {
-          return item.BookingType === "On Demand";
-        }
-      });
-
-      console.log("Filtered Cook Pricing:", filteredCook); // Log filtered Cook data
-      setFilteredCookPricing(filteredCook);
-    }
-  }, [bookingType, pricing]);
-
-  // Initialize meal states when filteredCookPricing changes
-  useEffect(() => {
-    if (bookingTypes?.role === "cook") {
-      const initialMealStates: Record<
-        string,
-        { serviceType: number; pax: number }
-      > = {};
-      filteredCookPricing.forEach((meal) => {
-        initialMealStates[meal.Categories] = {
-          serviceType: 1, // Default to Regular
-          pax: 3, // Default number of persons
-        };
-      });
-      setMealStates(initialMealStates);
-    }
-  }, [filteredCookPricing]);
-
-  // Increment number of persons for a specific meal
-  const incrementPax = (mealType: string) => {
-    setMealStates((prev) => ({
-      ...prev,
-      [mealType]: {
-        ...prev[mealType],
-        pax: prev[mealType].pax + 1,
-      },
-    }));
-  };
-
-  const updatePax = (mealType, newValue) => {
-    setMealStates((prev) => ({
-      ...prev,
-      [mealType]: {
-        ...prev[mealType],
-        pax: newValue,
-      },
-    }));
-  };
-
-  // Decrement number of persons for a specific meal
-  const decrementPax = (mealType: string) => {
-    setMealStates((prev) => ({
-      ...prev,
-      [mealType]: {
-        ...prev[mealType],
-        pax: Math.max(1, prev[mealType].pax - 1), // Ensure pax doesn't go below 1
-      },
-    }));
-  };
-
-  // Calculate price based on number of persons and service type
-  const getPeopleCount = (data: any, pax: number, serviceType: number) => {
-    let field =
-      bookingType.bookingPreference !== "Date"
-        ? "Price /Month (INR)"
-        : "Price /Day (INR)";
-    const basePrice = data[field];
-
-    let totalPrice = basePrice;
-
-    if (pax > 3 && pax <= 6) {
-      totalPrice += basePrice * 0.2 * (pax - 3);
-    } else if (pax > 6 && pax <= 9) {
-      totalPrice += basePrice * 0.2 * 3 + basePrice * 0.1 * (pax - 6);
-    } else if (pax > 9) {
-      totalPrice +=
-        basePrice * 0.2 * 3 +
-        basePrice * 0.1 * 3 +
-        basePrice * 0.05 * (pax - 9);
-    }
-
-    if (serviceType === 2) {
-      totalPrice += totalPrice * 0.3; // Premium service adds 30%
-    }
-
-    return totalPrice;
-  };
- 
 
   useEffect(() => {
     setCheckout(cart);
@@ -239,26 +81,25 @@ console.log(providerDetails);
   }, [cart, bookingType]);
 
   const handleRemoveItem = (index: number) => {
-    const updatedCheckout = checkout["selecteditem"]?.filter(
-      (_, i) => i !== index
-    );
+    const updatedCheckout = checkout['selecteditem']?.filter((_, i) => i !== index);
     setCheckout(updatedCheckout);
-    dispatch(add({selecteditem: updatedCheckout }));
+    dispatch(add({ grandTotal, selecteditem: updatedCheckout }));
   };
 
+  
   useEffect(() => {
-    if (user?.role === "CUSTOMER") {
-      setLoggedInUser(user);
+   
+      if(user?.role=== 'CUSTOMER'){
+        setLoggedInUser(user);
+      }
+    }, [user]);
+
+    const handleBookingPage = (e : string | undefined) =>{
+      setOpen(false)
     }
-  }, [user]);
-
-  const handleBookingPage = (e: string | undefined) => {
-    setOpen(false);
-  };
-
-  const handleLogin = () => {
-    setOpen(true);
-  };
+  const handleLogin = () =>{
+    setOpen(true)
+  }
 
   const handleClose = () => {
     setOpenSnackbar(false);
@@ -268,7 +109,7 @@ console.log(providerDetails);
     try {
       const response = await axios.post(
         "http://13.127.47.159:3000/create-order",
-        // { amount: grandTotal },
+        { amount: grandTotal }, // Amount in paise
         {
           headers: {
             "Content-Type": "application/json",
@@ -279,37 +120,33 @@ console.log(providerDetails);
       if (response.status === 200) {
         const { id: orderId, currency, amount } = response.data;
 
+        // Razorpay options
         const options = {
-          key: "rzp_test_lTdgjtSRlEwreA",
+          key: "rzp_test_lTdgjtSRlEwreA", // Replace with your Razorpay key
           amount: amount,
           currency: currency,
           name: "Serveaso",
           description: "Booking Payment",
           order_id: orderId,
           handler: async function (razorpayResponse: any) {
-            alert(
-              `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
-            );
+            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
 
-            bookingDetails.serviceProviderId =
-              providerDetails.serviceproviderId;
-            bookingDetails.serviceProviderName = providerFullName;
+            console.log("checkout => ", checkout);
+            bookingDetails.serviceProviderId = providerDetails.serviceproviderId;
+            bookingDetails.serviceProviderName=providerFullName;
             bookingDetails.customerId = customerId;
-            bookingDetails.customerName = customerName;
-            bookingDetails.address = currentLocation;
+            bookingDetails.customerName = customerName;  
+            bookingDetails.address=currentLocation;
             bookingDetails.startDate = bookingTypeFromSelection?.startDate;
             bookingDetails.endDate = bookingTypeFromSelection?.endDate;
             bookingDetails.engagements = checkout.selecteditem[0].Service;
-            bookingDetails.paymentMode = "UPI";
-            bookingDetails.taskStatus = "NOT_STARTED";
+            bookingDetails.paymentMode = "UPI"; 
+            bookingDetails.taskStatus= "NOT_STARTED";
             bookingDetails.bookingType = bookingType.bookingPreference;
             bookingDetails.serviceeType = checkout.selecteditem[0].Service;
-            bookingDetails.timeslot = [
-              bookingType.morningSelection,
-              bookingType.eveningSelection,
-            ]
+            bookingDetails.timeslot = [bookingType.morningSelection, bookingType.eveningSelection]
               .filter(Boolean)
-              .join(", ");
+              .join(', '); 
 
             bookingDetails.monthlyAmount = checkout.price;
 
@@ -327,8 +164,8 @@ console.log(providerDetails);
               setSnackbarMessage(response.data || "Booking successful!");
               setSnackbarSeverity("success");
               setOpenSnackbar(true);
-              sendDataToParent(BOOKINGS);
-              dispatch(remove());
+              sendDataToParent(BOOKINGS)
+              dispatch(remove())
             }
           },
           prefill: {
@@ -350,293 +187,361 @@ console.log(providerDetails);
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
     }
-  };
+  };  
+  const grandTotal = checkout?.price ? checkout?.price : 0;
+
+  const handleBackClick = () =>{
+    sendDataToParent(CONFIRMATION)
+   
+  }
   
-  const calculateAge = (dob) => {
-    if (!dob) return ""; // Handle cases where dob is not provided
-    const age = moment().diff(moment(dob), 'years'); // Get the age in years
-    return age;
-  };
-
-
-  const [startTime, setStartTime] = useState<string>("");
-  const [endTime, setEndTime] = useState<string>("");
-
-  const handleBackClick = () => {
-    sendDataToParent(CONFIRMATION);
-  };
-
   const bookingTypes = useSelector((state: any) => state.bookingType?.value);
-
+  
   useEffect(() => {
     console.log("Booking Type from Redux Store for checkout:", bookingTypes);
+    
     console.log("Morning checkout:", bookingTypes?.morningSelection);
-    console.log("Evening checkout:", bookingTypes?.eveningSelection);
-    console.log("role checkout", bookingTypes?.role);
+    console.log("Evening chekout:", bookingTypes?.eveningSelection);
+
+   
   }, [bookingType]);
+  const [meals, setMeals] = useState([
+    { id: 1, type: "Breakfast", service: "Regular", persons: 0, time: "10:00 am - 11:00 am", price: 50, selected: true },
+    { id: 2, type: "Lunch", service: "Premium", persons: 0, time: "1:00 pm - 2:00 pm", price: 120, selected: true },
+    { id: 3, type: "Dinner", service: "Regular", persons: 0, time: "7:00 pm - 8:00 pm", price: 60, selected: true },
+  ]);
+
+  const updatePersons = (id, change) => {
+    setMeals((prevMeals) =>
+      prevMeals.map((meal) =>
+        meal.id === id ? { ...meal, persons: Math.max(0, meal.persons + change) } : meal
+      )
+    );
+  };
+
+  const toggleMealSelection = (id) => {
+    setMeals((prevMeals) =>
+      prevMeals.map((meal) =>
+        meal.id === id ? { ...meal, selected: !meal.selected } : meal
+      )
+    );
+  };
+  const subtotal = meals.reduce((acc, meal) => acc + meal.price * meal.persons, 0);
+  const gst = subtotal * 0.18;
+  const total = subtotal + gst;
+  const totalPrice = meals
+    .filter((meal) => meal.selected)
+    .reduce((sum, meal) => sum + meal.price * meal.persons, 0);
 
   return (
     <>
-      {/* <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100vh",
-          width: "100%",
-        }}
-      > */}
-       {/* Fixed Header */}
-       <Box
-        sx={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          padding: "20px",
-          backgroundColor: "#fff",
-          zIndex: 10,
-          boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
-          textAlign: "center",
-          height: "12%",
-          display: "flex",
-          justifyContent: "space-between", // Adjusted to space-between
-          alignItems: "center",
-          marginTop: "65px",
-        }}
-      >
-        <Button
-          variant="outlined"
-          onClick={handleBackClick}
-        >
-          Back
-        </Button>
-
-        {/* Provider Details Section */}
-{bookingType.bookingPreference !== "Date" && (
-  <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
-    <div style={{ display: 'grid', gap: '4px', textAlign: 'left' }}>
-      <Typography variant="h6" style={{ display: 'flex', alignItems: 'center' }}>
-        {providerDetails.firstName} {providerDetails.lastName}, (
-        {providerDetails.gender === 'FEMALE' ? 'F ' : providerDetails.gender === 'MALE' ? 'M ' : 'O '}
-        {calculateAge(providerDetails.dob)})
-        <img
-          src="nonveg.png"
-          alt="Diet Symbol"
-          style={{ width: '20px', height: '20px', marginLeft: '10px' }}
-        />
-      </Typography>
-      <div style={{ display: 'flex', gap: '16px' }}>
-        <Typography variant="body1" style={{ fontWeight: '500' }}>
-          Languages: {providerDetails.languages || 'N/A'}
+    <Box sx={{
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh", // Full viewport height
+      width: '100%',
+    }}>
+      {/* Fixed Header */}
+      <Box sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: "20px",
+        backgroundColor: "#fff",
+        zIndex: 10,
+        boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
+        textAlign: "center",
+        height: "8%",  // Header height set to 8%
+        display: "flex",
+        justifyContent: "flex-start",
+        alignItems: "center",
+        marginTop: '65px'
+      }}>
+        <Button variant="outlined" style={{marginRight:'30%'}} onClick={handleBackClick}>
+                        Back
+                      </Button>
+        <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.5rem" }}>
+          Selected Services
         </Typography>
-        <Typography variant="body1" style={{ fontWeight: '500' }}>
-          Specialities: {providerDetails.cookingSpeciality || 'N/A'}
-        </Typography>
-      </div>
-    </div>
-  </div>
-)}
       </Box>
 
-        {/* Scrollable Content Section */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            padding: "20px",
-            // overflowY: "auto",
-            marginTop: "8%",
-            marginBottom: "8%",
-            height: "84%",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-     
-                
-                {/* Left Section - Service Cart  Cook*/}
+      {/* Scrollable Content Section */}
+      <Box sx={{
+flexGrow: 1,
+padding: "20px",
+overflowY: "auto",
+marginTop: "8%", // Push the content below the header
+marginBottom: "8%", // Space for footer
+height: "84%", // This section should take the remaining 84% of the height
+display: 'flex',
+flexDirection: "column",
+}}>
+{ !checkout || checkout?.selecteditem?.length === 0 ? (
+<Typography variant="h6">No items selected</Typography>
+) : (
+  checkout['selecteditem']?.map((item, index) => (
+    <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "40px",
+      gap: "20px",
+      fontFamily: "Poppins, sans-serif",
+      // background: "#E1F5FE", // Light sky blue background
+       background: "#f8f9fa"
+    }}
+  >
+      {/* Left Section - Service Cart */}
+      <div style={{ width: "60%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>COOK</h2>
+          <Tooltip title="Remove this service">
+            <IconButton sx={{ color: "#d32f2f" }}>
+              <DeleteOutlineIcon />
+            </IconButton>
+          </Tooltip>
+        </div>
 
-                {bookingTypes?.role === "cook" && (
-                  <div
-                    style={{
-                      width: "60%",
-                      background: "#fff",
-                      padding: "30px",
-                      borderRadius: "12px",
-                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>
-                        COOK
-                      </h2>
-                      {/* <Tooltip title="Remove this service">
-                        <IconButton
-                          sx={{ color: "#d32f2f" }}
-                          onClick={() => handleRemoveItem(index)}
-                        >
-                          <DeleteOutlineIcon />
-                        </IconButton>
-                      </Tooltip> */}
-                    </div>
-                    <table
-                      style={{
-                        width: "100%",
-                        marginTop: "10px",
-                        borderCollapse: "collapse",
-                      }}
-                    >
-                      <thead>
-                        <tr
-                          style={{
-                            textAlign: "left",
-                            borderBottom: "2px solid #ddd",
-                            fontSize: "18px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                        
-                          <th style={{ padding: "15px 10px" }}>Meal Type</th>
-                          <th style={{ padding: "15px 10px" }}>Service Type</th>
-                          <th style={{ padding: "15px 10px" }}>No of Person</th>
-                          <th style={{ padding: "15px 10px" }}>Time Slot</th>
-                          <th style={{ padding: "15px 10px" }}>Total Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredCookPricing.map((meal, index) => {
-                          const mealType = meal.Categories;
-                          const { serviceType, pax } = mealStates[mealType] || {
-                            serviceType: 1,
-                            pax: 3,
-                          };
-
-                          return (
-                            <tr
-                              key={`${mealType}-${serviceType}-${pax}`}
-                              style={{
-                                borderBottom: "1px solid #ddd",
-                                fontSize: "16px",
-                                height: "50px",
-                              }}
-                            >
-                             
-                              <td style={{ padding: "15px 10px" }}>
-                                {mealType}
-                              </td>
-                              <td style={{ padding: "15px 10px" }}>
-                                <select
-                                  value={
-                                    serviceType === 1 ? "Regular" : "Premium"
-                                  }
-                                  onChange={(e) =>
-                                    handleServiceTypeChange(
-                                      mealType,
-                                      e.target.value === "Regular" ? 1 : 2
-                                    )
-                                  }
-                                  style={{
-                                    padding: "5px",
-                                    borderRadius: "5px",
-                                    border: "1px solid #0288D1",
-                                    background: "#E3F2FD",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <option value="Regular">Regular</option>
-                                  <option value="Premium">Premium</option>
-                                </select>
-                              </td>
-                              <td style={{ padding: "15px 10px" }}>
-                                <select
-                                  value={pax || 1}
-                                  onChange={(e) =>
-                                    updatePax(
-                                      mealType,
-                                      parseInt(e.target.value, 10)
-                                    )
-                                  }
-                                  style={{
-                                    padding: "5px",
-                                    borderRadius: "5px",
-                                    border: "1px solid #0288D1",
-                                    background: "#E3F2FD",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {Array.from({ length: 10 }, (_, i) => (
-                                    <option key={i + 1} value={i + 1}>
-                                      {i + 1}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                             {/* Time Slot Input */}
-                          <td style={{ padding: "15px 10px" }}>
-                            <input
-                              type="time"
-                              value={startTime}
-                              onChange={(e) => setStartTime(e.target.value)}
-                              style={{
-                                padding: "5px",
-                                borderRadius: "5px",
-                                border: "1px solid #0288D1",
-                                background: "#E3F2FD",
-                              }}
-                            />
-                           
-                          </td>
-                              <td style={{ padding: "15px 10px" }}>
-                                ₹{getPeopleCount(meal, pax, serviceType)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-             
+        <table style={{ width: "100%", marginTop: "10px", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ textAlign: "left", borderBottom: "2px solid #ddd", fontSize: "18px", fontWeight: "bold" }}>
+              {/* <th style={{ padding: "15px 10px" }}>Select</th> */}
+              <th style={{ padding: "15px 10px" }}>Meal Type</th>
+              <th style={{ padding: "15px 10px" }}>Service Type</th>
+              <th style={{ padding: "15px 10px" }}>No of Person</th>
+              <th style={{ padding: "15px 10px" }}>Time Slot</th>
+              <th style={{ padding: "15px 10px" }}>Total Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {meals.map((meal) => (
+              <tr key={meal.id} style={{ borderBottom: "1px solid #ddd", fontSize: "16px", height: "50px" }}>
+                {/* <td>
+                  <input
+                    type="checkbox"
+                    checked={meal.selected}
+                    onChange={() => toggleMealSelection(meal.id)}
+                  />
+                </td> */}
+                <td>{meal.type}</td>
+                <td>{meal.service}</td>
+                <td>
+                <button style={{ margin: "0 10px", cursor: "pointer", padding: "5px 10px", borderRadius: "5px", border: "1px solid #0288D1", background: "#E3F2FD" }} onClick={() => updatePersons(meal.id, -1)}>-</button>
+                  {meal.persons}
+                  <button style={{ margin: "0 10px", cursor: "pointer", padding: "5px 10px", borderRadius: "5px", border: "1px solid #0288D1", background: "#E3F2FD" }} onClick={() => updatePersons(meal.id, 1)}>+</button>
+                </td>
+                <td>{meal.time}</td>
+                <td>${meal.price * meal.persons}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
        
+      </div>
 
-        {/* Snackbar */}
-        <Snackbar
-          open={openSnackbar}
-          autoHideDuration={6000}
-          onClose={handleClose}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-          sx={{ marginTop: "60px" }}
+      {/* Right Section - Payment Info */}
+   
+       <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Price Details</h2>
+        <div className="space-y-3 text-gray-800">
+          <div className="flex justify-between text-lg">
+            <span>Subtotal:</span>
+            <span className="font-semibold">$340.00</span>
+          </div>
+          <div className="flex justify-between text-lg">
+            <span>GST (18%):</span>
+            <span className="font-semibold">$61.20</span>
+          </div>
+          <div className="flex justify-between text-lg">
+            <span>Service Fee:</span>
+            <span className="font-semibold">$10.00</span>
+          </div>
+          <hr className="my-4 border-gray-400" />
+          <div className="flex justify-between text-xl font-bold text-blue-700">
+          <p style={{ fontSize: "22px", fontWeight: "bold", marginTop: "20px" }}>Grand Total: ${totalPrice}</p>
+          </div>
+        </div>
+        <div className="mt-4">
+  <input
+    type="text"
+    placeholder="Voucher"
+    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+  />
+  <button className="mt-2 w-full border border-red-400 text-red-500 py-2 rounded-lg font-semibold hover:bg-red-100 transition">
+    Apply Voucher
+  </button>
+</div>
+    
+      </div>
+
+    </div>
+))
+)}
+</Box>
+
+   {/* Fixed Footer */}
+
+  <Box sx={{
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: "20px",
+    backgroundColor: "#fff",
+    zIndex: 10,
+    boxShadow: "0 -4px 8px rgba(0, 0, 0, 0.1)",
+    display: "flex",
+    justifyContent: "end", // Center items horizontally
+    alignItems: "center",
+    height: '8%', 
+    marginBottom: '65px' // Footer height set to 8%
+  }}>
+    <div style={{
+      fontWeight: "600",
+      fontSize: "1.1rem",
+      color: "#2e7d32",
+      backgroundColor: "#e8f5e9",
+      border: "1px solid #2e7d32",
+      padding: "8px 16px",
+      borderRadius: "6px",
+      textAlign: "center",
+      marginRight: "20px",
+    }}>
+      Grand Total: Rs. {grandTotal}
+    </div>
+
+    <div style={{ float: 'right', display: 'flex' }}>
+      {/* <Tooltip
+        style={{ display: loggedInUser && checkout['selecteditem'].length > 0 ? 'none' : 'block' }}
+        title="You need to login  to proceed with checkout"
+      >
+        <IconButton>
+          <InfoOutlinedIcon />
+        </IconButton>
+      </Tooltip> */}
+
+{!loggedInUser && (
+      
+      <Tooltip title="Proceed to checkout">
+        <Button
+          startIcon={<ShoppingCartCheckoutIcon />}
+          variant="contained"
+          style={{
+            fontWeight: "600",
+            color: "#fff",
+            background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",  // Grey when disabled
+            border: "1px solid rgb(63, 70, 146)",
+            padding: "10px 24px",
+            borderRadius: "8px",
+          }}
+          onClick={handleLogin}  // Disable if not logged in or items are not selected
         >
-          <Alert
+          Login
+        </Button>
+      </Tooltip>
+)}
+
+{loggedInUser && (
+      
+      <Tooltip title="Proceed to checkout">
+        <Button
+          startIcon={<ShoppingCartCheckoutIcon />}
+          variant="contained"
+          style={{
+            fontWeight: "600",
+            color: "#fff",
+            background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",  // Grey when disabled
+            border: "1px solid rgb(63, 70, 146)",
+            padding: "10px 24px",
+            borderRadius: "8px",
+          }}
+          onClick={handleCheckout}
+        >
+          Checkout
+        </Button>
+      </Tooltip>
+)}
+    </div>
+  </Box>
+
+
+
+
+      {/* Snackbar */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ marginTop: '60px' }}
+      >
+        <Alert
+          onClose={handleClose}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+       <Dialog 
+          style={{padding:'0px'}}
+            open={open}
             onClose={handleClose}
-            severity={snackbarSeverity}
-            variant="filled"
-            sx={{ width: "100%" }}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
           >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-        <Dialog
-          style={{ padding: "0px" }}
-          open={open}
-          onClose={handleClose}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogContent>
-            <Login bookingPage={handleBookingPage} />
-          </DialogContent>
-        </Dialog>
-      </Box>
+              <DialogContent>
+              <Login bookingPage={handleBookingPage}/>
+              </DialogContent>
+            </Dialog>
+    </Box>
     </>
   );
 };
 
 export default Checkout;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Extract necessary details for the email
+      // const emailData = {
+      //   userName: user?.customerDetails?.firstName,
+      //   serviceType: checkout[0].entry.type,
+      //   spName: providerDetails.name,  
+      //   dateTime: bookingDetails.startDate,
+      //   //confirmCode: response.data.confirmationCode,
+      //   confirmCode: "123456", 
+      //   phoneNumber: "+91 1234567890", 
+      //   email: user?.customerDetails?.email,
+      // };
+
+      // //send email
+      // await axiosInstance.post(
+      //   "/send-booking-email",
+      //   emailData,
+      //   {
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //   }
+      // );

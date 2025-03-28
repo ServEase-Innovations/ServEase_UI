@@ -22,6 +22,7 @@ import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
 import Chatbot from "./components/chat/Chatbot";
+import ServiceProviderHeader from "./components/DetailsView/ServiceProviderHeader";
 
 
 function App() {
@@ -143,6 +144,9 @@ if (userRole === "CUSTOMER") {
      {/* <ServiceProviderDashboard />  */}
        <section className="flex-grow flex justify-center items-center px-4 py-6 relative">
         {renderContent()}
+       {/* <ServiceProviderHeader bookings={[]} selectedTab={0} handleTabChange={function (event: React.SyntheticEvent, newValue: number): void {
+          throw new Error("Function not implemented.");
+        } }/> */}
       </section>
       <Chatbot/>
     

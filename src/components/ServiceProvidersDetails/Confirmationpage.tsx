@@ -92,13 +92,13 @@ const  Confirmationpage: React.FC<ChildComponentProps> = ({ providerDetails , ro
   };
 
   // Conditionally render the Checkout component based on the role
-  if (role === "cook" || role === "nanny" || role === "maid") {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
-        <Checkout providerDetails={providerDetails} sendDataToParent={sendDataToParent} />
-      </Box>
-    );
-  }
+  // if (role === "cook" || role === "nanny" || role === "maid") {
+  //   return (
+  //     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%' }}>
+  //       <Checkout providerDetails={providerDetails} sendDataToParent={sendDataToParent} />
+  //     </Box>
+  //   );
+  // }
 
   return (
     <div className="details-container">
