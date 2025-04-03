@@ -125,8 +125,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       <div className="search">
       <HeaderSearch onSearch={handleSearch}/> 
       </div>
-      {Array.isArray(ServiceProvidersData) && ServiceProvidersData.length > 0 ? (
-      ServiceProvidersData.map((provider, index) => (
+      {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
+      serviceProviderData.map((provider, index) => (
         <ProviderDetails  {...provider}/>
       ))
     ) : (
