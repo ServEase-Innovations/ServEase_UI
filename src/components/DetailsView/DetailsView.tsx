@@ -8,6 +8,7 @@ import { CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/detailsData/detailsDataSlice";
+import HeaderSearch from "../HeaderSearch/HeaderSearch";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -87,67 +88,51 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     sendDataToParent(CONFIRMATION);
   };
 
+  const [searchData, setSearchData] = useState<any>();
+  const [serviceProviderData, setServiceProviderData] = useState<any>();
+
+  const handleSearch = (formData: { serviceType: string; startTime: string; endTime: string }) => {
+    console.log("Search data received in MainComponent:", formData);
+    setSearchData(formData); // Save data in state
+    performSearch(formData); // Call the method
+  };
+
+
+  const performSearch = async (formData) => {
+    const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
+    const params = { 
+      startDate: "2025-04-01",
+      endDate: "2025-04-30", 
+      timeslot: "9:00-10:00", 
+      housekeepingRole:'COOK',
+      latitude: 22.557295510020214,  
+      longitude: 88.19166107192879, 
+    };
+    try {
+      const response = await axiosInstance.get('/api/serviceproviders/search', { params });
+      console.log('Response:', response.data);
+      setServiceProviderData(response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  console.log("Service Providers Data:", ServiceProvidersData);
+  console.log("Service Providers Data:", serviceProviderData);
+
   return (
-    <>
-      {loading ? (
-        <Box sx={{ display: "flex" }}>
-          <LoadingIndicator />
-        </Box>
-      ) : (
-        <div className="details-view-container">
-          {/* Material-UI Drawer */}
-          <Drawer anchor="right" open={drawerOpen} onClose={() => toggleDrawer(false)}>
-            <Box sx={{ width: 300, padding: 2, position: "relative" }}>
-              {/* Close button styled to appear at the top-right corner */}
-              <Button
-                variant="outlined"
-                onClick={() => toggleDrawer(false)}
-                sx={{
-                  position: "absolute",
-                  top: 10,
-                  right: 10,
-                }}
-              >
-                Close
-              </Button>
-              <Search_form
-                open={drawerOpen}
-                selectedValue={selectedProviderType} // Pass the selectedProviderType here
-                onClose={() => toggleDrawer(false)}
-                onSearch={handleSearchResults}
-              />
-            </Box>
-          </Drawer>
-
-          {/* Main Content */}
-          <div className="main-content">
-            <>
-              <header className="headers">
-                <Button onClick={handleBackClick} variant="outlined">
-                  Back
-                </Button>
-                <Button variant="outlined" onClick={() => toggleDrawer(true)}>
-                  Search
-                </Button>
-              </header>
-
-              <div className="providers-view">
-                {(searchResults.length > 0 ? searchResults : ServiceProvidersData).map(
-                  (provider) => (
-                    <div className="views" key={provider.serviceproviderId}>
-                      <ProviderDetails
-                        {...provider}
-                        selectedProvider={handleSelectedProvider}
-                      />
-                    </div>
-                  )
-                )}
-              </div>
-            </>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="main-container">
+      <div className="search">
+      <HeaderSearch onSearch={handleSearch}/> 
+      </div>
+      {Array.isArray(ServiceProvidersData) && ServiceProvidersData.length > 0 ? (
+      ServiceProvidersData.map((provider, index) => (
+        <ProviderDetails  {...provider}/>
+      ))
+    ) : (
+      <div>No Data</div> // Optional: Display something when there's no data
+    )} 
+    </div>  
   );
 };
 

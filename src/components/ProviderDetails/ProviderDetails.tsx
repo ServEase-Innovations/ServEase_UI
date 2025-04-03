@@ -31,6 +31,9 @@ const [isExpanded, setIsExpanded] = useState(false);
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("12:00");
   const [warning, setWarning] = useState("");
+
+
+  console.log("Provider Details Props: ", props);
   
 
   const dietImages = {
@@ -105,7 +108,7 @@ const checkMissingTimeSlots = () => {
   ];
 
   // Get missing time slots
-  const missing = expectedTimeSlots.filter(slot => !props.availableTimeSlots.includes(slot));
+  const missing = expectedTimeSlots.filter(slot => !props.availableTimeSlots?.includes(slot));
 
   // Set the missing slots to state
   setMissingSlots(missing);
@@ -421,228 +424,6 @@ const toggleExpand = async () => {
         Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
     </Typography>
 )} */}
-
-              {props.housekeepingRole !== "NANNY" && (
-
-              <div className="availability-section">
-  <div className="availability-header">
-    <Typography variant="subtitle1" className="section-title">
-      Morning Availability (6 AM - 12 PM)
-    </Typography>
-
-    {/* Morning Availability Buttons */}
-    <div className="time-slot-container">
-  {missingSlots
-    .filter((missingSlot) =>
-      [6, 7, 8, 9, 10, 11].some(
-        (hour) => moment({ hour }).format("HH:mm") === missingSlot
-      )
-    )
-
-    .map((missingSlot, index) => {
-      const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-      const startTime = moment({ hour }).format("HH:mm");
-      const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-      const timeRange = `${startTime}-${endTime}`;
-
-      // ✅ Use uniqueMissingSlots for disabling
-      const isDisabled =
-      matchedMorningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-      return (
-        <div key={index}>
-          <button
-            className={`availability-button ${morningSelection === index ? "selected" : ""}`}
-            onClick={() => handleSelection(index, false, hour)}
-            disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-            style={{
-              backgroundColor: isDisabled ? '#bdbdbd' : '',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.6 : 1,
-            }}
-          >
-            {timeRange}
-          </button>
-        </div>
-      );
-    })}
-</div>
-
-  </div>
-
-  <div className="availability-header">
-    <Typography variant="subtitle1" className="section-title">
-      Evening Availability (12 PM - 8 PM)
-    </Typography>
-
-    <div className="time-slot-container">
-    {missingSlots
-    .filter((missingSlot) =>
-      [12, 13, 14, 15, 16, 17, 18, 19].some(
-        (hour) => moment({ hour }).format("HH:mm") === missingSlot
-      )
-    )
-    .map((missingSlot, index) => {
-      const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-      const startTime = moment({ hour }).format("HH:mm");
-      const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-      const timeRange = `${startTime}-${endTime}`;
-
-      // Check if this time slot should be disabled based on unique missing slots
-      const isDisabled =
-      matchedEveningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-      return (
-        <div key={index}>
-          <button
-            className={`availability-button ${eveningSelection === index ? "selected" : ""}`}
-            onClick={() => handleSelection(index, true, hour)}
-            disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-            style={{
-              backgroundColor: isDisabled ? '#bdbdbd' : '',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.6 : 1,
-            }}
-          >
-            {timeRange}
-          </button>
-        </div>
-      );
-    })}
-</div>
-{(matchedMorningSelection || morningSelectionTime) && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-    <span>{matchedMorningSelection || morningSelectionTime}</span>
-    <FaTimes
-      onClick={() => clearSelection(false)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-{(matchedEveningSelection || eveningSelectionTime) && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-    <span>{matchedEveningSelection || eveningSelectionTime}</span>
-    <FaTimes
-      onClick={() => clearSelection(true)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-
-{/* {matchedMorningSelection && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-    <span>{matchedMorningSelection}</span>
-    <FaTimes
-      onClick={() => setMatchedMorningSelection(null)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-
-{matchedEveningSelection && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-    <span>{matchedEveningSelection}</span>
-    <FaTimes
-      onClick={() => setMatchedEveningSelection(null)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)} */}
-
-  </div>
-</div>
-)}
-{props.housekeepingRole === "NANNY" && (
- <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md w-80" style={{width:'100%'}}>
- <h2 className="text-xl font-semibold">Select Time Range</h2>
- <div className="flex items-center gap-2">
-   <label className="text-gray-700">Start:</label>
-   <TimePicker
-     onChange={handleStartTimeChange}
-     value={startTime}
-     disableClock
-     format="HH:mm"
-     className="border p-2 rounded"
-   />
- </div>
- <div className="flex items-center gap-2">
-   <label className="text-gray-700">End:</label>
-   <TimePicker
-     value={endTime}
-     onChange={handleEndTimeChange}
-     disableClock
-     format="HH:mm"
-     className="border p-2 rounded"
-   />
- </div>
- <p className="text-gray-600">Selected Time: {startTime} - {endTime}</p>
-</div>
-
-)}
 <div>
   
  

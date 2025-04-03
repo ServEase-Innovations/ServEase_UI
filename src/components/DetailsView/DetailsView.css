@@ -83,3 +83,13 @@ body, html {
      /* Stack service provider details */
   }
 }
+
+.main-container{
+  height : 85%;
+  width: 100%; 
+  }
+
+  .search{
+    background-color: #e7f1ff;
+    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+  }
