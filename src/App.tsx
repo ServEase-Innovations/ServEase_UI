@@ -21,6 +21,9 @@ import { useDispatch, useSelector } from "react-redux"; // Import useSelector
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
+import Chatbot from "./components/chat/Chatbot";
+import ServiceProviderHeader from "./components/DetailsView/ServiceProviderHeader";
+
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -110,7 +113,7 @@ if (userRole === "CUSTOMER") {
         console.log("selected details -> ", serviceProviderDetails);
         return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
       } else if (selection === CHECKOUT) {
-        return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
+        // return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
       } else if (selection === LOGIN) {
         return (
           <div className="w-full max-w-4xl h-[75%]">
@@ -141,7 +144,12 @@ if (userRole === "CUSTOMER") {
      {/* <ServiceProviderDashboard />  */}
        <section className="flex-grow flex justify-center items-center px-4 py-6 relative">
         {renderContent()}
+       {/* <ServiceProviderHeader bookings={[]} selectedTab={0} handleTabChange={function (event: React.SyntheticEvent, newValue: number): void {
+          throw new Error("Function not implemented.");
+        } }/> */}
       </section>
+      <Chatbot/>
+    
       <footer className="footer-container">
         <Footer />
       </footer>

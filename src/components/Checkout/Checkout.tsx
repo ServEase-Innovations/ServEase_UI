@@ -341,52 +341,8 @@ flexDirection: "column",
       </div>
 
       {/* Right Section - Payment Info */}
-      {/* <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}> */}
-      
-        {/* <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>Payment Info</h2> */}
-        {/* <div style={{ marginBottom: "20px" }}>
-          <label style={{ display: "block", marginBottom: "10px" }}>
-            <input type="radio" name="payment" defaultChecked style={{ marginRight: "10px" }} /> Credit Card
-          </label>
-          <label style={{ display: "block" }}>
-            <input type="radio" name="payment" style={{ marginRight: "10px" }} /> PayPal
-          </label>
-        </div>
-        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Name on Card: <strong>John Carter</strong></p>
-        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Card Number: <strong>**** **** **** 2153</strong></p>
-        <p style={{ marginBottom: "10px", fontSize: "16px" }}>Expiration Date: <strong>05/2025</strong></p>
-        <p style={{ marginBottom: "20px", fontSize: "16px" }}>CVV: <strong>156</strong></p> */}
-              {/* <div style={{ marginBottom: "20px" }}>
-          <label style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
-            <input type="radio" name="payment" defaultChecked style={{ marginRight: "10px" }} />
-            <span>💳 Credit Card</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center" }}>
-            <input type="radio" name="payment" style={{ marginRight: "10px" }} />
-            <span>🅿️ PayPal</span>
-          </label>
-        </div>
-          <div
-          style={{
-            background: "linear-gradient(135deg, #1976D2, #0D47A1)",
-            padding: "20px",
-            borderRadius: "12px",
-            textAlign: "center",
-            color: "#FFFFFF",
-            fontWeight: "bold",
-            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)",
-            opacity: "0.85", // Slight transparency for a sleek effect
-          }}
-        >
-          <p style={{ marginBottom: "10px", fontSize: "18px" }}>John Carter</p>
-          <p style={{ marginBottom: "10px", fontSize: "18px" }}>**** **** **** 2153</p>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px" }}>
-            <p>Exp: 05/2025</p>
-            <p>CVV: 156</p>
-          </div> */}
-      {/* </div> */}
-        {/* </div> */}
-        <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
+   
+       <div style={{ width: "35%", background: "#fff", padding: "30px", borderRadius: "12px", boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
         <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Price Details</h2>
         <div className="space-y-3 text-gray-800">
           <div className="flex justify-between text-lg">
@@ -425,7 +381,7 @@ flexDirection: "column",
 </Box>
 
    {/* Fixed Footer */}
-{checkout['selecteditem']?.length > 0 && (
+
   <Box sx={{
     position: "fixed",
     bottom: 0,
@@ -508,7 +464,7 @@ flexDirection: "column",
 )}
     </div>
   </Box>
-)}
+
 
 
 

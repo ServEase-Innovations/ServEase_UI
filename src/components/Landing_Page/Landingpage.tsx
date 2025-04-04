@@ -4,7 +4,7 @@ import "./Landingpage.css";
 import DialogComponent from "../Common/DialogComponent/DialogComponent";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar'; // New import
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { CONFIRMATION, DETAILS } from "../../Constants/pagesConstants";
 import { COOK, MAID, NANNY } from "../../Constants/providerConstants";
 import { ServiceProviderContext } from "../../context/ServiceProviderContext";
@@ -30,7 +30,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   const dispatch = useDispatch();
 
   const handleStartDateChange = (newDate: any) => {
-    setStartDate(newDate ? newDate.format('YYYY-MM-DD') : null); // Update state with selected date
+    setStartDate(newDate ? newDate.format('YYYY-MM-DD') : null);
   };
 
   const handleEndDateChange = (newDate: any) => {
@@ -52,10 +52,12 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   const handleSave = () => {
     console.log("Selected Start Date:", startDate);
     console.log("Selected End Date:", endDate);
+
     const booking: Bookingtype = {
-      startDate,  // Use the state directly
-      endDate,    // Use the state directly
+      startDate, // Use the state directly
+      endDate,   // Use the state directly
       bookingPreference: selectedRadioButtonValue,
+      role: selectedType, // Include the selected role
     };
 
     if (selectedRadioButtonValue === "Date") {
@@ -64,8 +66,9 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
     } else {
       sendDataToParent(DETAILS);
     }
+
     console.log("------- BOOKING------------", booking);
-    dispatch(add(booking));
+    dispatch(add(booking)); // Dispatch the booking object to the Redux store
   };
 
   const getSelectedValue = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,12 +80,11 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   const getMaxEndDate = () => {
     if (!startDate) return ''; // Return empty if no start date
     const start = new Date(startDate);
-    if(selectedRadioButtonValue === "Monthly"){
+    if (selectedRadioButtonValue === "Monthly") {
       start.setDate(start.getDate() + 31);
     } else {
       start.setDate(start.getDate() + 15);
     }
-     // 4 days after start date
     return start.toISOString().split('T')[0]; // Return date in YYYY-MM-DD format
   };
 
@@ -146,70 +148,66 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
           </RadioGroup>
         </FormControl>
         {selectedRadioButtonValue === "Date" && (
-  <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <label htmlFor="startDate">Date</label>
-      <DateCalendar
-        value={startDate ? dayjs(startDate) : null}
-        onChange={(newDate) => {
-          const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
-          setStartDate(formattedDate);
-          setEndDate(formattedDate); // Auto-set end date to start date
-        }}
-        disablePast
-      />
-    </div>
-  </LocalizationProvider>
-)}
-    {selectedRadioButtonValue === "Short term" && (
-  <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <div className="date-container">
-      {/* Start Date Block */}
-      <div className="date-block">
-        <label htmlFor="startDate" className="date-label">
-          Start Date
-        </label>
-        <DateCalendar
-          value={startDate ? dayjs(startDate) : null}
-          onChange={handleStartDateChange}
-          disablePast
-          sx={{ width: '100%' }}
-        />
-      </div>
-
-      {/* End Date Block */}
-      <div className="date-block">
-        <label htmlFor="endDate" className="date-label">
-          End Date
-        </label>
-        <DateCalendar
-          value={endDate ? dayjs(endDate) : null}
-          onChange={handleEndDateChange}
-          minDate={dayjs(startDate)}
-          maxDate={dayjs(getMaxEndDate())}
-          sx={{ width: '100%' }}
-        />
-      </div>
-    </div>
-  </LocalizationProvider>
-)}
-
-{selectedRadioButtonValue === "Monthly" && (
-  <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <label htmlFor="startDate">Start Date</label>
-      <DateCalendar
-        value={startDate ? dayjs(startDate) : null}
-        onChange={(newDate) => {
-          const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
-          setStartDate(formattedDate);
-          setEndDate(newDate ? newDate.add(1, 'month').format('YYYY-MM-DD') : null); // Auto-set end date to 1 month later
-        }}
-        disablePast
-      />
-    </div>
-  </LocalizationProvider>
-)}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label htmlFor="startDate">Date</label>
+              <DateCalendar
+                value={startDate ? dayjs(startDate) : null}
+                onChange={(newDate) => {
+                  const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
+                  setStartDate(formattedDate);
+                  setEndDate(formattedDate); // Auto-set end date to start date
+                }}
+                disablePast
+              />
+            </div>
+          </LocalizationProvider>
+        )}
+        {selectedRadioButtonValue === "Short term" && (
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <div className="date-container">
+              <div className="date-block">
+                <label htmlFor="startDate" className="date-label">
+                  Start Date
+                </label>
+                <DateCalendar
+                  value={startDate ? dayjs(startDate) : null}
+                  onChange={handleStartDateChange}
+                  disablePast
+                  sx={{ width: '100%' }}
+                />
+              </div>
+              <div className="date-block">
+                <label htmlFor="endDate" className="date-label">
+                  End Date
+                </label>
+                <DateCalendar
+                  value={endDate ? dayjs(endDate) : null}
+                  onChange={handleEndDateChange}
+                  minDate={dayjs(startDate)}
+                  maxDate={dayjs(getMaxEndDate())}
+                  sx={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          </LocalizationProvider>
+        )}
+        {selectedRadioButtonValue === "Monthly" && (
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label htmlFor="startDate">Start Date</label>
+              <DateCalendar
+                value={startDate ? dayjs(startDate) : null}
+                onChange={(newDate) => {
+                  const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
+                  setStartDate(formattedDate);
+                  setEndDate(newDate ? newDate.add(1, 'month').format('YYYY-MM-DD') : null); // Auto-set end date to 1 month later
+                }}
+                disablePast
+              />
+            </div>
+          </LocalizationProvider>
+        )}
       </DialogComponent>
     </section>
   );

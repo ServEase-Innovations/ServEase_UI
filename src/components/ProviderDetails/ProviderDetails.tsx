@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
 import moment from "moment";
 import "./ProviderDetails.css"; 
 import AddIcon from '@mui/icons-material/Add';
@@ -16,6 +16,7 @@ import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import "react-clock/dist/Clock.css";
 import { FaTimes } from "react-icons/fa";
+import axios from "axios";
 
 const ProviderDetails = (props) => {
 const [isExpanded, setIsExpanded] = useState(false);
@@ -42,162 +43,16 @@ const [isExpanded, setIsExpanded] = useState(false);
   const dispatch = useDispatch();
   const bookingType = useSelector((state : any) => state.bookingType?.value);
   console.log(" store details :---- ",bookingType);
-  console.log("Morning details:", bookingType?.morningSelection);
-  console.log("Evening details:", bookingType?.eveningSelection);
+  // console.log("Morning details:", bookingType?.morningSelection);
+  // console.log("Evening details:", bookingType?.eveningSelection);
+  console.log("startDate:", bookingType?.startDate);
   console.log("serviceproviderId details:", bookingType?.serviceproviderId);
-
-  
-// Handle selection for morning or evening availability
-const handleSelection = (hour: number, isEvening: boolean, time: number) => {
-  // Format the start and end times in HH:mm format (without seconds)
-  const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
-  const endTime = moment({ hour: time + 1, minute: 0 }).format("HH:mm");
-
-  const formattedTime = `${startTime}-${endTime}`;
-  console.log(`Start Time: ${startTime}, End Time: ${endTime}`); // Should show "06:00-07:00"
-
-  // For morning or evening availability selection
-  if (isEvening) {
-    setEveningSelection(hour);
-    setEveningSelectionTime(formattedTime); // Store "06:00-07:00"
-    setMatchedEveningSelection(formattedTime);
-    dispatch(update({ eveningSelection: formattedTime })); 
-    
-
-  } else {
-    setMorningSelection(hour);
-    setMorningSelectionTime(formattedTime); // Store "06:00-07:00"
-    setMatchedMorningSelection(formattedTime);
-    dispatch(update({ morningSelection: formattedTime }));
-  }
-
-  // Ensure you are sending the formatted data to the payload correctly.
-  const payload = {
-    timeslot: `${startTime}-${endTime}`, // Make sure the payload uses the correctly formatted time
-  };
-  console.log("Payload being sent:", payload); // Check if this logs the correct format without seconds
-};
-
-const clearSelection = (isEvening: boolean) => {
-  if (isEvening) {
-    setEveningSelection(null);
-    setEveningSelectionTime(null);
-    setMatchedEveningSelection(null);
-    dispatch(update({ eveningSelection: null })); // Update store
-    
-  } else {
-    setMorningSelection(null);
-    setMorningSelectionTime(null);
-    setMatchedMorningSelection(null);
-    dispatch(update({ morningSelection: null })); // Update store
-  }
-};
-const [missingSlots, setMissingSlots] = useState<string[]>([]);
-const hasCheckedRef = useRef(false); // Track if the function has been called
-// console.log("Service data: ", props);
-// Call this function to check missing time slots
-const checkMissingTimeSlots = () => {
-  // console.log("Service Provider Data: ", props.availableTimeSlots);
-
-  const expectedTimeSlots = [
-    "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
-    "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
-  ];
-
-  // Get missing time slots
-  const missing = expectedTimeSlots.filter(slot => !props.availableTimeSlots.includes(slot));
-
-  // Set the missing slots to state
-  setMissingSlots(missing);
-
-  // Log the missing time slots
-  if (missing.length > 0) {
-    console.log("Missing time slots:", missing);
-  } else {
-    console.log("All expected time slots are available.");
-  }
-};
-
-// Run this function only once on initial render
-if (!hasCheckedRef.current) {
-  checkMissingTimeSlots(); 
-  hasCheckedRef.current = true;
-}
-
-  // Toggle expanded content
-  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
-
-  const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
-const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
-
-const toggleExpand = async () => {
+  const toggleExpand = async () => {
     setIsExpanded(!isExpanded);
 
-    if (!isExpanded) {
-        try {
-            console.log("Expanding for Service Provider ID:", props.serviceproviderId);
-            console.log("Stored Service Provider ID in Redux:", bookingType?.serviceproviderId);
-            
-            // Check if expanded service provider ID matches the Redux store
-            if (props.serviceproviderId === bookingType?.serviceproviderId) {
-                setMatchedMorningSelection(bookingType?.morningSelection || null);
-                setMatchedEveningSelection(bookingType?.eveningSelection || null);
-
-                console.log("Matched! Morning Selection:", bookingType?.morningSelection);
-                console.log("Matched! Evening Selection:", bookingType?.eveningSelection);
-            } else {
-                setMatchedMorningSelection(null);
-                setMatchedEveningSelection(null);
-                console.log("No match found. Clearing selection.");
-            }
-
-            const response = await axiosInstance.get(
-                `/api/serviceproviders/get/engagement/by/serviceProvider/${props.serviceproviderId}`
-            );
-
-            const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-                id: engagement.id ?? Math.random(),
-                availableTimeSlots: engagement.availableTimeSlots || [],
-            }));
-
-            console.log("Raw Engagement Data:", engagementData);
-
-            const fullTimeSlots: string[] = Array.from({ length: 24 }, (_, i) =>
-                `${i.toString().padStart(2, "0")}:00`
-            );
-
-            console.log("Full Time Slots:", fullTimeSlots);
-
-            const processedSlots = engagementData.map(entry => {
-                const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-                const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-
-                return {
-                    id: entry.id,
-                    uniqueAvailableTimeSlots,
-                    missingTimeSlots,
-                };
-            });
-
-            console.log("Processed Slots with Missing Time Slots:", processedSlots);
-            console.log("All Missing Time Slots:", processedSlots.map(slot => slot.missingTimeSlots));
-
-            // Store unique missing slots in state
-            const uniqueMissingSlots: string[] = Array.from(
-                new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
-            ).sort() as string[];
-
-            console.log("Unique Missing Time Slots:", uniqueMissingSlots);
-
-            setUniqueMissingSlots(uniqueMissingSlots);
-            setAvailableTimeSlots(processedSlots.map(entry => entry.uniqueAvailableTimeSlots));
-            setMissingTimeSlots(processedSlots.map(entry => ({ id: entry.id, missingSlots: entry.missingTimeSlots })));
-
-        } catch (error) {
-            console.error("Error fetching engagement data:", error);
-        }
-    }
+   
 };
+
 
   
   // Calculate age from date of birth
@@ -208,42 +63,43 @@ const toggleExpand = async () => {
   };
 
   const handleBookNow = () => {
-    let booking: Bookingtype;
-
-      if (props.housekeepingRole !== "NANNY") {
-          booking = {
-              serviceproviderId: props.serviceproviderId,
-              eveningSelection: eveningSelectionTime,
-              morningSelection: morningSelectionTime,
-              ...bookingType
-          };
-      } else {
-          booking = {
-              serviceproviderId: props.serviceproviderId,
-              timeRange: `${startTime} - ${endTime}`,
-              duration: getHoursDifference(startTime, endTime),
-              ...bookingType
-          };
-      }
-  
-      console.log("Booking Data Before Dispatch:", booking);
-  
-      if (bookingType) {
-          dispatch(update(booking));
-      } else {
-          dispatch(add(booking));
-      }
-  
-     
-  
-
-    const providerDetails = {
-      ...props, // Spread the provider details from props
-      selectedMorningTime: morningSelection,
-      selectedEveningTime: eveningSelection
-    };
-    props.selectedProvider(providerDetails); // Send selected provider back to parent
+    setOpen(true);
   };
+
+  // const handleBookNow = () => {
+  //   let booking: Bookingtype;
+
+  //     if (props.housekeepingRole !== "NANNY") {
+  //         booking = {
+  //             serviceproviderId: props.serviceproviderId,
+  //             eveningSelection: eveningSelectionTime,
+  //             morningSelection: morningSelectionTime,
+  //             ...bookingType
+  //         };
+  //     } else {
+  //         booking = {
+  //             serviceproviderId: props.serviceproviderId,
+  //             timeRange: `${startTime} - ${endTime}`,
+  //             duration: getHoursDifference(startTime, endTime),
+  //             ...bookingType
+  //         };
+  //     }
+  
+  //     console.log("Booking Data Before Dispatch:", booking);
+  
+  //     if (bookingType) {
+  //         dispatch(update(booking));
+  //     } else {
+  //         dispatch(add(booking));
+  //     }
+  
+  //     const providerDetails = {
+  //     ...props, // Spread the provider details from props
+  //     selectedMorningTime: morningSelection,
+  //     selectedEveningTime: eveningSelection
+  //   };
+  //   props.selectedProvider(providerDetails); // Send selected provider back to parent
+  // };
 
   const getHoursDifference = (start, end) => {
     const [startHours, startMinutes] = start.split(":").map(Number);
@@ -267,10 +123,8 @@ const toggleExpand = async () => {
 
   const dietImage = dietImages[props.diet];
 
-  // Enable the Book Now button if any time is selected
-  const isBookNowEnabled = 
-  (morningSelection !== null || eveningSelection !== null) || 
-  (matchedMorningSelection !== null || matchedEveningSelection !== null) ;
+  
+  
 
   const user = useSelector((state : any) => state.user?.value);
 
@@ -281,7 +135,6 @@ const toggleExpand = async () => {
       }
     }, [user]);
 
-
     const handleBookingPage = (e : string | undefined) =>{
       setOpen(false)
     }
@@ -289,14 +142,20 @@ const toggleExpand = async () => {
     const handleStartTimeChange = (newStartTime) => {
       setStartTime(newStartTime);
       validateTimeRange(newStartTime, endTime);
-    };
   
+    };
     const handleEndTimeChange = (newEndTime) => {
       setEndTime(newEndTime);
       validateTimeRange(startTime, newEndTime);
     };
   
     const validateTimeRange = (start, end) => {
+      // If either is null or empty, skip validation
+      if (!start || !end) {
+        setWarning("");
+        return;
+      }
+    
       const [startHours, startMinutes] = start.split(":").map(Number);
       const [endHours, endMinutes] = end.split(":").map(Number);
       
@@ -309,12 +168,228 @@ const toggleExpand = async () => {
         setWarning("");
       }
     };
+    
   
-
-
+    const [bookingDetails, setBookingDetails] = useState({
+      serviceType: 'Regular',
+      timeSlot: { startTime: '', endTime: '' }, // Store start & end time together
+      date: '',
+      serviceCategory: 'Breakfast',
+      numberOfPersons: 1,
+    });
+    
+  
+    // Whenever bookingType changes, update the date field.
+    useEffect(() => {
+      if (bookingType?.startDate) {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          date: bookingType.startDate,
+        }));
+      }
+    }, [bookingType]);
+  
+    const handleChange = (field, value) => {
+      if (field === 'startTime' || field === 'endTime') {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          timeSlot: {
+            ...prevDetails.timeSlot,
+            [field]: value, // Update either startTime or endTime inside timeSlot
+          },
+        }));
+      } else {
+        setBookingDetails((prevDetails) => ({
+          ...prevDetails,
+          [field]: value,
+        }));
+      }
+    };
+    
+    const handleSearch = async () => {
+      const timeSlotFormatted = `${bookingDetails.timeSlot.startTime}-${bookingDetails.timeSlot.endTime}`;
+      const params = {
+        // startDate: bookingDetails.date,
+        // endDate: bookingType.endDate, 
+        // timeslot: timeSlotFormatted, 
+        startDate: "2025-04-01",
+        endDate: "2025-04-30", 
+        timeslot: "9:00-10:00", 
+        housekeepingRole:props.housekeepingRole ,
+        latitude: 28.47672988933282,  
+        longitude: 77.51833532306142, 
+      };
+    
+      try {
+        const response = await axiosInstance.get('/api/serviceproviders/search', { params });
+        console.log('Response:', response.data);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    const handleCheckout = async () => {
+      try {
+        const response = await axios.post(
+          "http://13.127.47.159:3000/create-order",
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        if (response.status != 200) {
+          const { id: orderId, currency, amount } = response.data;
+  
+          const options = {
+            key: "rzp_test_lTdgjtSRlEwreA",
+            amount: amount,
+            currency: currency,
+            name: "Serveaso",
+            description: "Booking Payment",
+            order_id: orderId,
+            handler: async function (razorpayResponse) {
+              alert(
+                `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
+              );
+  
+              // Here, implement your post-payment logic (e.g., saving booking details)
+              console.log("Booking Details Saved!");
+            },
+            prefill: {
+              name: "Customer Name", // Replace with actual customer details
+              email: "customer@example.com",
+              contact: "9876543210",
+            },
+            theme: {
+              color: "#3399cc",
+            },
+          };
+  
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        }
+      } catch (error) {
+        console.error("Error while creating Razorpay order:", error);
+        alert("Failed to initiate payment. Please try again.");
+      }
+    };
+    
   return (
-    <><Paper elevation={3}>
+    <> <Paper elevation={3}>
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '20px',
+        backgroundColor: '#e7f1ff',
+        zIndex: 10,
+        boxShadow: '0 -4px 8px rgba(0, 0, 0, 0.1)',
+        textAlign: 'center',
+        height: '12%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginTop: '65px',
+        gap: '9px',
+      }}
+    >
+      <div className="fields">
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Service Type</span>
+            <select
+              value={bookingDetails.serviceType}
+              onChange={(e) => handleChange('serviceType', e.target.value)}
+            >
+              <option>Regular</option>
+              <option>Premium</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Start Time</span>
+            <input
+              type="time"
+              value={bookingDetails.timeSlot.startTime}
+              onChange={(e) => handleChange('startTime', e.target.value)}
+              className="time-input"
+            />
+          </div>
+        </div>
+
+        <div className="field">
+          <div className="input-with-label">
+          <span className="inline-label">End Time</span>
+            <input
+              type="time"
+              value={bookingDetails.timeSlot.endTime}
+              onChange={(e) => handleChange('endTime', e.target.value)}
+              className="time-input"
+            />
+          </div>
+        </div>
+
+        <button className="search-button" onClick={handleSearch}>
+          SEARCH
+        </button>
+      </div>
+
+      <div className="fare-type-container">
+        <span className="fare-label">Meal Type:</span>
+        <div className="fare-options">
+          <label>
+            <input
+              type="radio"
+              value="Breakfast"
+              checked={bookingDetails.serviceCategory === 'Breakfast'}
+              onChange={() => handleChange('serviceCategory', 'Breakfast')}
+            />
+            Breakfast
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              value="Lunch"
+              checked={bookingDetails.serviceCategory === 'Lunch'}
+              onChange={() => handleChange('serviceCategory', 'Lunch')}
+            />
+            Lunch
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              value="Dinner"
+              checked={bookingDetails.serviceCategory === 'Dinner'}
+              onChange={() => handleChange('serviceCategory', 'Dinner')}
+            />
+            Dinner
+          </label>
+
+          <div className="person-count">
+            <span className="fare-label">No. of Persons :</span>
+            <input
+              type="number"
+              min="1"
+              value={bookingDetails.numberOfPersons}
+              onChange={(e) => {
+                const value = parseInt(e.target.value);
+                handleChange('numberOfPersons', isNaN(value) ? 1 : value);
+              }}
+              className="person-input"
+            />
+          </div>
+        </div>
+      </div>
+    </Box>
       <div className="container-provider">
+       
         {/* This button toggles expansion and collapse */}
         <Button
           variant="outlined" // Ensures outlined style is applied
@@ -401,221 +476,6 @@ const toggleExpand = async () => {
                   {props.otherServices || "N/A"}
                 </span>
               </Typography>
-            
-              {/* {selectedMorningSlot ? (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedMorningSlot}</span>
-    </Typography>
-) : (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Morning Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
-    </Typography>
-)}
-
-{selectedEveningSlot ? (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem" }}>{selectedEveningSlot}</span>
-    </Typography>
-) : (
-    <Typography variant="subtitle1" style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        Selected Evening Slot: <span style={{ fontWeight: "normal", fontSize: "1rem", color: "gray" }}>Nothing is selected</span>
-    </Typography>
-)} */}
-
-              {props.housekeepingRole !== "NANNY" && (
-
-              <div className="availability-section">
-  <div className="availability-header">
-    <Typography variant="subtitle1" className="section-title">
-      Morning Availability (6 AM - 12 PM)
-    </Typography>
-
-    {/* Morning Availability Buttons */}
-    <div className="time-slot-container">
-  {missingSlots
-    .filter((missingSlot) =>
-      [6, 7, 8, 9, 10, 11].some(
-        (hour) => moment({ hour }).format("HH:mm") === missingSlot
-      )
-    )
-
-    .map((missingSlot, index) => {
-      const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-      const startTime = moment({ hour }).format("HH:mm");
-      const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-      const timeRange = `${startTime}-${endTime}`;
-
-      // ✅ Use uniqueMissingSlots for disabling
-      const isDisabled =
-      matchedMorningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-      return (
-        <div key={index}>
-          <button
-            className={`availability-button ${morningSelection === index ? "selected" : ""}`}
-            onClick={() => handleSelection(index, false, hour)}
-            disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-            style={{
-              backgroundColor: isDisabled ? '#bdbdbd' : '',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.6 : 1,
-            }}
-          >
-            {timeRange}
-          </button>
-        </div>
-      );
-    })}
-</div>
-
-  </div>
-
-  <div className="availability-header">
-    <Typography variant="subtitle1" className="section-title">
-      Evening Availability (12 PM - 8 PM)
-    </Typography>
-
-    <div className="time-slot-container">
-    {missingSlots
-    .filter((missingSlot) =>
-      [12, 13, 14, 15, 16, 17, 18, 19].some(
-        (hour) => moment({ hour }).format("HH:mm") === missingSlot
-      )
-    )
-    .map((missingSlot, index) => {
-      const hour = parseInt(moment(missingSlot, "HH:mm").format("H"), 10); // Extract hour
-      const startTime = moment({ hour }).format("HH:mm");
-      const endTime = moment({ hour: hour + 1 }).format("HH:mm");
-      const timeRange = `${startTime}-${endTime}`;
-
-      // Check if this time slot should be disabled based on unique missing slots
-      const isDisabled =
-      matchedEveningSelection === timeRange || uniqueMissingSlots.includes(startTime);
-
-      return (
-        <div key={index}>
-          <button
-            className={`availability-button ${eveningSelection === index ? "selected" : ""}`}
-            onClick={() => handleSelection(index, true, hour)}
-            disabled={isDisabled} // Disable if it's in uniqueMissingSlots
-            style={{
-              backgroundColor: isDisabled ? '#bdbdbd' : '',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.6 : 1,
-            }}
-          >
-            {timeRange}
-          </button>
-        </div>
-      );
-    })}
-</div>
-{(matchedMorningSelection || morningSelectionTime) && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-    <span>{matchedMorningSelection || morningSelectionTime}</span>
-    <FaTimes
-      onClick={() => clearSelection(false)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-{(matchedEveningSelection || eveningSelectionTime) && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-    <span>{matchedEveningSelection || eveningSelectionTime}</span>
-    <FaTimes
-      onClick={() => clearSelection(true)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-
-{/* {matchedMorningSelection && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Morning selected time:</span>
-    <span>{matchedMorningSelection}</span>
-    <FaTimes
-      onClick={() => setMatchedMorningSelection(null)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)}
-
-{matchedEveningSelection && (
-  <div
-    style={{
-      marginTop: "10px",
-      padding: "10px",
-      backgroundColor: "#f0f0f0",
-      borderRadius: "5px",
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      fontSize: "16px",
-    }}
-  >
-    <span style={{ fontWeight: "bold" }}>Evening selected time:</span>
-    <span>{matchedEveningSelection}</span>
-    <FaTimes
-      onClick={() => setMatchedEveningSelection(null)}
-      style={{
-        color: "red",
-        cursor: "pointer",
-        fontSize: "18px",
-      }}
-    />
-  </div>
-)} */}
-
-  </div>
-</div>
-)}
 {props.housekeepingRole === "NANNY" && (
  <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md w-80" style={{width:'100%'}}>
  <h2 className="text-xl font-semibold">Select Time Range</h2>
@@ -627,6 +487,7 @@ const toggleExpand = async () => {
      disableClock
      format="HH:mm"
      className="border p-2 rounded"
+     
    />
  </div>
  <div className="flex items-center gap-2">
@@ -644,57 +505,40 @@ const toggleExpand = async () => {
 
 )}
 <div>
-  
  
 </div>
 
-<div style={{ float: 'right', display: 'flex' }}>
-    {warning && <p className="text-red-500">{warning}</p>}
+<div style={{ float: "right", display: "flex" }}>
+      {warning && <p className="text-red-500">{warning}</p>}
 
-    <Button 
-      onClick={handleBookNow} 
-      variant="outlined"
-      disabled={!isBookNowEnabled} // ✅ Uses state instead of inline condition
-      style={{
-        opacity: isBookNowEnabled ? 1 : 0.6, 
-        cursor: isBookNowEnabled ? "pointer" : "not-allowed"
-      }}
-    >
-      Book Now
-    </Button>
-  </div>
+      <Button onClick={handleBookNow} variant="outlined">
+        Book Now
+      </Button>
 
+      {/* Dialog Box */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Confirm Booking</DialogTitle>
+        <DialogContent>
+          <p>Are you ready to proceed to checkout?</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleCheckout} color="primary" variant="contained">
+            Checkout
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
 
 
             </div>
           )}
         </div>
-
-        {/* Book Now button */}
-        {/* { isBookNowEnabled && } */}
-
-        {/* {isBookNowEnabled && (
-      <Button
-        variant="contained"
-        color="primary"
-        className="book-now-button"
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          padding: '10px 20px',
-          fontSize: '16px',
-          display: 'flex',
-        }}
-        onClick={handleBookNow}
-      >
-        Book Now
-      </Button>
-    )} */}
-        {/* <Button disabled={!isBookNowEnabled} variant="outlined">Book Now</Button> */}
       </div>
     </Paper>
-    <Dialog 
+    {/* <Dialog 
     style={{padding:'0px'}}
       open={open}
       onClose={handleClose}
@@ -704,7 +548,8 @@ const toggleExpand = async () => {
         <DialogContent>
         <Login bookingPage={handleBookingPage}/>
         </DialogContent>
-      </Dialog></>
+      </Dialog> */}
+      </>
   );
 };
 

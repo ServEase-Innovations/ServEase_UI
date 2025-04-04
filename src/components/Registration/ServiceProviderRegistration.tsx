@@ -228,6 +228,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
                 pincode: pincode,
                 currentLocation: address,
                 nearbyLocation: nearbyLocation,
+                latitude:latitude,
+                longitude:longitude,
               }));
             } catch (error) {
               console.error("Error fetching location data", error);
