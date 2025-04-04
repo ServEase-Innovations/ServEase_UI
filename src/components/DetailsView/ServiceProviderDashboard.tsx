@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Box, Grid, Card, CardContent, Typography, Button, Avatar, IconButton, Rating, Tab, Tabs, Switch, CircularProgress, Badge, Chip, Tooltip, Snackbar, Alert } from "@mui/material";
-import { styled } from "@mui/system";
+import { height, styled } from "@mui/system";
 import CallIcon from '@mui/icons-material/Call';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
@@ -18,46 +18,72 @@ import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/userStore";
 import './ProfileHeader.css';
-const ProfileHeader = styled(Box)({
+const ProfileHeader = styled('div')({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '20px',
+  padding: '1.25rem', 
   backgroundColor: '#ffffff',
   color: '#333',
   boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.1)',
   position: 'fixed',
-  top: '65px',
+  top: '4.0625rem', // ~65px
   left: 0,
   right: 0,
-  height: '80px',
+  height: '5rem', // ~80px
+  width: '100%', // Full width
   zIndex: 1000,
-  gap: '9px',
+  gap: '0.5625rem', // ~9px
 });
-
-
-
-// Remove the margin from DashboardCard
-const DashboardCard = styled(Card)({
-  width: '350px',       // Fixed width
-  height: '450px',      // Fixed height
+const DashboardDiv = styled('div')(({ theme }) => ({
+  width: '460px', // Default width
+  // height: 'auto', 
+  height: '480px', // Default height for large screens
+  aspectRatio: '7/9',
   textAlign: 'center',
-  marginTop: '30px',
+  marginTop: '80px',
   borderRadius: '12px',
   transition: '0.3s',
   backgroundColor: '#f8f9fa',
-  position:'relative',
-  // left:' 100x',
+  position: 'relative',
   zIndex: 1,
   boxSizing: 'border-box',
-  overflow: 'hidden',   // Ensures content stays within bounds
-  display: 'flex',      // For better content organization
-  flexDirection: 'column', // Stack content vertically
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  padding: '20px',
+  boxShadow: '0px 6px 20px rgba(0, 0, 0, 0.2)',
+  marginLeft: 'auto',
+  marginRight: 'auto', // Centering
+
   '&:hover': {
     transform: 'scale(1.05)',
-    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.3)',
   },
-});
+
+  // Responsive styles
+  [theme.breakpoints.down('sm')]: { 
+    width: '90%',  // Reduce width
+    height: '400px', // Decrease height for better fit
+    // marginTop: '140px',
+    left:'20px'
+   
+  },
+  [theme.breakpoints.down('xs')]: { 
+    width: '90%',  
+     height: '300px', // Further decrease height for small screens
+    padding: '10px',
+    marginTop: '30px',
+  },
+
+  [theme.breakpoints.up('md')]: { 
+    width: '100%', 
+  },
+  [theme.breakpoints.up('lg')]: {
+    width: '95%', 
+  }
+}));
+
 type UserState = {
   value?: {
     role?: string;
@@ -366,21 +392,26 @@ const handleCancelBooking = async (index) => {
 
    
       {/* Show Profile Section if Profile Tab is Selected */}
-
-
       {selectedTab === 0 && (
-  <Box className="responsive-container" sx={{ marginTop: '20px' }}>
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Grid container spacing={3} justifyContent="center">
+  <Box
+  className="responsive-container"
+  sx={{
+    marginTop: { xs: '60px'}, // 30px for extra small screens, 60px for small screens and above
+  }}
+>
+  <Grid 
+  container 
+  spacing={5}
+>
+    <Grid container spacing={2} justifyContent="center">
           {bookings
             .filter(
               (booking) =>
                 booking.taskStatus !== "CANCELLED" // Optionally exclude cancelled ones
             )
             .map((booking, index) => (
-              <Grid item xs={12} md={4} key={index} className="grid-item">
-                <DashboardCard>
+              <Grid  item xs={12} md={6} key={index}  className="grid-item">
+                <DashboardDiv>
                   <CardContent>
                     {/* Task Status */}
                     <Box className="status-box" sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
@@ -448,8 +479,18 @@ const handleCancelBooking = async (index) => {
                     <Typography variant="body2" color="#555">{booking.address}</Typography>
 
                     {/* Action Buttons */}
-                    <Box className="action-buttons" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                      <IconButton color="primary" href={`tel:${booking.phone}`} sx={{ fontSize: 26 }}>
+                    <Box 
+  className="action-buttons" 
+  sx={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: '10px',
+    marginLeft: '-20px' // Move the box slightly to the left
+  }}
+>
+
+                      <IconButton color="primary" href={`tel:${booking.phone}`}>
                         <CallIcon />
                       </IconButton>
 
@@ -505,10 +546,10 @@ const handleCancelBooking = async (index) => {
                       </Box>
                     </Box>
                   </CardContent>
-                </DashboardCard>
+                </DashboardDiv>
               </Grid>
             ))}
-        </Grid>
+   
       </Grid>
     </Grid>
   </Box>
