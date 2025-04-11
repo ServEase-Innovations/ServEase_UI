@@ -69,11 +69,7 @@ const BookingForm = ({ onSearch }: { onSearch: (data: any) => void }) => {
 };
 
 const HeaderSearch = ({ onSearch }: { onSearch: (data: any) => void }) => {
-  // const pricing = useSelector((state: any) => state.pricing?.groupedServices);
-  // const bookingType = useSelector((state: any) => state.bookingType?.value);
 
-  // console.log("pricing => ", pricing);
-  // console.log("bookingType => ", bookingType);
 
   return (
     <div className="header-search">

@@ -9,6 +9,7 @@ import ProviderDetails from "../ProviderDetails/ProviderDetails";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/detailsData/detailsDataSlice";
 import HeaderSearch from "../HeaderSearch/HeaderSearch";
+import PreferenceSelection from "../PreferenceSelection/PreferenceSelection";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -38,11 +39,10 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       checkoutItem(data); // Send data to the parent component
     }
   };
-  
+
   useEffect(() => {
     console.log("Selected ...", selected);
     setSelectedProviderType(selected || ""); // Set a default empty string if `selected` is undefined
-    
 
     const fetchData = async () => {
       try {
@@ -98,14 +98,14 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     performSearch(formData); // Call the method
   };
 
-  console.log("Using housekeepingRole:", selectedProviderType.toUpperCase());
+
   const performSearch = async (formData) => {
     const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
     const params = { 
       startDate: "2025-04-01",
       endDate: "2025-04-30", 
       timeslot: "9:00-10:00", 
-      housekeepingRole: selectedProviderType.toUpperCase(),
+      housekeepingRole:'COOK',
       latitude: 22.557295510020214,  
       longitude: 88.19166107192879, 
     };
@@ -119,13 +119,13 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
   console.log("Service Providers Data:", ServiceProvidersData);
-  
-  // console.log("Service Providers Data:", serviceProviderData);
+  console.log("Service Providers Data:", serviceProviderData);
 
   return (
     <div className="main-container">
       <div className="search">
-      <HeaderSearch onSearch={handleSearch}/> 
+      <HeaderSearch onSearch={handleSearch}/>
+      <PreferenceSelection /> 
       </div>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
       serviceProviderData.map((provider, index) => (

@@ -327,6 +327,14 @@ const toggleExpand = async () => {
         >
           {isExpanded ? <RemoveIcon /> : <AddIcon />}
         </Button>
+        <Button
+          variant="outlined" // Ensures outlined style is applied
+          className="expand-toggle"
+          onClick={handleLogin}
+          sx={{ border: '1px solid #1976d2', color: '#1976d2', padding: '8px', fontSize: '14px', position: 'absolute', top: 10, right: 80 }} // Override if necessary
+        >
+          Book Now
+        </Button>
 
         <div className={`content ${isExpanded ? "expanded" : ""}`}>
           <div className="essentials">
