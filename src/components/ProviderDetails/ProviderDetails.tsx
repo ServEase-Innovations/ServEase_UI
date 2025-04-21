@@ -16,6 +16,8 @@ import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import "react-clock/dist/Clock.css";
 import { FaTimes } from "react-icons/fa";
+import { PlusIcon } from "lucide-react";
+import MaidServiceDialog from "./MaidServiceDialog";
 
 const ProviderDetails = (props) => {
 const [isExpanded, setIsExpanded] = useState(false);
@@ -440,7 +442,7 @@ const toggleExpand = async () => {
 <div style={{ float: 'right', display: 'flex' }}>
     {warning && <p className="text-red-500">{warning}</p>}
 
-    <Button 
+    {/* <Button 
       onClick={handleBookNow} 
       variant="outlined"
       disabled={!isBookNowEnabled} // ✅ Uses state instead of inline condition
@@ -450,7 +452,7 @@ const toggleExpand = async () => {
       }}
     >
       Book Now
-    </Button>
+    </Button> */}
   </div>
 
 
@@ -483,17 +485,8 @@ const toggleExpand = async () => {
         {/* <Button disabled={!isBookNowEnabled} variant="outlined">Book Now</Button> */}
       </div>
     </Paper>
-    <Dialog 
-    style={{padding:'0px'}}
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-    >
-        <DialogContent>
-        <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog></>
+    <MaidServiceDialog open={open} handleClose={handleClose} />
+   </>
   );
 };
 
