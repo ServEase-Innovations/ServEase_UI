@@ -1,10 +1,130 @@
 import React, { useState } from 'react';
 import Dialog from '@mui/material/Dialog';
-
 import { DialogContent } from '@mui/material';
 
 const MaidServiceDialog = ({ open, handleClose }) => {
-  const [activeTab, setActiveTab] = useState('baby'); // 'baby' or 'elderly'
+  const [activeTab, setActiveTab] = useState('regular'); // 'regular' or 'premium'
+  const [packageStates, setPackageStates] = useState({
+    utensilCleaning: {
+      persons: 3,
+      selected: false
+    },
+    sweepingMopping: {
+      houseSize: '2BHK',
+      selected: false
+    },
+    bathroomCleaning: {
+      bathrooms: 2,
+      selected: false
+    }
+  });
+  const [addOns, setAddOns] = useState({
+    bathroomDeepCleaning: false,
+    normalDusting: false,
+    deepDusting: false,
+    utensilDrying: false,
+    clothesDrying: false
+  });
+
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  // Handle person count change
+  const handlePersonChange = (operation) => {
+    setPackageStates(prev => ({
+      ...prev,
+      utensilCleaning: {
+        ...prev.utensilCleaning,
+        persons: operation === 'increment' 
+          ? Math.min(prev.utensilCleaning.persons + 1, 10)
+          : Math.max(prev.utensilCleaning.persons - 1, 1)
+      }
+    }));
+  };
+
+  // Handle house size change
+  const handleHouseSizeChange = (operation) => {
+    const sizes = ['1BHK', '2BHK', '3BHK', '4BHK+'];
+    const currentIndex = sizes.indexOf(packageStates.sweepingMopping.houseSize);
+    
+    setPackageStates(prev => ({
+      ...prev,
+      sweepingMopping: {
+        ...prev.sweepingMopping,
+        houseSize: operation === 'increment' 
+          ? sizes[Math.min(currentIndex + 1, sizes.length - 1)]
+          : sizes[Math.max(currentIndex - 1, 0)]
+      }
+    }));
+  };
+
+  // Handle bathroom count change
+  const handleBathroomChange = (operation) => {
+    setPackageStates(prev => ({
+      ...prev,
+      bathroomCleaning: {
+        ...prev.bathroomCleaning,
+        bathrooms: operation === 'increment' 
+          ? Math.min(prev.bathroomCleaning.bathrooms + 1, 5)
+          : Math.max(prev.bathroomCleaning.bathrooms - 1, 1)
+      }
+    }));
+  };
+
+  // Handle package selection
+  const handlePackageSelect = (packageName) => {
+    setPackageStates(prev => ({
+      ...prev,
+      [packageName]: {
+        ...prev[packageName],
+        selected: !prev[packageName].selected
+      }
+    }));
+  };
+
+  // Handle add-on selection
+  const handleAddOnSelect = (addOnName) => {
+    setAddOns(prev => ({
+      ...prev,
+      [addOnName]: !prev[addOnName]
+    }));
+  };
+
+  // Calculate total price
+  const calculateTotal = () => {
+    let total = 0;
+    
+    // Add package prices
+    if (packageStates.utensilCleaning.selected) total += 1200;
+    if (packageStates.sweepingMopping.selected) total += 1200;
+    if (packageStates.bathroomCleaning.selected) total += 600;
+    
+    // Add add-on prices
+    if (addOns.bathroomDeepCleaning) total += 1000;
+    if (addOns.normalDusting) total += 1000;
+    if (addOns.deepDusting) total += 1500;
+    if (addOns.utensilDrying) total += 1000;
+    if (addOns.clothesDrying) total += 1000;
+    
+    return total;
+  };
+
+  // Count selected services
+  const countSelectedServices = () => {
+    let count = 0;
+    if (packageStates.utensilCleaning.selected) count++;
+    if (packageStates.sweepingMopping.selected) count++;
+    if (packageStates.bathroomCleaning.selected) count++;
+    return count;
+  };
+
+  // Count selected add-ons
+  const countSelectedAddOns = () => {
+    return Object.values(addOns).filter(Boolean).length;
+  };
+
   return (
     <Dialog 
       style={{padding:'0px', borderRadius: '12px'}}
@@ -26,28 +146,31 @@ const MaidServiceDialog = ({ open, handleClose }) => {
           {/* Tabs */}
           <div style={{display: 'flex', borderBottom: '1px solid #f0f0f0'}}>
             <button 
+              onClick={() => handleTabChange('regular')}
               style={{
                 flex: 1,
                 padding: '15px',
                 backgroundColor: '#fff',
                 border: 'none',
-                borderBottom: '3px solid #e17055',
+                borderBottom: activeTab === 'regular' ? '3px solid #e17055' : 'none',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                color: '#2d3436'
+                color: activeTab === 'regular' ? '#2d3436' : '#636e72'
               }}
             >
               Regular Services
             </button>
             <button 
+              onClick={() => handleTabChange('premium')}
               style={{
                 flex: 1,
                 padding: '15px',
                 backgroundColor: '#fff',
                 border: 'none',
+                borderBottom: activeTab === 'premium' ? '3px solid #e17055' : 'none',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                color: '#636e72'
+                color: activeTab === 'premium' ? '#2d3436' : '#636e72'
               }}
             >
               Premium Services
@@ -61,7 +184,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               border: '1px solid #dfe6e9',
               borderRadius: '10px',
               padding: '15px',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              borderColor: packageStates.utensilCleaning.selected ? '#e17055' : '#dfe6e9'
             }}>
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <div>
@@ -81,27 +205,35 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
                 <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
                 <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderRight: '1px solid #dfe6e9',
-                    borderRadius: '20px 0 0 20px',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <button 
+                    onClick={() => handlePersonChange('decrement')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderRight: '1px solid #dfe6e9',
+                      borderRadius: '20px 0 0 20px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     -
                   </button>
-                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>3</span>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderLeft: '1px solid #dfe6e9',
-                    borderRadius: '0 20px 20px 0',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    {packageStates.utensilCleaning.persons}
+                  </span>
+                  <button 
+                    onClick={() => handlePersonChange('increment')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderLeft: '1px solid #dfe6e9',
+                      borderRadius: '0 20px 20px 0',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     +
                   </button>
                 </div>
@@ -118,17 +250,20 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                 </div>
               </div>
               
-              <button style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#fff',
-                color: '#e17055',
-                border: '1px solid #e17055',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}>
-                SELECT SERVICE
+              <button 
+                onClick={() => handlePackageSelect('utensilCleaning')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: packageStates.utensilCleaning.selected ? '#e17055' : '#fff',
+                  color: packageStates.utensilCleaning.selected ? '#fff' : '#e17055',
+                  border: '1px solid #e17055',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
               </button>
             </div>
             
@@ -137,7 +272,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               border: '1px solid #dfe6e9',
               borderRadius: '10px',
               padding: '15px',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              borderColor: packageStates.sweepingMopping.selected ? '#00b894' : '#dfe6e9'
             }}>
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <div>
@@ -157,27 +293,35 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
                 <span style={{marginRight: '15px', color: '#2d3436'}}>House Size:</span>
                 <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderRight: '1px solid #dfe6e9',
-                    borderRadius: '20px 0 0 20px',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <button 
+                    onClick={() => handleHouseSizeChange('decrement')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderRight: '1px solid #dfe6e9',
+                      borderRadius: '20px 0 0 20px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     -
                   </button>
-                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>2BHK</span>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderLeft: '1px solid #dfe6e9',
-                    borderRadius: '0 20px 20px 0',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    {packageStates.sweepingMopping.houseSize}
+                  </span>
+                  <button 
+                    onClick={() => handleHouseSizeChange('increment')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderLeft: '1px solid #dfe6e9',
+                      borderRadius: '0 20px 20px 0',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     +
                   </button>
                 </div>
@@ -190,17 +334,20 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                 </div>
               </div>
               
-              <button style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#fff',
-                color: '#e17055',
-                border: '1px solid #e17055',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}>
-                SELECT SERVICE
+              <button 
+                onClick={() => handlePackageSelect('sweepingMopping')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: packageStates.sweepingMopping.selected ? '#00b894' : '#fff',
+                  color: packageStates.sweepingMopping.selected ? '#fff' : '#00b894',
+                  border: '1px solid #00b894',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
               </button>
             </div>
             
@@ -209,7 +356,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               border: '1px solid #dfe6e9',
               borderRadius: '10px',
               padding: '15px',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              borderColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#dfe6e9'
             }}>
               <div style={{display: 'flex', justifyContent: 'space-between'}}>
                 <div>
@@ -229,27 +377,35 @@ const MaidServiceDialog = ({ open, handleClose }) => {
               <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
                 <span style={{marginRight: '15px', color: '#2d3436'}}>Bathrooms:</span>
                 <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderRight: '1px solid #dfe6e9',
-                    borderRadius: '20px 0 0 20px',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <button 
+                    onClick={() => handleBathroomChange('decrement')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderRight: '1px solid #dfe6e9',
+                      borderRadius: '20px 0 0 20px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     -
                   </button>
-                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>2</span>
-                  <button style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#f5f5f5',
-                    border: 'none',
-                    borderLeft: '1px solid #dfe6e9',
-                    borderRadius: '0 20px 20px 0',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}>
+                  <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    {packageStates.bathroomCleaning.bathrooms}
+                  </span>
+                  <button 
+                    onClick={() => handleBathroomChange('increment')}
+                    style={{
+                      padding: '5px 10px',
+                      backgroundColor: '#f5f5f5',
+                      border: 'none',
+                      borderLeft: '1px solid #dfe6e9',
+                      borderRadius: '0 20px 20px 0',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
                     +
                   </button>
                 </div>
@@ -262,17 +418,20 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                 </div>
               </div>
               
-              <button style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#fff',
-                color: '#e17055',
-                border: '1px solid #e17055',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}>
-                SELECT SERVICE
+              <button 
+                onClick={() => handlePackageSelect('bathroomCleaning')}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#fff',
+                  color: packageStates.bathroomCleaning.selected ? '#fff' : '#0984e3',
+                  border: '1px solid #0984e3',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
               </button>
             </div>
             
@@ -288,7 +447,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   padding: '15px',
                   flex: '1 1 45%',
                   minWidth: '200px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  borderColor: addOns.bathroomDeepCleaning ? '#00b894' : '#dfe6e9'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                     <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Bathroom Deep Cleaning</h4>
@@ -297,21 +457,23 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                     Weekly cleaning of bathrooms, all bathroom walls cleaned
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'rgba(234, 254, 250, 0.2)',
-                    color: '#00b894',
-                    border: '2px solid rgb(235, 247, 244)',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}>
+                  <button 
+                    onClick={() => handleAddOnSelect('bathroomDeepCleaning')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: addOns.bathroomDeepCleaning ? '#00b894' : 'rgba(234, 254, 250, 0.2)',
+                      color: addOns.bathroomDeepCleaning ? '#fff' : '#00b894',
+                      border: addOns.bathroomDeepCleaning ? 'none' : '2px solid rgb(235, 247, 244)',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
                     <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                      {/* <PlusIcon size={16} /> */}+
-                      Add This Service
+                      {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
                     </span>
                   </button>
                 </div>
@@ -323,7 +485,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   padding: '15px',
                   flex: '1 1 45%',
                   minWidth: '200px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  borderColor: addOns.normalDusting ? '#0984e3' : '#dfe6e9'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                     <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Normal Dusting</h4>
@@ -332,21 +495,23 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                     Daily furniture dusting, doors, carpet, bed making
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'rgba(234, 245, 254, 0.2)',
-                    color: '#0984e3',
-                    border: '2px solid #0984e3',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}>
+                  <button 
+                    onClick={() => handleAddOnSelect('normalDusting')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: addOns.normalDusting ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
+                      color: addOns.normalDusting ? '#fff' : '#0984e3',
+                      border: addOns.normalDusting ? 'none' : '2px solid #0984e3',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
                     <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                      {/* <PlusIcon size={16} /> */}+
-                      Add This Service
+                      {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
                     </span>
                   </button>
                 </div>
@@ -358,7 +523,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   padding: '15px',
                   flex: '1 1 45%',
                   minWidth: '200px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  borderColor: addOns.deepDusting ? '#e17055' : '#dfe6e9'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                     <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Deep Dusting</h4>
@@ -367,21 +533,23 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                     Includes chemical agents cleaning: décor items, furniture
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'hsla(13, 87.50%, 96.90%, 0.20)',
-                    color: '#e17055',
-                    border: '2px solid #e17055',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}>
+                  <button 
+                    onClick={() => handleAddOnSelect('deepDusting')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: addOns.deepDusting ? '#e17055' : 'hsla(13, 87.50%, 96.90%, 0.20)',
+                      color: addOns.deepDusting ? '#fff' : '#e17055',
+                      border: addOns.deepDusting ? 'none' : '2px solid #e17055',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
                     <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                      {/* <PlusIcon size={16} /> */}
-                      Add This Service
+                      {addOns.deepDusting ? 'ADDED' : 'Add This Service'}
                     </span>
                   </button>
                 </div>
@@ -393,7 +561,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   padding: '15px',
                   flex: '1 1 45%',
                   minWidth: '200px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  borderColor: addOns.utensilDrying ? '#00b894' : '#dfe6e9'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                     <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Utensil Drying</h4>
@@ -402,22 +571,23 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                     Househelp will dry and make proper arrangements
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'rgba(228, 245, 241, 0.2)',
-                    color: '#00b894',
-                    border: '2px solid #00b894',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}>
+                  <button 
+                    onClick={() => handleAddOnSelect('utensilDrying')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: addOns.utensilDrying ? '#00b894' : 'rgba(228, 245, 241, 0.2)',
+                      color: addOns.utensilDrying ? '#fff' : '#00b894',
+                      border: addOns.utensilDrying ? 'none' : '2px solid #00b894',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
                     <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                      {/* <PlusIcon size={16} /> */}
-                      +
-                      Add This Service
+                      {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
                     </span>
                   </button>
                 </div>
@@ -429,7 +599,8 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   padding: '15px',
                   flex: '1 1 45%',
                   minWidth: '200px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  borderColor: addOns.clothesDrying ? '#0984e3' : '#dfe6e9'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
                     <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Clothes Drying</h4>
@@ -438,22 +609,23 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                   <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                     Househelp will get clothes from/to drying place
                   </div>
-                  <button style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'rgba(234, 245, 254, 0.2)',
-                    color: '#0984e3',
-                    border: '2px solid #0984e3',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease',
-                  }}>
+                  <button 
+                    onClick={() => handleAddOnSelect('clothesDrying')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: addOns.clothesDrying ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
+                      color: addOns.clothesDrying ? '#fff' : '#0984e3',
+                      border: addOns.clothesDrying ? 'none' : '2px solid #0984e3',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
                     <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                      {/* <PlusIcon size={16} /> */}
-                      +
-                      Add This Service
+                      {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
                     </span>
                   </button>
                 </div>
@@ -503,8 +675,12 @@ const MaidServiceDialog = ({ open, handleClose }) => {
             alignItems: 'center'
           }}>
             <div>
-              <div style={{color: '#636e72', fontSize: '14px'}}>Total for 2 services (3 add-ons)</div>
-              <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹4,200</div>
+              <div style={{color: '#636e72', fontSize: '14px'}}>
+                Total for {countSelectedServices()} services ({countSelectedAddOns()} add-ons)
+              </div>
+              <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>
+                ₹{calculateTotal().toLocaleString('en-IN')}
+              </div>
             </div>
             <button style={{
               padding: '12px 25px',
@@ -521,9 +697,6 @@ const MaidServiceDialog = ({ open, handleClose }) => {
         </div>
       </DialogContent>
     </Dialog>
-
-
-
   );
 };
 
