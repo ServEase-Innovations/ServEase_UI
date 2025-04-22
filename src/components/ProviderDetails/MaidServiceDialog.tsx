@@ -668,12 +668,21 @@ const MaidServiceDialog = ({ open, handleClose }) => {
           </div>
           
           {/* Footer with Checkout */}
-          <div style={{
-            padding: '15px 20px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
+          <div
+      style={{
+        position: 'sticky',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: '15px 20px',
+        borderTop: '1px solid #f0f0f0',
+        backgroundColor: '#fff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
             <div>
               <div style={{color: '#636e72', fontSize: '14px'}}>
                 Total for {countSelectedServices()} services ({countSelectedAddOns()} add-ons)
