@@ -101,11 +101,20 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
   const performSearch = async (formData) => {
     const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
+    const housekeepingRole = selected?.toUpperCase() || "";
+
+  console.log("Sending housekeeping role:", housekeepingRole);
     const params = { 
-      startDate: "2025-04-01",
-      endDate: "2025-04-30", 
-      timeslot: "9:00-10:00", 
-      housekeepingRole:'COOK',
+       // startDate: bookingDetails.date,
+        // endDate: bookingType.endDate, 
+        // timeslot: timeSlotFormatted, 
+        startDate: "2025-04-01",
+        endDate: "2025-04-30", 
+        timeslot: "9:00-10:00", 
+        housekeepingRole, // ✅ pass selected data
+        
+    
+      // housekeepingRole:'COOK',
       latitude: 22.557295510020214,  
       longitude: 88.19166107192879, 
     };
