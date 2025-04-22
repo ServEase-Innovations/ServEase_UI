@@ -39,6 +39,7 @@ const [isExpanded, setIsExpanded] = useState(false);
 
 
   console.log("Provider Details Props: ", props);
+  console.log("House keeping role ==> ", props.housekeepingRole);
   
 
   const dietImages = {
@@ -488,9 +489,14 @@ const toggleExpand = async () => {
         {/* <Button disabled={!isBookNowEnabled} variant="outlined">Book Now</Button> */}
       </div>
     </Paper>
-    {/* <CookServicesDialog  open={open} handleClose={handleClose} /> */}
-    {/* <MaidServiceDialog open={open} handleClose={handleClose} /> */}
-     <NannyServicesDialog open={open} handleClose={handleClose}/> 
+    {props.housekeepingRole === "COOK" && 
+    <CookServicesDialog  open={open} handleClose={handleClose} />}
+    {props.housekeepingRole === "MAID" && 
+    <MaidServiceDialog open={open} handleClose={handleClose} />}
+    
+    {props.housekeepingRole === "NANNY" && 
+    <NannyServicesDialog open={open} handleClose={handleClose} />}
+
      
    </>
   );
