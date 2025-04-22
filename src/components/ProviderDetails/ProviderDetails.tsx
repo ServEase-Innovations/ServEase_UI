@@ -18,6 +18,9 @@ import "react-clock/dist/Clock.css";
 import { FaTimes } from "react-icons/fa";
 import { PlusIcon } from "lucide-react";
 import MaidServiceDialog from "./MaidServiceDialog";
+import NannyServicesDialog from "./NannyServicesDialog";
+import CookServicesDialog from "./CookServicesDialog";
+
 
 const ProviderDetails = (props) => {
 const [isExpanded, setIsExpanded] = useState(false);
@@ -485,7 +488,10 @@ const toggleExpand = async () => {
         {/* <Button disabled={!isBookNowEnabled} variant="outlined">Book Now</Button> */}
       </div>
     </Paper>
-    <MaidServiceDialog open={open} handleClose={handleClose} />
+    {/* <CookServicesDialog  open={open} handleClose={handleClose} /> */}
+    {/* <MaidServiceDialog open={open} handleClose={handleClose} /> */}
+     <NannyServicesDialog open={open} handleClose={handleClose}/> 
+     
    </>
   );
 };
