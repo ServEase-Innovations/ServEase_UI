@@ -51,7 +51,15 @@ const CookServicesDialog = ({ open, handleClose }) => {
       }
     }));
   };
-
+  const handleApplyVoucher = () => {
+   
+    }
+    const handleCheckout = () => {
+      if (totalItems > 0) {
+        alert(`Proceeding to checkout with ${totalItems} items.`);
+        // You can add your checkout logic here
+      }
+    };
   // Calculate total items and total price
   const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
   const totalItems = selectedPackages.length;
@@ -383,7 +391,9 @@ const CookServicesDialog = ({ open, handleClose }) => {
                   fontSize: '14px'
                 }}
               />
-              <button style={{
+              <button 
+               onClick={handleApplyVoucher}
+               style={{
                 padding: '10px 20px',
                 backgroundColor: '#27ae60',
                 color: 'white',
@@ -420,20 +430,21 @@ const CookServicesDialog = ({ open, handleClose }) => {
               </div>
               <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹{totalPrice}</div>
             </div>
-            <button 
-              style={{
-                padding: '12px 25px',
-                backgroundColor: totalItems > 0 ? '#e17055' : '#bdc3c7',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: totalItems > 0 ? 'pointer' : 'not-allowed'
-              }}
-              disabled={totalItems === 0}
-            >
-              CHECKOUT
-            </button>
+            <button
+        style={{
+          padding: '12px 25px',
+          backgroundColor: totalItems > 0 ? '#e17055' : '#bdc3c7',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+          cursor: totalItems > 0 ? 'pointer' : 'not-allowed'
+        }}
+        onClick={handleCheckout}
+        disabled={totalItems === 0}
+      >
+        CHECKOUT
+      </button>
           </div>
         </div>
       </DialogContent>

@@ -40,6 +40,10 @@ const NannyServicesDialog = ({ open, handleClose }) => {
       }
     }));
   };
+  const handleCheckout = () => {
+    alert(`Proceeding to checkout for ₹${calculateTotal().toLocaleString()}`);
+   
+  };
 
   // Toggle package selection
   const togglePackageSelection = (packageType, isBaby) => {
@@ -747,17 +751,20 @@ const NannyServicesDialog = ({ open, handleClose }) => {
               <div style={{color: '#636e72', fontSize: '14px'}}>Total for {calculateTotal() > 0 ? 'services' : '0 service'}</div>
               <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹{calculateTotal().toLocaleString()}</div>
             </div>
-            <button style={{
-              padding: '12px 25px',
-              backgroundColor: '#e17055',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}>
-              CHECKOUT
-            </button>
+            <button
+          style={{
+            padding: '12px 25px',
+            backgroundColor: '#e17055',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+          onClick={handleCheckout}
+        >
+          CHECKOUT
+        </button>
           </div>
         </div>
       </DialogContent>

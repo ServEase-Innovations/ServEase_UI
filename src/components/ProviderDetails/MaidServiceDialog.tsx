@@ -125,6 +125,14 @@ const MaidServiceDialog = ({ open, handleClose }) => {
     return Object.values(addOns).filter(Boolean).length;
   };
 
+  const handleCheckout = () => {
+    // This is where your checkout logic goes
+    alert(`Checking out ₹${calculateTotal().toLocaleString('en-IN')} for ${countSelectedServices()} services and ${countSelectedAddOns()} add-ons.`);
+    
+  };
+  const hasSelectedServices = () => {
+    return countSelectedServices() > 0 || countSelectedAddOns() > 0;
+  };
   return (
     <Dialog 
       style={{padding:'0px', borderRadius: '12px'}}
@@ -691,17 +699,21 @@ const MaidServiceDialog = ({ open, handleClose }) => {
                 ₹{calculateTotal().toLocaleString('en-IN')}
               </div>
             </div>
-            <button style={{
-              padding: '12px 25px',
-              backgroundColor: '#e17055',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}>
-              CHECKOUT
-            </button>
+            <button
+          style={{
+            padding: '12px 25px',
+            backgroundColor: hasSelectedServices() ? '#e17055' : '#bdc3c7',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: hasSelectedServices() ? 'pointer' : 'not-allowed'
+          }}
+          onClick={handleCheckout}
+          disabled={!hasSelectedServices()}
+        >
+          CHECKOUT
+        </button>
           </div>
         </div>
       </DialogContent>
