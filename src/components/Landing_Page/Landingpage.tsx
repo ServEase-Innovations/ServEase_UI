@@ -11,6 +11,7 @@ import { ServiceProviderContext } from "../../context/ServiceProviderContext";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/bookingType/bookingTypeSlice";
 import { Bookingtype } from "../../types/bookingTypeData";
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs from 'dayjs';
 
 interface ChildComponentProps {
@@ -24,7 +25,9 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string | null>(null);
+  
   const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
 
   const dispatch = useDispatch();
@@ -87,13 +90,16 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   };
 
   const isConfirmDisabled = () => {
-    if (selectedRadioButtonValue === "Date" || selectedRadioButtonValue === "Monthly") {
-      return !startDate;
+    if (selectedRadioButtonValue === "Date") {
+      return !(startDate && startTime && endTime);
     } else if (selectedRadioButtonValue === "Short term") {
       return !(startDate && endDate);
+    } else if (selectedRadioButtonValue === "Monthly") {
+      return !startDate;
     }
-    return true; // Default to disabled
+    return true;
   };
+  
 
   return (
     <section className="landing-container">
@@ -147,20 +153,34 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
         </FormControl>
         {selectedRadioButtonValue === "Date" && (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <label htmlFor="startDate">Date</label>
       <DateCalendar
         value={startDate ? dayjs(startDate) : null}
         onChange={(newDate) => {
           const formattedDate = newDate ? newDate.format('YYYY-MM-DD') : null;
           setStartDate(formattedDate);
-          setEndDate(formattedDate); // Auto-set end date to start date
+          setEndDate(formattedDate);
         }}
         disablePast
+      />
+
+      <TimePicker
+        label="Start Time"
+        value={startTime ? dayjs(startTime, 'HH:mm') : null}
+        onChange={(newTime) => setStartTime(newTime ? newTime.format('HH:mm') : null)}
+      />
+
+      <TimePicker
+        label="End Time"
+        value={endTime ? dayjs(endTime, 'HH:mm') : null}
+        onChange={(newTime) => setEndTime(newTime ? newTime.format('HH:mm') : null)}
+        minTime={startTime ? dayjs(startTime, 'HH:mm') : undefined}
       />
     </div>
   </LocalizationProvider>
 )}
+
     {selectedRadioButtonValue === "Short term" && (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
     <div className="date-container">
