@@ -218,30 +218,39 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
           </div>
 
           <div className="dropdowns-container">
-            <TextField
-              variant="outlined"
-              fullWidth
-              value={location}
-              onClick={handleClickOpen}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOnIcon
-                      sx={{ fontSize: 30, color: "#0d6efd", cursor: "pointer" }}
-                    />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                backgroundColor: "white",
-                borderRadius: 2,
-                width: "50%",
-                "&:hover": {
-                  cursor: "pointer",
-                },
-                cursor: "pointer",
-              }}
-            />
+          <div style={{
+  position: 'relative',
+  width: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'white',
+  border: `1px solid ${location ? '#0d6efd' : '#ccc'}`,
+  borderRadius: '8px',
+  cursor: 'pointer',
+  transition: 'border-color 0.3s ease',
+
+}} onClick={handleClickOpen}>
+  <LocationOnIcon style={{
+    marginLeft: '8px',
+    fontSize: '30px',
+    color: '#0d6efd'
+  }} />
+  <input
+    type="text"
+    value={location}
+    readOnly
+    style={{
+      width: '100%',
+      border: 'none',
+      outline: 'none',
+      padding: '12px',
+      backgroundColor: 'transparent',
+      cursor: 'pointer',
+      color:  'inherit'
+    }}
+    placeholder="Select location"
+  />
+</div>
        <IconButton onClick={handleProceedToCheckout}>
   <Badge badgeContent={cart?.selecteditem?.length ? cart?.selecteditem?.length : 0} color="primary">
     <ShoppingCartIcon color="action" />
