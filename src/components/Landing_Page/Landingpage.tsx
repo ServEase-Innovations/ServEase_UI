@@ -25,8 +25,8 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [endTime, setEndTime] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string>("");
+const [endTime, setEndTime] = useState<string>("");     
   
   const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
 
@@ -91,7 +91,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
 
   const isConfirmDisabled = () => {
     if (selectedRadioButtonValue === "Date") {
-      return !(startDate && startTime && endTime);
+      return !(startDate && startTime.trim() !== "" && endTime.trim() !== "");
     } else if (selectedRadioButtonValue === "Short term") {
       return !(startDate && endDate);
     } else if (selectedRadioButtonValue === "Monthly") {
@@ -99,6 +99,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
     }
     return true;
   };
+  
   
 
   return (
@@ -165,21 +166,50 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
         disablePast
       />
 
-      <TimePicker
-        label="Start Time"
-        value={startTime ? dayjs(startTime, 'HH:mm') : null}
-        onChange={(newTime) => setStartTime(newTime ? newTime.format('HH:mm') : null)}
-      />
+      <div style={{ display: 'flex', gap: '75px' }}>
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">Start Time</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="time-input"
+              required
+              style={{
+                border: startTime ? '2px solid #1976d2' : '1px solid #ccc',
+                
+               
+                outline: 'none',
+              }}
+            />
+          </div>
+        </div>
 
-      <TimePicker
-        label="End Time"
-        value={endTime ? dayjs(endTime, 'HH:mm') : null}
-        onChange={(newTime) => setEndTime(newTime ? newTime.format('HH:mm') : null)}
-        minTime={startTime ? dayjs(startTime, 'HH:mm') : undefined}
-      />
+        <div className="field">
+          <div className="input-with-label">
+            <span className="inline-label">End Time</span>
+            <input
+              type="time"
+              value={endTime}
+              min={startTime} // optionally restrict to after startTime
+              onChange={(e) => setEndTime(e.target.value)}
+              className="time-input"
+              required
+              style={{
+                border: endTime ? '2px solid #1976d2' : '1px solid #ccc',
+              
+                
+                outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </LocalizationProvider>
 )}
+
 
     {selectedRadioButtonValue === "Short term" && (
   <LocalizationProvider dateAdapter={AdapterDayjs}>
