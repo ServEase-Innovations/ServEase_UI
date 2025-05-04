@@ -97,6 +97,24 @@ const CookServicesDialog = ({ open, handleClose }) => {
           const rzp = new window.Razorpay(options);
           rzp.open();
         }
+
+        // bookingDetails.serviceProviderId = providerDetails.serviceproviderId;
+        //     bookingDetails.serviceProviderName=providerFullName;
+        //     bookingDetails.customerId = customerId;
+        //     bookingDetails.customerName = customerName;  
+        //     bookingDetails.address=currentLocation;
+        //     bookingDetails.startDate = bookingTypeFromSelection?.startDate;
+        //     bookingDetails.endDate = bookingTypeFromSelection?.endDate;
+        //     bookingDetails.engagements = checkout.selecteditem[0].Service;
+        //     bookingDetails.paymentMode = "UPI"; 
+        //     bookingDetails.taskStatus= "NOT_STARTED";
+        //     bookingDetails.bookingType = bookingType.bookingPreference;
+        //     bookingDetails.serviceeType = checkout.selecteditem[0].Service;
+        //     bookingDetails.timeslot = [bookingType.morningSelection, bookingType.eveningSelection]
+        //       .filter(Boolean)
+        //       .join(', '); 
+
+        //     bookingDetails.monthlyAmount = checkout.price;
       } catch (error) {
         console.log("error => ", error);
       }

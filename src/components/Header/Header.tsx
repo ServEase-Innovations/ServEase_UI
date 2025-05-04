@@ -82,19 +82,21 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address);
+            setLocation(address || "Location not found");
           } catch (error) {
-            console.log("Failed to fetch location");
+            console.log("Failed to fetch location: ", error);
           }
         },
-        (error) => {
-          console.log(error.message);
+        (error : any) => {
+          console.log("Geolocation error: ", error.message);
+          setError(error.message);
         }
       );
     } else {
       console.log("Geolocation is not supported by this browser.");
     }
   }, []);
+  
 
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState([]);
