@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Dialog from '@mui/material/Dialog';
 import { DialogContent } from '@mui/material';
+import axios from 'axios';
 
 const CookServicesDialog = ({ open, handleClose }) => {
   const [packages, setPackages] = useState({
@@ -54,12 +55,54 @@ const CookServicesDialog = ({ open, handleClose }) => {
   const handleApplyVoucher = () => {
    
     }
-    const handleCheckout = () => {
-      if (totalItems > 0) {
-        alert(`Proceeding to checkout with ${totalItems} items.`);
-        // You can add your checkout logic here
+    
+    const handleCheckout = async () => {
+      try {
+        const response = await axios.post(
+          "http://13.201.229.41:3000/create-order",
+          { amount: 10000 },
+          { headers: { "Content-Type": "application/json" } }
+        );
+    
+        if (response.status === 200 && response.data.success) {
+          const orderId = response.data.orderId;
+          const amount = 10000;
+          const currency = "INR";
+    
+          if (typeof window.Razorpay === "undefined") {
+            alert("Razorpay SDK not loaded.");
+            return;
+          }
+    
+          const options = {
+            key: "rzp_test_lTdgjtSRlEwreA",
+            amount,
+            currency,
+            name: "Serveaso",
+            description: "Booking Payment",
+            order_id: orderId,
+            handler: function (razorpayResponse) {
+              alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+            },
+            prefill: {
+              name: "Customer Name",
+              email: "email@example.com",
+              contact: "9999999999",
+            },
+            theme: {
+              color: "#3399cc",
+            },
+          };
+    
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+        }
+      } catch (error) {
+        console.log("error => ", error);
       }
     };
+    
+    
   // Calculate total items and total price
   const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
   const totalItems = selectedPackages.length;
