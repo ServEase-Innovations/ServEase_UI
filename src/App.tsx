@@ -91,7 +91,7 @@ if (userRole === "CUSTOMER") {
   });
 
   const getPricingData = () => {
-    axios.get('http://13.127.47.159:3000/records').then(function (response) {
+    axios.get('http://13.201.229.41:3000/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });

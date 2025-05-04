@@ -10,6 +10,8 @@ const PreferenceSelection = () => {
   const cookServices =
     pricing?.cook?.filter((service: any) => service.Type === "Regular") || [];
 
+    console.log("cookServices", cookServices);
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [personCount, setPersonCount] = useState<number>();
 
