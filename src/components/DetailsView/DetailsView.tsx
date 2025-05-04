@@ -10,6 +10,8 @@ import { useDispatch } from "react-redux";
 import { add } from "../../features/detailsData/detailsDataSlice";
 import HeaderSearch from "../HeaderSearch/HeaderSearch";
 import PreferenceSelection from "../PreferenceSelection/PreferenceSelection";
+import axios from "axios";
+import { keys } from "../../env/env";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -92,6 +94,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const [searchData, setSearchData] = useState<any>();
   const [serviceProviderData, setServiceProviderData] = useState<any>();
 
+
   const handleSearch = (formData: { serviceType: string; startTime: string; endTime: string }) => {
     console.log("Search data received in MainComponent:", formData);
     setSearchData(formData); // Save data in state
@@ -102,30 +105,48 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const performSearch = async (formData) => {
     const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
     const housekeepingRole = selected?.toUpperCase() || "";
-
-  console.log("Sending housekeeping role:", housekeepingRole);
-    const params = { 
-       // startDate: bookingDetails.date,
-        // endDate: bookingType.endDate, 
-        // timeslot: timeSlotFormatted, 
-        startDate: "2025-04-01",
-        endDate: "2025-04-30", 
-        timeslot: "9:00-10:00", 
-        housekeepingRole, // ✅ pass selected data
-        
+  
+    // Wrap geolocation in a promise
+    const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
+      new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation is not supported by this browser."));
+        } else {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              });
+            },
+            (error) => reject(error)
+          );
+        }
+      });
     
-      // housekeepingRole:'COOK',
-      latitude: 22.557295510020214,  
-      longitude: 88.19166107192879, 
-    };
+  
     try {
+      const { latitude, longitude } = await getCoordinates();
+  
+      console.log("Latitude:", latitude, "Longitude:", longitude);
+  
+      const params = {
+        startDate: "2025-04-01",
+        endDate: "2025-04-30",
+        timeslot: timeSlotFormatted,
+        housekeepingRole,
+        latitude,
+        longitude,
+      };
+  
       const response = await axiosInstance.get('/api/serviceproviders/search', { params });
       console.log('Response:', response.data);
       setServiceProviderData(response.data);
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (error : any) {
+      console.error('Geolocation or API error:', error.message || error);
     }
   };
+  
 
   console.log("Service Providers Data:", ServiceProvidersData);
   console.log("Service Providers Data:", serviceProviderData);
