@@ -7,6 +7,7 @@ import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
 import { useEffect, useState } from 'react';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import axiosInstance from '../../services/axiosInstance';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -187,7 +188,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
             
             try {
               // Save booking details to backend
-              const bookingResponse = await axios.post(
+              const bookingResponse = await axiosInstance.post(
                 "/api/serviceproviders/engagement/add",
                 bookingDetails,
                 {
@@ -205,7 +206,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
               }
             } catch (error) {
               console.error("Error saving booking:", error);
-              alert("Booking saved but failed to update server. Please contact support.");
             }
           },
           prefill: {
