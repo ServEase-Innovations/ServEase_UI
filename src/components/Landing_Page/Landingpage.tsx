@@ -13,6 +13,9 @@ import { add } from "../../features/bookingType/bookingTypeSlice";
 import { Bookingtype } from "../../types/bookingTypeData";
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs from 'dayjs';
+import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
+import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
+import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -26,7 +29,8 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string>("");
-const [endTime, setEndTime] = useState<string>("");     
+const [endTime, setEndTime] = useState<string>("");   
+const [openServiceDialog, setOpenServiceDialog] = useState(false);  
   
   const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
 
@@ -43,11 +47,14 @@ const [endTime, setEndTime] = useState<string>("");
   const [selectedRadioButtonValue, getSelectedRadioButtonValue] = React.useState<string>('');
 
   const handleClick = (data: string) => {
+    // console.log("Selected service type:", data); 
     setOpen(true);
     setSelectedtype(data);
     setSelectedBookingType(data);
-  };
+    
 
+  };
+  console.log("Final selected type:", selectedType);
   const handleClose = (data: string) => {
     setOpen(false);
   };
@@ -56,21 +63,29 @@ const [endTime, setEndTime] = useState<string>("");
     console.log("Selected Start Date:", startDate);
     console.log("Selected End Date:", endDate);
     const booking: Bookingtype = {
-      startDate,  // Use the state directly
-      endDate,    // Use the state directly
+      startDate,
+      endDate,
       bookingPreference: selectedRadioButtonValue,
     };
-
+  
     if (selectedRadioButtonValue === "Date") {
-      bookingType(selectedType);
-      sendDataToParent(CONFIRMATION);
-    } else {
+      setOpenServiceDialog(true); // Open the service dialog instead of alert
+    } 
+    
+    if (selectedRadioButtonValue != "Date") {
       sendDataToParent(DETAILS);
     }
+  
     console.log("------- BOOKING------------", booking);
     dispatch(add(booking));
   };
-
+  // {selectedType=== "cook" && 
+  //   <CookServicesDialog  open={open} handleClose={handleClose} />}
+  //   {selectedType === "maid" && 
+  //   <MaidServiceDialog open={open} handleClose={handleClose} />}
+    
+  //   { selectedType=== "nanny" && 
+  //   <NannyServicesDialog open={open} handleClose={handleClose} />}
   const getSelectedValue = (e: React.ChangeEvent<HTMLInputElement>) => {
     getSelectedRadioButtonValue(e.target.value);
     setStartDate(null);
@@ -261,6 +276,24 @@ const [endTime, setEndTime] = useState<string>("");
   </LocalizationProvider>
 )}
       </DialogComponent>
+      {selectedType === "cook" && (
+  <CookServicesDialog 
+    open={openServiceDialog} 
+    handleClose={() => setOpenServiceDialog(false)} 
+  />
+)}
+{selectedType === "maid" && (
+  <MaidServiceDialog 
+    open={openServiceDialog} 
+    handleClose={() => setOpenServiceDialog(false)} 
+  />
+)}
+{selectedType === "nanny" && (
+  <NannyServicesDialog 
+    open={openServiceDialog} 
+    handleClose={() => setOpenServiceDialog(false)} 
+  />
+)}
     </section>
   );
 };

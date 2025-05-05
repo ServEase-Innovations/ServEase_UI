@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "./HeaderSearch.css";
+import { useDispatch } from "react-redux";
+import { update } from "../../features/bookingType/bookingTypeSlice"; // Adjust path as needed
 
 const BookingForm = ({ onSearch }: { onSearch: (data: any) => void }) => {
   const [formData, setFormData] = useState({
@@ -8,14 +10,35 @@ const BookingForm = ({ onSearch }: { onSearch: (data: any) => void }) => {
     endTime: "",
   });
 
+  const dispatch = useDispatch();
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Dispatch to Redux store
+    dispatch(update({
+      serviceType: formData.serviceType,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      timeRange: `${formData.startTime} - ${formData.endTime}`,
+      duration: calculateDuration(formData.startTime, formData.endTime)
+    }));
+
     console.log("Form Submitted:", formData);
     onSearch(formData); // Send data to parent
+  };
+
+  // Helper function to calculate duration in hours
+  const calculateDuration = (start: string, end: string) => {
+    const [startHours, startMinutes] = start.split(":").map(Number);
+    const [endHours, endMinutes] = end.split(":").map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    return (endTotalMinutes - startTotalMinutes) / 60;
   };
 
   return (
@@ -69,8 +92,6 @@ const BookingForm = ({ onSearch }: { onSearch: (data: any) => void }) => {
 };
 
 const HeaderSearch = ({ onSearch }: { onSearch: (data: any) => void }) => {
-
-
   return (
     <div className="header-search">
       <BookingForm onSearch={onSearch} />

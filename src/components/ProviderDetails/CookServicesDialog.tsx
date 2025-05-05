@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
-import Dialog from '@mui/material/Dialog';
-import { DialogContent } from '@mui/material';
 import axios from 'axios';
+import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
+import { useDispatch, useSelector } from 'react-redux';
+import { BookingDetails } from '../../types/engagementRequest';
+import { BOOKINGS } from '../../Constants/pagesConstants';
+import { Dialog, DialogContent } from '@mui/material';
+import { useEffect, useState } from 'react';
 
-const CookServicesDialog = ({ open, handleClose }) => {
+interface CookServicesDialogProps {
+  open: boolean;
+  handleClose: () => void;
+  providerDetails?: EnhancedProviderDetails;
+  sendDataToParent?: (data: string) => void;
+}
+
+const CookServicesDialog: React.FC<CookServicesDialogProps> = ({ 
+  open, 
+  handleClose, 
+  providerDetails,
+  sendDataToParent
+}) => {
   const [packages, setPackages] = useState({
     breakfast: {
       selected: false,
@@ -21,6 +36,33 @@ const CookServicesDialog = ({ open, handleClose }) => {
       price: 1899
     }
   });
+  const bookingType = useSelector((state: any) => state.bookingType?.value)
+  console.log("bookingType",bookingType);
+  const user = useSelector((state: any) => state.user?.value);
+  const dispatch = useDispatch();
+  const customerId = user?.customerDetails?.customerId || null;
+  const currentLocation = user?.customerDetails?.currentLocation;
+  const firstName = user?.customerDetails?.firstName;
+  const lastName = user?.customerDetails?.lastName;
+  const customerName = `${firstName} ${lastName}`;
+  const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
+
+  const bookingDetails: BookingDetails = {
+    serviceProviderId: 0,
+    serviceProviderName: "",
+    customerId: 0,
+    customerName: "", 
+    startDate: new Date().toISOString().split('T')[0], // Today's date as default
+    endDate: "",
+    engagements: "",
+    address: "",
+    timeslot: "",
+    monthlyAmount: 0,
+    paymentMode: "UPI",
+    bookingType: "MEAL_PACKAGE",
+    taskStatus: "NOT_STARTED", 
+    responsibilities: [],
+  };
 
   const handlePersonChange = (packageName, operation) => {
     setPackages(prev => {
@@ -52,81 +94,126 @@ const CookServicesDialog = ({ open, handleClose }) => {
       }
     }));
   };
+
   const handleApplyVoucher = () => {
-   
-    }
-    
-    const handleCheckout = async () => {
-      try {
-        const response = await axios.post(
-          "http://13.201.229.41:3000/create-order",
-          { amount: 10000 },
-          { headers: { "Content-Type": "application/json" } }
-        );
-    
-        if (response.status === 200 && response.data.success) {
-          const orderId = response.data.orderId;
-          const amount = 10000;
-          const currency = "INR";
-    
-          if (typeof window.Razorpay === "undefined") {
-            alert("Razorpay SDK not loaded.");
-            return;
-          }
-    
-          const options = {
-            key: "rzp_test_lTdgjtSRlEwreA",
-            amount,
-            currency,
-            name: "Serveaso",
-            description: "Booking Payment",
-            order_id: orderId,
-            handler: function (razorpayResponse) {
-              alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-            },
-            prefill: {
-              name: "Customer Name",
-              email: "email@example.com",
-              contact: "9999999999",
-            },
-            theme: {
-              color: "#3399cc",
-            },
-          };
-    
-          const rzp = new window.Razorpay(options);
-          rzp.open();
+    // Voucher logic here
+  };
+
+  const handleCheckout = async () => {
+    try {
+      // Prepare selected packages data
+      const selectedPackages = Object.entries(packages)
+        .filter(([_, pkg]) => pkg.selected)
+        .map(([name, pkg]) => ({
+          mealType: name.toUpperCase(),
+          persons: pkg.persons,
+          price: pkg.price
+        }));
+
+      if (selectedPackages.length === 0) {
+        alert('Please select at least one package');
+        return;
+      }
+
+      const totalAmount = selectedPackages.reduce(
+        (sum, pkg) => sum + (pkg.price * pkg.persons), 0
+      );
+
+      // Create Razorpay order
+      const response = await axios.post(
+        "http://13.201.229.41:3000/create-order",
+        { amount: totalAmount * 100 }, // Convert to paise
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.status === 200 && response.data.success) {
+        const orderId = response.data.orderId;
+        const amount = totalAmount * 100;
+        const currency = "INR";
+
+        if (typeof window.Razorpay === "undefined") {
+          alert("Razorpay SDK not loaded.");
+          return;
         }
 
-        // bookingDetails.serviceProviderId = providerDetails.serviceproviderId;
-        //     bookingDetails.serviceProviderName=providerFullName;
-        //     bookingDetails.customerId = customerId;
-        //     bookingDetails.customerName = customerName;  
-        //     bookingDetails.address=currentLocation;
-        //     bookingDetails.startDate = bookingTypeFromSelection?.startDate;
-        //     bookingDetails.endDate = bookingTypeFromSelection?.endDate;
-        //     bookingDetails.engagements = checkout.selecteditem[0].Service;
-        //     bookingDetails.paymentMode = "UPI"; 
-        //     bookingDetails.taskStatus= "NOT_STARTED";
-        //     bookingDetails.bookingType = bookingType.bookingPreference;
-        //     bookingDetails.serviceeType = checkout.selecteditem[0].Service;
-        //     bookingDetails.timeslot = [bookingType.morningSelection, bookingType.eveningSelection]
-        //       .filter(Boolean)
-        //       .join(', '); 
+        // Set up booking details
+        bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
+        ? Number(providerDetails.serviceproviderId) 
+        : null;
+        bookingDetails.serviceProviderName = providerFullName;
+        bookingDetails.customerId = customerId;
+        bookingDetails.customerName = customerName;  
+        bookingDetails.address = currentLocation;
+        bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
+        bookingDetails.endDate = bookingType?.endDate || "";
+  
+        bookingDetails.engagements = selectedPackages.map(pkg => 
+          `${pkg.mealType} for ${pkg.persons} persons`
+        ).join(', ');
+        bookingDetails.monthlyAmount = totalAmount;
+        bookingDetails.timeslot = bookingType.timeRange;
 
-        //     bookingDetails.monthlyAmount = checkout.price;
-      } catch (error) {
-        console.log("error => ", error);
+        const options = {
+          key: "rzp_test_lTdgjtSRlEwreA",
+          amount,
+          currency,
+          name: "Serveaso",
+          description: "Meal Package Booking",
+          order_id: orderId,
+          handler: async function (razorpayResponse) {
+            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+            
+            try {
+              // Save booking details to backend
+              const bookingResponse = await axios.post(
+                "/api/serviceproviders/engagement/add",
+                bookingDetails,
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+
+              if (bookingResponse.status === 201) {
+                if (sendDataToParent) {
+                  sendDataToParent(BOOKINGS);
+                }
+                handleClose();
+              }
+            } catch (error) {
+              console.error("Error saving booking:", error);
+              alert("Booking saved but failed to update server. Please contact support.");
+            }
+          },
+          prefill: {
+            name: customerName || "",
+            email: user?.email || "",
+            contact: user?.mobileNo || "",
+          },
+          theme: {
+            color: "#3399cc",
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
       }
-    };
-    
-    
+    } catch (error) {
+      console.log("error => ", error);
+      alert("Failed to initiate payment. Please try again.");
+    }
+  };
+
   // Calculate total items and total price
   const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
   const totalItems = selectedPackages.length;
   const totalPersons = selectedPackages.reduce((sum, [_, pkg]) => sum + pkg.persons, 0);
   const totalPrice = selectedPackages.reduce((sum, [_, pkg]) => sum + (pkg.price * pkg.persons), 0);
 
+  useEffect(() => {
+    console.log('Provider Details:', providerDetails);
+  }, [providerDetails]);
   return (
     <Dialog 
       style={{padding:'0px', borderRadius: '12px'}}
