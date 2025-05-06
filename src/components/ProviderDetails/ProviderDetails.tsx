@@ -381,7 +381,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         <MaidServiceDialog 
           open={open} 
           handleClose={handleClose} 
-          // providerDetails={providerDetailsData} 
+          providerDetails={providerDetailsData} 
         />
       }
       
@@ -389,7 +389,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         <NannyServicesDialog 
           open={open} 
           handleClose={handleClose} 
-          // providerDetails={providerDetailsData} 
+          providerDetails={providerDetailsData} 
         />
       }
     </>
