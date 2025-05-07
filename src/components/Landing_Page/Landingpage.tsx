@@ -58,14 +58,27 @@ const [openServiceDialog, setOpenServiceDialog] = useState(false);
   const handleClose = (data: string) => {
     setOpen(false);
   };
-
   const handleSave = () => {
     console.log("Selected Start Date:", startDate);
     console.log("Selected End Date:", endDate);
+    
+    // Calculate duration if it's a Date booking
+    let duration = 0;
+    let timeRange = "";
+    
+    if (selectedRadioButtonValue === "Date") {
+      duration = calculateDuration(startTime, endTime);
+      timeRange = `${startTime} - ${endTime}`;
+    }
+  
     const booking: Bookingtype = {
       startDate,
       endDate,
       bookingPreference: selectedRadioButtonValue,
+      startTime: selectedRadioButtonValue === "Date" ? startTime : undefined,
+      endTime: selectedRadioButtonValue === "Date" ? endTime : undefined,
+      timeRange: selectedRadioButtonValue === "Date" ? timeRange : undefined,
+      duration: selectedRadioButtonValue === "Date" ? duration : undefined
     };
   
     if (selectedRadioButtonValue === "Date") {
@@ -79,6 +92,16 @@ const [openServiceDialog, setOpenServiceDialog] = useState(false);
     console.log("------- BOOKING------------", booking);
     dispatch(add(booking));
   };
+  
+  // Helper function to calculate duration in hours (same as in HeaderSearch)
+  const calculateDuration = (start: string, end: string) => {
+    const [startHours, startMinutes] = start.split(":").map(Number);
+    const [endHours, endMinutes] = end.split(":").map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    return (endTotalMinutes - startTotalMinutes) / 60;
+  };
+
   // {selectedType=== "cook" && 
   //   <CookServicesDialog  open={open} handleClose={handleClose} />}
   //   {selectedType === "maid" && 
