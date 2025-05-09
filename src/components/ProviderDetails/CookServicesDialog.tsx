@@ -16,35 +16,41 @@ interface CookServicesDialogProps {
   sendDataToParent?: (data: string) => void;
 }
 
+interface MealPackage {
+  selected: boolean;
+  persons: number;
+  basePrice: number;
+  calculatedPrice: number;
+  maxPersons: number;
+  description: string[];
+  preparationTime: string;
+  rating: number;
+  reviews: string;
+  category: string;
+  jobDescription: string;
+  remarks: string;
+}
+
+interface PackagesState {
+  [key: string]: MealPackage;
+}
+
 const CookServicesDialog: React.FC<CookServicesDialogProps> = ({ 
   open, 
   handleClose, 
   providerDetails,
   sendDataToParent
 }) => {
-  const [packages, setPackages] = useState({
-    breakfast: {
-      selected: false,
-      persons: 1,
-      price: 1265
-    },
-    lunch: {
-      selected: false,
-      persons: 1,
-      price: 717
-    },
-    dinner: {
-      selected: false,
-      persons: 1,
-      price: 1899
-    }
-  });
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
-
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const user = useSelector((state: any) => state.user?.value);
+  const pricing = useSelector((state: any) => state.pricing?.groupedServices);
+  const cookServices = pricing?.cook?.filter((service: any) => service.Type === "Regular") || [];
+  
+  const [packages, setPackages] = useState<PackagesState>({});
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const dispatch = useDispatch();
+
   const customerId = user?.customerDetails?.customerId || null;
   const currentLocation = user?.customerDetails?.currentLocation;
   const firstName = user?.customerDetails?.firstName;
@@ -69,11 +75,86 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     responsibilities: [],
   };
 
+  const calculatePriceForPersons = (basePrice: number, persons: number): number => {
+    if (persons <= 3) {
+      return basePrice;
+    } else if (persons > 3 && persons <= 6) {
+      const extraPeople = persons - 3;
+      return basePrice + basePrice * 0.2 * extraPeople;
+    } else if (persons > 6 && persons <= 9) {
+      const priceFor6 = basePrice + basePrice * 0.2 * 3;
+      const extraPeople = persons - 6;
+      return priceFor6 + priceFor6 * 0.1 * extraPeople;
+    } else if (persons > 9) {
+      const priceFor6 = basePrice + basePrice * 0.2 * 3;
+      const priceFor9 = priceFor6 + priceFor6 * 0.1 * 3;
+      const extraPeople = persons - 9;
+      return priceFor9 + priceFor9 * 0.05 * extraPeople;
+    }
+    return basePrice;
+  };
+
+  useEffect(() => {
+    if (cookServices.length > 0 && Object.keys(packages).length === 0) {
+      const initialPackages: PackagesState = {};
+      
+      cookServices.forEach((service: any) => {
+        const category = service.Categories.toLowerCase();
+        const maxPersons = parseInt(service["Numbers/Size"].replace('<=', '')) || 3;
+        const basePrice = service["Price /Month (INR)"];
+        
+        initialPackages[category] = {
+          selected: false,
+          persons: 1,
+          basePrice,
+          calculatedPrice: calculatePriceForPersons(basePrice, 1),
+          maxPersons,
+          description: service["Job Description"].split('\n').filter((line: string) => line.trim() !== ''),
+          preparationTime: getPreparationTime(category),
+          rating: 4.84,
+          reviews: getReviewsText(category),
+          category: service.Categories,
+          jobDescription: service["Job Description"],
+          remarks: service["Remarks/Conditions"]
+        };
+      });
+      
+      setPackages(initialPackages);
+    }
+  }, [cookServices, packages]);
+
   useEffect(() => {
     if (user?.role === 'CUSTOMER') {
       setLoggedInUser(user);
     }
   }, [user]);
+
+  const getPreparationTime = (category: string): string => {
+    switch(category) {
+      case 'breakfast': return '30 mins preparation';
+      case 'lunch': return '45 mins preparation';
+      case 'dinner': return '1.5 hrs preparation';
+      default: return '30 mins preparation';
+    }
+  };
+
+  const getReviewsText = (category: string): string => {
+    switch(category) {
+      case 'breakfast': return '(2.9M reviews)';
+      case 'lunch': return '(1.7M reviews)';
+      case 'dinner': return '(2.7M reviews)';
+      default: return '(1M reviews)';
+    }
+  };
+
+  const getCategoryColor = (category: string): string => {
+    switch(category.toLowerCase()) {
+      case 'breakfast': return '#e17055';
+      case 'lunch': return '#00b894';
+      case 'dinner': return '#0984e3';
+      default: return '#2d3436';
+    }
+  };
 
   const handleLogin = () => {
     setLoginOpen(true);
@@ -87,35 +168,43 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     setLoginOpen(false);
   };
 
-  const handlePersonChange = (packageName: string, operation: string) => {
+  const handlePersonChange = (packageName: string, operation: 'increment' | 'decrement') => {
     setPackages(prev => {
-      const currentValue = prev[packageName].persons;
-      let newValue = currentValue;
+      const currentPackage = prev[packageName];
+      if (!currentPackage) return prev;
+
+      let newValue = currentPackage.persons;
       
-      if (operation === 'increment' && currentValue < 15) {
-        newValue = currentValue + 1;
-      } else if (operation === 'decrement' && currentValue > 1) {
-        newValue = currentValue - 1;
+      if (operation === 'increment') {
+        newValue += 1;
+      } else if (operation === 'decrement' && newValue > 1) {
+        newValue -= 1;
       }
       
       return {
         ...prev,
         [packageName]: {
-          ...prev[packageName],
-          persons: newValue
+          ...currentPackage,
+          persons: newValue,
+          calculatedPrice: calculatePriceForPersons(currentPackage.basePrice, newValue)
         }
       };
     });
   };
 
   const togglePackageSelection = (packageName: string) => {
-    setPackages(prev => ({
-      ...prev,
-      [packageName]: {
-        ...prev[packageName],
-        selected: !prev[packageName].selected
-      }
-    }));
+    setPackages(prev => {
+      const currentPackage = prev[packageName];
+      if (!currentPackage) return prev;
+
+      return {
+        ...prev,
+        [packageName]: {
+          ...currentPackage,
+          selected: !currentPackage.selected
+        }
+      };
+    });
   };
 
   const handleApplyVoucher = () => {
@@ -124,13 +213,12 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
 
   const handleCheckout = async () => {
     try {
-      // Prepare selected packages data
       const selectedPackages = Object.entries(packages)
         .filter(([_, pkg]) => pkg.selected)
         .map(([name, pkg]) => ({
           mealType: name.toUpperCase(),
           persons: pkg.persons,
-          price: pkg.price
+          price: pkg.calculatedPrice
         }));
 
       if (selectedPackages.length === 0) {
@@ -139,13 +227,12 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
       }
 
       const totalAmount = selectedPackages.reduce(
-        (sum, pkg) => sum + (pkg.price * pkg.persons), 0
+        (sum, pkg) => sum + pkg.price, 0
       );
 
-      // Create Razorpay order
       const response = await axios.post(
         "http://13.201.229.41:3000/create-order",
-        { amount: totalAmount * 100 }, // Convert to paise
+        { amount: totalAmount * 100 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -159,7 +246,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
           return;
         }
 
-        // Set up booking details
         bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
           ? Number(providerDetails.serviceproviderId) 
           : null;
@@ -187,7 +273,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
             alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
             
             try {
-              // Save booking details to backend
               const bookingResponse = await axiosInstance.post(
                 "/api/serviceproviders/engagement/add",
                 bookingDetails,
@@ -227,11 +312,134 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     }
   };
 
-  // Calculate total items and total price
+  const renderPackageSections = () => {
+    return Object.entries(packages).map(([packageName, pkg]) => {
+      const categoryColor = getCategoryColor(packageName);
+      
+      return (
+        <div 
+          key={packageName}
+          style={{
+            border: '1px solid #dfe6e9',
+            borderRadius: '10px',
+            padding: '15px',
+            marginBottom: '20px',
+            backgroundColor: pkg.selected ? `${categoryColor}10` : '#fff',
+            borderLeft: pkg.selected ? `3px solid ${categoryColor}` : '1px solid #dfe6e9'
+          }}
+        >
+          <div style={{display: 'flex', justifyContent: 'space-between'}}>
+            <div>
+              <h2 style={{color: '#2d3436', margin: '0 0 5px 0', textTransform: 'capitalize'}}>
+                {packageName}
+              </h2>
+              <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
+                <span style={{color: categoryColor, fontWeight: 'bold'}}>{pkg.rating}</span>
+                <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>
+                  {pkg.reviews}
+                </span>
+              </div>
+            </div>
+            <div style={{textAlign: 'right'}}>
+              <div style={{fontWeight: 'bold', color: categoryColor, fontSize: '18px'}}>
+                ₹{pkg.calculatedPrice.toFixed(2)}
+              </div>
+              <div style={{color: '#636e72', fontSize: '14px'}}>
+                {pkg.preparationTime}
+              </div>
+            </div>
+          </div>
+          
+          <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
+            <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
+            <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePersonChange(packageName, 'decrement');
+                }}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: '#f5f5f5',
+                  border: 'none',
+                  borderRight: '1px solid #dfe6e9',
+                  borderRadius: '20px 0 0 20px',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+                disabled={pkg.persons <= 1}
+              >
+                -
+              </button>
+              <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                {pkg.persons}
+              </span>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePersonChange(packageName, 'increment');
+                }}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: '#f5f5f5',
+                  border: 'none',
+                  borderLeft: '1px solid #dfe6e9',
+                  borderRadius: '0 20px 20px 0',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+                disabled={pkg.persons >= 15}
+              >
+                +
+              </button>
+            </div>
+            {pkg.persons > pkg.maxPersons && (
+              <span style={{color: '#e17055', fontSize: '12px', marginLeft: '10px'}}>
+                *Additional charges applied
+              </span>
+            )}
+          </div>
+          
+          <div style={{margin: '15px 0'}}>
+            {pkg.description.map((item, index) => (
+              item.trim() && (
+                <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
+                  <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                  <span>{item.trim()}</span>
+                </div>
+              )
+            ))}
+          </div>
+          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePackageSelection(packageName);
+            }}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: pkg.selected ? categoryColor : '#fff',
+              color: pkg.selected ? '#fff' : categoryColor,
+              border: `1px solid ${pkg.selected ? categoryColor : '#dfe6e9'}`,
+              borderRadius: '6px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginTop: '10px',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {pkg.selected ? 'SELECTED' : 'SELECT PACKAGE'}
+          </button>
+        </div>
+      );
+    });
+  };
+
   const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
   const totalItems = selectedPackages.length;
   const totalPersons = selectedPackages.reduce((sum, [_, pkg]) => sum + pkg.persons, 0);
-  const totalPrice = selectedPackages.reduce((sum, [_, pkg]) => sum + (pkg.price * pkg.persons), 0);
+  const totalPrice = selectedPackages.reduce((sum, [_, pkg]) => sum + pkg.calculatedPrice, 0);
 
   return (
     <>
@@ -247,299 +455,14 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
       >
         <DialogContent style={{padding: '0'}}>
           <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '550px', width: '100%'}}>
-            {/* Header */}
             <div style={{padding: '20px', borderBottom: '1px solid #f0f0f0'}}>
               <h1 style={{color: '#2d3436', margin: '0', fontSize: '24px'}}>MEAL PACKAGES</h1>
             </div>
             
-            {/* Package Sections */}
             <div style={{padding: '20px'}}>
-              {/* Breakfast Package */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                backgroundColor: packages.breakfast.selected ? '#fff8f6' : '#fff'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Breakfast </h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#e17055', fontWeight: 'bold'}}>4.84</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(2.9M reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#e17055', fontSize: '18px'}}>₹{packages.breakfast.price}</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>30 mins preparation</div>
-                  </div>
-                </div>
-                
-                {/* Person Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handlePersonChange('breakfast', 'decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.breakfast.persons <= 1}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packages.breakfast.persons}
-                    </span>
-                    <button 
-                      onClick={() => handlePersonChange('breakfast', 'increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.breakfast.persons >= 15}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Continental breakfast platter</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Fresh juices & coffee</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Seasonal fruit basket</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => togglePackageSelection('breakfast')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packages.breakfast.selected ? '#e17055' : '#fff',
-                    color: packages.breakfast.selected ? '#fff' : '#e17055',
-                    border: '1px solid #e17055',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
-                >
-                  {packages.breakfast.selected ? 'SELECTED' : 'SELECT PACKAGE'}
-                </button>
-              </div>
-              
-              {/* Lunch Package */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                backgroundColor: packages.lunch.selected ? '#f6fff8' : '#fff'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Lunch</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#00b894', fontWeight: 'bold'}}>4.84</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.7M reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#00b894', fontSize: '18px'}}>₹{packages.lunch.price}</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>45 mins preparation</div>
-                  </div>
-                </div>
-                
-                {/* Person Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handlePersonChange('lunch', 'decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.lunch.persons <= 1}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packages.lunch.persons}
-                    </span>
-                    <button 
-                      onClick={() => handlePersonChange('lunch', 'increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.lunch.persons >= 15}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Daily chef's special</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Soup or salad</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Dessert of the day</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => togglePackageSelection('lunch')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packages.lunch.selected ? '#00b894' : '#fff',
-                    color: packages.lunch.selected ? '#fff' : '#e17055',
-                    border: `1px solid ${packages.lunch.selected ? '#00b894' : '#e17055'}`,
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
-                >
-                  {packages.lunch.selected ? 'SELECTED' : 'SELECT PACKAGE'}
-                </button>
-              </div>
-              
-              {/* Dinner Package */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                backgroundColor: packages.dinner.selected ? '#f6f9ff' : '#fff'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Dinner</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#0984e3', fontWeight: 'bold'}}>4.84</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(2.7M reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#0984e3', fontSize: '18px'}}>₹{packages.dinner.price}</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>1.5 hrs preparation</div>
-                  </div>
-                </div>
-                
-                {/* Person Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handlePersonChange('dinner', 'decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.dinner.persons <= 1}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packages.dinner.persons}
-                    </span>
-                    <button 
-                      onClick={() => handlePersonChange('dinner', 'increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      disabled={packages.dinner.persons >= 15}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>3-course gourmet meal</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Wine pairing available</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Chef's special dessert</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => togglePackageSelection('dinner')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packages.dinner.selected ? '#0984e3' : '#fff',
-                    color: packages.dinner.selected ? '#fff' : '#e17055',
-                    border: `1px solid ${packages.dinner.selected ? '#0984e3' : '#e17055'}`,
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
-                >
-                  {packages.dinner.selected ? 'SELECTED' : 'SELECT PACKAGE'}
-                </button>
-              </div>
+              {renderPackageSections()}
             </div>
             
-            {/* Voucher Section */}
             <div style={{
               padding: '15px 20px',
               borderTop: '1px solid #f0f0f0',
@@ -576,7 +499,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
               </div>
             </div>
             
-            {/* Footer with Checkout */}
             <div
               style={{
                 position: 'sticky',
@@ -596,7 +518,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                 <div style={{color: '#636e72', fontSize: '14px'}}>
                   Total for {totalItems} item{totalItems !== 1 ? 's' : ''} ({totalPersons} person{totalPersons !== 1 ? 's' : ''})
                 </div>
-                <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹{totalPrice}</div>
+                <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹{totalPrice.toFixed(2)}</div>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -608,22 +530,21 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                       </IconButton>
                     </Tooltip>
                     <button
-  style={{
-    padding: '8px 16px',
-    backgroundColor: '#1976d2', // primary blue
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontWeight: 'bold',
-    fontSize: '12px', // small font size
-    cursor: 'pointer',
-    width: 'fit-content'
-  }}
-  onClick={handleLogin}
->
-  LOGIN TO CONTINUE
-</button>
-
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#1976d2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 'bold',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        width: 'fit-content'
+                      }}
+                      onClick={handleLogin}
+                    >
+                      LOGIN TO CONTINUE
+                    </button>
                   </>
                 )}
                 
@@ -650,7 +571,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Login Dialog */}
       <Dialog 
         style={{padding:'0px'}}
         open={loginOpen}
