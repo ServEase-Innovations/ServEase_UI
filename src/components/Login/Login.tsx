@@ -75,77 +75,83 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    try {
-      const response = await axiosInstance.post("/api/user/login", {
-        username: email,
-        password: password,
-      });
+  try {
+    const response = await axiosInstance.post("/api/user/login", {
+      username: email,
+      password: password,
+    });
 
-       // Log the full response data to the console
     console.log("Response Data:", response.data);
 
-      // Check if the response is successful
-      if (response.status === 200 && response.data) {
-        const { message, role,customerDetails } = response.data;
-        const firstName = customerDetails?.firstName || "Unknown";
-       
-        // console.log("First Name:", firstName);
-        dispatch(add(response.data));
+    if (response.status === 200 && response.data) {
+      const { message, role, customerDetails } = response.data;
+      const firstName = customerDetails?.firstName || "Unknown";
 
-        // Display success message
-        setSnackbarMessage(message || "Login successful!");
-        setSnackbarSeverity("success");
-        setOpenSnackbar(true);
+      dispatch(add(response.data));
 
-        setTimeout(() => {
-          if (role === "SERVICE_PROVIDER") {
-            if (sendDataToParent) {
-              sendDataToParent(PROFILE);
-            } else if (bookingPage) {
-              bookingPage(role);
-            }
-          } else {
-            if (sendDataToParent) {
-              sendDataToParent("");
-            } else if (bookingPage) {
-              bookingPage(role);
-            }
-          }
-        }, 1000);
-        // setTimeout(() => {
-        //   if (role === "SERVICE_PROVIDER") {
-        //     setRedirectComponent(<ServiceProviderDashboard />);
-        //   } else {
-        //     setRedirectComponent(
-        //       <DetailsView 
-        //         sendDataToParent={(data: string) => {
-        //           console.log(`Role is: ${data}`);
-        //           // You can perform other actions with the role here
-        //         }} 
-        //       />
-        //     );
-        //   }
-        // }, 1000);
-
-      } else {
-        // Handle unexpected responses
-        throw new Error(
-          response.data?.message ||
-            "Login failed. Please check your credentials."
-        );
-      }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      setSnackbarMessage(
-        error.response?.data?.message || "An error occurred during login."
-      );
-      setSnackbarSeverity("error");
+      // Show success snackbar
+      setSnackbarMessage(message || "Login successful!");
+      setSnackbarSeverity("success");
       setOpenSnackbar(true);
+
+      // Notification logic
+      try {
+        const notifyResponse = await fetch("http://localhost:4000/send-notification", {
+          method: "POST",
+          body: JSON.stringify({
+            title: "Login Successful",
+            body: `Welcome back, ${firstName}!`,
+            url: "http://localhost:3000",
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (notifyResponse.ok) {
+          console.log("Notification triggered!");
+          alert("Notification sent!");
+        } else {
+          console.error("Notification failed");
+          alert("Failed to send notification");
+        }
+      } catch (error) {
+        console.error("Error sending notification:", error);
+        alert("Error sending notification");
+      }
+
+      // Handle redirection after login
+      setTimeout(() => {
+        if (role === "SERVICE_PROVIDER") {
+          if (sendDataToParent) {
+            sendDataToParent(PROFILE);
+          } else if (bookingPage) {
+            bookingPage(role);
+          }
+        } else {
+          if (sendDataToParent) {
+            sendDataToParent("");
+          } else if (bookingPage) {
+            bookingPage(role);
+          }
+        }
+      }, 1000);
+    } else {
+      throw new Error(
+        response.data?.message || "Login failed. Please check your credentials."
+      );
     }
-  };
+  } catch (error: any) {
+    console.error("Login error:", error);
+    setSnackbarMessage(
+      error.response?.data?.message || "An error occurred during login."
+    );
+    setSnackbarSeverity("error");
+    setOpenSnackbar(true);
+  }
+};
+
 
   if (isForgotPassword) {
     return <ForgotPassword onBackToLogin={handleBackToLogin} />;

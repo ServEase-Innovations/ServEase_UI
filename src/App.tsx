@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from "react-redux"; // Import useSelector
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
+import NotificationButton from "./components/NotificationButton";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -141,6 +142,7 @@ if (userRole === "CUSTOMER") {
      {/* <ServiceProviderDashboard />  */}
        <section className="flex-grow flex justify-center items-center py-6 relative">
         {renderContent()}
+        {/* <NotificationButton /> */}
       </section>
       <footer className="footer-container">
         <Footer />

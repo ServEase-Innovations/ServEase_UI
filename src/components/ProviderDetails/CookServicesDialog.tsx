@@ -211,106 +211,138 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     // Voucher logic here
   };
 
-  const handleCheckout = async () => {
-    try {
-      const selectedPackages = Object.entries(packages)
-        .filter(([_, pkg]) => pkg.selected)
-        .map(([name, pkg]) => ({
-          mealType: name.toUpperCase(),
-          persons: pkg.persons,
-          price: pkg.calculatedPrice
-        }));
+ const handleCheckout = async () => {
+  try {
+    const selectedPackages = Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([name, pkg]) => ({
+        mealType: name.toUpperCase(),
+        persons: pkg.persons,
+        price: pkg.calculatedPrice,
+      }));
 
-      if (selectedPackages.length === 0) {
-        alert('Please select at least one package');
+    if (selectedPackages.length === 0) {
+      alert("Please select at least one package");
+      return;
+    }
+
+    const totalAmount = selectedPackages.reduce(
+      (sum, pkg) => sum + pkg.price,
+      0
+    );
+
+    const response = await axios.post(
+      "http://13.201.229.41:3000/create-order",
+      { amount: totalAmount * 100 },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.status === 200 && response.data.success) {
+      const orderId = response.data.orderId;
+      const amount = totalAmount * 100;
+      const currency = "INR";
+
+      if (typeof window.Razorpay === "undefined") {
+        alert("Razorpay SDK not loaded.");
         return;
       }
 
-      const totalAmount = selectedPackages.reduce(
-        (sum, pkg) => sum + pkg.price, 0
-      );
+      bookingDetails.serviceProviderId = providerDetails?.serviceproviderId
+        ? Number(providerDetails.serviceproviderId)
+        : null;
+      bookingDetails.serviceProviderName = providerFullName;
+      bookingDetails.customerId = customerId;
+      bookingDetails.customerName = customerName;
+      bookingDetails.address = currentLocation;
+      bookingDetails.startDate =
+        bookingType?.startDate || new Date().toISOString().split("T")[0];
+      bookingDetails.endDate = bookingType?.endDate || "";
 
-      const response = await axios.post(
-        "http://13.201.229.41:3000/create-order",
-        { amount: totalAmount * 100 },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      bookingDetails.engagements = selectedPackages
+        .map((pkg) => `${pkg.mealType} for ${pkg.persons} persons`)
+        .join(", ");
+      bookingDetails.monthlyAmount = totalAmount;
+      bookingDetails.timeslot = bookingType.timeRange;
 
-      if (response.status === 200 && response.data.success) {
-        const orderId = response.data.orderId;
-        const amount = totalAmount * 100;
-        const currency = "INR";
+      const options = {
+        key: "rzp_test_lTdgjtSRlEwreA",
+        amount,
+        currency,
+        name: "Serveaso",
+        description: "Meal Package Booking",
+        order_id: orderId,
+        handler: async function (razorpayResponse: any) {
+          alert(
+            `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
+          );
 
-        if (typeof window.Razorpay === "undefined") {
-          alert("Razorpay SDK not loaded.");
-          return;
-        }
-
-        bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
-          ? Number(providerDetails.serviceproviderId) 
-          : null;
-        bookingDetails.serviceProviderName = providerFullName;
-        bookingDetails.customerId = customerId;
-        bookingDetails.customerName = customerName;  
-        bookingDetails.address = currentLocation;
-        bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
-        bookingDetails.endDate = bookingType?.endDate || "";
-  
-        bookingDetails.engagements = selectedPackages.map(pkg => 
-          `${pkg.mealType} for ${pkg.persons} persons`
-        ).join(', ');
-        bookingDetails.monthlyAmount = totalAmount;
-        bookingDetails.timeslot = bookingType.timeRange;
-
-        const options = {
-          key: "rzp_test_lTdgjtSRlEwreA",
-          amount,
-          currency,
-          name: "Serveaso",
-          description: "Meal Package Booking",
-          order_id: orderId,
-          handler: async function (razorpayResponse: any) {
-            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-            
-            try {
-              const bookingResponse = await axiosInstance.post(
-                "/api/serviceproviders/engagement/add",
-                bookingDetails,
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-
-              if (bookingResponse.status === 201) {
-                if (sendDataToParent) {
-                  sendDataToParent(BOOKINGS);
-                }
-                handleClose();
+          try {
+            const bookingResponse = await axiosInstance.post(
+              "/api/serviceproviders/engagement/add",
+              bookingDetails,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
               }
-            } catch (error) {
-              console.error("Error saving booking:", error);
-            }
-          },
-          prefill: {
-            name: customerName || "",
-            email: user?.email || "",
-            contact: user?.mobileNo || "",
-          },
-          theme: {
-            color: "#3399cc",
-          },
-        };
+            );
 
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      }
-    } catch (error) {
-      console.log("error => ", error);
-      alert("Failed to initiate payment. Please try again.");
+            if (bookingResponse.status === 201) {
+              // Notification logic inserted here
+              try {
+                const notifyResponse = await fetch(
+                  "http://localhost:4000/send-notification",
+                  {
+                    method: "POST",
+                    body: JSON.stringify({
+                      title: "Hello from your App!",
+                      body: "This is a test push notification without Postman.",
+                      url: "http://localhost:3000",
+                    }),
+                    headers: { "Content-Type": "application/json" },
+                  }
+                );
+
+                if (notifyResponse.ok) {
+                  console.log("Notification triggered!");
+                  alert("Notification sent!");
+                } else {
+                  console.error("Notification failed");
+                  alert("Failed to send notification");
+                }
+              } catch (error) {
+                console.error("Error sending notification:", error);
+                alert("Error sending notification");
+              }
+
+              if (sendDataToParent) {
+                sendDataToParent(BOOKINGS);
+              }
+              handleClose();
+            }
+          } catch (error) {
+            console.error("Error saving booking:", error);
+          }
+        },
+        prefill: {
+          name: customerName || "",
+          email: user?.email || "",
+          contact: user?.mobileNo || "",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     }
-  };
+  } catch (error) {
+    console.log("error => ", error);
+    alert("Failed to initiate payment. Please try again.");
+  }
+};
+
 
   const renderPackageSections = () => {
     return Object.entries(packages).map(([packageName, pkg]) => {

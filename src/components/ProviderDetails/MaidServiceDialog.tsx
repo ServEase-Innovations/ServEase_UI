@@ -56,6 +56,16 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const lastName = user?.customerDetails?.lastName;
   const customerName = `${firstName} ${lastName}`;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
+  const pricing = useSelector((state: any) => state.pricing?.groupedServices);
+ const maidServices =
+    pricing?.maid?.filter((service: any) => service.Type === "Regular" || service.Type === "Regular Add-on") || [];
+  console.log("maidServices",maidServices);
+  maidServices.forEach((service: any) => {
+  console.log("Category:", service.Categories);
+  console.log("Number/Size:", service["Numbers/Size"]);
+  console.log("Price /Month (INR):", service["Price /Month (INR)"]);
+  console.log("----------");
+});
 
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
@@ -189,117 +199,142 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     .map(([name]) => name);
 
     const handleCheckout = async () => {
-      try {
-        // Prepare selected services data
-        const selectedServices: string[] = [];
-        const selectedAddOns: string[] = Object.entries(addOns)
-          .filter(([_, selected]) => selected)
-          .map(([name]) => name);
-    
-        if (packageStates.utensilCleaning.selected) {
-          selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
-        }
-        if (packageStates.sweepingMopping.selected) {
-          selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
-        }
-        if (packageStates.bathroomCleaning.selected) {
-          selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
-        }
-    
-        if (selectedServices.length === 0 && selectedAddOns.length === 0) {
-          alert('Please select at least one service or add-on');
-          return;
-        }
-    
-        const totalAmount = calculateTotal();
-    
-        // Create Razorpay order
-        const response = await axios.post(
-          "http://13.201.229.41:3000/create-order",
-          { amount: totalAmount * 100 }, // Convert to paise
-          { headers: { "Content-Type": "application/json" } }
-        );
-    
-        if (response.status === 200 && response.data.success) {
-          const orderId = response.data.orderId;
-          const amount = totalAmount * 100;
-          const currency = "INR";
-    
-          if (typeof window.Razorpay === "undefined") {
-            alert("Razorpay SDK not loaded.");
-            return;
-          }
-    
-          // Set up booking details
-          bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
-            ? Number(providerDetails.serviceproviderId) 
-            : null;
-          bookingDetails.serviceProviderName = providerFullName;
-          bookingDetails.customerId = customerId;
-          bookingDetails.customerName = customerName;  
-          bookingDetails.address = currentLocation;
-          bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
-          bookingDetails.endDate = bookingType?.endDate || "";
-    
-          bookingDetails.engagements = [
-            ...selectedServices,
-            ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
-          ].join('; ');
-          
-          bookingDetails.monthlyAmount = totalAmount;
-          bookingDetails.timeslot = bookingType.timeRange;
-    
-          const options = {
-            key: "rzp_test_lTdgjtSRlEwreA",
-            amount,
-            currency,
-            name: "Serveaso",
-            description: "Maid Service Booking",
-            order_id: orderId,
-            handler: async function (razorpayResponse: any) {
-              alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-              
-              try {
-                // Save booking details to backend using axiosInstance
-                const bookingResponse = await axiosInstance.post(
-                  "/api/serviceproviders/engagement/add",
-                  bookingDetails,
-                  {
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
-    
-                if (bookingResponse.status === 201) {
-                  if (sendDataToParent) {
-                    sendDataToParent(BOOKINGS);
-                  }
-                  handleClose();
-                }
-              } catch (error) {
-                console.error("Error saving booking:", error);
-                alert("Booking saved but failed to update server. Please contact support.");
-              }
-            },
-            prefill: {
-              name: customerName || "",
-              email: user?.email || "",
-              contact: user?.mobileNo || "",
-            },
-            theme: {
-              color: "#3399cc",
-            },
-          };
-    
-          const rzp = new window.Razorpay(options);
-          rzp.open();
-        }
-      } catch (error) {
-        console.log("error => ", error);
-        alert("Failed to initiate payment. Please try again.");
+  try {
+    const selectedServices: string[] = [];
+    const selectedAddOns: string[] = Object.entries(addOns)
+      .filter(([_, selected]) => selected)
+      .map(([name]) => name);
+
+    if (packageStates.utensilCleaning.selected) {
+      selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
+    }
+    if (packageStates.sweepingMopping.selected) {
+      selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
+    }
+    if (packageStates.bathroomCleaning.selected) {
+      selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
+    }
+
+    if (selectedServices.length === 0 && selectedAddOns.length === 0) {
+      alert('Please select at least one service or add-on');
+      return;
+    }
+
+    const totalAmount = calculateTotal();
+
+    // Create Razorpay order
+    const response = await axios.post(
+      "http://13.201.229.41:3000/create-order",
+      { amount: totalAmount * 100 },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.status === 200 && response.data.success) {
+      const orderId = response.data.orderId;
+      const amount = totalAmount * 100;
+      const currency = "INR";
+
+      if (typeof window.Razorpay === "undefined") {
+        alert("Razorpay SDK not loaded.");
+        return;
       }
-    };
+
+      // Set up booking details
+      bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
+        ? Number(providerDetails.serviceproviderId) 
+        : null;
+      bookingDetails.serviceProviderName = providerFullName;
+      bookingDetails.customerId = customerId;
+      bookingDetails.customerName = customerName;  
+      bookingDetails.address = currentLocation;
+      bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
+      bookingDetails.endDate = bookingType?.endDate || "";
+
+      bookingDetails.engagements = [
+        ...selectedServices,
+        ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
+      ].join('; ');
+      
+      bookingDetails.monthlyAmount = totalAmount;
+      bookingDetails.timeslot = bookingType.timeRange;
+
+      const options = {
+        key: "rzp_test_lTdgjtSRlEwreA",
+        amount,
+        currency,
+        name: "Serveaso",
+        description: "Maid Service Booking",
+        order_id: orderId,
+        handler: async function (razorpayResponse: any) {
+          alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+          
+          try {
+            const bookingResponse = await axiosInstance.post(
+              "/api/serviceproviders/engagement/add",
+              bookingDetails,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (bookingResponse.status === 201) {
+              // ✅ Send push notification
+              try {
+                const notifyResponse = await fetch("http://localhost:4000/send-notification", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title: "Booking Confirmed",
+                    body: `Thank you, ${customerName}! Your booking has been confirmed.`,
+                    url: "http://localhost:3000",
+                  }),
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                });
+
+                if (notifyResponse.ok) {
+                  console.log("Notification sent!");
+                  alert("Notification sent!");
+                } else {
+                  console.error("Notification failed");
+                  alert("Failed to send notification");
+                }
+              } catch (notifyError) {
+                console.error("Error sending notification:", notifyError);
+                alert("Error sending notification");
+              }
+
+              if (sendDataToParent) {
+                sendDataToParent(BOOKINGS);
+              }
+              handleClose();
+            }
+          } catch (error) {
+            console.error("Error saving booking:", error);
+            alert("Booking saved but failed to update server. Please contact support.");
+          }
+        },
+        prefill: {
+          name: customerName || "",
+          email: user?.email || "",
+          contact: user?.mobileNo || "",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    }
+  } catch (error) {
+    console.log("error => ", error);
+    alert("Failed to initiate payment. Please try again.");
+  }
+};
+
 
   return (
     <>
