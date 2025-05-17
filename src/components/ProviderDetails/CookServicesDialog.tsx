@@ -295,8 +295,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                   {
                     method: "POST",
                     body: JSON.stringify({
-                      title: "Hello from your App!",
-                      body: "This is a test push notification without Postman.",
+                      title: "Hello from ServEaso!",
+                      body: `Your booking for ${bookingDetails.engagements} has been successfully confirmed!`,
                       url: "http://localhost:3000",
                     }),
                     headers: { "Content-Type": "application/json" },

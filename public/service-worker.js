@@ -15,8 +15,10 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'Default title';
   const options = {
     body: data.body || 'Default body',
-    icon: '/logo192.png',
-    badge: '/logo192.png'
+    // icon: '/logo192.png',
+    // badge: '/logo192.png'
+    icon: '../pic2.png',
+    badge: '../pic2.png'
     
   };
 

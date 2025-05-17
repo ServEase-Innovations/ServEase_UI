@@ -223,29 +223,57 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     });
   };
 
-  const handlePaymentSuccess = async (orderId: string, bookingData: BookingDetails) => {
-    try {
-      const bookingResponse = await axiosInstance.post(
-        "/api/serviceproviders/engagement/add",
-        {
-          ...bookingData,
-          paymentReference: orderId
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
+const handlePaymentSuccess = async (orderId: string, bookingData: BookingDetails) => {
+  try {
+    const bookingResponse = await axiosInstance.post(
+      "/api/serviceproviders/engagement/add",
+      {
+        ...bookingData,
+        paymentReference: orderId
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
 
-      if (bookingResponse.status === 201) {
-        if (sendDataToParent) sendDataToParent(BOOKINGS);
-        handleClose();
-        alert("Booking successful! Payment ID: " + orderId);
-      } else {
-        throw new Error("Failed to save booking");
+    if (bookingResponse.status === 201) {
+      // Notification logic inserted here
+      try {
+        const notifyResponse = await fetch(
+          "http://localhost:4000/send-notification",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              title: "Hello from ServEaso!",
+              body: `Your booking for ${bookingData.engagements} has been successfully confirmed!`,
+              url: "http://localhost:3000",
+            }),
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        if (notifyResponse.ok) {
+          console.log("Notification triggered!");
+          alert("Notification sent!");
+        } else {
+          console.error("Notification failed");
+          alert("Failed to send notification");
+        }
+      } catch (error) {
+        console.error("Error sending notification:", error);
+        alert("Error sending notification");
       }
-    } catch (err) {
-      console.error("Error saving booking:", err);
-      throw new Error("Payment succeeded but booking failed. Please contact support.");
+
+      if (sendDataToParent) sendDataToParent(BOOKINGS);
+      handleClose();
+      alert("Booking successful! Payment ID: " + orderId);
+    } else {
+      throw new Error("Failed to save booking");
     }
-  };
+  } catch (err) {
+    console.error("Error saving booking:", err);
+    throw new Error("Payment succeeded but booking failed. Please contact support.");
+  }
+};
+
 
   const handlePaymentError = (err: any) => {
     console.error("Payment error:", err);
