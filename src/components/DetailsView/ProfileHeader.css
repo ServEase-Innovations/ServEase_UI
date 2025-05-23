@@ -1,0 +1,237 @@
+.ProfileHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: #ffffff;
+    color: #333;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 82px !important;
+    left: 0;
+    right: 0;
+    height: 80px;
+    z-index: 1000;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  
+  .ProfileHeader .profile-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .ProfileHeader .profile-section .avatar {
+    width: 60px;
+    height: 60px;
+    background-color: #0056b3;
+    color: white;
+  }
+  
+  .ProfileHeader .profile-section .name {
+    font-weight: bold;
+  }
+  
+  .ProfileHeader .icons-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .ProfileHeader .tabs-section {
+    margin-top: 10px;
+  }
+  
+  /* Rating section */
+  .ProfileHeader .rating-section {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 1024px) {
+    .ProfileHeader {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      height: auto;
+      padding: 15px;
+      flex-wrap: nowrap; /* Prevents wrapping */
+    }
+  
+    .ProfileHeader .profile-section {
+      display: flex;
+      flex-direction: row; /* Keeps elements in a row */
+      align-items: center;
+      text-align: left;
+      gap: 8px;
+    }
+  
+    .ProfileHeader .tabs-section {
+      flex-grow: 1; /* Allows tabs to take available space */
+      display: flex;
+      
+      justify-content: center;
+    }
+  
+    .ProfileHeader .icons-section {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+  
+    .ProfileHeader .rating-section {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+  }
+  
+  
+  @media (max-width: 768px) {
+    .ProfileHeader {
+      padding: 10px;
+    }
+  
+    .ProfileHeader .profile-section {
+      gap: 5px;
+    }
+  
+    .ProfileHeader .tabs-section {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  
+    .ProfileHeader .rating-section {
+      justify-content: center;
+      margin-top: 10px;
+    }
+  }
+  @media (max-width: 480px) {
+    .ProfileHeader {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0px;
+      margin-top: -18px;
+      height: 50px !important;
+      padding: 2px 0; /* Reduced vertical padding */
+    }
+  
+    /* Hide avatar in mobile view */
+    .ProfileHeader .profile-section Avatar {
+      display: none;
+    }
+  
+    .ProfileHeader .profile-section {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+      font-size: 7px;
+      flex: 1;
+      padding: 0;
+      margin: 0 0 0 20px; /* Adds 8px left margin only */
+      height: 20px;
+      box-sizing: border-box; /* Ensures margin/padding are included in height */
+    }
+  
+    .ProfileHeader .profile-section .name {
+      font-size: 11px !important; /* Slightly smaller */
+      font-weight: 600;
+      margin-top:-20px;
+      margin-right: 5px;
+      line-height: 1; /* Tighter line height */
+    }
+  
+    .ProfileHeader .icons-section {
+      display: flex;
+      gap: 4px; /* Reduced gap */
+      align-items: center;
+      margin-top:-20px;
+      height: 20px; /* Fixed height */
+    }
+  
+    .ProfileHeader .icons-section svg {
+      font-size: 12px; /* Smaller icons */
+    }
+  
+    .ProfileHeader .rating-section {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      margin-top:-20px;
+      gap: 4px; /* Reduced gap */
+      height: 20px; /* Fixed height */
+    }
+  
+    .ProfileHeader .rating-section .MuiRating-root {
+      font-size: 10px !important; /* Smaller rating stars */
+    }
+  
+    /* Tab section */
+    .ProfileHeader .tabs-section {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top:-15px;
+      white-space: nowrap;
+      font-size: 6px;
+      padding: 0;
+      order: 2;
+      height: 35px; /* Fixed height */
+    }
+    
+    .ProfileHeader .tabs-section .MuiTab-root {
+      font-size: 7px !important; /* Smaller tab text */
+      min-width: auto;
+      padding: 2px 3px; /* Reduced padding */
+      min-height: 20px; /* Smaller tab height */
+    }
+    .MuiTabs-indicator {
+      display: none !important; /* Hides the indicator */
+    }
+    .ProfileHeader .tabs-section .MuiTabs-flexContainer {
+      gap: 2px; /* Reduced gap between tabs */
+    }
+    
+  }
+  
+  
+  @media (max-width: 768px) {
+    .MuiTypography-root {
+      font-size: 13px !important; /* Reduce font size */
+    }
+  
+    .MuiTypography-h5 {
+      font-size: 16px !important; /* Smaller headings */
+    }
+  
+    .MuiTypography-h6 {
+      font-size: 14px !important;
+    }
+  
+    .status-box {
+      margin-bottom: 8px !important;
+    }
+  
+    .responsive-container {
+      margin-bottom: 50px !important; /* Add bottom margin for mobile */
+    }
+  
+    .MuiButton-root {
+      font-size: 12px !important;
+      padding: 6px 12px !important;
+    }
+  
+    .MuiIconButton-root {
+      font-size: 20px !important;
+    }
+  }
+  
+  
+  

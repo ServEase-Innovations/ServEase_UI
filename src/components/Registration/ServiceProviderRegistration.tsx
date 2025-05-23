@@ -676,108 +676,87 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
-const handleSubmit = async (event) => {
-  event.preventDefault(); // Prevent default form submission
 
-  // Filter out empty values from the form data
-  const filteredPayload = Object.fromEntries(
-    Object.entries(formData).filter(
-      ([key, value]) => value !== "" && value !== null && value !== undefined
-    )
-  );
 
-  // Form validation
-  if (validateForm()) {
-    try {
-      if (image) {
-        const formData1 = new FormData();
-        formData1.append("image", image);
-
-        const imageResponse = await axiosInstance.post(
-          "http://65.2.153.173:3000/upload",
-          formData1,
+  const handleSubmit = async (event) => {
+    event.preventDefault(); // Prevent default form submission
+  
+    // Filter out empty values from the form data
+    const filteredPayload = Object.fromEntries(
+      Object.entries(formData).filter(([key, value]) => value !== "" && value !== null && value !== undefined)
+    );
+  
+    // Form validation (optional)
+    if (validateForm()) {
+      try {
+        if (image) {
+          // If image is provided, upload the image first
+          const formData1 = new FormData();
+          formData1.append('image', image);
+  
+          // Axios call for image upload
+          const imageResponse = await axiosInstance.post(
+            'http://65.2.153.173:3000/upload',
+            formData1,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data', // Ensure correct content type
+              },
+            }
+          );
+  
+          if (imageResponse.status === 200) {
+            // Add image URL to the payload
+            filteredPayload.profilePic = imageResponse.data.imageUrl;
+          } else {
+            // If image upload fails, notify the user
+            setSnackbarOpen(true);
+            setSnackbarSeverity("error");
+            setSnackbarMessage("Image upload failed. Proceeding without profile picture.");
+          }
+        }
+  
+        // Add service provider
+        const response = await axiosInstance.post(
+          "/api/serviceproviders/serviceprovider/add",
+          filteredPayload,
           {
             headers: {
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           }
         );
-
-        if (imageResponse.status === 200) {
-          filteredPayload.profilePic = imageResponse.data.imageUrl;
-        } else {
-          setSnackbarOpen(true);
-          setSnackbarSeverity("error");
-          setSnackbarMessage("Image upload failed. Proceeding without profile picture.");
-        }
+  
+        // Success handling
+        setSnackbarOpen(true);
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Service provider added successfully!");
+        console.log("Success:", response.data);
+  
+        // Navigate back to login after a delay
+        setTimeout(() => {
+          onBackToLogin(true); 
+        }, 3000); // Wait for 3 seconds to display Snackbar
+      } catch (error) {
+        // Error handling for adding service provider
+        setSnackbarOpen(true);
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Failed to add service provider. Please try again.");
+        console.error("Error submitting form:", error);
       }
-
-      // Add service provider
-      const response = await axiosInstance.post(
-        "/api/serviceproviders/serviceprovider/add",
-        filteredPayload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // Success handling
+    } else {
+      // Form validation failed
       setSnackbarOpen(true);
-      setSnackbarSeverity("success");
-      setSnackbarMessage("Service provider added successfully!");
-      console.log("Success:", response.data);
-
-      // 🔔 Notification logic
-      try {
-        const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-          method: "POST",
-          body: JSON.stringify({
-            title: "Registration Successful",
-            body: `Welcome, ${formData.firstName}!`,
-            url: "http://localhost:3000",
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (notifyResponse.ok) {
-          console.log("Notification sent!");
-          alert("Notification sent!");
-        } else {
-          console.error("Notification failed");
-          alert("Failed to send notification");
-        }
-      } catch (notifyError) {
-        console.error("Error sending notification:", notifyError);
-        alert("Error sending notification");
-      }
-
-      // Navigate back to login after a delay
-      setTimeout(() => {
-        onBackToLogin(true);
-      }, 3000);
-    } catch (error) {
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-      setSnackbarMessage("Failed to add service provider. Please try again.");
-      console.error("Error submitting form:", error);
+      setSnackbarSeverity("warning");
+      setSnackbarMessage("Please fill out all required fields.");
     }
-  } else {
-    setSnackbarOpen(true);
-    setSnackbarSeverity("warning");
-    setSnackbarMessage("Please fill out all required fields.");
-  }
-};
+  };
+  
 
-// Close snackbar function
-const handleCloseSnackbar = () => {
-  setSnackbarOpen(false);
-};
-
- 
+   // Close snackbar function
+   const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
   // const showSnackbar = (message: string) => {
   //   setSnackbarMessage(message);
   //   setSnackbarOpen(true);

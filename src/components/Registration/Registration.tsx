@@ -420,107 +420,84 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
   //       showSnackbar('Please fix the errors and try again.', 'error');
   //   }
   // };
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  // Ensure form validation passes
-  if (validateForm()) {
-    try {
-      // Check if an image is selected
-      if (image) {
-        const formData1 = new FormData();
-        formData1.append('image', image);
-
-        // Call image upload API
-        const imageResponse = await axiosInstance.post(
-          'http://65.2.153.173:3000/upload',
-          formData1,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        );
-
-        // If image upload is successful, add URL to formData
-        if (imageResponse.status === 200) {
-          formData.profilePic = imageResponse.data.imageUrl;
-        }
-      }
-
-      // Call customer add API
-      const response = await axiosInstance.post(
-        "/api/customer/add-customer",
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.status === 201) {
-        const data = {
-          email: formData.emailId,
-          name: formData.firstName,
-        };
-
-        // Send confirmation email
-        await axiosInstance.post(
-          'http://3.110.168.35:3000/send-email',
-          data,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        // Send notification after successful registration
+    // Ensure form validation passes
+    if (validateForm()) {
         try {
-          const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-            method: "POST",
-            body: JSON.stringify({
-              title: "Registration Successful",
-              body: `Welcome, ${formData.firstName}!`,
-              url: "http://localhost:3000",
-            }),
-            headers: { "Content-Type": "application/json" },
-          });
+            // Check if an image is selected
+            if (image) {
+                const formData1 = new FormData();
+                formData1.append('image', image);
 
-          if (notifyResponse.ok) {
-            console.log("Notification triggered!");
-            alert("Notification sent!");
-          } else {
-            console.error("Notification failed");
-            alert("Failed to send notification");
-          }
+                // Call image upload API
+                const imageResponse = await axiosInstance.post(
+                    'http://65.2.153.173:3000/upload',
+                    formData1,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+
+                // If image upload is successful, add URL to formData
+                if (imageResponse.status === 200) {
+                    formData.profilePic = imageResponse.data.imageUrl;
+                }
+            }
+
+            // Call customer add API (regardless of whether an image is uploaded)
+            const response = await axiosInstance.post(
+                "/api/customer/add-customer",
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if(response.status === 201){
+              const data = 
+                {"email":formData.emailId,"name":formData.firstName}
+              
+              const imageResponse = await axiosInstance.post(
+                'http://3.110.168.35:3000/send-email',
+                data,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            }
+
+            // Update Snackbar for success
+            setSnackbarSeverity("success");
+            setSnackbarMessage("User added successfully!");
+            setSnackbarOpen(true);
+
+
+
+            // Navigate back to login after a delay
+            setTimeout(() => {
+                onBackToLogin(true); 
+            }, 3000); // Wait for 3 seconds to display Snackbar
         } catch (error) {
-          console.error("Error sending notification:", error);
-          alert("Error sending notification");
+            // Update Snackbar for error
+            setSnackbarOpen(true);
+            setSnackbarSeverity("error");
+            setSnackbarMessage("Failed to add User. Please try again.");
+            console.error("Error submitting form:", error);
         }
-      }
-
-      // Show success snackbar
-      setSnackbarSeverity("success");
-      setSnackbarMessage("User added successfully!");
-      setSnackbarOpen(true);
-
-      // Navigate back to login
-      setTimeout(() => {
-        onBackToLogin(true);
-      }, 3000);
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-      setSnackbarMessage("Failed to add User. Please try again.");
+    } else {
+        // Update Snackbar for validation error
+        setSnackbarOpen(true);
+        setSnackbarSeverity("warning");
+        setSnackbarMessage("Please fill out all required fields.");
     }
-  } else {
-    setSnackbarOpen(true);
-    setSnackbarSeverity("warning");
-    setSnackbarMessage("Please fill out all required fields.");
-  }
 };
 
 
