@@ -75,83 +75,86 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  try {
-    const response = await axiosInstance.post("/api/user/login", {
-      username: email,
-      password: password,
-    });
+    try {
+      const response = await axiosInstance.post("/api/user/login", {
+        username: email,
+        password: password,
+      });
 
-    console.log("Response Data:", response.data);
+      console.log("Response Data:", response.data);
 
-    if (response.status === 200 && response.data) {
-      const { message, role, customerDetails } = response.data;
-      const firstName = customerDetails?.firstName || "Unknown";
+      if (response.status === 200 && response.data) {
+        const { message, role, customerDetails } = response.data;
+        const firstName = customerDetails?.firstName || "Unknown";
 
-      dispatch(add(response.data));
+        dispatch(add(response.data));
 
-      // Show success snackbar
-      setSnackbarMessage(message || "Login successful!");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
+        // Show success snackbar
+        setSnackbarMessage(message || "Login successful!");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
 
-      // Notification logic
-      try {
-        const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-          method: "POST",
-          body: JSON.stringify({
-            title: "Login Successful",
-            body: `Welcome back, ${firstName}!`,
-            url: "http://localhost:3000",
-          }),
-          headers: { "Content-Type": "application/json" },
-        });
+        // Notification logic
+        try {
+          const notifyResponse = await fetch(
+            "http://localhost:4000/send-notification",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                title: "Login Successful",
+                body: `Welcome back, ${firstName}!`,
+                url: "http://localhost:3000",
+              }),
+              headers: { "Content-Type": "application/json" },
+            }
+          );
 
-        if (notifyResponse.ok) {
-          console.log("Notification triggered!");
-          alert("Notification sent!");
-        } else {
-          console.error("Notification failed");
-          alert("Failed to send notification");
+          if (notifyResponse.ok) {
+            console.log("Notification triggered!");
+            alert("Notification sent!");
+          } else {
+            console.error("Notification failed");
+            alert("Failed to send notification");
+          }
+        } catch (error) {
+          console.error("Error sending notification:", error);
+          alert("Error sending notification");
         }
-      } catch (error) {
-        console.error("Error sending notification:", error);
-        alert("Error sending notification");
+
+        // Handle redirection after login
+        setTimeout(() => {
+          if (role === "SERVICE_PROVIDER") {
+            if (sendDataToParent) {
+              sendDataToParent(PROFILE);
+            } else if (bookingPage) {
+              bookingPage(role);
+            }
+          } else {
+            if (sendDataToParent) {
+              sendDataToParent("");
+            } else if (bookingPage) {
+              bookingPage(role);
+            }
+          }
+        }, 1000);
+      } else {
+        throw new Error(
+          response.data?.message ||
+            "Login failed. Please check your credentials."
+        );
       }
-
-      // Handle redirection after login
-      setTimeout(() => {
-        if (role === "SERVICE_PROVIDER") {
-          if (sendDataToParent) {
-            sendDataToParent(PROFILE);
-          } else if (bookingPage) {
-            bookingPage(role);
-          }
-        } else {
-          if (sendDataToParent) {
-            sendDataToParent("");
-          } else if (bookingPage) {
-            bookingPage(role);
-          }
-        }
-      }, 1000);
-    } else {
-      throw new Error(
-        response.data?.message || "Login failed. Please check your credentials."
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setSnackbarMessage(
+        error.response?.data?.message || "An error occurred during login."
       );
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
     }
-  } catch (error: any) {
-    console.error("Login error:", error);
-    setSnackbarMessage(
-      error.response?.data?.message || "An error occurred during login."
-    );
-    setSnackbarSeverity("error");
-    setOpenSnackbar(true);
-  }
-};
-
+  };
 
   if (isForgotPassword) {
     return <ForgotPassword onBackToLogin={handleBackToLogin} />;
@@ -162,13 +165,13 @@ const handleLogin = async (e: React.FormEvent) => {
       <div className="w-full max-w-lg">
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
           <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 m-0">
-            {  isRegistration ? (
-    <Registration onBackToLogin={handleBackToLogin} />
-  ) : isServiceRegistration ? (
-    <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
-  ) : isAgentRegistration ? (
-    <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
-  ) : (
+            {isRegistration ? (
+              <Registration onBackToLogin={handleBackToLogin} />
+            ) : isServiceRegistration ? (
+              <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
+            ) : isAgentRegistration ? (
+              <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
+            ) : (
               <>
                 <h1 className="font-bold dark:text-gray-400 text-4xl text-center cursor-default my-0">
                   Log in
@@ -207,19 +210,9 @@ const handleLogin = async (e: React.FormEvent) => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                    <IconButton
-                      onClick={togglePasswordVisibility}
-                      edge="end"
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        right: "10px",
-                        transform: "translateY(-50%)",
-                      }}
-                    >
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
+                   
                   </div>
+
                   <button
                     className="group text-blue-400 transition-all duration-100 ease-in-out cursor-pointer"
                     onClick={handleForgotPasswordClick}
@@ -239,23 +232,22 @@ const handleLogin = async (e: React.FormEvent) => {
                   <h3 className="dark:text-gray-300">Don't have an account?</h3>
                   <button
                     onClick={handleSignUpClick}
-                    className="text-blue-400 ml-2 underline"
+                    className="text-blue-400 ml-2 hover:underline"
                   >
                     Sign Up As User
                   </button>
                   <button
                     onClick={handleSignUpClickServiceProvider}
-                    className="text-blue-400 ml-2 underline"
+                    className="text-blue-400 ml-2 hover:underline"
                   >
                     Sign Up As Service Provider
                   </button>
                   <button
-                  onClick={handleSignUpClickAgent}
-                  className="text-blue-400 ml-2 underline"
+                    onClick={handleSignUpClickAgent}
+                    className="text-blue-400 ml-2 hover:underline"
                   >
-                  Sign Up As Agent
+                    Sign Up As Agent
                   </button>
-
                 </div>
               </>
             )}
@@ -266,15 +258,14 @@ const handleLogin = async (e: React.FormEvent) => {
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} 
-        sx={{ marginTop: '60px' }}  
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        sx={{ marginTop: "60px" }}
       >
-      
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbarSeverity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
         >
           {snackbarMessage}
         </Alert>
