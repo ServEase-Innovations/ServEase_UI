@@ -36,8 +36,6 @@
   input[type="time"],
   select {
     padding: 18px 4px 4px 8px; /* Further reduced padding */
-    border-radius: 4px;
-    border: 1px solid #ccc;
     width: 100%;
     background-color: #fff;
     color: #333;
