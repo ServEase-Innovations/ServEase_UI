@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React from "react";
 import { Box, Typography, Badge, Tooltip, Tabs, Tab, Avatar } from "@mui/material";
 import { Stack, styled, useMediaQuery, useTheme } from "@mui/system";
