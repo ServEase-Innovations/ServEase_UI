@@ -112,7 +112,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
   const handleCheckout = async () => {
     try {
       const response = await axios.post(
-        "http://13.201.229.41:3000/create-order",
+        "https://utils-dmua.onrender.com/create-order",
         { amount: grandTotal }, // Amount in paise
         {
           headers: {

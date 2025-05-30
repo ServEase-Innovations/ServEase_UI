@@ -226,7 +226,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
 
     // Create Razorpay order
     const response = await axios.post(
-      "http://13.201.229.41:3000/create-order",
+      "https://utils-dmua.onrender.com/create-order",
       { amount: totalAmount * 100 },
       { headers: { "Content-Type": "application/json" } }
     );
