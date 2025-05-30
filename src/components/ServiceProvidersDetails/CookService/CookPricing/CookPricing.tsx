@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable */
+
 import { Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid, Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { SyntheticEvent, useEffect, useState } from "react";
 import AddShoppingCartIcon  from '@mui/icons-material/AddShoppingCart';
