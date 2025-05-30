@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint no-use-before-define: 0 */
 
-import { Button, Box, Drawer } from "@mui/material";
+
 import { useEffect, useState } from "react";
-import Search_form from "../Search-Form/Search_form";
 import "./DetailsView.css";
 import axiosInstance from "../../services/axiosInstance";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
