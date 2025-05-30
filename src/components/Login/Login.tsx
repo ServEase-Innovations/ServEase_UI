@@ -101,31 +101,31 @@ export const Login: React.FC<ChildComponentProps> = ({
         setOpenSnackbar(true);
 
         // Notification logic
-        try {
-          const notifyResponse = await fetch(
-            "http://localhost:4000/send-notification",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                title: "Login Successful",
-                body: `Welcome back, ${firstName}!`,
-                url: "http://localhost:3000",
-              }),
-              headers: { "Content-Type": "application/json" },
-            }
-          );
+        // try {
+        //   const notifyResponse = await fetch(
+        //     "http://localhost:4000/send-notification",
+        //     {
+        //       method: "POST",
+        //       body: JSON.stringify({
+        //         title: "Login Successful",
+        //         body: `Welcome back, ${firstName}!`,
+        //         url: "http://localhost:3000",
+        //       }),
+        //       headers: { "Content-Type": "application/json" },
+        //     }
+        //   );
 
-          if (notifyResponse.ok) {
-            console.log("Notification triggered!");
-            alert("Notification sent!");
-          } else {
-            console.error("Notification failed");
-            alert("Failed to send notification");
-          }
-        } catch (error) {
-          console.error("Error sending notification:", error);
-          alert("Error sending notification");
-        }
+        //   if (notifyResponse.ok) {
+        //     console.log("Notification triggered!");
+        //     alert("Notification sent!");
+        //   } else {
+        //     console.error("Notification failed");
+        //     alert("Failed to send notification");
+        //   }
+        // } catch (error) {
+        //   console.error("Error sending notification:", error);
+        //   alert("Error sending notification");
+        // }
 
         // Handle redirection after login
         setTimeout(() => {

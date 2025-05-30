@@ -4,7 +4,7 @@ import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'ax
 const axiosInstance = axios.create({
   baseURL:'https://servease-be-5x7f.onrender.com' ,
    //  'http://localhost:8080' ,
-   // 'http://43.205.212.94:8080',
+   // 'http://43.205.212.94:8080',http://3.109.59.100:8080
   //  // Change to your API's base URL
 });
 

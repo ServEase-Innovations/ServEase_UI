@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -224,9 +222,26 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
 
     const totalAmount = calculateTotal();
 
-    // Create Razorpay order
+    // Step: Call calculate-payment API
+//     const calculatePaymentResponse = await axiosInstance.post("/api/payments/calculate-payment", null, {
+//     params: {
+//     customerId,
+//     baseAmount: totalAmount,
+//     startDate_P: bookingType?.startDate || "",
+//     endDate_P: bookingType?.endDate || "",
+//     paymentMode: "UPI", // or whatever mode is selected
+//   },
+// });
+    
+
+//     if (!calculatePaymentResponse || calculatePaymentResponse.status !== 200) {
+//       alert("Failed to calculate payment.");
+//       return;
+//     }
+
+    // Step: Create Razorpay order
     const response = await axios.post(
-      "https://utils-dmua.onrender.com/create-order",
+      "http://13.201.229.41:3000/create-order",
       { amount: totalAmount * 100 },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -241,22 +256,20 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
         return;
       }
 
-      // Set up booking details
+      // Populate booking details
       bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
         ? Number(providerDetails.serviceproviderId) 
         : null;
       bookingDetails.serviceProviderName = providerFullName;
       bookingDetails.customerId = customerId;
-      bookingDetails.customerName = customerName;  
+      bookingDetails.customerName = customerName;
       bookingDetails.address = currentLocation;
       bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
       bookingDetails.endDate = bookingType?.endDate || "";
-
       bookingDetails.engagements = [
         ...selectedServices,
         ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
       ].join('; ');
-      
       bookingDetails.monthlyAmount = totalAmount;
       bookingDetails.timeslot = bookingType.timeRange;
 
@@ -269,7 +282,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
         order_id: orderId,
         handler: async function (razorpayResponse: any) {
           alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-          
+
           try {
             const bookingResponse = await axiosInstance.post(
               "/api/serviceproviders/engagement/add",
@@ -282,7 +295,6 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
             );
 
             if (bookingResponse.status === 201) {
-              // ✅ Send push notification
               try {
                 const notifyResponse = await fetch("http://localhost:4000/send-notification", {
                   method: "POST",
@@ -300,11 +312,9 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                   console.log("Notification sent!");
                   alert("Notification sent!");
                 } else {
-                  console.error("Notification failed");
                   alert("Failed to send notification");
                 }
               } catch (notifyError) {
-                console.error("Error sending notification:", notifyError);
                 alert("Error sending notification");
               }
 
@@ -314,8 +324,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
               handleClose();
             }
           } catch (error) {
-            console.error("Error saving booking:", error);
-            alert("Booking saved but failed to update server. Please contact support.");
+            alert("Booking saved but failed to update server.");
           }
         },
         prefill: {
@@ -336,7 +345,6 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     alert("Failed to initiate payment. Please try again.");
   }
 };
-
 
   return (
     <>
