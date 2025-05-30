@@ -213,6 +213,18 @@ export const Login: React.FC<ChildComponentProps> = ({
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                     <IconButton
+                      onClick={togglePasswordVisibility}
+                      edge="end"
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        right: "10px",
+                      }}
+                      disabled={!password} // Button is disabled if password field is empty
+                    >
+                      {showPassword ? <Visibility /> : <VisibilityOff />}
+                    </IconButton>
                    
                   </div>
 

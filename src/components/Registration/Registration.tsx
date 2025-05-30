@@ -602,7 +602,15 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   helperText={errors.password}
                   InputProps={{
                     endAdornment: (
-                      <InputAdornment position="end"></InputAdornment>
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleTogglePasswordVisibility}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                        >
+                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                        </IconButton>
+                      </InputAdornment>
                     ),
                   }}
                 />
@@ -621,7 +629,15 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   helperText={errors.confirmPassword}
                   InputProps={{
                     endAdornment: (
-                      <InputAdornment position="end"></InputAdornment>
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleTogglePasswordVisibility}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                        >
+                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                        </IconButton>
+                      </InputAdornment>
                     ),
                   }}
                 />
@@ -809,12 +825,13 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             marginTop: 2,
           }}
         >
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
+         <Button
+            onClick={() =>
+              activeStep === 0 ? handleBackLogin("true") : handleBack()
+            }
             variant="contained"
             color="primary"
-            startIcon={<ArrowBack />} // Add the icon here
+            startIcon={<ArrowBack />}
           >
             Back
           </Button>

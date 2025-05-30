@@ -79,6 +79,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}> {/* Reduced gap */}
           <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ 
+            width:"100%",
             fontWeight: 'bold',
             marginRight: '12px' // Added space between name and icons
           }}>

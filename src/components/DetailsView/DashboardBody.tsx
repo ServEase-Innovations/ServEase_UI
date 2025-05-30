@@ -34,11 +34,13 @@ const DashboardCard = styled(Card)(({ theme }) => ({
   },
   // Responsive dimensions for mobile (xs)
   [theme.breakpoints.down('sm')]: {
-     marginTop: '-20px', // This moves the card up by 20px
+     // This moves the card up by 20px
     transform: 'translateY(-20px)', // Alternative approach
     width: '350px',
     height: '435px',
   },
+  marginTop:'1rem',
+  marginBottom:'1rem', 
   textAlign: 'center',
   borderRadius: '12px',
   transition: '0.3s',
@@ -51,23 +53,7 @@ const DashboardCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-// const DashboardCard = styled(Card)(({ theme }) => ({
-//   width: '350px', // Fixed width
-//   height: '450px', // Fixed height
-//   borderRadius: '12px',
-//   transition: '0.3s',
-//   backgroundColor: '#f8f9fa',
-//   display: 'flex',
-//   flexDirection: 'column',
-//   '&:hover': {
-//     transform: 'scale(1.03)',
-//     boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.2)',
-//   },
-//   [theme.breakpoints.down('sm')]: {
-//     width: '280px',
-//     height: '400px'
-//   },
-// }));
+
 interface DashboardBodyProps {
   selectedTab: number;
   bookings: any[];
@@ -114,7 +100,7 @@ const DashboardBody: React.FC<DashboardBodyProps> = ({
                       <DashboardCard>
                         <CardContent>
                           {/* Task Status */}
-                          <Box sx={{ display: "flex", justifyContent: "center", marginY: "16px" }}>
+                          <Box sx={{ display: "flex", justifyContent: "center",marginTop:".5rem" }}>
                             <Typography
                               variant="body2"
                               sx={{
@@ -297,107 +283,7 @@ const DashboardBody: React.FC<DashboardBodyProps> = ({
         </Box>
       )}
 
-      {selectedTab === 2 && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "20px",
-              boxShadow: 3,
-              borderRadius: "8px",
-              backgroundColor: "#fff",
-            }}
-          >
-            <Typography variant="h5" color="#333" fontWeight="bold">
-              Attendance Calendar
-            </Typography>
-    
-            <Box sx={{ marginTop: "10px", width: "100%" }}>
-              <Calendar
-                onClickDay={handleDateClick}
-                tileClassName={({ date }) => {
-                  const dateKey = dayjs(date).format("YYYY-MM-DD");
-    
-                  return attendanceData[dateKey] === "Absent"
-                    ? "absent-day"
-                    : attendanceData[dateKey] === "Present"
-                    ? "present-day"
-                    : "";
-                }}
-              />
-            </Box>
-    
-            <Box sx={{ marginTop: "20px" }}>
-              <Button
-                variant="contained"
-                onClick={applyLeave}
-                sx={{
-                  padding: "10px 20px",
-                  fontWeight: "bold",
-                  backgroundColor: "#f57c00",
-                  color: "white",
-                }}
-              >
-                Apply Leave
-              </Button>
-            </Box>
-          </Box>
-    
-          {/* Custom Styles */}
-          <style>
-            {`
-              .react-calendar {
-                background: #f8f9fa;
-                border-radius: 8px;
-                box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-              }
-              .react-calendar__tile {
-                padding: 10px;
-                text-align: center;
-                font-weight: bold;
-                border-radius: 50%;
-                transition: 0.3s;
-              }
-              .present-day {
-                background-color: rgba(144, 238, 144, 0.6);
-                border: 2px solid #4CAF50;
-                color: #2c662d;
-                border-radius: 50%;
-                width: 35px;
-                height: 35px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              }
-              .absent-day {
-                background-color: rgba(255, 99, 71, 0.6);
-                border: 2px solid #FF5733;
-                color: #900;
-                border-radius: 50%;
-                width: 35px;
-                height: 35px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              }
-              .react-calendar__tile:hover {
-                background-color: rgba(255, 215, 0, 0.6);
-                border-radius: 50%;
-                transition: 0.3s;
-              }
-            `}
-          </style>
-        </Box>
-      )}
+     
 
       {selectedTab === 3 && (
         <Box sx={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
