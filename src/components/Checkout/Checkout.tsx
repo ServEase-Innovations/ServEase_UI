@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 
 import { Card, Button, Box, Typography, Snackbar, Alert, IconButton, Tooltip, DialogContent, Dialog } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -206,7 +208,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
     console.log("Evening chekout:", bookingTypes?.eveningSelection);
 
    
-  }, [bookingType]);
+  }, [bookingType , bookingTypes]);
   const [meals, setMeals] = useState([
     { id: 1, type: "Breakfast", service: "Regular", persons: 0, time: "10:00 am - 11:00 am", price: 50, selected: true },
     { id: 2, type: "Lunch", service: "Premium", persons: 0, time: "1:00 pm - 2:00 pm", price: 120, selected: true },
