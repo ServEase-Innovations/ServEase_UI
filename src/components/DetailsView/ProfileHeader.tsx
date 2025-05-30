@@ -64,7 +64,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return (
     <StyledProfileHeader>
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={2} alignItems="center" >
         <Avatar sx={{ 
           width: isMobile ? 40 : 48, 
           height: isMobile ? 40 : 48, 
@@ -83,7 +83,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             {`${firstName} ${lastName}`}
           </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}> {/* Reduced gap */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px' , width : '80%'}}> {/* Reduced gap */}
             <Tooltip title="Total Bookings">
               <Badge badgeContent={bookingsCount} color="primary" sx={{
                 '& .MuiBadge-badge': {
