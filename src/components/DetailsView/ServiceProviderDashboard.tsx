@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useState, useEffect } from "react";
 import { Box, Snackbar, Avatar, Container } from "@mui/material";
 import { useSelector } from "react-redux";

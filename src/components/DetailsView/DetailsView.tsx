@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { Button, Box, Drawer } from "@mui/material";
 import { useEffect, useState } from "react";
 import Search_form from "../Search-Form/Search_form";

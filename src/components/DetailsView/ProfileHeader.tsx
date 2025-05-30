@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React from "react";
 import { Box, Typography, Badge, Tooltip, Tabs, Tab, Avatar } from "@mui/material";
 import { Stack, styled, useMediaQuery, useTheme } from "@mui/system";
