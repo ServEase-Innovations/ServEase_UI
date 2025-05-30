@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaFacebook, FaInstagram, FaLinkedin, FaYoutube } from 'react-icons/fa';
-import { FaXTwitter } from "react-icons/fa6";
+import { FaTwitter } from "react-icons/fa6";
 import './Footer.css';
 
 const Footer = () => {
@@ -8,9 +8,9 @@ const Footer = () => {
     <footer className="footer">
       <h3 className="footer-logo"><b>ServEaso</b></h3>
       <div className="social-media">
-  {/* <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer">
-    <FaXTwitter size={30} className="twitter" />
-  </a> */}
+  <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer">
+    <FaTwitter size={30} className="twitter" />
+  </a>
   <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
     <FaInstagram size={30} className="instagram" />
   </a>
