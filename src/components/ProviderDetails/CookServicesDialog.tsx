@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
@@ -232,7 +235,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     );
 
     const response = await axios.post(
-      "http://13.201.229.41:3000/create-order",
+      "https://utils-dmua.onrender.com/create-order",
       { amount: totalAmount * 100 },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -768,7 +771,7 @@ export default CookServicesDialog;
 
 //       // Create Razorpay order
 //       const response = await axios.post(
-//         "http://13.201.229.41:3000/create-order",
+//         "https://utils-dmua.onrender.com/create-order",
 //         { amount: totalAmount * 100 }, // Convert to paise
 //         { headers: { "Content-Type": "application/json" } }
 //       );

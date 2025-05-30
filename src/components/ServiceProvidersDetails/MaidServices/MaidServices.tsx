@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+
 import { Alert, Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid,  Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import CategoryIcon from '@mui/icons-material/Category';

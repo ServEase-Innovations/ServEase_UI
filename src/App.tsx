@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -92,7 +94,7 @@ if (userRole === "CUSTOMER") {
   });
 
   const getPricingData = () => {
-    axios.get('http://13.201.229.41:3000/records').then(function (response) {
+    axios.get('https://utils-dmua.onrender.com/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,

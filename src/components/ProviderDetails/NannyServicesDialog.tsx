@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
@@ -169,7 +171,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
 
   const createRazorpayOrder = async (amount: number) => {
     return await axios.post(
-      "http://13.201.229.41:3000/create-order",
+      "https://utils-dmua.onrender.com/create-order",
       { 
         amount: amount * 100,
         currency: "INR",

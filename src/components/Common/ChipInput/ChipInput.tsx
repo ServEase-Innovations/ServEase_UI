@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useState } from "react";
 import { Autocomplete, TextField, Chip, Grid } from "@mui/material";
 

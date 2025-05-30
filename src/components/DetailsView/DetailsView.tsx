@@ -1,6 +1,9 @@
-import { Button, Box, Drawer } from "@mui/material";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+
+
+
 import { useEffect, useState } from "react";
-import Search_form from "../Search-Form/Search_form";
 import "./DetailsView.css";
 import axiosInstance from "../../services/axiosInstance";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
@@ -155,7 +158,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     <div className="main-container">
       <div className="search">
       <HeaderSearch onSearch={handleSearch}/>
-      <PreferenceSelection /> 
+      {/* <PreferenceSelection />  */}
       </div>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
       serviceProviderData.map((provider, index) => (

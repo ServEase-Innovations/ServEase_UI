@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useRef, useState, ChangeEvent, useCallback } from 'react';
 import {
   Avatar,

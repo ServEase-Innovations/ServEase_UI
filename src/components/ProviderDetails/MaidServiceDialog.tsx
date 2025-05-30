@@ -223,21 +223,21 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     const totalAmount = calculateTotal();
 
     // Step: Call calculate-payment API
-    const calculatePaymentResponse = await axiosInstance.post("/api/payments/calculate-payment", null, {
-    params: {
-    customerId,
-    baseAmount: totalAmount,
-    startDate_P: bookingType?.startDate || "",
-    endDate_P: bookingType?.endDate || "",
-    paymentMode: "UPI", // or whatever mode is selected
-  },
-});
+//     const calculatePaymentResponse = await axiosInstance.post("/api/payments/calculate-payment", null, {
+//     params: {
+//     customerId,
+//     baseAmount: totalAmount,
+//     startDate_P: bookingType?.startDate || "",
+//     endDate_P: bookingType?.endDate || "",
+//     paymentMode: "UPI", // or whatever mode is selected
+//   },
+// });
     
 
-    if (!calculatePaymentResponse || calculatePaymentResponse.status !== 200) {
-      alert("Failed to calculate payment.");
-      return;
-    }
+//     if (!calculatePaymentResponse || calculatePaymentResponse.status !== 200) {
+//       alert("Failed to calculate payment.");
+//       return;
+//     }
 
     // Step: Create Razorpay order
     const response = await axios.post(

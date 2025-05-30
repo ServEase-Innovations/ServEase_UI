@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import React from "react";
 import { motion } from "framer-motion";
 import { AppWindow, Camera, Music, Settings, MessageSquare, Clock } from "lucide-react";

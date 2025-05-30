@@ -18,7 +18,7 @@
     height: fit-content; /* Allow the container to adjust to its content height */
     width: 100%;
     max-width: 600px; /* Ensuring it doesn't get too wide */
-    margin-left: auto; /* Horizontally center the component */
+    margin-left: auto; /*  rizontally center the component */
     margin-right: auto; /* Horizontally center the component */
     padding: 16px; /* Padding for content spacing */
     display: flex;

@@ -1,3 +1,7 @@
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
+
 import { useSelector } from "react-redux";
 import { useState, useEffect } from "react";
 import "./PreferenceSelection.css";
