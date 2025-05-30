@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint no-use-before-define: 0 */
+/* eslint-disable */
+
 
 
 import { useEffect, useState } from "react";

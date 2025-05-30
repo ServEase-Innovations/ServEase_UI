@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
 
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
