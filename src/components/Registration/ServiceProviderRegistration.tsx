@@ -102,12 +102,13 @@ interface FormErrors {
   diet?:string;
 }
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
 const aadhaarRegex = /^[0-9]{12}$/;
+const MAX_NAME_LENGTH=30;
 // const experienceRegex = /^([0-9]|[1-4][0-9]|50)$/;
 // const aadhaarRegex = /^[0-9]{12}$/;
 // const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -370,7 +371,60 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   const handleRealTimeValidation = (e) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/; // AADHAR must be 12 digits
+ if (name === "firstName") {
+  const trimmedValue = value.trim();
   
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name is required.",
+    }));
+  } else if (/^\s+$/.test(value)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name cannot contain only spaces.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name should contain only alphabets.",
+    }));
+  } else if (value.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "",
+    }));
+  }
+}
+
+if (name === "lastName") {
+  if (!value.trim()) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name is required.",
+    }));
+  } else if (!nameRegex.test(value.trim())) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name should contain only alphabets.",
+    }));
+  } else if (value.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "",
+    }));
+  }
+}
     // Password field validation
     if (name === "password") {
       if (value.length < 8) {
@@ -468,21 +522,29 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
     }
   }
     // Pincode field validation
-    if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
-      if (!pincodePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "Pincode must be exactly 6 digits.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "",
-        }));
-      }
-    }
-    
+  if (name === "pincode") {
+  // Only allow numeric input
+  const numericValue = value.replace(/\D/g, '');
+  
+  // Update form data with only numbers
+  setFormData((prevData) => ({
+    ...prevData,
+    [name]: numericValue.slice(0, 6) // Limit to 6 digits
+  }));
+
+  // Validation
+  if (numericValue.length !== 6) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "Pincode must be exactly 6 digits.",
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "",
+    }));
+  }
+}
   
     // Update the formData state
     setFormData((prevData) => ({
@@ -497,12 +559,21 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   
     // Step 1: Basic Information Validation
     if (activeStep === 0) {
-      if (!formData.firstName || !nameRegex.test(formData.firstName)) {
-        tempErrors.firstName = 'First Name is required and should contain only alphabets.';
-      }
-      if (!formData.lastName || !nameRegex.test(formData.lastName)) {
-        tempErrors.lastName = 'Last Name is required and should contain only alphabets.';
-      }
+       if (!formData.firstName) {
+    tempErrors.firstName = "First Name is required.";
+  } else if (!nameRegex.test(formData.firstName)) {
+    tempErrors.firstName = "First Name should contain only alphabets.";
+  } else if (formData.firstName.length > MAX_NAME_LENGTH) {
+    tempErrors.firstName = `First Name should be under ${MAX_NAME_LENGTH} characters.`;
+  }
+
+  if (!formData.lastName) {
+    tempErrors.lastName = "Last Name is required.";
+  } else if (!nameRegex.test(formData.lastName)) {
+    tempErrors.lastName = "Last Name should contain only alphabets.";
+  } else if (formData.lastName.length > MAX_NAME_LENGTH) {
+    tempErrors.lastName = `Last Name should be under ${MAX_NAME_LENGTH} characters.`;
+  }
       if (!formData.gender) {
         tempErrors.gender = 'Please select a gender.';
       }
@@ -538,9 +609,12 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       if (!formData.currentLocation) {
         tempErrors.currentLocation = 'Current Location is required.';
       }
-      if (!formData.pincode || !pincodeRegex.test(formData.pincode)) {
-        tempErrors.pincode = 'Pin Code  is required';
-      }
+       if (!formData.pincode) {
+    tempErrors.pincode = "Pincode is required.";
+} else if (formData.pincode.length !== 6) {
+    tempErrors.pincode = "Pincode must be exactly 6 digits.";
+}
+
     }
   
     // Step 3: Additional Details Validation
@@ -793,20 +867,19 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       <Grid item xs={12}>
         <ProfileImageUpload onImageSelect={handleImageSelect} />
       </Grid>
-
-      <Grid item xs={12}>
-        <TextField
-          placeholder="First Name *"
-          name="firstName"
-          fullWidth
-          required
-          value={formData.firstName}
-          onChange={handleChange}
-          error={!!errors.firstName}
-          helperText={errors.firstName}
-          
-        />
-      </Grid>
+<Grid item xs={12}>
+  <TextField
+    placeholder="First Name *"
+    name="firstName"
+    fullWidth
+    required
+    value={formData.firstName}
+    onChange={handleRealTimeValidation}
+    error={!!errors.firstName}
+    helperText={errors.firstName}
+    inputProps={{ maxLength: MAX_NAME_LENGTH }}
+  />
+</Grid>
 
       <Grid item xs={12}>
         <TextField
@@ -819,19 +892,20 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
         />
       </Grid>
 
-      <Grid item xs={12}>
-        <TextField
-          placeholder="Last Name *"
-          name="lastName"
-          fullWidth
-          required
-          value={formData.lastName}
-          onChange={handleChange}
-          error={!!errors.lastName}
-          helperText={errors.lastName}
-          disabled={isFieldsDisabled}
-        />
-      </Grid>
+     <Grid item xs={12}>
+  <TextField
+    placeholder="Last Name *"
+    name="lastName"
+    fullWidth
+    required
+    value={formData.lastName}
+    onChange={handleRealTimeValidation}
+    error={!!errors.lastName}
+    helperText={errors.lastName}
+    disabled={isFieldsDisabled}
+    inputProps={{ maxLength: MAX_NAME_LENGTH }}
+  />
+</Grid>
    {/* Age / Date of Birth Field */}
    <Grid item xs={12} sm={6}>
    <TextField
@@ -1013,18 +1087,28 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
                 helperText={errors.street}
               />
             </Grid>
-            <Grid item xs={12}sm={6}>
-              <TextField
-                placeholder="Pincode *"
-                name="pincode"
-                fullWidth
-                required
-                value={formData.pincode}
-                onChange={handleRealTimeValidation}
-                error={!!errors.pincode}
-                helperText={errors.pincode}
-              />
-            </Grid>
+        <Grid item xs={12} sm={6}>
+  <TextField
+    placeholder="Pincode *"
+    name="pincode"
+    fullWidth
+    required
+    value={formData.pincode}
+    onChange={handleRealTimeValidation}
+    error={!!errors.pincode}
+    helperText={errors.pincode}
+    inputProps={{
+      maxLength: 6,
+      inputMode: 'numeric',
+      pattern: '[0-9]*'
+    }}
+    onKeyPress={(e) => {
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }}
+  />
+</Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 placeholder="CurrentLocation *"

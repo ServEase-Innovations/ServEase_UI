@@ -72,16 +72,17 @@ interface FormErrors {
   pincode?: string;
   buildingName?: string;
   currentLocation?: string;
-  agreeToTerms?: string; // This is now a string for error messages
+  agreeToTerms?: string;
 }
 
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
+const MAX_NAME_LENGTH = 30;
 
 const steps = ["Basic Info", "Address", "Additional Details", "Confirmation"];
 
@@ -111,8 +112,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   };
 
   const [activeStep, setActiveStep] = useState(0);
-  // const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
-
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     middleName: "",
@@ -133,10 +132,9 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     language: "",
     profilePic: "",
   });
-  // Fetch Location
+
   const fetchLocation = () => {
     if (navigator.geolocation) {
-      // setLoadingLocation(true);
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -146,7 +144,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
-                  key: keys.api_key, // Use your API key
+                  key: keys.api_key,
                 },
               }
             );
@@ -154,7 +152,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             const address =
               response.data.results[0]?.formatted_address ||
               "Address not found";
-            console.log("Fetched Location:", address);
             setFormData((prevData) => ({
               ...prevData,
               address,
@@ -162,19 +159,17 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             }));
           } catch (error) {
             console.error("Failed to fetch location:", error);
-          } finally {
-            // setLoadingLocation(false);
           }
         },
         (error) => {
           console.error("Error retrieving geolocation:", error.message);
-          // setLoadingLocation(false);
         }
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
     }
   };
+
   const [availableLanguages] = useState<string[]>([
     "Assamese",
     "Bengali",
@@ -203,9 +198,8 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
 
   const handleChipChange = (newChips: string[]) => {
     setSelectedChips(newChips);
-    console.log(selectedChips);
   };
-  // };
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -219,18 +213,67 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
 
   const [image, setImage] = useState<Blob | null>(null);
 
-  // File change handler to update the profile picture
   const handleImageSelect = (file: Blob | null) => {
     if (file) {
-      setImage(file); // Now you have the image as binary (Blob)
-      // Further actions like uploading the image can be performed here
+      setImage(file);
     }
   };
 
-  const handleRealTimeValidation = (e) => {
+  const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const trimmedValue = value.trim();
 
-    // Password field validation
+    if (name === "firstName") {
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name is required.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: trimmedValue.includes('  ') ? 
+        "Only one space allowed between words" : 
+        "First Name should contain only alphabets with single spaces",
+    }));
+  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "",
+    }));
+  }
+}
+if (name === "lastName") {
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name is required.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: trimmedValue.includes('  ') ? 
+        "Only one space allowed between words" : 
+        "Last Name should contain only alphabets with single spaces",
+    }));
+  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "",
+    }));
+  }
+}
+
     if (name === "password") {
       if (value.length < 8) {
         setErrors((prevErrors) => ({
@@ -265,7 +308,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Confirm Password field validation
     if (name === "confirmPassword") {
       if (value !== formData.password) {
         setErrors((prevErrors) => ({
@@ -280,7 +322,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Email field validation
     if (name === "emailId") {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(value)) {
@@ -296,7 +337,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Mobile number field validation
     if (name === "mobileNo") {
       const mobilePattern = /^[0-9]{10}$/;
       if (!mobilePattern.test(value)) {
@@ -311,28 +351,37 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
         }));
       }
     }
-    // Pincode field validation
-    if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
-      if (!pincodePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "Pincode must be exactly 6 digits.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "",
-        }));
-      }
-    }
 
-    // Update the formData state
+  if (name === "pincode") {
+  // Only allow numeric input
+  const numericValue = value.replace(/\D/g, '');
+  
+  // Update form data with only numbers
+  setFormData((prevData) => ({
+    ...prevData,
+    [name]: numericValue.slice(0, 6) // Limit to 6 digits
+  }));
+
+  // Validation
+  if (numericValue.length !== 6) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "Pincode must be exactly 6 digits.",
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "",
+    }));
+  }
+}
+
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
+
   const [errors, setErrors] = useState<FormErrors>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,20 +392,65 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     });
   };
 
+  const currentStepHasErrors = () => {
+    if (activeStep === 0) {
+      return (
+        !formData.firstName.trim() ||
+        !nameRegex.test(formData.firstName.trim()) ||
+        formData.firstName.trim().length > MAX_NAME_LENGTH ||
+        !formData.lastName.trim() ||
+        !nameRegex.test(formData.lastName.trim()) ||
+         formData.lastName.trim().length > MAX_NAME_LENGTH || 
+        !formData.emailId ||
+        !emailIdRegex.test(formData.emailId) ||
+        !formData.password ||
+        !strongPasswordRegex.test(formData.password) ||
+        formData.password !== formData.confirmPassword ||
+        !formData.mobileNo ||
+        !phoneRegex.test(formData.mobileNo) ||
+        !formData.gender
+      );
+    }
+    if (activeStep === 1) {
+      return (
+        !formData.address ||
+        !formData.locality ||
+        !formData.street ||
+        !formData.pincode ||
+        !pincodeRegex.test(formData.pincode) ||
+        !formData.currentLocation ||
+        !formData.buildingName
+      );
+    }
+    if (activeStep === 3) {
+      return !formData.agreeToTerms;
+    }
+    return false;
+  };
+
   const validateForm = () => {
     let tempErrors: FormErrors = {};
 
     if (activeStep === 0) {
-      if (!formData.firstName) {
-        tempErrors.firstName = "First Name is required.";
-      } else if (!nameRegex.test(formData.firstName)) {
-        tempErrors.firstName = "First Name should contain only alphabets.";
-      }
-      if (!formData.lastName) {
-        tempErrors.lastName = "Last Name is required.";
-      } else if (!nameRegex.test(formData.lastName)) {
-        tempErrors.lastName = "Last Name should contain only alphabets.";
-      }
+     if (!formData.firstName.trim()) {
+  tempErrors.firstName = "First Name is required.";
+} else if (!nameRegex.test(formData.firstName.trim())) {
+  tempErrors.firstName = formData.firstName.includes('  ') ? 
+    "Only one space allowed between words" : 
+    "First Name should contain only alphabets with single spaces";
+} else if (formData.firstName.trim().length > MAX_NAME_LENGTH) {
+  tempErrors.firstName = `First Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+}
+
+ if (!formData.lastName.trim()) {
+  tempErrors.lastName = "Last Name is required.";
+} else if (!nameRegex.test(formData.lastName.trim())) {
+  tempErrors.lastName = formData.lastName.includes('  ') ? 
+    "Only one space allowed between words" : 
+    "Last Name should contain only alphabets with single spaces";
+} else if (formData.lastName.trim().length > MAX_NAME_LENGTH) {
+  tempErrors.lastName = `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+}
       if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
         tempErrors.emailId = "Valid email is required.";
       }
@@ -384,9 +478,12 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (!formData.street) {
         tempErrors.street = "State is required.";
       }
-      if (!formData.pincode || !pincodeRegex.test(formData.pincode)) {
-        tempErrors.pincode = "Pincode is required.";
-      }
+    if (!formData.pincode) {
+    tempErrors.pincode = "Pincode is required.";
+} else if (formData.pincode.length !== 6) {
+    tempErrors.pincode = "Pincode must be exactly 6 digits.";
+}
+
       if (!formData.currentLocation) {
         tempErrors.currentLocation = "Current Location is required.";
       }
@@ -409,18 +506,16 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   const handleBack = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Ensure form validation passes
     if (validateForm()) {
       try {
-        // Check if an image is selected
         if (image) {
           const formData1 = new FormData();
           formData1.append("image", image);
 
-          // Call image upload API
           const imageResponse = await axiosInstance.post(
             "http://65.2.153.173:3000/upload",
             formData1,
@@ -431,13 +526,11 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             }
           );
 
-          // If image upload is successful, add URL to formData
           if (imageResponse.status === 200) {
             formData.profilePic = imageResponse.data.imageUrl;
           }
         }
 
-        // Call customer add API (regardless of whether an image is uploaded)
         const response = await axiosInstance.post(
           "/api/customer/add-customer",
           formData,
@@ -451,7 +544,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
         if (response.status === 201) {
           const data = { email: formData.emailId, name: formData.firstName };
 
-          const imageResponse = await axiosInstance.post(
+          await axiosInstance.post(
             "http://3.110.168.35:3000/send-email",
             data,
             {
@@ -462,24 +555,20 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
           );
         }
 
-        // Update Snackbar for success
         setSnackbarSeverity("success");
         setSnackbarMessage("User added successfully!");
         setSnackbarOpen(true);
 
-        // Navigate back to login after a delay
         setTimeout(() => {
           onBackToLogin(true);
-        }, 3000); // Wait for 3 seconds to display Snackbar
+        }, 3000);
       } catch (error) {
-        // Update Snackbar for error
         setSnackbarOpen(true);
         setSnackbarSeverity("error");
         setSnackbarMessage("Failed to add User. Please try again.");
         console.error("Error submitting form:", error);
       }
     } else {
-      // Update Snackbar for validation error
       setSnackbarOpen(true);
       setSnackbarSeverity("warning");
       setSnackbarMessage("Please fill out all required fields.");
@@ -492,7 +581,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (activeStep === steps.length - 1) {
         setSnackbarMessage("Registration Successful!");
         setSnackbarOpen(true);
-        // Optionally, reset form data or redirect
       }
     }
   };
@@ -503,7 +591,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
         return (
           <div className="topic">
             <Grid container spacing={2}>
-              {/* Profile Picture Upload Section */}
               <Grid item xs={12}>
                 <ProfileImageUpload onImageSelect={handleImageSelect} />
               </Grid>
@@ -514,9 +601,10 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.firstName}
-                  onChange={handleChange}
+                  onChange={handleRealTimeValidation}
                   error={!!errors.firstName}
                   helperText={errors.firstName}
+                  inputProps={{ maxLength: MAX_NAME_LENGTH }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -551,13 +639,13 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    row // Optional to make it horizontal
+                    row
                   >
                     <FormControlLabel
                       value="MALE"
                       control={<Radio />}
                       label="MALE"
-                      sx={{ color: "#333" }} // Apply dark gray color
+                      sx={{ color: "#333" }}
                     />
                     <FormControlLabel
                       value="FEMALE"
@@ -597,7 +685,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.password}
-                  onChange={handleRealTimeValidation} // Real-time validation here
+                  onChange={handleRealTimeValidation}
                   error={!!errors.password}
                   helperText={errors.password}
                   InputProps={{
@@ -624,18 +712,18 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.confirmPassword}
-                  onChange={handleRealTimeValidation} // Real-time validation here
+                  onChange={handleRealTimeValidation}
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          onClick={handleTogglePasswordVisibility}
+                          onClick={handleToggleConfirmPasswordVisibility}
                           edge="end"
                           aria-label="toggle password visibility"
                         >
-                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -698,18 +786,28 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   helperText={errors.street}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  placeholder="Pincode *"
-                  name="pincode"
-                  fullWidth
-                  required
-                  value={formData.pincode}
-                  onChange={handleRealTimeValidation}
-                  error={!!errors.pincode}
-                  helperText={errors.pincode}
-                />
-              </Grid>
+            <Grid item xs={12} sm={6}>
+         <TextField
+         placeholder="Pincode *"
+         name="pincode"
+         fullWidth
+         required
+         value={formData.pincode}
+         onChange={handleRealTimeValidation}
+         error={!!errors.pincode}
+         helperText={errors.pincode}
+         inputProps={{
+         maxLength: 6,
+         inputMode: 'numeric',
+         pattern: '[0-9]*'
+    }}
+    onKeyPress={(e) => {
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+        }}
+  />
+            </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   placeholder="BuildingName *"
@@ -825,7 +923,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             marginTop: 2,
           }}
         >
-         <Button
+          <Button
             onClick={() =>
               activeStep === 0 ? handleBackLogin("true") : handleBack()
             }
@@ -844,7 +942,8 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               variant="contained"
               color="primary"
               onClick={handleNext}
-              endIcon={<ArrowForward />} // This will place the icon after the text
+              endIcon={<ArrowForward />}
+              disabled={currentStepHasErrors()}
             >
               Next
             </Button>
@@ -854,8 +953,8 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
           open={snackbarOpen}
           autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }} // Set position to top-right
-          sx={{ marginTop: "60px" }} // Adjust margin-top if needed
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          sx={{ marginTop: "60px" }}
         >
           <Alert
             onClose={handleCloseSnackbar}
