@@ -144,8 +144,8 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ onImageSelect }
           </IconButton>
         )}
       </Box>
-      <Typography variant="subtitle1" gutterBottom sx={{ marginTop: '10px' }}>
-        Upload Profile Picture
+      <Typography variant="subtitle1" gutterBottom sx={{ marginTop: '10px' , userSelect: 'none',pointerEvents: 'none'  }}>
+       Upload Profile Picture
       </Typography>
       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} ref={fileInputRef} />
 

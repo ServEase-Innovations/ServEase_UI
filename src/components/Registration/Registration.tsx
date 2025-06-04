@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Autocomplete from "@mui/material/Autocomplete";
 import {
   TextField,
   Button,
@@ -198,13 +199,17 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     "Dogri",
     "Maithili",
     "Santhali",
+    "English",
   ]);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
 
   const handleChipChange = (newChips: string[]) => {
     setSelectedChips(newChips);
-    console.log(selectedChips);
   };
+
+  useEffect(() => {
+    console.log(selectedChips); // Logs updated state after re-render
+  }, [selectedChips]);
   // };
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -412,77 +417,85 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Ensure form validation passes
-    if (validateForm()) {
-      try {
-        // Check if an image is selected
-        if (image) {
-          const formData1 = new FormData();
-          formData1.append("image", image);
+    // Validate the "Agree to Terms" checkbox FIRST
+    if (!formData.agreeToTerms) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        agreeToTerms:
+          "You must agree to the Terms of Service and Privacy Policy",
+      }));
 
-          // Call image upload API
-          const imageResponse = await axiosInstance.post(
-            "http://65.2.153.173:3000/upload",
-            formData1,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
+      // Show validation message through Snackbar
+      setSnackbarOpen(true);
+      setSnackbarSeverity("warning");
+      setSnackbarMessage(
+        "You must agree to the Terms of Service and Privacy Policy."
+      );
 
-          // If image upload is successful, add URL to formData
-          if (imageResponse.status === 200) {
-            formData.profilePic = imageResponse.data.imageUrl;
-          }
-        }
+      return; // Stop form submission if unchecked
+    }
 
-        // Call customer add API (regardless of whether an image is uploaded)
-        const response = await axiosInstance.post(
-          "/api/customer/add-customer",
-          formData,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (response.status === 201) {
-          const data = { email: formData.emailId, name: formData.firstName };
-
-          const imageResponse = await axiosInstance.post(
-            "http://3.110.168.35:3000/send-email",
-            data,
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        }
-
-        // Update Snackbar for success
-        setSnackbarSeverity("success");
-        setSnackbarMessage("User added successfully!");
-        setSnackbarOpen(true);
-
-        // Navigate back to login after a delay
-        setTimeout(() => {
-          onBackToLogin(true);
-        }, 3000); // Wait for 3 seconds to display Snackbar
-      } catch (error) {
-        // Update Snackbar for error
-        setSnackbarOpen(true);
-        setSnackbarSeverity("error");
-        setSnackbarMessage("Failed to add User. Please try again.");
-        console.error("Error submitting form:", error);
-      }
-    } else {
-      // Update Snackbar for validation error
+    // Proceed with form validation before submitting
+    if (!validateForm()) {
       setSnackbarOpen(true);
       setSnackbarSeverity("warning");
       setSnackbarMessage("Please fill out all required fields.");
+      return; // Stop submission if other fields are invalid
+    }
+
+    try {
+      // Check if an image is selected
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
+
+        // Call image upload API
+        const imageResponse = await axiosInstance.post(
+          "http://65.2.153.173:3000/upload",
+          formData1,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+
+        // If image upload is successful, add URL to formData
+        if (imageResponse.status === 200) {
+          formData.profilePic = imageResponse.data.imageUrl;
+        }
+      }
+
+      // Call customer add API (regardless of whether an image is uploaded)
+      const response = await axiosInstance.post(
+        "/api/customer/add-customer",
+        formData,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.status === 201) {
+        const emailData = { email: formData.emailId, name: formData.firstName };
+
+        await axiosInstance.post(
+          "http://3.110.168.35:3000/send-email",
+          emailData,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Success feedback through Snackbar
+      setSnackbarSeverity("success");
+      setSnackbarMessage("User added successfully!");
+      setSnackbarOpen(true);
+
+      // Navigate back to login after a delay
+      setTimeout(() => {
+        onBackToLogin(true);
+      }, 3000);
+    } catch (error) {
+      // Error handling
+      setSnackbarOpen(true);
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Failed to add User. Please try again.");
+      console.error("Error submitting form:", error);
     }
   };
 
@@ -517,6 +530,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   onChange={handleChange}
                   error={!!errors.firstName}
                   helperText={errors.firstName}
+                 
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -627,11 +641,13 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   onChange={handleRealTimeValidation} // Real-time validation here
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword}
+                  onPaste={(e) => e.preventDefault()} // Prevent paste
+                  onCopy={(e) => e.preventDefault()} // Prevent copy
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          onClick={handleTogglePasswordVisibility}
+                          onClick={handleToggleConfirmPasswordVisibility}
                           edge="end"
                           aria-label="toggle password visibility"
                         >
@@ -759,11 +775,20 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               />
             </Grid>
             <Grid item xs={12}>
-              <ChipInput
-                options={availableLanguages}
-                onChange={handleChipChange}
-                label="languages"
-                placeholder="Pick/Type Your Languages"
+              <Autocomplete
+                multiple
+                freeSolo
+                options={availableLanguages} // Provides selectable options
+                value={selectedChips} // Keeps selected values
+                onChange={(event, newValue) => setSelectedChips(newValue)} // Updates state
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Languages"
+                    placeholder="Pick/Type Your Languages"
+                    fullWidth
+                  />
+                )}
               />
             </Grid>
           </Grid>
@@ -783,12 +808,8 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                     name="agreeToTerms"
                   />
                 }
-                required
                 label="I agree to the Terms of Service and Privacy Policy"
               />
-              {errors.agreeToTerms && (
-                <Typography color="error">{errors.agreeToTerms}</Typography>
-              )}
             </div>
           </>
         );
@@ -802,10 +823,11 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       sx={{ maxWidth: 600, margin: "auto", padding: 2, display: "block" }}
       className="parent"
     >
-      <Typography variant="h5" gutterBottom className="text">
+        <Typography variant="h5" gutterBottom className="text">
         User Registration
       </Typography>
       <Stepper
+      className="Stepper1"
         activeStep={activeStep}
         alternativeLabel
         style={{ overflow: "overlay" }}
@@ -825,7 +847,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             marginTop: 2,
           }}
         >
-         <Button
+          <Button
             onClick={() =>
               activeStep === 0 ? handleBackLogin("true") : handleBack()
             }

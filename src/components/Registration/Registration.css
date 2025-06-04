@@ -40,12 +40,18 @@
   }
 
   /* Reducing height of all TextField components */
-.MuiInputBase-root {
-    height: 36px !important; /* Reduce the height */
-  }
+
   
   .MuiInputBase-input {
     padding: 10px 12px !important; /* Adjust padding to reduce internal height */
   }
   
-  
+
+  .Stepper1{
+  user-select: none; /* Prevents text selection */
+  pointer-events: none; /* Prevents clicks from triggering cursor */
+}
+.text{
+  user-select: none; /* Prevents text selection */
+  pointer-events: none; /* Prevents clicks from triggering cursor */
+}
