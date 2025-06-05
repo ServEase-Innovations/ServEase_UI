@@ -974,7 +974,7 @@ if (name === "lastName") {
                         edge="end"
                         aria-label="toggle password visibility"
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -1002,7 +1002,7 @@ if (name === "lastName") {
                         edge="end"
                         aria-label="toggle confirm password visibility"
                       >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                         {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
