@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   Box, 
   Grid, 
@@ -14,7 +14,13 @@ import {
   Alert,
   Snackbar,
   Switch,
-  styled
+  styled,
+   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField
 } from "@mui/material";
 import CallIcon from '@mui/icons-material/Call';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -63,7 +69,7 @@ interface DashboardBodyProps {
   handleDateClick: (date: Date) => void;
   handleSwitchChange: (event: any, index: number) => void;
   handleCancelBooking: (index: number) => void;
-  applyLeave: () => void;
+  applyLeave: (description: string) => void;
   snackbarOpen: boolean;
   snackbarMessage: string;
   snackbarSeverity: "success" | "error" | "warning" | "info";
@@ -85,6 +91,41 @@ const DashboardBody: React.FC<DashboardBodyProps> = ({
   snackbarSeverity,
   handleSnackbarClose
 }) => {
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+const [leaveDescription, setLeaveDescription] = useState<string>("");
+const [tempSelectedDate, setTempSelectedDate] = useState<Date | null>(null);
+
+// Add these handler functions
+const handleLeaveDialogOpen = () => {
+  console.log("Dialog opening"); // Check if this fires multiple times
+  if (selectedDate) {
+    setTempSelectedDate(selectedDate);
+    setLeaveDialogOpen(true);
+    setLeaveDescription(""); // Reset when opening
+  }
+};
+
+const handleLeaveDialogClose = () => {
+  setLeaveDialogOpen(false);
+  setLeaveDescription("");
+};
+
+
+const handleLeaveDescriptionChange = (
+  event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  console.log("Current value:", event.target.value); // Verify in console
+  setLeaveDescription(event.target.value);
+};
+
+const handleLeaveSubmit = async (e: React.FormEvent) => {
+  e.preventDefault(); // Add this if form submission refreshes
+  if (tempSelectedDate && leaveDescription) {
+    await applyLeave(leaveDescription);
+    handleLeaveDialogClose();
+  }
+};
+  
   return (
     <div style={{ display: 'grid' }}>
       {/* Show Profile Section if Profile Tab is Selected */}
@@ -284,7 +325,153 @@ const DashboardBody: React.FC<DashboardBodyProps> = ({
       )}
 
      
+{selectedTab === 2 && (
+  <Box
+    sx={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      // backgroundColor: "#f5f5f5",
+    }}
+  >
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "20px",
+        boxShadow: 3,
+        borderRadius: "8px",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Typography variant="h5" color="#333" fontWeight="bold">
+        Attendance Calendar
+      </Typography>
 
+      <Box sx={{ marginTop: "10px", width: "100%" }}>
+        <Calendar
+          onClickDay={handleDateClick}
+          tileClassName={({ date }) => {
+            const dateKey = dayjs(date).format("YYYY-MM-DD");
+
+            return attendanceData[dateKey] === "Absent"
+              ? "absent-day"
+              : attendanceData[dateKey] === "Present"
+              ? "present-day"
+              : "";
+          }}
+        />
+      </Box>
+
+      <Box sx={{ marginTop: "20px" }}>
+        <Button
+          variant="contained"
+          onClick={handleLeaveDialogOpen}
+          disabled={!selectedDate || attendanceData[dayjs(selectedDate).format("YYYY-MM-DD")] === "Present"}
+          sx={{
+            padding: "10px 20px",
+            fontWeight: "bold",
+            backgroundColor: "#f57c00",
+            color: "white",
+            '&:disabled': {
+              backgroundColor: '#e0e0e0',
+              color: '#9e9e9e'
+            }
+          }}
+        >
+          Apply Leave
+        </Button>
+      </Box>
+
+      {/* Leave Application Dialog */}
+    <Dialog open={leaveDialogOpen} onClose={handleLeaveDialogClose}>
+  <form onSubmit={handleLeaveSubmit}>
+    <DialogTitle>Apply for Leave</DialogTitle>
+    <DialogContent>
+      <DialogContentText>
+        You're applying for leave on {tempSelectedDate && dayjs(tempSelectedDate).format("MMMM D, YYYY")}
+      </DialogContentText>
+    <input
+  autoFocus
+  id="leaveDescription"
+  placeholder="Leave Description"
+  type="text"
+  required
+  value={leaveDescription}
+  onChange={handleLeaveDescriptionChange}
+  style={{
+    width: "100%",
+    padding: "10px",
+    border: "2px solid #1976d2",
+    borderRadius: "4px",
+    fontSize: "16px",
+    color: "#000",
+  }}
+/>
+
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleLeaveDialogClose}>Cancel</Button>
+      <Button 
+        type="submit" // Changed to submit type
+        disabled={!leaveDescription}
+        color="primary"
+        variant="contained"
+      >
+        Submit
+      </Button>
+    </DialogActions>
+  </form>
+</Dialog>
+
+      {/* Custom Styles */}
+      <style>
+        {`
+          .react-calendar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+          }
+          .react-calendar__tile {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 50%;
+            transition: 0.3s;
+          }
+          .present-day {
+            background-color: rgba(144, 238, 144, 0.6);
+            border: 2px solid #4CAF50;
+            color: #2c662d;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .absent-day {
+            background-color: rgba(255, 99, 71, 0.6);
+            border: 2px solid #FF5733;
+            color: #900;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .react-calendar__tile:hover {
+            background-color: rgba(255, 215, 0, 0.6);
+            border-radius: 50%;
+            transition: 0.3s;
+          }
+        `}
+      </style>
+    </Box>
+  </Box>
+)}
       {selectedTab === 3 && (
         <Box sx={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
           <Box

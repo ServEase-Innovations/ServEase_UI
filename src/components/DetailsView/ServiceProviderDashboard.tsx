@@ -85,7 +85,7 @@ const ServiceProviderDashboard: React.FC = () => {
     }
   };
 
-  const applyLeave = async () => {
+  const applyLeave = async (description: string) => {
     if (selectedDate) {
       const dateKey = dayjs(selectedDate).format("YYYY-MM-DD");
   
@@ -101,6 +101,7 @@ const ServiceProviderDashboard: React.FC = () => {
         fromDate: dateKey,
         toDate: dateKey,
         leaveType: "PAID",
+         description: description,
       };
       
       try {

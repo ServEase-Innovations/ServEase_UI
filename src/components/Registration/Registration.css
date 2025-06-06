@@ -30,7 +30,7 @@
   /* Remove extra margin around buttons */
   .MuiBox-root {
     margin-top: 16px;
-    display: flex;
+    /* display: flex; */
     justify-content: space-between;
   }
   
