@@ -34,13 +34,6 @@ function App() {
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
-  // Access user slice from the Redux store
-  // const user = useSelector((state: RootState) => state.user);
-  // console.log("user name is :",user);
-  // const userRole = user?.value; 
-  // console.log("Logged-in user role:", userRole); 
-// Define the expected user type
-
 type UserState = {
   value?: {
     role?: string;
