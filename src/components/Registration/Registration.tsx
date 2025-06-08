@@ -651,7 +651,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                           edge="end"
                           aria-label="toggle password visibility"
                         >
-                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),

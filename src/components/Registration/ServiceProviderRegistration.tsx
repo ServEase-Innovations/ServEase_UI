@@ -944,7 +944,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                         edge="end"
                         aria-label="toggle password visibility"
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -973,7 +973,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                         edge="end"
                         aria-label="toggle password visibility"
                       >
-                        {showPassword ? <Visibility /> : <VisibilityOff />}
+                        {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
