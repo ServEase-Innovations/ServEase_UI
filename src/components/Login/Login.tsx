@@ -78,7 +78,13 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+  if (event.key === "Enter") {
+   handleLogin(event);
+  }
+};
   const handleLogin = async (e: React.FormEvent) => {
+
     e.preventDefault();
 
     try {
@@ -167,7 +173,7 @@ export const Login: React.FC<ChildComponentProps> = ({
     <div className="h-full flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-lg">
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
-          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 m-0">
+          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 ">
             {isRegistration ? (
               <Registration onBackToLogin={handleBackToLogin} />
             ) : isServiceRegistration ? (
@@ -210,6 +216,7 @@ export const Login: React.FC<ChildComponentProps> = ({
                       type={showPassword ? "text" : "password"}
                       placeholder="Password"
                       value={password}
+                      onKeyDown={handleKeyPress}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
@@ -238,6 +245,7 @@ export const Login: React.FC<ChildComponentProps> = ({
                   </button>
                   <button
                     className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-3 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-out"
+                    
                     type="submit"
                   >
                     LOG IN

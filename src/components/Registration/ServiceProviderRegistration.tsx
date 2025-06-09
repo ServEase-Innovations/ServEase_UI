@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import moment from "moment";
 import {
   TextField,
@@ -24,6 +24,7 @@ import {
   FormHelperText,
   FormGroup,
   Slider,
+  Autocomplete,
 } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { Visibility, VisibilityOff,ArrowForward,ArrowBack   } from '@mui/icons-material';
@@ -327,14 +328,19 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       "Manipuri",
       "Bodo",
       "Dogri",
+      "English",
       "Maithili",
       "Santhali",
     ]);
     const [selectedChips, setSelectedChips] = useState<string[]>([]);
-    const handleChipChange = (newChips: string[]) => {
-      setSelectedChips(newChips);
-      console.log(selectedChips)
-    };
+    
+      const handleChipChange = (newChips: string[]) => {
+        setSelectedChips(newChips);
+      };
+    
+      useEffect(() => {
+        console.log(selectedChips); // Logs updated state after re-render
+      }, [selectedChips]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -993,6 +999,8 @@ if (name === "lastName") {
                 onChange={handleRealTimeValidation}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword}
+                onPaste={(e) => e.preventDefault()} // Prevent paste
+                onCopy={(e) => e.preventDefault()} // Prevent copy
                 disabled={isFieldsDisabled}
                 InputProps={{
                   endAdornment: (
@@ -1145,7 +1153,7 @@ if (name === "lastName") {
         <>
   <Grid container spacing={2}>
      {/* Service Type Dropdown */}
-     <Grid item xs={12} sm={6}>
+     <Grid item xs={12} sm={12} className="mt-4 flex justify-center items-center ml-10">
           <TextField
             select
             label="Select Service Type"
@@ -1258,9 +1266,23 @@ if (name === "lastName") {
       <FormHelperText>{errors.diet}</FormHelperText>
     </FormControl>
   </Grid>
-  <Grid item xs={12}>
-     <ChipInput options={availableLanguages} onChange={handleChipChange} label="languages" placeholder="Pick/Type Your Languages" />
-  </Grid>
+   <Grid item xs={12}>
+                <Autocomplete
+                  multiple
+                  freeSolo
+                  options={availableLanguages} // Provides selectable options
+                  value={selectedChips} // Keeps selected values
+                  onChange={(event, newValue) => setSelectedChips(newValue)} // Updates state
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Languages"
+                      placeholder="Pick/Type Your Languages"
+                      fullWidth
+                    />
+                  )} 
+                />
+              </Grid>
     {/* Description Field */}
     <Grid item xs={12}>
       <TextField
@@ -1490,13 +1512,15 @@ if (name === "lastName") {
         {renderStepContent(activeStep)}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
           <Button
-            disabled={activeStep === 0}
-            variant="contained"
-            onClick={handleBack}
-            startIcon={<ArrowBack />}
-          >
-            Back
-          </Button>
+                     onClick={() =>
+                       activeStep === 0 ? handleBackLogin("true") : handleBack()
+                     }
+                     variant="contained"
+                     color="primary"
+                     startIcon={<ArrowBack />}
+                   >
+                     Back
+                   </Button>
           <Button
             variant="contained"
             onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}

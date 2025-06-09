@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextField,
   Button,
@@ -21,6 +21,8 @@ import {
   Alert,
   Snackbar,
   AlertColor,
+  Autocomplete,
+  Tooltip,
 } from "@mui/material";
 import "./Registration.css";
 import {
@@ -185,6 +187,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     "Tamil",
     "Telugu",
     "Urdu",
+    "English",
     "Sindhi",
     "Konkani",
     "Nepali",
@@ -194,11 +197,15 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     "Maithili",
     "Santhali",
   ]);
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+const [selectedChips, setSelectedChips] = useState<string[]>([]);
 
   const handleChipChange = (newChips: string[]) => {
     setSelectedChips(newChips);
   };
+
+  useEffect(() => {
+    console.log(selectedChips); // Logs updated state after re-render
+  }, [selectedChips]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -715,6 +722,8 @@ if (name === "lastName") {
                   onChange={handleRealTimeValidation}
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword}
+                  onPaste={(e) => e.preventDefault()} // Prevent paste
+                  onCopy={(e) => e.preventDefault()} // Prevent copy
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -856,12 +865,21 @@ if (name === "lastName") {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12}>
-              <ChipInput
-                options={availableLanguages}
-                onChange={handleChipChange}
-                label="languages"
-                placeholder="Pick/Type Your Languages"
+          <Grid item xs={12}>
+              <Autocomplete
+                multiple
+                freeSolo
+                options={availableLanguages} // Provides selectable options
+                value={selectedChips} // Keeps selected values
+                onChange={(event, newValue) => setSelectedChips(newValue)} // Updates state
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Languages"
+                    placeholder="Pick/Type Your Languages"
+                    fullWidth
+                  />
+                )} 
               />
             </Grid>
           </Grid>
@@ -934,9 +952,18 @@ if (name === "lastName") {
             Back
           </Button>
           {activeStep === steps.length - 1 ? (
-            <Button type="submit" variant="contained" color="primary">
-              Submit
-            </Button>
+         <Tooltip title={!formData.agreeToTerms ? "Check terms and conditions to enable Submit" : ""}>
+  <span> {/* Wrapping in a span to avoid tooltip issue on disabled buttons */}
+    <Button 
+      type="submit" 
+      variant="contained" 
+      color="primary" 
+      disabled={!formData.agreeToTerms}
+    >
+      Submit
+    </Button>
+  </span>
+</Tooltip>
           ) : (
             <Button
               variant="contained"
