@@ -515,42 +515,46 @@ if (name === "lastName") {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (validateForm()) {
-      try {
-        if (image) {
-          const formData1 = new FormData();
-          formData1.append("image", image);
+  if (validateForm()) {
+    try {
+      // Image upload logic
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
 
-          const imageResponse = await axiosInstance.post(
-            "http://65.2.153.173:3000/upload",
-            formData1,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
-
-          if (imageResponse.status === 200) {
-            formData.profilePic = imageResponse.data.imageUrl;
-          }
-        }
-
-        const response = await axiosInstance.post(
-          "/api/customer/add-customer",
-          formData,
+        const imageResponse = await axiosInstance.post(
+          "http://65.2.153.173:3000/upload",
+          formData1,
           {
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "multipart/form-data",
             },
           }
         );
 
-        if (response.status === 201) {
-          const data = { email: formData.emailId, name: formData.firstName };
+        if (imageResponse.status === 200) {
+          formData.profilePic = imageResponse.data.imageUrl;
+        }
+      }
 
+      // Main form submission
+      const response = await axiosInstance.post(
+        "/api/customer/add-customer",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Only proceed to show success if main form submission succeeds
+      if (response.status === 201) {
+        // Email sending (now optional)
+        try {
+          const data = { email: formData.emailId, name: formData.firstName };
           await axiosInstance.post(
             "http://3.110.168.35:3000/send-email",
             data,
@@ -560,6 +564,9 @@ if (name === "lastName") {
               },
             }
           );
+        } catch (emailError) {
+          console.warn("Email sending failed (optional):", emailError);
+          // Don't treat email failure as an overall failure
         }
 
         setSnackbarSeverity("success");
@@ -569,18 +576,19 @@ if (name === "lastName") {
         setTimeout(() => {
           onBackToLogin(true);
         }, 3000);
-      } catch (error) {
-        setSnackbarOpen(true);
-        setSnackbarSeverity("error");
-        setSnackbarMessage("Failed to add User. Please try again.");
-        console.error("Error submitting form:", error);
       }
-    } else {
+    } catch (error) {
       setSnackbarOpen(true);
-      setSnackbarSeverity("warning");
-      setSnackbarMessage("Please fill out all required fields.");
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Failed to add User. Please try again.");
+      console.error("Error submitting form:", error);
     }
-  };
+  } else {
+    setSnackbarOpen(true);
+    setSnackbarSeverity("warning");
+    setSnackbarMessage("Please fill out all required fields.");
+  }
+};
 
   const handleNext = () => {
     if (validateForm()) {
