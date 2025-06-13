@@ -25,6 +25,7 @@ import {
   FormGroup,
   Slider,
   Autocomplete,
+  Tooltip,
 } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { Visibility, VisibilityOff,ArrowForward,ArrowBack   } from '@mui/icons-material';
@@ -341,7 +342,13 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       useEffect(() => {
         console.log(selectedChips); // Logs updated state after re-render
       }, [selectedChips]);
-
+ const handleChangeCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]:
+        e.target.type === "checkbox" ? e.target.checked : e.target.value,
+    });
+  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
@@ -625,9 +632,7 @@ if (name === "lastName") {
   
     // Step 3: Additional Details Validation
     if (activeStep === 2) {
-      if (!formData.agreeToTerms) {
-        tempErrors.agreeToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
-      }
+     
       if (!formData.housekeepingRole) {
         tempErrors.housekeepingRole = 'Please select a service type.';
       }
@@ -673,6 +678,12 @@ if (name === "lastName") {
       //   tempErrors.documentImage = "Please upload a document image.";
       // }
     }
+     if (activeStep === 4) {
+      if (!formData.agreeToTerms) {
+        tempErrors.agreeToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
+      }
+    }
+    
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
@@ -1399,26 +1410,6 @@ if (name === "lastName") {
           </FormGroup>
         </FormControl>
       </Grid>
-
-
-
-    {/* Checkbox for Terms of Service */}
-    <Grid item xs={12}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={formData.agreeToTerms}
-            onChange={handleChange}
-            name="agreeToTerms"
-            required
-          />
-        }
-        label="I agree to the Terms of Service and Privacy Policy"
-      />
-      {errors.agreeToTerms && (
-        <Typography color="error">{errors.agreeToTerms}</Typography>
-      )}
-    </Grid>
   </Grid>
 </>
       );
@@ -1486,9 +1477,28 @@ if (name === "lastName") {
       
       case 4:
         return (
+          
           <Typography variant="h6" align="center">
             All steps completed - You're ready to submit your information!
+             {/* Checkbox for Terms of Service */}
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={formData.agreeToTerms}
+            onChange={handleChangeCheckbox}
+            name="agreeToTerms"
+            required
+          />
+        }
+        label="I agree to the Terms of Service and Privacy Policy"
+      />
+      {errors.agreeToTerms && (
+        <Typography color="error">{errors.agreeToTerms}</Typography>
+      )}
+    </Grid> 
           </Typography>
+          
         );
       default:
         return 'Unknown step';
@@ -1508,30 +1518,79 @@ if (name === "lastName") {
             </Step>
           ))}
         </Stepper>
-        <form onSubmit={handleSubmit}>
-        {renderStepContent(activeStep)}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-          <Button
-                     onClick={() =>
-                       activeStep === 0 ? handleBackLogin("true") : handleBack()
-                     }
-                     variant="contained"
-                     color="primary"
-                     startIcon={<ArrowBack />}
-                   >
-                     Back
-                   </Button>
-          <Button
-            variant="contained"
-            onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
-            endIcon={<ArrowForward />}
+       <form onSubmit={handleSubmit}>
+              {renderStepContent(activeStep)}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 2,
+                }}
+              >
+                <Button
+                  onClick={() =>
+                    activeStep === 0 ? handleBackLogin("true") : handleBack()
+                  }
+                  variant="contained"
+                  color="primary"
+                  startIcon={<ArrowBack />}
+                >
+                  Back
+                </Button>
+                {activeStep === steps.length - 1 ? (
+               <Tooltip title={!formData.agreeToTerms ? "Check terms and conditions to enable Submit" : ""}>
+        <span> {/* Wrapping in a span to avoid tooltip issue on disabled buttons */}
+          <Button 
+            type="submit" 
+            variant="contained" 
+            color="primary" 
+            disabled={!formData.agreeToTerms}
           >
-            {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
+            Submit
           </Button>
-        </Box>
-      </form>
+        </span>
+      </Tooltip>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNext}
+                    endIcon={<ArrowForward />}
+                  >
+                    Next
+                  </Button>
+                )}
+              </Box>
+              <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                sx={{ marginTop: "60px" }}
+              >
+                <Alert
+                  onClose={handleCloseSnackbar}
+                  severity={snackbarSeverity}
+                  variant="filled"
+                  sx={{ width: "100%" }}
+                >
+                  {snackbarMessage}
+                </Alert>
+              </Snackbar>
+              <div className="flex flex-col mt-4 items-center justify-center text-sm">
+                <h3 className="dark:text-gray-300">
+                  Already have an account?{" "}
+                  <button
+                    className="text-blue-500 ml-2 underline"
+                    onClick={(e) => handleBackLogin("true")}
+                  >
+                    Sign in
+                  </button>
+                </h3>
+              </div>
+            </form>
       </Box>
-      <Snackbar
+      {/* <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
@@ -1558,7 +1617,7 @@ if (name === "lastName") {
             Sign in
           </Button>
         </Typography>
-      </div>
+      </div> */}
     </>
   );
 };
