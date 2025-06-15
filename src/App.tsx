@@ -57,12 +57,10 @@ if (userRole === "CUSTOMER") {
 }
 
   const handleDataFromChild = (e: string) => {
-    console.log("data from child ==> ", e);
     setSelection(e);
   };
 
   const handleCheckoutItems = (item: any) => {
-    console.log("checkout Item => ", item);
     setCheckoutData(item);
   };
 
