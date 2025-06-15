@@ -61,7 +61,6 @@ if (userRole === "CUSTOMER") {
   };
 
   const handleCheckoutItems = (item: any) => {
-    console.log("checkout Item => ", item);
     setCheckoutData(item);
   };
 
