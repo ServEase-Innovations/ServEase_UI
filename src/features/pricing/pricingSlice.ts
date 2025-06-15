@@ -14,15 +14,15 @@ export const pricingSlice = createSlice({
       // Group services by their `Service` type
       // Group the services by their "Service" field into a single object per service type
       state.groupedServices = action.payload.reduce((acc, service) => {
-        const serviceType = service.Service;
+        const serviceType = service.Service.toLowerCase();
 
         // If the serviceType doesn't exist in acc, initialize it as an array
-        if (!acc[serviceType]) {
-          acc[serviceType] = [];
+        if (!acc[serviceType.toLowerCase()]) {
+          acc[serviceType.toLowerCase()] = [];
         }
 
         // Push the current service into the appropriate service type array
-        acc[serviceType].push(service);
+        acc[serviceType.toLowerCase()].push(service);
         return acc;
       }, {});
     },

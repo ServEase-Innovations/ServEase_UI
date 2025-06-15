@@ -1,0 +1,3 @@
+[build]
+  command = "npm install --legacy-peer-deps && react-scripts build"
+  publish = "build"

@@ -1,0 +1,239 @@
+.header-search{
+    display: flex;
+    justify-content: center;
+}
+
+/* ProviderDetails.css */
+
+.fields {
+    display: flex;
+    gap: 30px; /* Reduced gap */
+    align-items: center; /* Center align items vertically */
+  }
+  
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .input-with-label {
+    position: relative;
+    width: 120px; /* Further reduced width */
+  }
+  
+  .inline-label {
+    position: absolute;
+    top: 6px;
+    left: 12px;
+    font-size: 12px;
+    color: #999;
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+  
+  input[type="text"],
+  input[type="time"],
+  select {
+    padding: 18px 4px 4px 8px; /* Further reduced padding */
+    width: 100%;
+    background-color: #fff;
+    color: #333;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+  }
+  
+  .search-button {
+    padding: 8px 16px; /* Adjusted padding for the button */
+    border-radius: 4px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  @media (max-width: 600px) {
+    .fields {
+      flex-wrap: wrap; /* Optional: keep all items on one line or wrap to the next if space runs out */
+      gap: 10px; /* Smaller gap on small screens */
+      justify-content: center; /* Center align horizontally */
+    }
+  
+    .input-with-label {
+      width: 90px; /* Reduced width for small screens */
+    }
+  
+    input[type="text"],
+    input[type="time"],
+    select {
+      padding: 8px 4px 2px 6px; /* Slightly smaller padding */
+      font-size: 12px; /* Smaller font for inputs */
+    }
+  
+    .inline-label {
+      font-size: 10px; /* Smaller label text */
+      top: 2px; /* Adjust position if needed */
+      left: 8px;
+    }
+  
+    .search-button {
+      padding: 4px 10px; /* Smaller button padding */
+      font-size: 10px;
+    }
+  }
+  
+  .fare-type-container {
+    display: flex;
+    gap: 15px; /* Adjust the gap between the label and options */
+    margin-left: -20px;
+  }
+  
+  .fare-label {
+    font-size: 14px;
+    color: #111;  /* Darker than #333 */
+  }
+  
+  
+  .fare-options {
+    display: flex;
+    gap: 15px; /* Adjust the gap between radio buttons */
+  }
+  
+  .fare-options label {
+    display: flex;
+    align-items: center; /* Align radio button and text vertically */
+    gap: 5px; /* Adjust the gap between radio button and text */
+  }
+  .person-input {
+    width: 60px;          /* Adjust width (try 50px, 60px, etc.) */
+   
+    font-size: 14px;      /* You can make it 12px if you want it smaller */
+    border: 1px solid #86adf1;
+    border-radius: 4px;
+  }
+  @media (max-width: 600px) {
+    .fare-type-container {
+      flex-wrap: nowrap; /* Force it to stay in one line */
+      gap: 1px; /* Reduce gap for small screens */
+      margin-left: 0; /* Remove left margin if needed */
+      justify-content: flex-start; /* Align left, or use center if you want */
+      align-items: center; /* Align vertically */
+    }
+  
+  
+    .fare-label {
+      font-size: 12px; /* Smaller label text */
+      white-space: nowrap; /* Prevent text from breaking into two lines */
+    }
+  
+    .fare-options {
+      display: flex;
+      gap: 8px; /* Reduce the gap between radio buttons */
+      flex-wrap: nowrap; /* Ensure all radios stay in one line */
+    }
+  
+    .fare-options label {
+      gap: 4px; /* Smaller space between radio button and text */
+      font-size: 10px; /* Slightly smaller text */
+    }
+  
+    .person-input {
+      width: 50px; /* Make input narrower for small screens */
+      font-size: 12px; /* Smaller font inside the input */
+    }
+  }
+  
+  /* Container Styles */
+  .container-provider {
+    padding: 20px;
+    margin-top:20px;
+    gap:10px;
+    position: relative; /* This allows absolute positioning within this container */
+  }
+  
+  /* Position the + and - toggle at the top-right */
+  .expand-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px; /* Positioned to the top-right corner */
+    padding: 8px;
+    font-size: 24px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: #1976d2;
+    font-weight: bold;
+    transition: color 0.3s;
+  }
+  
+  .expand-toggle:hover {
+    color: #1565c0;
+  }
+  
+  /* Content Styles */
+  .content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .availability-section {
+    margin-top: 20px;
+  }
+  
+  .availability-header {
+    margin-bottom: 20px;
+  }
+  
+  .section-title {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+  
+  .time-slot-container {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .availability-button {
+    padding: 8px 12px;
+    margin: 5px;
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    width: 80px;
+    text-align: center;
+  }
+  
+  .availability-button:hover {
+    background-color: #1565c0;
+  }
+  
+  .availability-button.selected {
+    background-color: lightgreen; /* Selected button */
+  }
+  
+  .availability-button:not(.selected) {
+    background-color: lightcoral; /* Deselect buttons */
+  }
+  
+  
+  .container-provider {
+    position: relative; /* Make sure this div is the reference for absolute positioning */
+  }
+  
+  .expand-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+  
+  .book-now-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+  }
+  

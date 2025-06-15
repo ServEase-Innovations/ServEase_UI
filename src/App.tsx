@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -21,6 +23,7 @@ import { useDispatch, useSelector } from "react-redux"; // Import useSelector
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
+import NotificationButton from "./components/NotificationButton";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -30,13 +33,6 @@ function App() {
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
-
-  // Access user slice from the Redux store
-  // const user = useSelector((state: RootState) => state.user);
-  // console.log("user name is :",user);
-  // const userRole = user?.value; 
-  // console.log("Logged-in user role:", userRole); 
-// Define the expected user type
 
 type UserState = {
   value?: {
@@ -91,7 +87,7 @@ if (userRole === "CUSTOMER") {
   });
 
   const getPricingData = () => {
-    axios.get('http://13.127.47.159:3000/records').then(function (response) {
+    axios.get('https://utils-dmua.onrender.com/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });
@@ -139,8 +135,9 @@ if (userRole === "CUSTOMER") {
         <Header sendDataToParent={handleDataFromChild} />
       </div>
      {/* <ServiceProviderDashboard />  */}
-       <section className="flex-grow flex justify-center items-center px-4 py-6 relative">
+       <section className="flex-grow flex justify-center items-center py-6 relative">
         {renderContent()}
+        {/* <NotificationButton /> */}
       </section>
       <footer className="footer-container">
         <Footer />

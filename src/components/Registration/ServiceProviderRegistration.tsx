@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable */
+import React, { useEffect, useState } from 'react';
 import moment from "moment";
 import {
   TextField,
@@ -24,6 +25,8 @@ import {
   FormHelperText,
   FormGroup,
   Slider,
+  Autocomplete,
+  Tooltip,
 } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import { Visibility, VisibilityOff,ArrowForward,ArrowBack   } from '@mui/icons-material';
@@ -102,12 +105,13 @@ interface FormErrors {
   diet?:string;
 }
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
 const aadhaarRegex = /^[0-9]{12}$/;
+const MAX_NAME_LENGTH=30;
 // const experienceRegex = /^([0-9]|[1-4][0-9]|50)$/;
 // const aadhaarRegex = /^[0-9]{12}$/;
 // const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -228,6 +232,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({ onBackToLogi
                 pincode: pincode,
                 currentLocation: address,
                 nearbyLocation: nearbyLocation,
+                latitude:latitude,
+                longitude:longitude,
               }));
             } catch (error) {
               console.error("Error fetching location data", error);
@@ -324,15 +330,26 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       "Manipuri",
       "Bodo",
       "Dogri",
+      "English",
       "Maithili",
       "Santhali",
     ]);
     const [selectedChips, setSelectedChips] = useState<string[]>([]);
-    const handleChipChange = (newChips: string[]) => {
-      setSelectedChips(newChips);
-      console.log(selectedChips)
-    };
-
+    
+      const handleChipChange = (newChips: string[]) => {
+        setSelectedChips(newChips);
+      };
+    
+      useEffect(() => {
+        console.log(selectedChips); // Logs updated state after re-render
+      }, [selectedChips]);
+ const handleChangeCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]:
+        e.target.type === "checkbox" ? e.target.checked : e.target.value,
+    });
+  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
@@ -368,7 +385,60 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   const handleRealTimeValidation = (e) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/; // AADHAR must be 12 digits
+ if (name === "firstName") {
+  const trimmedValue = value.trim();
   
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name is required.",
+    }));
+  } else if (/^\s+$/.test(value)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name cannot contain only spaces.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name should contain only alphabets.",
+    }));
+  } else if (value.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "",
+    }));
+  }
+}
+
+if (name === "lastName") {
+  if (!value.trim()) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name is required.",
+    }));
+  } else if (!nameRegex.test(value.trim())) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name should contain only alphabets.",
+    }));
+  } else if (value.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "",
+    }));
+  }
+}
     // Password field validation
     if (name === "password") {
       if (value.length < 8) {
@@ -466,21 +536,29 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
     }
   }
     // Pincode field validation
-    if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
-      if (!pincodePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "Pincode must be exactly 6 digits.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "",
-        }));
-      }
-    }
-    
+  if (name === "pincode") {
+  // Only allow numeric input
+  const numericValue = value.replace(/\D/g, '');
+  
+  // Update form data with only numbers
+  setFormData((prevData) => ({
+    ...prevData,
+    [name]: numericValue.slice(0, 6) // Limit to 6 digits
+  }));
+
+  // Validation
+  if (numericValue.length !== 6) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "Pincode must be exactly 6 digits.",
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "",
+    }));
+  }
+}
   
     // Update the formData state
     setFormData((prevData) => ({
@@ -495,12 +573,21 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
   
     // Step 1: Basic Information Validation
     if (activeStep === 0) {
-      if (!formData.firstName || !nameRegex.test(formData.firstName)) {
-        tempErrors.firstName = 'First Name is required and should contain only alphabets.';
-      }
-      if (!formData.lastName || !nameRegex.test(formData.lastName)) {
-        tempErrors.lastName = 'Last Name is required and should contain only alphabets.';
-      }
+       if (!formData.firstName) {
+    tempErrors.firstName = "First Name is required.";
+  } else if (!nameRegex.test(formData.firstName)) {
+    tempErrors.firstName = "First Name should contain only alphabets.";
+  } else if (formData.firstName.length > MAX_NAME_LENGTH) {
+    tempErrors.firstName = `First Name should be under ${MAX_NAME_LENGTH} characters.`;
+  }
+
+  if (!formData.lastName) {
+    tempErrors.lastName = "Last Name is required.";
+  } else if (!nameRegex.test(formData.lastName)) {
+    tempErrors.lastName = "Last Name should contain only alphabets.";
+  } else if (formData.lastName.length > MAX_NAME_LENGTH) {
+    tempErrors.lastName = `Last Name should be under ${MAX_NAME_LENGTH} characters.`;
+  }
       if (!formData.gender) {
         tempErrors.gender = 'Please select a gender.';
       }
@@ -536,16 +623,17 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       if (!formData.currentLocation) {
         tempErrors.currentLocation = 'Current Location is required.';
       }
-      if (!formData.pincode || !pincodeRegex.test(formData.pincode)) {
-        tempErrors.pincode = 'Pin Code  is required';
-      }
+       if (!formData.pincode) {
+    tempErrors.pincode = "Pincode is required.";
+} else if (formData.pincode.length !== 6) {
+    tempErrors.pincode = "Pincode must be exactly 6 digits.";
+}
+
     }
   
     // Step 3: Additional Details Validation
     if (activeStep === 2) {
-      if (!formData.agreeToTerms) {
-        tempErrors.agreeToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
-      }
+     
       if (!formData.housekeepingRole) {
         tempErrors.housekeepingRole = 'Please select a service type.';
       }
@@ -591,6 +679,12 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       //   tempErrors.documentImage = "Please upload a document image.";
       // }
     }
+     if (activeStep === 4) {
+      if (!formData.agreeToTerms) {
+        tempErrors.agreeToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
+      }
+    }
+    
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
@@ -791,20 +885,19 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       <Grid item xs={12}>
         <ProfileImageUpload onImageSelect={handleImageSelect} />
       </Grid>
-
-      <Grid item xs={12}>
-        <TextField
-          placeholder="First Name *"
-          name="firstName"
-          fullWidth
-          required
-          value={formData.firstName}
-          onChange={handleChange}
-          error={!!errors.firstName}
-          helperText={errors.firstName}
-          
-        />
-      </Grid>
+<Grid item xs={12}>
+  <TextField
+    placeholder="First Name *"
+    name="firstName"
+    fullWidth
+    required
+    value={formData.firstName}
+    onChange={handleRealTimeValidation}
+    error={!!errors.firstName}
+    helperText={errors.firstName}
+    inputProps={{ maxLength: MAX_NAME_LENGTH }}
+  />
+</Grid>
 
       <Grid item xs={12}>
         <TextField
@@ -817,19 +910,20 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
         />
       </Grid>
 
-      <Grid item xs={12}>
-        <TextField
-          placeholder="Last Name *"
-          name="lastName"
-          fullWidth
-          required
-          value={formData.lastName}
-          onChange={handleChange}
-          error={!!errors.lastName}
-          helperText={errors.lastName}
-          disabled={isFieldsDisabled}
-        />
-      </Grid>
+     <Grid item xs={12}>
+  <TextField
+    placeholder="Last Name *"
+    name="lastName"
+    fullWidth
+    required
+    value={formData.lastName}
+    onChange={handleRealTimeValidation}
+    error={!!errors.lastName}
+    helperText={errors.lastName}
+    disabled={isFieldsDisabled}
+    inputProps={{ maxLength: MAX_NAME_LENGTH }}
+  />
+</Grid>
    {/* Age / Date of Birth Field */}
    <Grid item xs={12} sm={6}>
    <TextField
@@ -898,7 +992,7 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
                         edge="end"
                         aria-label="toggle password visibility"
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -917,6 +1011,8 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
                 onChange={handleRealTimeValidation}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword}
+                onPaste={(e) => e.preventDefault()} // Prevent paste
+                onCopy={(e) => e.preventDefault()} // Prevent copy
                 disabled={isFieldsDisabled}
                 InputProps={{
                   endAdornment: (
@@ -926,7 +1022,7 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
                         edge="end"
                         aria-label="toggle confirm password visibility"
                       >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                         {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -1011,18 +1107,28 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
                 helperText={errors.street}
               />
             </Grid>
-            <Grid item xs={12}sm={6}>
-              <TextField
-                placeholder="Pincode *"
-                name="pincode"
-                fullWidth
-                required
-                value={formData.pincode}
-                onChange={handleRealTimeValidation}
-                error={!!errors.pincode}
-                helperText={errors.pincode}
-              />
-            </Grid>
+        <Grid item xs={12} sm={6}>
+  <TextField
+    placeholder="Pincode *"
+    name="pincode"
+    fullWidth
+    required
+    value={formData.pincode}
+    onChange={handleRealTimeValidation}
+    error={!!errors.pincode}
+    helperText={errors.pincode}
+    inputProps={{
+      maxLength: 6,
+      inputMode: 'numeric',
+      pattern: '[0-9]*'
+    }}
+    onKeyPress={(e) => {
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }}
+  />
+</Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 placeholder="CurrentLocation *"
@@ -1059,7 +1165,7 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
         <>
   <Grid container spacing={2}>
      {/* Service Type Dropdown */}
-     <Grid item xs={12} sm={6}>
+     <Grid item xs={12} sm={12} className="mt-4 flex justify-center items-center ml-10">
           <TextField
             select
             label="Select Service Type"
@@ -1172,9 +1278,23 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       <FormHelperText>{errors.diet}</FormHelperText>
     </FormControl>
   </Grid>
-  <Grid item xs={12}>
-     <ChipInput options={availableLanguages} onChange={handleChipChange} label="languages" placeholder="Pick/Type Your Languages" />
-  </Grid>
+   <Grid item xs={12}>
+                <Autocomplete
+                  multiple
+                  freeSolo
+                  options={availableLanguages} // Provides selectable options
+                  value={selectedChips} // Keeps selected values
+                  onChange={(event, newValue) => setSelectedChips(newValue)} // Updates state
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Languages"
+                      placeholder="Pick/Type Your Languages"
+                      fullWidth
+                    />
+                  )} 
+                />
+              </Grid>
     {/* Description Field */}
     <Grid item xs={12}>
       <TextField
@@ -1291,26 +1411,6 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
           </FormGroup>
         </FormControl>
       </Grid>
-
-
-
-    {/* Checkbox for Terms of Service */}
-    <Grid item xs={12}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={formData.agreeToTerms}
-            onChange={handleChange}
-            name="agreeToTerms"
-            required
-          />
-        }
-        label="I agree to the Terms of Service and Privacy Policy"
-      />
-      {errors.agreeToTerms && (
-        <Typography color="error">{errors.agreeToTerms}</Typography>
-      )}
-    </Grid>
   </Grid>
 </>
       );
@@ -1378,9 +1478,28 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
       
       case 4:
         return (
+          
           <Typography variant="h6" align="center">
             All steps completed - You're ready to submit your information!
+             {/* Checkbox for Terms of Service */}
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={formData.agreeToTerms}
+            onChange={handleChangeCheckbox}
+            name="agreeToTerms"
+            required
+          />
+        }
+        label="I agree to the Terms of Service and Privacy Policy"
+      />
+      {errors.agreeToTerms && (
+        <Typography color="error">{errors.agreeToTerms}</Typography>
+      )}
+    </Grid> 
           </Typography>
+          
         );
       default:
         return 'Unknown step';
@@ -1400,28 +1519,79 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
             </Step>
           ))}
         </Stepper>
-        <form onSubmit={handleSubmit}>
-        {renderStepContent(activeStep)}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-          <Button
-            disabled={activeStep === 0}
-            variant="contained"
-            onClick={handleBack}
-            startIcon={<ArrowBack />}
+       <form onSubmit={handleSubmit}>
+              {renderStepContent(activeStep)}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 2,
+                }}
+              >
+                <Button
+                  onClick={() =>
+                    activeStep === 0 ? handleBackLogin("true") : handleBack()
+                  }
+                  variant="contained"
+                  color="primary"
+                  startIcon={<ArrowBack />}
+                >
+                  Back
+                </Button>
+                {activeStep === steps.length - 1 ? (
+               <Tooltip title={!formData.agreeToTerms ? "Check terms and conditions to enable Submit" : ""}>
+        <span> {/* Wrapping in a span to avoid tooltip issue on disabled buttons */}
+          <Button 
+            type="submit" 
+            variant="contained" 
+            color="primary" 
+            disabled={!formData.agreeToTerms}
           >
-            Back
+            Submit
           </Button>
-          <Button
-            variant="contained"
-            onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
-            endIcon={<ArrowForward />}
-          >
-            {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
-          </Button>
-        </Box>
-      </form>
+        </span>
+      </Tooltip>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNext}
+                    endIcon={<ArrowForward />}
+                  >
+                    Next
+                  </Button>
+                )}
+              </Box>
+              <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                sx={{ marginTop: "60px" }}
+              >
+                <Alert
+                  onClose={handleCloseSnackbar}
+                  severity={snackbarSeverity}
+                  variant="filled"
+                  sx={{ width: "100%" }}
+                >
+                  {snackbarMessage}
+                </Alert>
+              </Snackbar>
+              <div className="flex flex-col mt-4 items-center justify-center text-sm">
+                <h3 className="dark:text-gray-300">
+                  Already have an account?{" "}
+                  <button
+                    className="text-blue-500 ml-2 underline"
+                    onClick={(e) => handleBackLogin("true")}
+                  >
+                    Sign in
+                  </button>
+                </h3>
+              </div>
+            </form>
       </Box>
-      <Snackbar
+      {/* <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
@@ -1448,7 +1618,7 @@ const handleCookingSpecialityChange = (event: React.ChangeEvent<HTMLInputElement
             Sign in
           </Button>
         </Typography>
-      </div>
+      </div> */}
     </>
   );
 };

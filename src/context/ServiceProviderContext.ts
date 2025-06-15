@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { createContext, useState } from "react";
 
 // Define the type for the context

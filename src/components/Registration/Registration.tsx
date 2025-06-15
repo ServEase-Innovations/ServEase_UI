@@ -1,6 +1,28 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import React, { useEffect, useState } from "react";
 import {
-  TextField,Button, Grid,Typography,Box,Stepper,Step, StepLabel,Radio,RadioGroup, Checkbox, FormControlLabel,InputAdornment, IconButton,FormLabel,FormControl, Alert, Snackbar,AlertColor
+  TextField,
+  Button,
+  Grid,
+  Typography,
+  Box,
+  Stepper,
+  Step,
+  StepLabel,
+  Radio,
+  RadioGroup,
+  Checkbox,
+  FormControlLabel,
+  InputAdornment,
+  IconButton,
+  FormLabel,
+  FormControl,
+  Alert,
+  Snackbar,
+  AlertColor,
+  Autocomplete,
+  Tooltip,
 } from "@mui/material";
 import "./Registration.css";
 import {
@@ -9,7 +31,7 @@ import {
   ArrowForward,
   ArrowBack,
 } from "@mui/icons-material";
-import ProfileImageUpload from './ProfileImageUpload';
+import ProfileImageUpload from "./ProfileImageUpload";
 import axios from "axios";
 import ChipInput from "../Common/ChipInput/ChipInput";
 import { keys } from "../../env/env";
@@ -29,12 +51,12 @@ interface FormData {
   locality: string;
   street: string;
   pincode: string;
-  buildingName:string;
+  buildingName: string;
   currentLocation: string;
   agreeToTerms: boolean;
   hobbies: string;
   language: string;
-  profilePic : string;
+  profilePic: string;
 }
 
 // Define the shape of errors to hold string messages
@@ -50,18 +72,19 @@ interface FormErrors {
   locality?: string;
   street?: string;
   pincode?: string;
-  buildingName?:string;
+  buildingName?: string;
   currentLocation?: string;
-  agreeToTerms?: string; // This is now a string for error messages
+  agreeToTerms?: string;
 }
 
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
+const MAX_NAME_LENGTH = 30;
 
 const steps = ["Basic Info", "Address", "Additional Details", "Confirmation"];
 
@@ -74,24 +97,23 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     onBackToLogin(e);
   };
 
-const [snackbarOpen, setSnackbarOpen] = useState(false);
-const [snackbarMessage, setSnackbarMessage] = useState("");
-const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    "success" | "error" | "warning" | "info"
+  >("success");
 
+  const showSnackbar = (message: string, severity: AlertColor = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
 
-    const showSnackbar = (message: string, severity: AlertColor = 'success') => {
-      setSnackbarMessage(message);
-      setSnackbarSeverity(severity);
-      setSnackbarOpen(true);
-    };
-
-    const handleCloseSnackbar = () => {
-      setSnackbarOpen(false);
-    };
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
 
   const [activeStep, setActiveStep] = useState(0);
-  // const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
-
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     middleName: "",
@@ -105,53 +127,51 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
     locality: "",
     street: "",
     pincode: "",
-    buildingName:"",
+    buildingName: "",
     currentLocation: "",
     agreeToTerms: false,
     hobbies: "",
     language: "",
-    profilePic : ""
+    profilePic: "",
   });
- // Fetch Location
- const fetchLocation = () => {
-  if (navigator.geolocation) {
-    // setLoadingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const response = await axios.get(
-            `https://maps.googleapis.com/maps/api/geocode/json`,
-            {
-              params: {
-                latlng: `${latitude},${longitude}`,
-                key: keys.api_key, // Use your API key
-              },
-            }
-          );
 
-          const address = response.data.results[0]?.formatted_address || 'Address not found';
-          console.log('Fetched Location:', address);
-          setFormData((prevData) => ({
-            ...prevData,
-            address,
-            currentLocation: address,
-          }));
-        } catch (error) {
-          console.error('Failed to fetch location:', error);
-        } finally {
-          // setLoadingLocation(false);
+  const fetchLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await axios.get(
+              `https://maps.googleapis.com/maps/api/geocode/json`,
+              {
+                params: {
+                  latlng: `${latitude},${longitude}`,
+                  key: keys.api_key,
+                },
+              }
+            );
+
+            const address =
+              response.data.results[0]?.formatted_address ||
+              "Address not found";
+            setFormData((prevData) => ({
+              ...prevData,
+              address,
+              currentLocation: address,
+            }));
+          } catch (error) {
+            console.error("Failed to fetch location:", error);
+          }
+        },
+        (error) => {
+          console.error("Error retrieving geolocation:", error.message);
         }
-      },
-      (error) => {
-        console.error('Error retrieving geolocation:', error.message);
-        // setLoadingLocation(false);
-      }
-    );
-  } else {
-    console.error('Geolocation is not supported by this browser.');
-  }
-};
+      );
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+    }
+  };
+
   const [availableLanguages] = useState<string[]>([
     "Assamese",
     "Bengali",
@@ -167,6 +187,7 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
     "Tamil",
     "Telugu",
     "Urdu",
+    "English",
     "Sindhi",
     "Konkani",
     "Nepali",
@@ -176,17 +197,16 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
     "Maithili",
     "Santhali",
   ]);
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+const [selectedChips, setSelectedChips] = useState<string[]>([]);
 
   const handleChipChange = (newChips: string[]) => {
     setSelectedChips(newChips);
-    console.log(selectedChips)
   };
-  // const [gender, setGender] = useState("");
 
-  // const handleGenderChange = (e) => {
-  //   setGender(e.target.value);
-  // };
+  useEffect(() => {
+    console.log(selectedChips); // Logs updated state after re-render
+  }, [selectedChips]);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -200,18 +220,67 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
 
   const [image, setImage] = useState<Blob | null>(null);
 
-   // File change handler to update the profile picture
-   const handleImageSelect = (file: Blob | null) => {
+  const handleImageSelect = (file: Blob | null) => {
     if (file) {
-      setImage(file); // Now you have the image as binary (Blob)
-      // Further actions like uploading the image can be performed here
+      setImage(file);
     }
   };
-  
-  const handleRealTimeValidation = (e) => {
+
+  const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-  
-    // Password field validation
+    const trimmedValue = value.trim();
+
+    if (name === "firstName") {
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "First Name is required.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: trimmedValue.includes('  ') ? 
+        "Only one space allowed between words" : 
+        "First Name should contain only alphabets with single spaces",
+    }));
+  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      firstName: "",
+    }));
+  }
+}
+if (name === "lastName") {
+  if (!trimmedValue) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "Last Name is required.",
+    }));
+  } else if (!nameRegex.test(trimmedValue)) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: trimmedValue.includes('  ') ? 
+        "Only one space allowed between words" : 
+        "Last Name should contain only alphabets with single spaces",
+    }));
+  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      lastName: "",
+    }));
+  }
+}
+
     if (name === "password") {
       if (value.length < 8) {
         setErrors((prevErrors) => ({
@@ -245,8 +314,7 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         }));
       }
     }
-  
-    // Confirm Password field validation
+
     if (name === "confirmPassword") {
       if (value !== formData.password) {
         setErrors((prevErrors) => ({
@@ -260,8 +328,7 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         }));
       }
     }
-  
-    // Email field validation
+
     if (name === "emailId") {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(value)) {
@@ -276,8 +343,7 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         }));
       }
     }
-  
-    // Mobile number field validation
+
     if (name === "mobileNo") {
       const mobilePattern = /^[0-9]{10}$/;
       if (!mobilePattern.test(value)) {
@@ -292,28 +358,37 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         }));
       }
     }
-    // Pincode field validation
-    if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
-      if (!pincodePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "Pincode must be exactly 6 digits.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: "",
-        }));
-      }
-    }
+
+  if (name === "pincode") {
+  // Only allow numeric input
+  const numericValue = value.replace(/\D/g, '');
   
-    // Update the formData state
+  // Update form data with only numbers
+  setFormData((prevData) => ({
+    ...prevData,
+    [name]: numericValue.slice(0, 6) // Limit to 6 digits
+  }));
+
+  // Validation
+  if (numericValue.length !== 6) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "Pincode must be exactly 6 digits.",
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      pincode: "",
+    }));
+  }
+}
+
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
+
   const [errors, setErrors] = useState<FormErrors>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,24 +399,70 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
     });
   };
 
+  const currentStepHasErrors = () => {
+    if (activeStep === 0) {
+      return (
+        !formData.firstName.trim() ||
+        !nameRegex.test(formData.firstName.trim()) ||
+        formData.firstName.trim().length > MAX_NAME_LENGTH ||
+        !formData.lastName.trim() ||
+        !nameRegex.test(formData.lastName.trim()) ||
+         formData.lastName.trim().length > MAX_NAME_LENGTH || 
+        !formData.emailId ||
+        !emailIdRegex.test(formData.emailId) ||
+        !formData.password ||
+        !strongPasswordRegex.test(formData.password) ||
+        formData.password !== formData.confirmPassword ||
+        !formData.mobileNo ||
+        !phoneRegex.test(formData.mobileNo) ||
+        !formData.gender
+      );
+    }
+    if (activeStep === 1) {
+      return (
+        !formData.address ||
+        !formData.locality ||
+        !formData.street ||
+        !formData.pincode ||
+        !pincodeRegex.test(formData.pincode) ||
+        !formData.currentLocation ||
+        !formData.buildingName
+      );
+    }
+    if (activeStep === 3) {
+      return !formData.agreeToTerms;
+    }
+    return false;
+  };
+
   const validateForm = () => {
     let tempErrors: FormErrors = {};
 
     if (activeStep === 0) {
-      if (!formData.firstName || !nameRegex.test(formData.firstName)) {
-        tempErrors.firstName =
-          "First Name is required and should contain only alphabets.";
-      }
-      if (!formData.lastName || !nameRegex.test(formData.lastName)) {
-        tempErrors.lastName =
-          "Last Name is required and should contain only alphabets.";
-      }
+     if (!formData.firstName.trim()) {
+  tempErrors.firstName = "First Name is required.";
+} else if (!nameRegex.test(formData.firstName.trim())) {
+  tempErrors.firstName = formData.firstName.includes('  ') ? 
+    "Only one space allowed between words" : 
+    "First Name should contain only alphabets with single spaces";
+} else if (formData.firstName.trim().length > MAX_NAME_LENGTH) {
+  tempErrors.firstName = `First Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+}
+
+ if (!formData.lastName.trim()) {
+  tempErrors.lastName = "Last Name is required.";
+} else if (!nameRegex.test(formData.lastName.trim())) {
+  tempErrors.lastName = formData.lastName.includes('  ') ? 
+    "Only one space allowed between words" : 
+    "Last Name should contain only alphabets with single spaces";
+} else if (formData.lastName.trim().length > MAX_NAME_LENGTH) {
+  tempErrors.lastName = `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+}
       if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
         tempErrors.emailId = "Valid email is required.";
       }
       if (!formData.password || !strongPasswordRegex.test(formData.password)) {
-        tempErrors.password =
-          "Password is required.";
+        tempErrors.password = "Password is required.";
       }
       if (formData.password !== formData.confirmPassword) {
         tempErrors.confirmPassword = "Passwords do not match.";
@@ -364,9 +485,12 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
       if (!formData.street) {
         tempErrors.street = "State is required.";
       }
-      if (!formData.pincode || !pincodeRegex.test(formData.pincode)) {
-        tempErrors.pincode = "Pincode is required.";
-      }
+    if (!formData.pincode) {
+    tempErrors.pincode = "Pincode is required.";
+} else if (formData.pincode.length !== 6) {
+    tempErrors.pincode = "Pincode must be exactly 6 digits.";
+}
+
       if (!formData.currentLocation) {
         tempErrors.currentLocation = "Current Location is required.";
       }
@@ -386,120 +510,85 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
     return Object.keys(tempErrors).length === 0;
   };
 
-  // const handleNext = () => {
-  //   if (validateForm()) {
-  //     setActiveStep((prevStep) => prevStep + 1);
-  //   }
-  // };
-
   const handleBack = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   if (validateForm()) {
-  //     console.log("Form submitted:", formData);
-  //   }
-  // };
-  // const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-    
-  //   // Ensure form validation passes
-  //   if (validateForm()) {
-  //       // Log form data in the console for now
-  //       console.log("Form submitted:", formData);
-        
-  //       // Show success message in the Snackbar
-  //       showSnackbar('Registration Successful!', 'success');
-
-  //       // Redirect or call the onBackToLogin handler with form data
-  //       onBackToLogin(true);  // Triggering the login component after success
-  //   } else {
-  //       // Show error message in the Snackbar if form validation fails
-  //       showSnackbar('Please fix the errors and try again.', 'error');
-  //   }
-  // };
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Ensure form validation passes
-    if (validateForm()) {
-        try {
-            // Check if an image is selected
-            if (image) {
-                const formData1 = new FormData();
-                formData1.append('image', image);
+  if (validateForm()) {
+    try {
+      // Image upload logic
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
 
-                // Call image upload API
-                const imageResponse = await axiosInstance.post(
-                    'http://65.2.153.173:3000/upload',
-                    formData1,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                        },
-                    }
-                );
+        const imageResponse = await axiosInstance.post(
+          "http://65.2.153.173:3000/upload",
+          formData1,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
 
-                // If image upload is successful, add URL to formData
-                if (imageResponse.status === 200) {
-                    formData.profilePic = imageResponse.data.imageUrl;
-                }
-            }
-
-            // Call customer add API (regardless of whether an image is uploaded)
-            const response = await axiosInstance.post(
-                "/api/customer/add-customer",
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-
-            if(response.status === 201){
-              const data = 
-                {"email":formData.emailId,"name":formData.firstName}
-              
-              const imageResponse = await axiosInstance.post(
-                'http://3.110.168.35:3000/send-email',
-                data,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-            }
-
-            // Update Snackbar for success
-            setSnackbarSeverity("success");
-            setSnackbarMessage("User added successfully!");
-            setSnackbarOpen(true);
-
-
-
-            // Navigate back to login after a delay
-            setTimeout(() => {
-                onBackToLogin(true); 
-            }, 3000); // Wait for 3 seconds to display Snackbar
-        } catch (error) {
-            // Update Snackbar for error
-            setSnackbarOpen(true);
-            setSnackbarSeverity("error");
-            setSnackbarMessage("Failed to add User. Please try again.");
-            console.error("Error submitting form:", error);
+        if (imageResponse.status === 200) {
+          formData.profilePic = imageResponse.data.imageUrl;
         }
-    } else {
-        // Update Snackbar for validation error
-        setSnackbarOpen(true);
-        setSnackbarSeverity("warning");
-        setSnackbarMessage("Please fill out all required fields.");
-    }
-};
+      }
 
+      // Main form submission
+      const response = await axiosInstance.post(
+        "/api/customer/add-customer",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Only proceed to show success if main form submission succeeds
+      if (response.status === 201) {
+        // Email sending (now optional)
+        try {
+          const data = { email: formData.emailId, name: formData.firstName };
+          await axiosInstance.post(
+            "http://3.110.168.35:3000/send-email",
+            data,
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        } catch (emailError) {
+          console.warn("Email sending failed (optional):", emailError);
+          // Don't treat email failure as an overall failure
+        }
+
+        setSnackbarSeverity("success");
+        setSnackbarMessage("User added successfully!");
+        setSnackbarOpen(true);
+
+        setTimeout(() => {
+          onBackToLogin(true);
+        }, 3000);
+      }
+    } catch (error) {
+      setSnackbarOpen(true);
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Failed to add User. Please try again.");
+      console.error("Error submitting form:", error);
+    }
+  } else {
+    setSnackbarOpen(true);
+    setSnackbarSeverity("warning");
+    setSnackbarMessage("Please fill out all required fields.");
+  }
+};
 
   const handleNext = () => {
     if (validateForm()) {
@@ -507,7 +596,6 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
       if (activeStep === steps.length - 1) {
         setSnackbarMessage("Registration Successful!");
         setSnackbarOpen(true);
-        // Optionally, reset form data or redirect
       }
     }
   };
@@ -518,10 +606,9 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
         return (
           <div className="topic">
             <Grid container spacing={2}>
-               {/* Profile Picture Upload Section */}
-      <Grid item xs={12}>
-        <ProfileImageUpload onImageSelect={handleImageSelect} />
-      </Grid>
+              <Grid item xs={12}>
+                <ProfileImageUpload onImageSelect={handleImageSelect} />
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   placeholder="First Name *"
@@ -529,13 +616,10 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                   fullWidth
                   required
                   value={formData.firstName}
-                  onChange={handleChange}
+                  onChange={handleRealTimeValidation}
                   error={!!errors.firstName}
                   helperText={errors.firstName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
+                  inputProps={{ maxLength: MAX_NAME_LENGTH }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -545,10 +629,6 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                   fullWidth
                   value={formData.middleName}
                   onChange={handleChange}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -561,10 +641,6 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                   onChange={handleChange}
                   error={!!errors.lastName}
                   helperText={errors.lastName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -578,22 +654,25 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    row // Optional to make it horizontal
+                    row
                   >
                     <FormControlLabel
                       value="MALE"
                       control={<Radio />}
                       label="MALE"
+                      sx={{ color: "#333" }}
                     />
                     <FormControlLabel
                       value="FEMALE"
                       control={<Radio />}
                       label="FEMALE"
+                      sx={{ color: "#333" }}
                     />
                     <FormControlLabel
                       value="OTHERS"
                       control={<Radio />}
                       label="OTHERS"
+                      sx={{ color: "#333" }}
                     />
                   </RadioGroup>
                   {errors.gender && (
@@ -602,74 +681,72 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-        <TextField
-          placeholder="Email *"
-          name="emailId"
-          fullWidth
-          required
-          value={formData.emailId}
-          onChange={handleRealTimeValidation}
-          error={!!errors.emailId}
-          helperText={errors.emailId}
-        />
-      </Grid>
-      <Grid item xs={12}>
-  <TextField
-    placeholder="Password"
-    type={showPassword ? "text" : "password"}
-    name="password"
-    fullWidth
-    required
-    value={formData.password}
-    onChange={handleRealTimeValidation} // Real-time validation here
-    error={!!errors.password}
-    helperText={errors.password}
-    InputProps={{
-      endAdornment: (
-        <InputAdornment position="end">
-          <IconButton
-            onClick={handleTogglePasswordVisibility}
-            edge="end"
-            aria-label="toggle password visibility"
-          >
-            {showPassword ? <VisibilityOff /> : <Visibility />}
-          </IconButton>
-        </InputAdornment>
-      ),
-    }}
-  />
-</Grid>
+                <TextField
+                  placeholder="Email *"
+                  name="emailId"
+                  fullWidth
+                  required
+                  value={formData.emailId}
+                  onChange={handleRealTimeValidation}
+                  error={!!errors.emailId}
+                  helperText={errors.emailId}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  placeholder="Password *"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  fullWidth
+                  required
+                  value={formData.password}
+                  onChange={handleRealTimeValidation}
+                  error={!!errors.password}
+                  helperText={errors.password}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleTogglePasswordVisibility}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                        >
+                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
 
-<Grid item xs={12}>
-  <TextField
-    placeholder="Confirm Password *"
-    type={showConfirmPassword ? "text" : "password"}
-    name="confirmPassword"
-    fullWidth
-    required
-    value={formData.confirmPassword}
-    onChange={handleRealTimeValidation} // Real-time validation here
-    error={!!errors.confirmPassword}
-    helperText={errors.confirmPassword}
-    InputProps={{
-      endAdornment: (
-        <InputAdornment position="end">
-          <IconButton
-            onClick={handleToggleConfirmPasswordVisibility}
-            edge="end"
-            aria-label="toggle confirm password visibility"
-          >
-            {showConfirmPassword ? (
-              <VisibilityOff />
-            ) : (
-              <Visibility />
-            )}
-          </IconButton>
-        </InputAdornment>
-      ),
-    }}
-  />
-</Grid>
+              <Grid item xs={12}>
+                <TextField
+                  placeholder="Confirm Password *"
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  fullWidth
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleRealTimeValidation}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword}
+                  onPaste={(e) => e.preventDefault()} // Prevent paste
+                  onCopy={(e) => e.preventDefault()} // Prevent copy
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleToggleConfirmPasswordVisibility}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                        >
+                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
 
               <Grid item xs={12}>
                 <TextField
@@ -681,10 +758,6 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                   onChange={handleRealTimeValidation}
                   error={!!errors.mobileNo}
                   helperText={errors.mobileNo}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
                 />
               </Grid>
             </Grid>
@@ -704,127 +777,87 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                   onChange={handleChange}
                   error={!!errors.address}
                   helperText={errors.address}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} >
-              <TextField
-                placeholder="Locality *"
-                name="locality"
-                fullWidth
-                required
-                value={formData.locality}
-                onChange={handleChange}
-                error={!!errors.locality}
-                helperText={errors.locality}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} >
-              <TextField
-                placeholder="Street *"
-                name="street"
-                fullWidth
-                required
-                value={formData.street}
-                onChange={handleChange}
-                error={!!errors.street}
-                helperText={errors.street}
-              />
-            </Grid>
-            <Grid item xs={12}sm={6}>
-              <TextField
-                placeholder="Pincode *"
-                name="pincode"
-                fullWidth
-                required
-                value={formData.pincode}
-                onChange={handleRealTimeValidation}
-                error={!!errors.pincode}
-                helperText={errors.pincode}
-              />
-            </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  placeholder="Locality *"
+                  name="locality"
+                  fullWidth
+                  required
+                  value={formData.locality}
+                  onChange={handleChange}
+                  error={!!errors.locality}
+                  helperText={errors.locality}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  placeholder="Street *"
+                  name="street"
+                  fullWidth
+                  required
+                  value={formData.street}
+                  onChange={handleChange}
+                  error={!!errors.street}
+                  helperText={errors.street}
+                />
+              </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="BuildingName *"
-                name="buildingName"
-                fullWidth
-                required
-                value={formData.buildingName}
-                onChange={handleChange}
-                error={!!errors.buildingName}
-                helperText={errors.buildingName}
-              />
+         <TextField
+         placeholder="Pincode *"
+         name="pincode"
+         fullWidth
+         required
+         value={formData.pincode}
+         onChange={handleRealTimeValidation}
+         error={!!errors.pincode}
+         helperText={errors.pincode}
+         inputProps={{
+         maxLength: 6,
+         inputMode: 'numeric',
+         pattern: '[0-9]*'
+    }}
+    onKeyPress={(e) => {
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+        }}
+  />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="CurrentLocation *"
-                name="currentLocation"
-                fullWidth
-                required
-                value={formData.currentLocation}
-                onChange={handleChange}
-                error={!!errors.currentLocation}
-                helperText={errors.currentLocation}
-              />
-            </Grid>
-            <Grid item xs={12}>
-        
-          <Button variant="contained" color="primary"  onClick={fetchLocation}>
-  Fetch Location
-</Button>
-        </Grid>
-            
-              {/* <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Nearby Location"
-                  name="Nearby Location"
-                  fullWidth
-                  required
-                  value={formData.nearbyLocation}
-                  onChange={handleChange}
-                  error={!!errors.nearbyLocation}
-                  helperText={errors.nearbyLocation}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Current Location"
-                  name="Current location"
-                  fullWidth
-                  required
-                  value={formData.currentLocation}
-                  onChange={handleChange}
-                  error={!!errors.currentLocation}
-                  helperText={errors.currentLocation}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Building Name"
-                  name="Building Name"
+                  placeholder="BuildingName *"
+                  name="buildingName"
                   fullWidth
                   required
                   value={formData.buildingName}
                   onChange={handleChange}
                   error={!!errors.buildingName}
                   helperText={errors.buildingName}
-                  sx={{
-                    "& .MuiInputBase-root": { height: "36px" },
-                    "& .MuiInputBase-input": { padding: "10px 12px" },
-                  }}
                 />
-              </Grid> */}
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  placeholder="CurrentLocation *"
+                  name="currentLocation"
+                  fullWidth
+                  required
+                  value={formData.currentLocation}
+                  onChange={handleChange}
+                  error={!!errors.currentLocation}
+                  helperText={errors.currentLocation}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={fetchLocation}
+                >
+                  Fetch Location
+                </Button>
+              </Grid>
             </Grid>
           </div>
         );
@@ -838,60 +871,25 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
                 fullWidth
                 value={formData.hobbies}
                 onChange={handleChange}
-                sx={{
-                  "& .MuiInputBase-root": { height: "36px" },
-                  "& .MuiInputBase-input": { padding: "10px 12px" },
-                }}
               />
             </Grid>
-            <Grid item xs={12}>
-            <ChipInput
-  options={availableLanguages}
-  onChange={handleChipChange}
-  label="languages"
-  placeholder="Pick/Type Your Languages"
-/>
-
-              {/* <TextField
-                placeholder="Language"
-                name="language"
-                fullWidth
-                value={formData.language}
-                onChange={handleChange}
-                sx={{
-                  "& .MuiInputBase-root": { height: "36px" },
-                  "& .MuiInputBase-input": { padding: "10px 12px" },
-                }}
-              /> */}
+          <Grid item xs={12}>
+              <Autocomplete
+                multiple
+                freeSolo
+                options={availableLanguages} // Provides selectable options
+                value={selectedChips} // Keeps selected values
+                onChange={(event, newValue) => setSelectedChips(newValue)} // Updates state
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Languages"
+                    placeholder="Pick/Type Your Languages"
+                    fullWidth
+                  />
+                )} 
+              />
             </Grid>
-            {/* <Grid item xs={12}>
-                <FormControl
-                  component="fieldset"
-                  error={!!errors.gender}
-                >
-                  <FormLabel component="legend">Diet :</FormLabel>
-                  <RadioGroup
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    row // Optional to make it horizontal
-                  >
-                    <FormControlLabel
-                      value="Veg"
-                      control={<Radio />}
-                      label="VEG"
-                    />
-                    <FormControlLabel
-                      value="Non-veg"
-                      control={<Radio />}
-                      label="NON-VEG"
-                    />
-                  </RadioGroup>
-                  {errors.gender && (
-                    <Typography color="error">{errors.gender}</Typography>
-                  )}
-                </FormControl>
-              </Grid> */}
           </Grid>
         );
       case 3:
@@ -952,47 +950,56 @@ const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "
           }}
         >
           <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
+            onClick={() =>
+              activeStep === 0 ? handleBackLogin("true") : handleBack()
+            }
             variant="contained"
             color="primary"
-            startIcon={<ArrowBack />} // Add the icon here
+            startIcon={<ArrowBack />}
           >
             Back
           </Button>
           {activeStep === steps.length - 1 ? (
-            <Button type="submit" variant="contained" color="primary">
-              Submit
-            </Button>
-            
+         <Tooltip title={!formData.agreeToTerms ? "Check terms and conditions to enable Submit" : ""}>
+  <span> {/* Wrapping in a span to avoid tooltip issue on disabled buttons */}
+    <Button 
+      type="submit" 
+      variant="contained" 
+      color="primary" 
+      disabled={!formData.agreeToTerms}
+    >
+      Submit
+    </Button>
+  </span>
+</Tooltip>
           ) : (
             <Button
               variant="contained"
               color="primary"
               onClick={handleNext}
-              endIcon={<ArrowForward />} // This will place the icon after the text
+              endIcon={<ArrowForward />}
+              disabled={currentStepHasErrors()}
             >
               Next
             </Button>
           )}
         </Box>
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}  // Set position to top-right
-        sx={{ marginTop: '60px' }}  // Adjust margin-top if needed
-      >
-      
-        <Alert
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{ width: '100%' }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          sx={{ marginTop: "60px" }}
         >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbarSeverity}
+            variant="filled"
+            sx={{ width: "100%" }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
         <div className="flex flex-col mt-4 items-center justify-center text-sm">
           <h3 className="dark:text-gray-300">
             Already have an account?{" "}

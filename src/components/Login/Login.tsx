@@ -1,3 +1,6 @@
+
+/* eslint-disable */
+
 import React, { useState } from "react";
 import Registration from "../Registration/Registration";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
@@ -75,7 +78,13 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+  if (event.key === "Enter") {
+   handleLogin(event);
+  }
+};
   const handleLogin = async (e: React.FormEvent) => {
+
     e.preventDefault();
 
     try {
@@ -84,22 +93,47 @@ export const Login: React.FC<ChildComponentProps> = ({
         password: password,
       });
 
-       // Log the full response data to the console
-    console.log("Response Data:", response.data);
+      console.log("Response Data:", response.data);
 
-      // Check if the response is successful
       if (response.status === 200 && response.data) {
-        const { message, role,customerDetails } = response.data;
+        const { message, role, customerDetails } = response.data;
         const firstName = customerDetails?.firstName || "Unknown";
-       
-        // console.log("First Name:", firstName);
+
         dispatch(add(response.data));
 
-        // Display success message
+        // Show success snackbar
         setSnackbarMessage(message || "Login successful!");
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
 
+        // Notification logic
+        // try {
+        //   const notifyResponse = await fetch(
+        //     "http://localhost:4000/send-notification",
+        //     {
+        //       method: "POST",
+        //       body: JSON.stringify({
+        //         title: "Login Successful",
+        //         body: `Welcome back, ${firstName}!`,
+        //         url: "http://localhost:3000",
+        //       }),
+        //       headers: { "Content-Type": "application/json" },
+        //     }
+        //   );
+
+        //   if (notifyResponse.ok) {
+        //     console.log("Notification triggered!");
+        //     alert("Notification sent!");
+        //   } else {
+        //     console.error("Notification failed");
+        //     alert("Failed to send notification");
+        //   }
+        // } catch (error) {
+        //   console.error("Error sending notification:", error);
+        //   alert("Error sending notification");
+        // }
+
+        // Handle redirection after login
         setTimeout(() => {
           if (role === "SERVICE_PROVIDER") {
             if (sendDataToParent) {
@@ -115,23 +149,7 @@ export const Login: React.FC<ChildComponentProps> = ({
             }
           }
         }, 1000);
-        // setTimeout(() => {
-        //   if (role === "SERVICE_PROVIDER") {
-        //     setRedirectComponent(<ServiceProviderDashboard />);
-        //   } else {
-        //     setRedirectComponent(
-        //       <DetailsView 
-        //         sendDataToParent={(data: string) => {
-        //           console.log(`Role is: ${data}`);
-        //           // You can perform other actions with the role here
-        //         }} 
-        //       />
-        //     );
-        //   }
-        // }, 1000);
-
       } else {
-        // Handle unexpected responses
         throw new Error(
           response.data?.message ||
             "Login failed. Please check your credentials."
@@ -155,14 +173,14 @@ export const Login: React.FC<ChildComponentProps> = ({
     <div className="h-full flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-lg">
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
-          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 m-0">
-            {  isRegistration ? (
-    <Registration onBackToLogin={handleBackToLogin} />
-  ) : isServiceRegistration ? (
-    <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
-  ) : isAgentRegistration ? (
-    <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
-  ) : (
+          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 ">
+            {isRegistration ? (
+              <Registration onBackToLogin={handleBackToLogin} />
+            ) : isServiceRegistration ? (
+              <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
+            ) : isAgentRegistration ? (
+              <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
+            ) : (
               <>
                 <h1 className="font-bold dark:text-gray-400 text-4xl text-center cursor-default my-0">
                   Log in
@@ -198,22 +216,25 @@ export const Login: React.FC<ChildComponentProps> = ({
                       type={showPassword ? "text" : "password"}
                       placeholder="Password"
                       value={password}
+                      onKeyDown={handleKeyPress}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                    <IconButton
+                     <IconButton
                       onClick={togglePasswordVisibility}
                       edge="end"
                       style={{
                         position: "absolute",
                         top: "50%",
                         right: "10px",
-                        transform: "translateY(-50%)",
                       }}
+                      disabled={!password} // Button is disabled if password field is empty
                     >
                       {showPassword ? <Visibility /> : <VisibilityOff />}
                     </IconButton>
+                   
                   </div>
+
                   <button
                     className="group text-blue-400 transition-all duration-100 ease-in-out cursor-pointer"
                     onClick={handleForgotPasswordClick}
@@ -224,6 +245,7 @@ export const Login: React.FC<ChildComponentProps> = ({
                   </button>
                   <button
                     className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-3 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-out"
+                    
                     type="submit"
                   >
                     LOG IN
@@ -233,23 +255,22 @@ export const Login: React.FC<ChildComponentProps> = ({
                   <h3 className="dark:text-gray-300">Don't have an account?</h3>
                   <button
                     onClick={handleSignUpClick}
-                    className="text-blue-400 ml-2 underline"
+                    className="text-blue-400 ml-2 hover:underline"
                   >
                     Sign Up As User
                   </button>
                   <button
                     onClick={handleSignUpClickServiceProvider}
-                    className="text-blue-400 ml-2 underline"
+                    className="text-blue-400 ml-2 hover:underline"
                   >
                     Sign Up As Service Provider
                   </button>
                   <button
-                  onClick={handleSignUpClickAgent}
-                  className="text-blue-400 ml-2 underline"
+                    onClick={handleSignUpClickAgent}
+                    className="text-blue-400 ml-2 hover:underline"
                   >
-                  Sign Up As Agent
+                    Sign Up As Agent
                   </button>
-
                 </div>
               </>
             )}
@@ -260,15 +281,14 @@ export const Login: React.FC<ChildComponentProps> = ({
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} 
-        sx={{ marginTop: '60px' }}  
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        sx={{ marginTop: "60px" }}
       >
-      
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbarSeverity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
         >
           {snackbarMessage}
         </Alert>

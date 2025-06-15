@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { ChangeEvent, useEffect, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -90,7 +92,7 @@ const Admin: React.FC = () => {
       };
       fetchData();
     } else if(e.target.value === 'pricing'){
-      axios.get('http://13.127.47.159:3000/records')
+      axios.get('https://utils-dmua.onrender.com/records')
   .then(function (response) {
     // handle success
     setPricingData(response.data)
@@ -215,11 +217,11 @@ const Admin: React.FC = () => {
     const sanatizedData = removeInvalidFields(selectedData);
     if(isModalOpen){
    
-    axios.put('http://13.127.47.159:3000/records/' + selectedData._id, sanatizedData)
+    axios.put('https://utils-dmua.onrender.com/records/' + selectedData._id, sanatizedData)
       .then(function (response) {
         setOpen(true)
         setResponseData(response.data.message)
-        axios.get('http://13.127.47.159:3000/records')
+        axios.get('https://utils-dmua.onrender.com/records')
   .then(function (response) {
     // handle success
     setPricingData(response.data)
@@ -234,11 +236,11 @@ const Admin: React.FC = () => {
     }
     else if(isModalOpenAdd){
 
-      axios.post('http://13.127.47.159:3000/records/' , sanatizedData)
+      axios.post('https://utils-dmua.onrender.com/records/' , sanatizedData)
       .then(function (response) {
         setOpen(true)
         setResponseData(response.data.message)
-        axios.get('http://13.127.47.159:3000/records')
+        axios.get('https://utils-dmua.onrender.com/records')
   .then(function (response) {
     // handle success
     setPricingData(response.data)
@@ -400,11 +402,11 @@ const removeInvalidFields = (data) => {
 
   const deleteRow = (rowData : RowData ) => {
     console.log("Deleting data ", rowData)
-      axios.delete('http://13.127.47.159:3000/records/' + rowData._id)
+      axios.delete('https://utils-dmua.onrender.com/records/' + rowData._id)
       .then(function (response) {
         setOpen(true)
         setResponseData(response.data.message)
-        axios.get('http://13.127.47.159:3000/records')
+        axios.get('https://utils-dmua.onrender.com/records')
   .then(function (response) {
     // handle success
     setPricingData(response.data)

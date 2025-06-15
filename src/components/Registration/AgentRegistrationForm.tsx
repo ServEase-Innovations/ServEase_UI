@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useState } from "react";
 import {
   Box,
@@ -106,7 +108,7 @@ const AgentRegistrationForm = ({ onBackToLogin }) => {
   
     try {
       const response = await axiosInstance.post(
-        "http://43.205.212.94:8080/vendors/add", 
+        "vendors/add", 
         requestData, 
         {
           headers: {
