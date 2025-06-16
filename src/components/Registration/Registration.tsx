@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import React, { useEffect, useState } from "react";
-import Autocomplete from "@mui/material/Autocomplete";
 import {
   TextField,
   Button,
@@ -22,8 +19,13 @@ import {
   Alert,
   Snackbar,
   AlertColor,
+  Autocomplete,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
-import "./Registration.css";
 import {
   Visibility,
   VisibilityOff,
@@ -32,7 +34,6 @@ import {
 } from "@mui/icons-material";
 import ProfileImageUpload from "./ProfileImageUpload";
 import axios from "axios";
-import ChipInput from "../Common/ChipInput/ChipInput";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 
@@ -73,24 +74,31 @@ interface FormErrors {
   pincode?: string;
   buildingName?: string;
   currentLocation?: string;
-  agreeToTerms?: string; // This is now a string for error messages
+  agreeToTerms?: string;
 }
 
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
+const MAX_NAME_LENGTH = 30;
 
 const steps = ["Basic Info", "Address", "Additional Details", "Confirmation"];
 
 interface RegistrationProps {
+  open: boolean;
+  onClose: () => void;
   onBackToLogin: (data: boolean) => void;
 }
 
-const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
+const Registration: React.FC<RegistrationProps> = ({
+  open,
+  onClose,
+  onBackToLogin,
+}) => {
   const handleBackLogin = (e: any) => {
     onBackToLogin(e);
   };
@@ -112,8 +120,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   };
 
   const [activeStep, setActiveStep] = useState(0);
-  // const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
-
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     middleName: "",
@@ -134,10 +140,9 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     language: "",
     profilePic: "",
   });
-  // Fetch Location
+
   const fetchLocation = () => {
     if (navigator.geolocation) {
-      // setLoadingLocation(true);
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -147,7 +152,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
-                  key: keys.api_key, // Use your API key
+                  key: keys.api_key,
                 },
               }
             );
@@ -155,7 +160,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             const address =
               response.data.results[0]?.formatted_address ||
               "Address not found";
-            console.log("Fetched Location:", address);
             setFormData((prevData) => ({
               ...prevData,
               address,
@@ -163,19 +167,17 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
             }));
           } catch (error) {
             console.error("Failed to fetch location:", error);
-          } finally {
-            // setLoadingLocation(false);
           }
         },
         (error) => {
           console.error("Error retrieving geolocation:", error.message);
-          // setLoadingLocation(false);
         }
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
     }
   };
+
   const [availableLanguages] = useState<string[]>([
     "Assamese",
     "Bengali",
@@ -191,6 +193,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     "Tamil",
     "Telugu",
     "Urdu",
+    "English",
     "Sindhi",
     "Konkani",
     "Nepali",
@@ -210,7 +213,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   useEffect(() => {
     console.log(selectedChips); // Logs updated state after re-render
   }, [selectedChips]);
-  // };
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -224,18 +227,67 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
 
   const [image, setImage] = useState<Blob | null>(null);
 
-  // File change handler to update the profile picture
   const handleImageSelect = (file: Blob | null) => {
     if (file) {
-      setImage(file); // Now you have the image as binary (Blob)
-      // Further actions like uploading the image can be performed here
+      setImage(file);
     }
   };
 
-  const handleRealTimeValidation = (e) => {
+  const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const trimmedValue = value.trim();
 
-    // Password field validation
+    if (name === "firstName") {
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: "First Name is required.",
+        }));
+      } else if (!nameRegex.test(trimmedValue)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: trimmedValue.includes("  ")
+            ? "Only one space allowed between words"
+            : "First Name should contain only alphabets with single spaces",
+        }));
+      } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: "",
+        }));
+      }
+    }
+    if (name === "lastName") {
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: "Last Name is required.",
+        }));
+      } else if (!nameRegex.test(trimmedValue)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: trimmedValue.includes("  ")
+            ? "Only one space allowed between words"
+            : "Last Name should contain only alphabets with single spaces",
+        }));
+      } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: "",
+        }));
+      }
+    }
+
     if (name === "password") {
       if (value.length < 8) {
         setErrors((prevErrors) => ({
@@ -270,7 +322,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Confirm Password field validation
     if (name === "confirmPassword") {
       if (value !== formData.password) {
         setErrors((prevErrors) => ({
@@ -285,7 +336,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Email field validation
     if (name === "emailId") {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(value)) {
@@ -301,7 +351,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Mobile number field validation
     if (name === "mobileNo") {
       const mobilePattern = /^[0-9]{10}$/;
       if (!mobilePattern.test(value)) {
@@ -316,10 +365,19 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
         }));
       }
     }
-    // Pincode field validation
+
     if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
-      if (!pincodePattern.test(value)) {
+      // Only allow numeric input
+      const numericValue = value.replace(/\D/g, "");
+
+      // Update form data with only numbers
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: numericValue.slice(0, 6), // Limit to 6 digits
+      }));
+
+      // Validation
+      if (numericValue.length !== 6) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           pincode: "Pincode must be exactly 6 digits.",
@@ -332,12 +390,12 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       }
     }
 
-    // Update the formData state
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
+
   const [errors, setErrors] = useState<FormErrors>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,19 +406,64 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     });
   };
 
+  const currentStepHasErrors = () => {
+    if (activeStep === 0) {
+      return (
+        !formData.firstName.trim() ||
+        !nameRegex.test(formData.firstName.trim()) ||
+        formData.firstName.trim().length > MAX_NAME_LENGTH ||
+        !formData.lastName.trim() ||
+        !nameRegex.test(formData.lastName.trim()) ||
+        formData.lastName.trim().length > MAX_NAME_LENGTH ||
+        !formData.emailId ||
+        !emailIdRegex.test(formData.emailId) ||
+        !formData.password ||
+        !strongPasswordRegex.test(formData.password) ||
+        formData.password !== formData.confirmPassword ||
+        !formData.mobileNo ||
+        !phoneRegex.test(formData.mobileNo) ||
+        !formData.gender
+      );
+    }
+    if (activeStep === 1) {
+      return (
+        !formData.address ||
+        !formData.locality ||
+        !formData.street ||
+        !formData.pincode ||
+        !pincodeRegex.test(formData.pincode) ||
+        !formData.currentLocation ||
+        !formData.buildingName
+      );
+    }
+    if (activeStep === 3) {
+      return !formData.agreeToTerms;
+    }
+    return false;
+  };
+
   const validateForm = () => {
     let tempErrors: FormErrors = {};
 
     if (activeStep === 0) {
-      if (!formData.firstName) {
+      if (!formData.firstName.trim()) {
         tempErrors.firstName = "First Name is required.";
-      } else if (!nameRegex.test(formData.firstName)) {
-        tempErrors.firstName = "First Name should contain only alphabets.";
+      } else if (!nameRegex.test(formData.firstName.trim())) {
+        tempErrors.firstName = formData.firstName.includes("  ")
+          ? "Only one space allowed between words"
+          : "First Name should contain only alphabets with single spaces";
+      } else if (formData.firstName.trim().length > MAX_NAME_LENGTH) {
+        tempErrors.firstName = `First Name should not exceed ${MAX_NAME_LENGTH} characters.`;
       }
-      if (!formData.lastName) {
+
+      if (!formData.lastName.trim()) {
         tempErrors.lastName = "Last Name is required.";
-      } else if (!nameRegex.test(formData.lastName)) {
-        tempErrors.lastName = "Last Name should contain only alphabets.";
+      } else if (!nameRegex.test(formData.lastName.trim())) {
+        tempErrors.lastName = formData.lastName.includes("  ")
+          ? "Only one space allowed between words"
+          : "Last Name should contain only alphabets with single spaces";
+      } else if (formData.lastName.trim().length > MAX_NAME_LENGTH) {
+        tempErrors.lastName = `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`;
       }
       if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
         tempErrors.emailId = "Valid email is required.";
@@ -389,9 +492,12 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (!formData.street) {
         tempErrors.street = "State is required.";
       }
-      if (!formData.pincode || !pincodeRegex.test(formData.pincode)) {
+      if (!formData.pincode) {
         tempErrors.pincode = "Pincode is required.";
+      } else if (formData.pincode.length !== 6) {
+        tempErrors.pincode = "Pincode must be exactly 6 digits.";
       }
+
       if (!formData.currentLocation) {
         tempErrors.currentLocation = "Current Location is required.";
       }
@@ -414,6 +520,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   const handleBack = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -483,7 +590,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
 
       // Success feedback through Snackbar
       setSnackbarSeverity("success");
-      setSnackbarMessage("User added successfully!");
+      setSnackbarMessage("User  added successfully!");
       setSnackbarOpen(true);
 
       // Navigate back to login after a delay
@@ -505,7 +612,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
       if (activeStep === steps.length - 1) {
         setSnackbarMessage("Registration Successful!");
         setSnackbarOpen(true);
-        // Optionally, reset form data or redirect
       }
     }
   };
@@ -516,7 +622,6 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
         return (
           <div className="topic">
             <Grid container spacing={2}>
-              {/* Profile Picture Upload Section */}
               <Grid item xs={12}>
                 <ProfileImageUpload onImageSelect={handleImageSelect} />
               </Grid>
@@ -527,10 +632,9 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.firstName}
-                  onChange={handleChange}
+                  onChange={handleRealTimeValidation}
                   error={!!errors.firstName}
                   helperText={errors.firstName}
-                 
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -565,13 +669,13 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    row // Optional to make it horizontal
+                    row
                   >
                     <FormControlLabel
                       value="MALE"
                       control={<Radio />}
                       label="MALE"
-                      sx={{ color: "#333" }} // Apply dark gray color
+                      sx={{ color: "#333" }}
                     />
                     <FormControlLabel
                       value="FEMALE"
@@ -611,7 +715,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.password}
-                  onChange={handleRealTimeValidation} // Real-time validation here
+                  onChange={handleRealTimeValidation}
                   error={!!errors.password}
                   helperText={errors.password}
                   InputProps={{
@@ -638,7 +742,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   fullWidth
                   required
                   value={formData.confirmPassword}
-                  onChange={handleRealTimeValidation} // Real-time validation here
+                  onChange={handleRealTimeValidation}
                   error={!!errors.confirmPassword}
                   helperText={errors.confirmPassword}
                   onPaste={(e) => e.preventDefault()} // Prevent paste
@@ -651,7 +755,11 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                           edge="end"
                           aria-label="toggle password visibility"
                         >
-                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
+                          {showConfirmPassword ? (
+                            <Visibility />
+                          ) : (
+                            <VisibilityOff />
+                          )}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -724,11 +832,21 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
                   onChange={handleRealTimeValidation}
                   error={!!errors.pincode}
                   helperText={errors.pincode}
+                  inputProps={{
+                    maxLength: 6,
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                  }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  placeholder="BuildingName *"
+                  placeholder="Building Name *"
                   name="buildingName"
                   fullWidth
                   required
@@ -740,7 +858,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  placeholder="CurrentLocation *"
+                  placeholder="Current Location *"
                   name="currentLocation"
                   fullWidth
                   required
@@ -819,88 +937,103 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
   };
 
   return (
-    <Box
-      sx={{ maxWidth: 600, margin: "auto", padding: 2, display: "block" }}
-      className="parent"
-    >
-        <Typography variant="h5" gutterBottom className="text">
-        User Registration
-      </Typography>
-      <Stepper
-      className="Stepper1"
-        activeStep={activeStep}
-        alternativeLabel
-        style={{ overflow: "overlay" }}
-      >
-        {steps.map((label, index) => (
-          <Step key={index}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-      <form onSubmit={handleSubmit}>
-        {renderStepContent(activeStep)}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: 2,
-          }}
-        >
-          <Button
-            onClick={() =>
-              activeStep === 0 ? handleBackLogin("true") : handleBack()
-            }
-            variant="contained"
-            color="primary"
-            startIcon={<ArrowBack />}
-          >
-            Back
-          </Button>
-          {activeStep === steps.length - 1 ? (
-            <Button type="submit" variant="contained" color="primary">
-              Submit
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-              endIcon={<ArrowForward />} // This will place the icon after the text
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>User Registration</DialogTitle>
+      <DialogContent>
+        <Box sx={{ padding: 2 }}>
+          <Stepper activeStep={activeStep} alternativeLabel>
+            {steps.map((label, index) => (
+              <Step key={index}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+          <form onSubmit={handleSubmit}>
+            {renderStepContent(activeStep)}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
             >
-              Next
-            </Button>
-          )}
-        </Box>
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }} // Set position to top-right
-          sx={{ marginTop: "60px" }} // Adjust margin-top if needed
-        >
-          <Alert
+              <Button
+                onClick={() =>
+                  activeStep === 0 ? handleBackLogin("true") : handleBack()
+                }
+                variant="contained"
+                color="primary"
+                startIcon={<ArrowBack />}
+              >
+                Back
+              </Button>
+              {activeStep === steps.length - 1 ? (
+                <Tooltip
+                  title={
+                    !formData.agreeToTerms
+                      ? "Check terms and conditions to enable Submit"
+                      : ""
+                  }
+                >
+                  <span>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      disabled={!formData.agreeToTerms}
+                    >
+                      Submit
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleNext}
+                  endIcon={<ArrowForward />}
+                  disabled={currentStepHasErrors()}
+                >
+                  Next
+                </Button>
+              )}
+            </Box>
+          </form>
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={6000}
             onClose={handleCloseSnackbar}
-            severity={snackbarSeverity}
-            variant="filled"
-            sx={{ width: "100%" }}
+            anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            sx={{ marginTop: "60px" }}
           >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-        <div className="flex flex-col mt-4 items-center justify-center text-sm">
-          <h3 className="dark:text-gray-300">
-            Already have an account?{" "}
-            <button
-              className="text-blue-500 ml-2 underline"
-              onClick={(e) => handleBackLogin("true")}
+            <Alert
+              onClose={handleCloseSnackbar}
+              severity={snackbarSeverity}
+              variant="filled"
+              sx={{ width: "100%" }}
             >
-              Sign in
-            </button>
-          </h3>
-        </div>
-      </form>
-    </Box>
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
+          <div className="flex flex-col mt-4 items-center justify-center text-sm">
+            <h3 className="dark:text-gray-300">
+              Already have an account?{" "}
+              <button
+                className="text-blue-500 ml-2 underline"
+                onClick={(e) => handleBackLogin("true")}
+              >
+                Sign in
+              </button>
+            </h3>
+          </div>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="primary">
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

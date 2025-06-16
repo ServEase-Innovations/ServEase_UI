@@ -1,4 +1,3 @@
-
 /* eslint-disable */
 
 import React, { useState } from "react";
@@ -54,11 +53,13 @@ export const Login: React.FC<ChildComponentProps> = ({
     setIsRegistration(false);
     setIsForgotPassword(false);
     setServiceRegistration(false);
+    setAgentRegistration(false);
   };
 
   const handleSignUpClickServiceProvider = () => {
     setServiceRegistration(true);
   };
+
   const handleSignUpClickAgent = () => {
     setAgentRegistration(true);
   };
@@ -78,6 +79,13 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter") {
+      handleLogin(event);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -99,33 +107,6 @@ export const Login: React.FC<ChildComponentProps> = ({
         setSnackbarMessage(message || "Login successful!");
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
-
-        // Notification logic
-        // try {
-        //   const notifyResponse = await fetch(
-        //     "http://localhost:4000/send-notification",
-        //     {
-        //       method: "POST",
-        //       body: JSON.stringify({
-        //         title: "Login Successful",
-        //         body: `Welcome back, ${firstName}!`,
-        //         url: "http://localhost:3000",
-        //       }),
-        //       headers: { "Content-Type": "application/json" },
-        //     }
-        //   );
-
-        //   if (notifyResponse.ok) {
-        //     console.log("Notification triggered!");
-        //     alert("Notification sent!");
-        //   } else {
-        //     console.error("Notification failed");
-        //     alert("Failed to send notification");
-        //   }
-        // } catch (error) {
-        //   console.error("Error sending notification:", error);
-        //   alert("Error sending notification");
-        // }
 
         // Handle redirection after login
         setTimeout(() => {
@@ -167,13 +148,21 @@ export const Login: React.FC<ChildComponentProps> = ({
     <div className="h-full flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-lg">
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
-          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 m-0">
+          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 ">
             {isRegistration ? (
-              <Registration onBackToLogin={handleBackToLogin} />
+              <Registration
+                open={isRegistration}
+                onClose={handleBackToLogin}
+                onBackToLogin={handleBackToLogin}
+              />
             ) : isServiceRegistration ? (
               <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
             ) : isAgentRegistration ? (
-              <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
+              <AgentRegistrationForm
+                open={isAgentRegistration}
+                onClose={handleBackToLogin}
+                onBackToLogin={handleBackToLogin}
+              />
             ) : (
               <>
                 <h1 className="font-bold dark:text-gray-400 text-4xl text-center cursor-default my-0">
@@ -210,10 +199,11 @@ export const Login: React.FC<ChildComponentProps> = ({
                       type={showPassword ? "text" : "password"}
                       placeholder="Password"
                       value={password}
+                      onKeyDown={handleKeyPress}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                     <IconButton
+                    <IconButton
                       onClick={togglePasswordVisibility}
                       edge="end"
                       style={{
@@ -221,16 +211,16 @@ export const Login: React.FC<ChildComponentProps> = ({
                         top: "50%",
                         right: "10px",
                       }}
-                      disabled={!password} // Button is disabled if password field is empty
+                      disabled={!password}
                     >
                       {showPassword ? <Visibility /> : <VisibilityOff />}
                     </IconButton>
-                   
                   </div>
 
                   <button
                     className="group text-blue-400 transition-all duration-100 ease-in-out cursor-pointer"
                     onClick={handleForgotPasswordClick}
+                    type="button"
                   >
                     <span className="bg-left-bottom bg-gradient-to-r text-sm from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
                       Forget your password?
@@ -243,23 +233,23 @@ export const Login: React.FC<ChildComponentProps> = ({
                     LOG IN
                   </button>
                 </form>
-                <div className="flex flex-col items-center justify-center text-sm mt-4">
+                <div className="flex flex-col items-center justify-center text-sm mt-4 space-y-2">
                   <h3 className="dark:text-gray-300">Don't have an account?</h3>
                   <button
                     onClick={handleSignUpClick}
-                    className="text-blue-400 ml-2 hover:underline"
+                    className="text-blue-400 hover:underline"
                   >
                     Sign Up As User
                   </button>
                   <button
                     onClick={handleSignUpClickServiceProvider}
-                    className="text-blue-400 ml-2 hover:underline"
+                    className="text-blue-400 hover:underline"
                   >
                     Sign Up As Service Provider
                   </button>
                   <button
                     onClick={handleSignUpClickAgent}
-                    className="text-blue-400 ml-2 hover:underline"
+                    className="text-blue-400 hover:underline"
                   >
                     Sign Up As Agent
                   </button>

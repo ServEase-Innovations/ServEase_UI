@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+/* eslint-disable */
+
+import React, { ChangeEvent, useState } from "react";
 import moment from "moment";
 import {
   TextField,
@@ -25,6 +27,10 @@ import {
   FormGroup,
   Slider,
   Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import Snackbar from "@mui/material/Snackbar";
 import {
@@ -52,7 +58,7 @@ interface FormData {
   AlternateNumber: string;
   address: string;
   buildingName: string;
-  locality: String;
+  locality: string;
   street: string;
   currentLocation: string;
   nearbyLocation: string;
@@ -69,13 +75,14 @@ interface FormData {
   otherDetails: string;
   profileImage: File | null; // New field for Profile Image
   cookingSpeciality: string;
-  age: "";
+  age: string;
   diet: string;
-  dob: "";
+  dob: string;
   profilePic: string;
   timeslot: string;
-  referralCode: "";
+  referralCode: string;
 }
+
 // Define the shape of errors to hold string messages
 interface FormErrors {
   firstName?: string;
@@ -90,8 +97,6 @@ interface FormErrors {
   locality?: string;
   street?: string;
   currentLocation?: string;
-  city?: string;
-  state?: string;
   pincode?: string;
   AADHAR?: string;
   pan?: string;
@@ -101,22 +106,19 @@ interface FormErrors {
   experience?: string;
   kyc?: string;
   documentImage?: string;
-  aadhaarNumber?: string;
   cookingSpeciality?: string;
-  Speciality?: string;
   diet?: string;
 }
+
 // Regex for validation
-const nameRegex = /^[A-Za-z\s]+$/;
+const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
 const aadhaarRegex = /^[0-9]{12}$/;
-// const experienceRegex = /^([0-9]|[1-4][0-9]|50)$/;
-// const aadhaarRegex = /^[0-9]{12}$/;
-// const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const MAX_NAME_LENGTH = 30;
 
 const steps = [
   "Basic Information",
@@ -137,15 +139,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     onBackToLogin(e);
   };
   const [activeStep, setActiveStep] = useState(0);
-  // const [dob, setDob] = useState('');
   const [isFieldsDisabled, setIsFieldsDisabled] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] =
-    useState<AlertColor>("success"); // Use AlertColor for correct typing
-  // const [profileImage, setProfileImage] = useState<File | null>(null);
-  // const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // const fileInputRef = useRef<HTMLInputElement>(null!);
+    useState<AlertColor>("success");
   const [sliderDisabled, setSliderDisabled] = useState(true);
   const [sliderValueMorning, setSliderValueMorning] = useState([6, 12]);
   const [sliderValueEvening, setSliderValueEvening] = useState([12, 20]);
@@ -166,8 +164,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     street: "",
     currentLocation: "",
     nearbyLocation: "",
-    // city: '',
-    // state: '',
     pincode: "",
     AADHAR: "",
     pan: "",
@@ -189,28 +185,23 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     referralCode: "",
   });
 
-  // Function to fetch location data and autofill the form
   const fetchLocationData = async () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            // Use the latitude and longitude to fetch location data from the Geocode API
             const response = await axios.get(
               "https://maps.googleapis.com/maps/api/geocode/json",
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
-                  key: keys.api_key, // Ensure your API key is here
+                  key: keys.api_key,
                 },
               }
             );
 
-            // Extract the location data from the API response
             const locationData = response.data.results[0];
-
-            // Extract relevant fields from the location data
             const address = locationData.formatted_address || "";
             const components = locationData.address_components;
 
@@ -236,7 +227,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               }
             });
 
-            // Autofill form fields with the location data
             setFormData((prevState) => ({
               ...prevState,
               address: address,
@@ -246,8 +236,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               pincode: pincode,
               currentLocation: address,
               nearbyLocation: nearbyLocation,
-              latitude: latitude,
-              longitude: longitude,
             }));
           } catch (error) {
             console.error("Error fetching location data", error);
@@ -263,30 +251,15 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   };
 
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // States for image previews and names
-  // const [documentImageName, setDocumentImageName] = useState<string>('');
-  // const [documentImagePreview, setDocumentImagePreview] = useState<string | null>(null);
-
-  // States for password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // File change handler to update the profile picture
-
   const [image, setImage] = useState<Blob | null>(null);
 
-  // File change handler to update the profile picture
   const handleImageSelect = (file: Blob | null) => {
     if (file) {
-      setImage(file); // Now you have the image as binary (Blob)
-      // Further actions like uploading the image can be performed here
+      setImage(file);
     }
   };
-
-  // Click handler to trigger file input click
-  // const handleClick = () => {
-  //   fileInputRef.current?.click();
-  // };
 
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -295,24 +268,21 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const handleToggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
-  // Handle changes in service type selection
+
   const handleServiceTypeChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, housekeepingRole: value }));
 
-    // Check if 'COOK' is selected and update isCookSelected accordingly
     if (value === "COOK") {
       setIsCookSelected(true);
     } else {
       setIsCookSelected(false);
-      // Reset cooking speciality if not cook
       setFormData((prevData) => ({ ...prevData, cookingSpeciality: "" }));
     }
   };
 
-  // Handle changes in cooking speciality selection
   const handleCookingSpecialityChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -320,11 +290,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     setFormData((prevData) => ({ ...prevData, cookingSpeciality: value }));
   };
 
-  // Handle changes in speciality selection
   const handledietChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, diet: value }));
   };
+
   const [availableLanguages] = useState<string[]>([
     "Assamese",
     "Bengali",
@@ -353,7 +323,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const handleChipChange = (newChips: string[]) => {
     setSelectedChips(newChips);
-    console.log(selectedChips);
   };
 
   const handleChange = (
@@ -363,25 +332,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   ) => {
     const { name, value, type } = e.target;
 
-    // const handleChange = (e) => {
-    //   const { name, value } = e.target;
-
-    //   if (name === "dob") {
-    //     // Format the date using Moment.js
-    //     const formattedDate = moment(value).format("YYYY.MM.DD");
-    //     setFormData((prev) => ({ ...prev, [name]: formattedDate }));
-    //   } else {
-    //     setFormData((prev) => ({ ...prev, [name]: value }));
-    //   }
-    // };
-
-    // Handle file upload separately
     if (type === "file") {
-      const target = e.target as HTMLInputElement; // Cast to HTMLInputElement
-      const files = target.files; // Access files property
+      const target = e.target as HTMLInputElement;
+      const files = target.files;
       setFormData((prev) => ({
         ...prev,
-        documentImage: files ? files[0] : null, // Set the first file or null
+        documentImage: files ? files[0] : null,
       }));
     } else {
       setFormData((prev) => ({
@@ -393,9 +349,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   const handleRealTimeValidation = (e) => {
     const { name, value } = e.target;
-    const aadhaarPattern = /^[0-9]{12}$/; // AADHAR must be 12 digits
+    const aadhaarPattern = /^[0-9]{12}$/;
 
-    // Password field validation
     if (name === "password") {
       if (value.length < 8) {
         setErrors((prevErrors) => ({
@@ -430,7 +385,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Confirm Password field validation
     if (name === "confirmPassword") {
       if (value !== formData.password) {
         setErrors((prevErrors) => ({
@@ -445,7 +399,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Email field validation
     if (name === "emailId") {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(value)) {
@@ -461,7 +414,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Mobile number field validation
     if (name === "mobileNo") {
       const mobilePattern = /^[0-9]{10}$/;
       if (!mobilePattern.test(value)) {
@@ -477,7 +429,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // AADHAR number field validation
     if (name === "AADHAR") {
       if (!aadhaarPattern.test(value)) {
         setErrors((prevErrors) => ({
@@ -491,9 +442,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         }));
       }
     }
-    // Pincode field validation
+
     if (name === "pincode") {
-      const pincodePattern = /^[0-9]{6}$/; // Pincode must be 6 digits
+      const pincodePattern = /^[0-9]{6}$/;
       if (!pincodePattern.test(value)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -507,7 +458,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Update the formData state
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
@@ -515,9 +465,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   };
 
   const validateForm = (): boolean => {
-    let tempErrors: FormErrors = {}; // Temporary object to store errors
+    let tempErrors: FormErrors = {};
 
-    // Step 1: Basic Information Validation
     if (activeStep === 0) {
       if (!formData.firstName || !nameRegex.test(formData.firstName)) {
         tempErrors.firstName =
@@ -544,7 +493,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Step 2: Address Information Validation
     if (activeStep === 1) {
       if (!formData.address) {
         tempErrors.address = "Address is required.";
@@ -566,7 +514,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    // Step 3: Additional Details Validation
     if (activeStep === 2) {
       if (!formData.agreeToTerms) {
         tempErrors.agreeToTerms =
@@ -586,12 +533,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!formData.experience) {
         tempErrors.experience = "Please select experience";
       } else {
-        // Check if the experience value is a number
         const experienceRegex = /^[0-9]+$/; // Only numeric values
         if (!experienceRegex.test(formData.experience)) {
           tempErrors.experience = "Experience only accepts numbers.";
         } else {
-          // If number is provided, ensure it is between 0 and 50
           const experienceRangeRegex = /^([0-9]|[1-4][0-9]|50)$/;
           if (!experienceRangeRegex.test(formData.experience)) {
             tempErrors.experience =
@@ -599,103 +544,31 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           }
         }
       }
-
-      // Optional fields (uncomment if needed)
-      // if (!formData.description) {
-      //   tempErrors.description = 'Description is required.';
-      // }
-      // if (isNaN(Number(formData.experience))) {
-      //   tempErrors.experience = 'Experience must be a valid number.';
-      // }
     }
 
-    // Step 4: KYC Verification Validation
     if (activeStep === 3) {
       if (!formData.AADHAR || !aadhaarRegex.test(formData.AADHAR)) {
         tempErrors.kyc = "Aadhaar number must be exactly 12 digits.";
       }
-      // if (!formData.documentImage) {
-      //   tempErrors.documentImage = "Please upload a document image.";
-      // }
     }
-    setErrors(tempErrors);
-    return Object.keys(tempErrors).length === 0;
-  };
-  // const handleNext = () => {
-  //   if (validateForm ()) {
-  //     setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
-  //     if (activeStep === steps.length - 1) {
-  //       setSnackbarMessage('Registration Successful!');
-  //       setSnackbarOpen(true);
-  //       // Optionally, reset form data or redirect
-  //     }
-  //   }
-  // };
-
-  // Get formatted Date of Birth (YYYY-MM-DD for backend)
-  // Validate age (dob) using moment
-  const validateAge = (dob) => {
-    if (!dob) return false;
-
-    const birthDate = moment(dob, "YYYY-MM-DD");
-    const today = moment();
-    const age = today.diff(birthDate, "years");
-
-    console.log("Entered DOB:", dob);
-    console.log("Calculated Age:", age);
-
-    return age >= 18;
-  };
-
-  // Handle DOB Change
-  const handleDOBChange = (dob) => {
-    setFormData((prev) => ({ ...prev, dob }));
-
-    // Validate age and set field disabled status
-    const isValidAge = validateAge(dob);
-
-    if (!isValidAge) {
-      setIsFieldsDisabled(true);
-      setSnackbarMessage("You must be at least 18 years old to proceed.");
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-    } else {
-      setIsFieldsDisabled(false);
-      setSnackbarOpen(false);
-    }
-  };
-
-  // Handle Next Button
-  const handleNext = () => {
-    // Validate the entire form first
-    if (!validateForm()) {
-      // setSnackbarOpen(true);
-      // setSnackbarMessage('Please fill all required fields correctly');
-      // setSnackbarSeverity('error');
-      return; // Stop progression if any field is invalid
-    }
-
-    // Validate age only if on Step 0
-    if (activeStep === 0) {
-      const isValidAge = validateAge(formData.dob);
-
-      if (!isValidAge) {
-        setSnackbarOpen(true);
-        setSnackbarMessage("You must be at least 18 years old to proceed");
-        setSnackbarSeverity("error");
-        return; // Stop progression if age is invalid
+    if (activeStep === 4) {
+      if (!formData.agreeToTerms) {
+        tempErrors.agreeToTerms =
+          "You must agree to the Terms of Service and Privacy Policy.";
       }
     }
 
-    // Proceed to the next step if all validations pass
-    setActiveStep((prevActiveStep) =>
-      Math.min(prevActiveStep + 1, steps.length - 1)
-    );
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
+  };
 
-    // Optionally, show a success message at the last step
-    if (activeStep === steps.length - 1) {
-      setSnackbarMessage("Registration Successful!");
-      setSnackbarOpen(true);
+  const handleNext = () => {
+    if (validateForm()) {
+      setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
+      if (activeStep === steps.length - 1) {
+        setSnackbarMessage("Registration Successful!");
+        setSnackbarOpen(true);
+      }
     }
   };
 
@@ -719,7 +592,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         if (image) {
           // If image is provided, upload the image first
           const formData1 = new FormData();
-          formData1.append("image", image);
+                    formData1.append("image", image);
 
           // Axios call for image upload
           const imageResponse = await axiosInstance.post(
@@ -781,14 +654,15 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
+  function handleChangeCheckbox(event: ChangeEvent<HTMLInputElement>, checked: boolean): void {
+    throw new Error("Function not implemented.");
+  }
+
   // Close snackbar function
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
-  // const showSnackbar = (message: string) => {
-  //   setSnackbarMessage(message);
-  //   setSnackbarOpen(true);
-  // };
+
   const updateFormTimeSlot = (
     morningRange: number[],
     eveningRange: number[]
@@ -869,7 +743,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 fullWidth
                 required
                 value={formData.dob}
-                onChange={(e) => handleDOBChange(e.target.value)}
+               onChange={(e) => handleChange}
                 InputLabelProps={{
                   shrink: true,
                 }}
@@ -960,7 +834,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 fullWidth
                 required
                 value={formData.confirmPassword}
-                onChange={handleRealTimeValidation} // Real-time validation here
+                onChange={handleRealTimeValidation}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword}
                 onPaste={(e) => e.preventDefault()} // Prevent paste
@@ -1001,8 +875,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 value={formData.AlternateNumber}
                 disabled={isFieldsDisabled}
                 onChange={handleChange}
-                // error={!!errors.phoneNumber}
-                // helperText={errors.phoneNumber}
               />
             </Grid>
           </Grid>
@@ -1089,8 +961,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 fullWidth
                 value={formData.nearbyLocation}
                 onChange={handleChange}
-                // error={!!errors.nearbyLocation}
-                // helperText={errors.nearbyLocation}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1354,7 +1224,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                         onChange={(e, newValue) => {
                           const selectedRange = newValue as number[];
                           setSliderValueEvening(selectedRange);
-                          updateFormTimeSlot(sliderValueMorning, selectedRange);
+                          updateFormTimeSlot(sliderValueMorning                          , selectedRange);
                         }}
                         valueLabelDisplay="on"
                         valueLabelFormat={(value) => formatDisplayTime(value)}
@@ -1439,23 +1309,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                   />
                 </Box>
               )}
-              {/* {errors.documentImage && (
-            <Typography color="error">{errors.documentImage}</Typography>
-          )} */}
             </Grid>
-
-            {/* Other Details (Optional for PAN or DL) */}
-            {/* {(formData.kyc === "PAN" || formData.kyc === "DL") && (
-          <Grid item xs={12}>
-            <TextField
-              placeholder="Other Details"
-              name="otherDetails"
-              fullWidth
-              value={formData.otherDetails}
-              onChange={handleChange}
-            />
-          </Grid>
-        )} */}
           </Grid>
         );
 
@@ -1463,6 +1317,22 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         return (
           <Typography variant="h6" align="center">
             All steps completed - You're ready to submit your information!
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.agreeToTerms}
+                    onChange={handleChangeCheckbox}
+                    name="agreeToTerms"
+                    required
+                  />
+                }
+                label="I agree to the Terms of Service and Privacy Policy"
+              />
+              {errors.agreeToTerms && (
+                <Typography color="error">{errors.agreeToTerms}</Typography>
+              )}
+            </Grid>
           </Typography>
         );
       default:
@@ -1471,83 +1341,62 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   };
 
   return (
-    <>
-      <Box sx={{ maxWidth: 600, margin: "auto", padding: 2, display: "block" }}>
-        <Typography variant="h5" gutterBottom className="text-center pb-3 ">
-          Service Provider Registration
-        </Typography>
-        <Stepper
-          activeStep={activeStep}
-          alternativeLabel
-          style={{ overflow: "overlay" }}
-        >
-          {steps.map((label, index) => (
-            <Step key={index}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-        <form onSubmit={handleSubmit}>
-          {renderStepContent(activeStep)}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 2,
-            }}
-          >
-            <Button
-              onClick={() =>
-                activeStep === 0 ? handleBackLogin("true") : handleBack()
-              }
-              variant="contained"
-              color="primary"
-              startIcon={<ArrowBack />}
+    <Dialog open={true} onClose={handleBackLogin} maxWidth="md" fullWidth>
+      <DialogTitle>Service Provider Registration</DialogTitle>
+      <DialogContent>
+        <Box sx={{ padding: 2 }}>
+          <Stepper activeStep={activeStep} alternativeLabel>
+            {steps.map((label, index) => (
+              <Step key={index}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+          <form onSubmit={handleSubmit}>
+            {renderStepContent(activeStep)}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
             >
-              Back
-            </Button>
-
-            <Button
-              variant="contained"
-              onClick={
-                activeStep === steps.length - 1 ? handleSubmit : handleNext
-              }
-              endIcon={<ArrowForward />}
-            >
-              {activeStep === steps.length - 1 ? "Submit" : "Next"}
-            </Button>
-          </Box>
-        </form>
-      </Box>
+              <Button
+                onClick={handleBack}
+                variant="contained"
+                color="primary"
+                startIcon={<ArrowBack />}
+              >
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
+                endIcon={<ArrowForward />}
+              >
+                {activeStep === steps.length - 1 ? "Submit" : "Next"}
+              </Button>
+            </Box>
+          </form>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleBackLogin} color="primary">Close</Button>
+      </DialogActions>
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }} // Set position to top-right
-        sx={{ marginTop: "60px" }} // Adjust margin-top if needed
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
-      <div className="flex flex-col mt-4 items-center justify-center text-sm">
-        <h3 className="dark:text-gray-300">
-          Already have an account?{" "}
-          <button
-            className="text-blue-500 ml-2 underline"
-            onClick={(e) => handleBackLogin("true")}
-          >
-            Sign in
-          </button>
-        </h3>
-      </div>
-    </>
+    </Dialog>
   );
 };
 
 export default ServiceProviderRegistration;
+
