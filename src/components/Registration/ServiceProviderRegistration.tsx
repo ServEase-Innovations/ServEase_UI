@@ -35,75 +35,10 @@ import axios from 'axios';
 import ChipInput from "../Common/ChipInput/ChipInput";
 import { keys } from '../../env/env';
 import axiosInstance from '../../services/axiosInstance';
+import type FormData from '../../types/formData';
+import type FormErrors from '../../types/formErrors';
 
-// Define the shape of formData using an interface
-interface FormData {
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  gender: string;
-  emailId: string;
-  password: string;
-  confirmPassword: string;
-  mobileNo: string;
-  AlternateNumber: string;
-  address: string;
-  buildingName: string;
-  locality:String;
-  street: string;
-  currentLocation: string;
-  nearbyLocation: string;
-  pincode: string;
-  AADHAR: string;
-  pan: string;
-  agreeToTerms: boolean;
-  panImage: File | null; // New field for PAN image upload
-  housekeepingRole: string; // Dropdown for Service Type
-  description: string; // Text area for business description
-  experience: string; // Experience in years
-  kyc: string;
-  documentImage: File | null;
-  otherDetails:string,
-  profileImage: File | null; // New field for Profile Image
-  cookingSpeciality: string;
-  age:'';
-  diet:string;
-  dob:'';
-  profilePic:string;
-  timeslot: string,
-  referralCode:'',
-  
-}
-// Define the shape of errors to hold string messages
-interface FormErrors {
-  firstName?: string;
-  lastName?: string;
-  gender?: string;
-  emailId?: string;
-  password?: string;
-  confirmPassword?: string;
-  mobileNo?: string;
-  address?: string;
-  buildingName?: string;
-  locality?: string;
-  street ?: string;
-  currentLocation?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  AADHAR?: string;
-  pan?: string;
-  agreeToTerms?: string; 
-  housekeepingRole?: string; 
-  description?: string; 
-  experience?: string; 
-  kyc?: string;
-  documentImage?: string;
-  aadhaarNumber?:string;
-  cookingSpeciality?: string;
-  Speciality?: string;
-  diet?:string;
-}
+
 // Regex for validation
 const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
@@ -1456,23 +1391,9 @@ if (name === "lastName") {
               />
             </Box>
           )}
-          {/* {errors.documentImage && (
-            <Typography color="error">{errors.documentImage}</Typography>
-          )} */}
+
         </Grid>
 
-       {/* Other Details (Optional for PAN or DL) */}
-       {/* {(formData.kyc === "PAN" || formData.kyc === "DL") && (
-          <Grid item xs={12}>
-            <TextField
-              placeholder="Other Details"
-              name="otherDetails"
-              fullWidth
-              value={formData.otherDetails}
-              onChange={handleChange}
-            />
-          </Grid>
-        )} */}
       </Grid>
         );
       
@@ -1591,34 +1512,6 @@ if (name === "lastName") {
               </div>
             </form>
       </Box>
-      {/* <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}  // Set position to top-right
-        sx={{ marginTop: '60px' }}  // Adjust margin-top if needed
-      >
-      
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-      <div className="flex flex-col mt-4 items-center justify-center text-sm">
-      <Typography variant="h6">
-          Already have an account?
-          <Button
-            className="text-blue-400 ml-2 underline"
-            onClick={(e) => handleBackLogin("true")}
-          >
-            Sign in
-          </Button>
-        </Typography>
-      </div> */}
     </>
   );
 };

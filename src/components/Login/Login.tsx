@@ -13,7 +13,10 @@ import ForgotPassword from "./ForgotPassword";
 import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
+import { addPreferences } from "../../features/userPreferences/userPreferencesSlice";
 import { PROFILE } from "../../Constants/pagesConstants";
+import axios from "axios";
+import { error } from "console";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -106,6 +109,10 @@ export const Login: React.FC<ChildComponentProps> = ({
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
 
+        console.log("Login successful:", response.data);
+
+        getUserPreferences(response.data.customerDetails.customerId);
+
         // Notification logic
         // try {
         //   const notifyResponse = await fetch(
@@ -167,6 +174,39 @@ export const Login: React.FC<ChildComponentProps> = ({
 
   if (isForgotPassword) {
     return <ForgotPassword onBackToLogin={handleBackToLogin} />;
+  }
+
+  const getUserPreferences = async (customerId : number) =>{
+    try {
+      const response = await axios.get("https://utils-ndt3.onrender.com/user-settings/"+customerId).then((response) => {
+        console.log("User Preferences:", response.data);
+        dispatch(addPreferences(response.data));
+      } , error => {
+        console.error("Error fetching user preferences:", error);
+        if(error.response.data.message === "Record not found") {
+          createUserPreferences(customerId);
+        }
+      })
+    }
+     catch (error) {}
+  }
+
+  const createUserPreferences = async (customerId : number) =>{
+    console.log("Creating user preferences for customerId:", customerId);
+    try {
+      const response = await axios.post("https://utils-ndt3.onrender.com/user-settings/",{
+        customerId : customerId,
+        savedLocations: [],
+      }).then((response) => {
+        dispatch(addPreferences({customerId : customerId,
+          savedLocations: [],}));
+      } , error => {
+        if(error.response.message === "Record not found") {
+          createUserPreferences(customerId);
+        }
+      })
+    }
+     catch (error) {}
   }
 
   return (

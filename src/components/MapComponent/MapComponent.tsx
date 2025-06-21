@@ -10,7 +10,7 @@ interface Location {
 
 interface MapComponentProps {
     style: React.CSSProperties;
-    onLocationSelect: (data : string) => void; // Callback to pass the selected location
+    onLocationSelect: (data : any) => void; // Callback to pass the selected location
   }
 
 const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect }) => {
@@ -45,9 +45,7 @@ const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect })
         } else {
           setAddress('No address found for this location.');
         }
-        
-
-        onLocationSelect(response.results[0].formatted_address)
+        onLocationSelect(response.results[0])
       })
       .catch((error) => {
         setAddress('Error fetching address.');

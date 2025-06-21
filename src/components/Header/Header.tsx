@@ -16,6 +16,8 @@ import {
   useTheme,
   InputAdornment,
   Badge,
+  Chip,
+  Stack,
 } from "@mui/material";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -32,6 +34,12 @@ import { useDispatch } from 'react-redux'
 import { remove } from "../../features/user/userSlice";
 import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import DialogContentText from '@mui/material/DialogContentText';
+import { FaHome } from "react-icons/fa";
+import { HiOutlineBuildingOffice } from "react-icons/hi2";
+import { FaAddressBook } from "react-icons/fa";
+import { addPreferences } from "../../features/userPreferences/userPreferencesSlice";
+
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -49,21 +57,20 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const cart = useSelector((state : any) => state.cart?.value);
 
-  console.log("Cart in header ... ", cart)
-
   const user = useSelector((state : any) => state.user?.value);
+  const userPreferences = useSelector((state : any) => state.userPreference?.value);
   const dispatch = useDispatch();
 
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<any>();
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
-  const [loggedInUser , setLoggedInUser] = useState();
+  const [openLocationSaved, setOpenLocationSaved] = useState(false);
+  const [loggedInUser , setLoggedInUser] = useState<any>();
 
   useEffect(() => {
     setLoggedInUser(user);
-    console.log("User role is:", user?.role); 
   }, [user]);
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState([]);
-  const [dataFromMap, setDataFromMap] = useState("");
+  const [dataFromMap, setDataFromMap] = useState<any>();
 
   const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
   const PLACES_API_URL =
@@ -186,8 +193,70 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     setOpen(false);
   };
 
+  const handleCloseForSaveLocation = () => { 
+    setOpenLocationSaved(false);
+  }
+
+  const handleSaveLocation = async () => {
+    const plainLocation = {
+      lat: dataFromMap.geometry.location.lat(),
+      lng: dataFromMap.geometry.location.lng(),
+    };
+  
+    // Construct a safe object to store in Redux
+    const cleanedData = {
+      ...dataFromMap,
+      savedName: name,
+      geometry: {
+        ...dataFromMap.geometry,
+        location: plainLocation,
+      }
+    };
+    const updatedAddress = [...(userPreferences?.savedLocations || []), cleanedData];
+    
+    // dispatch(addPreferences({
+    //   ...userPreferences,
+    //   savedLocations: updatedAddress
+    // }));
+    
+
+    console.log("userPreferences " , userPreferences)
+
+
+
+    // try {
+    //   const response = await axios.put("https://utils-ndt3.onrender.com/user-settings/",{
+    //     customerId : userPreferences.customerId,
+    //     savedLocations: updatedAddress,
+    //   }).then((response) => {
+    //     dispatch(addPreferences({
+    //       ...userPreferences,
+    //       savedLocations: updatedAddress
+    //     }));
+    //   } , error => {
+    //     if(error.response.message === "Record not found") {
+    //       // createUserPreferences(customerId);
+    //     }
+    //   })
+    // } catch (error) {}
+
+    // console.log("Updated Address:", updatedAddress);
+    // console.log("userpreferences", userPreferences);
+  
+    
+  };
+  
+
+  const handleCloseLocationSaved = () => {
+    setOpenLocationSaved(false);
+  }
+
   const handleSave = () => {
-    setLocation(dataFromMap);
+    if(loggedInUser && loggedInUser.role === "CUSTOMER") {
+      console.log("Location saved:", dataFromMap);
+      setOpenLocationSaved(true);
+    }
+    setLocation(dataFromMap.formatted_address);
     setOpen(false);
   };
 
@@ -198,9 +267,19 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  function updateLocationFromMap(data: string): void {
+  function updateLocationFromMap(data: any): void {
     setDataFromMap(data);
   }
+
+  const [name, setName] = useState("");
+
+  const homeclick = (eventName : string) => {
+    setName(eventName)
+  }
+
+  const handleTextChange  = (event) => {
+    setName(event.target.value);
+  };
 
   return (
     <>
@@ -397,6 +476,38 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
             </Button>
           </DialogActions>
         </Dialog>
+        
+        <Dialog
+        fullScreen={fullScreen}
+        open={openLocationSaved}
+        onClose={handleCloseLocationSaved}
+        aria-labelledby="responsive-dialog-title"
+      >
+        <DialogTitle id="responsive-dialog-title">
+          {"Save Location ?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+          <Stack direction="row" spacing={1} display={'block'}>
+           <div> Address : {dataFromMap?.formatted_address}</div> 
+           <br/>
+          <Chip icon={<FaHome />} label="Home" color="primary" variant="outlined" clickable onClick={e => homeclick("Home")}/>
+          <Chip icon={<HiOutlineBuildingOffice />} label="Office" color="primary" variant="outlined" clickable onClick={e => homeclick("Office")}/>
+          <Chip icon={<FaAddressBook />} label="Others" color="primary" variant="outlined" clickable onClick={e => homeclick("Others")}/>
+          </Stack>
+          <br/>
+          <TextField id="standard-basic" label="Location Name" variant="outlined" value={name} onChange={handleTextChange}/>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={handleCloseForSaveLocation}>
+            Disagree
+          </Button>
+          <Button onClick={handleSaveLocation} autoFocus>
+            Agree
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Navbar>
     </>
   );
