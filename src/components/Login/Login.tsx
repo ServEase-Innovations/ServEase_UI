@@ -1,6 +1,4 @@
-
-/* eslint-disable */
-
+// Login.tsx
 import React, { useState } from "react";
 import Registration from "../Registration/Registration";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
@@ -54,6 +52,7 @@ export const Login: React.FC<ChildComponentProps> = ({
     setIsRegistration(false);
     setIsForgotPassword(false);
     setServiceRegistration(false);
+    setAgentRegistration(false); // Reset agent registration state
   };
 
   const handleSignUpClickServiceProvider = () => {
@@ -78,13 +77,14 @@ export const Login: React.FC<ChildComponentProps> = ({
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-  if (event.key === "Enter") {
-   handleLogin(event);
-  }
-};
-  const handleLogin = async (e: React.FormEvent) => {
 
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter") {
+      handleLogin(event);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
@@ -105,33 +105,6 @@ export const Login: React.FC<ChildComponentProps> = ({
         setSnackbarMessage(message || "Login successful!");
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
-
-        // Notification logic
-        // try {
-        //   const notifyResponse = await fetch(
-        //     "http://localhost:4000/send-notification",
-        //     {
-        //       method: "POST",
-        //       body: JSON.stringify({
-        //         title: "Login Successful",
-        //         body: `Welcome back, ${firstName}!`,
-        //         url: "http://localhost:3000",
-        //       }),
-        //       headers: { "Content-Type": "application/json" },
-        //     }
-        //   );
-
-        //   if (notifyResponse.ok) {
-        //     console.log("Notification triggered!");
-        //     alert("Notification sent!");
-        //   } else {
-        //     console.error("Notification failed");
-        //     alert("Failed to send notification");
-        //   }
-        // } catch (error) {
-        //   console.error("Error sending notification:", error);
-        //   alert("Error sending notification");
-        // }
 
         // Handle redirection after login
         setTimeout(() => {
@@ -175,11 +148,15 @@ export const Login: React.FC<ChildComponentProps> = ({
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
           <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 ">
             {isRegistration ? (
-              <Registration onBackToLogin={handleBackToLogin} />
+              <Registration
+                onBackToLogin={handleBackToLogin}
+              />
             ) : isServiceRegistration ? (
               <ServiceProviderRegistration onBackToLogin={handleBackToLogin} />
             ) : isAgentRegistration ? (
-              <AgentRegistrationForm onBackToLogin={handleBackToLogin} />
+              <AgentRegistrationForm
+                onBackToLogin={handleBackToLogin}
+              />
             ) : (
               <>
                 <h1 className="font-bold dark:text-gray-400 text-4xl text-center cursor-default my-0">
@@ -220,7 +197,7 @@ export const Login: React.FC<ChildComponentProps> = ({
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                     <IconButton
+                    <IconButton
                       onClick={togglePasswordVisibility}
                       edge="end"
                       style={{
@@ -232,7 +209,6 @@ export const Login: React.FC<ChildComponentProps> = ({
                     >
                       {showPassword ? <Visibility /> : <VisibilityOff />}
                     </IconButton>
-                   
                   </div>
 
                   <button
@@ -245,7 +221,6 @@ export const Login: React.FC<ChildComponentProps> = ({
                   </button>
                   <button
                     className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-3 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-out"
-                    
                     type="submit"
                   >
                     LOG IN
