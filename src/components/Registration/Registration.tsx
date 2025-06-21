@@ -2,6 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   TextField,
   Button,
   Grid,
@@ -24,7 +28,6 @@ import {
   Autocomplete,
   Tooltip,
 } from "@mui/material";
-import "./Registration.css";
 import {
   Visibility,
   VisibilityOff,
@@ -33,7 +36,6 @@ import {
 } from "@mui/icons-material";
 import ProfileImageUpload from "./ProfileImageUpload";
 import axios from "axios";
-import ChipInput from "../Common/ChipInput/ChipInput";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 
@@ -93,10 +95,7 @@ interface RegistrationProps {
 }
 
 const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
-  const handleBackLogin = (e: any) => {
-    onBackToLogin(e);
-  };
-
+  const [dialogOpen, setDialogOpen] = useState(true);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<
@@ -197,11 +196,7 @@ const Registration: React.FC<RegistrationProps> = ({ onBackToLogin }) => {
     "Maithili",
     "Santhali",
   ]);
-const [selectedChips, setSelectedChips] = useState<string[]>([]);
-
-  const handleChipChange = (newChips: string[]) => {
-    setSelectedChips(newChips);
-  };
+  const [selectedChips, setSelectedChips] = useState<string[]>([]);
 
   useEffect(() => {
     console.log(selectedChips); // Logs updated state after re-render
@@ -231,55 +226,55 @@ const [selectedChips, setSelectedChips] = useState<string[]>([]);
     const trimmedValue = value.trim();
 
     if (name === "firstName") {
-  if (!trimmedValue) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      firstName: "First Name is required.",
-    }));
-  } else if (!nameRegex.test(trimmedValue)) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      firstName: trimmedValue.includes('  ') ? 
-        "Only one space allowed between words" : 
-        "First Name should contain only alphabets with single spaces",
-    }));
-  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
-    }));
-  } else {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      firstName: "",
-    }));
-  }
-}
-if (name === "lastName") {
-  if (!trimmedValue) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      lastName: "Last Name is required.",
-    }));
-  } else if (!nameRegex.test(trimmedValue)) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      lastName: trimmedValue.includes('  ') ? 
-        "Only one space allowed between words" : 
-        "Last Name should contain only alphabets with single spaces",
-    }));
-  } else if (trimmedValue.length > MAX_NAME_LENGTH) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
-    }));
-  } else {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      lastName: "",
-    }));
-  }
-}
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: "First Name is required.",
+        }));
+      } else if (!nameRegex.test(trimmedValue)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: trimmedValue.includes("  ")
+            ? "Only one space allowed between words"
+            : "First Name should contain only alphabets with single spaces",
+        }));
+      } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          firstName: "",
+        }));
+      }
+    }
+    if (name === "lastName") {
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: "Last Name is required.",
+        }));
+      } else if (!nameRegex.test(trimmedValue)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: trimmedValue.includes("  ")
+            ? "Only one space allowed between words"
+            : "Last Name should contain only alphabets with single spaces",
+        }));
+      } else if (trimmedValue.length > MAX_NAME_LENGTH) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          lastName: "",
+        }));
+      }
+    }
 
     if (name === "password") {
       if (value.length < 8) {
@@ -359,29 +354,29 @@ if (name === "lastName") {
       }
     }
 
-  if (name === "pincode") {
-  // Only allow numeric input
-  const numericValue = value.replace(/\D/g, '');
-  
-  // Update form data with only numbers
-  setFormData((prevData) => ({
-    ...prevData,
-    [name]: numericValue.slice(0, 6) // Limit to 6 digits
-  }));
+    if (name === "pincode") {
+      // Only allow numeric input
+      const numericValue = value.replace(/\D/g, "");
 
-  // Validation
-  if (numericValue.length !== 6) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      pincode: "Pincode must be exactly 6 digits.",
-    }));
-  } else {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      pincode: "",
-    }));
-  }
-}
+      // Update form data with only numbers
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: numericValue.slice(0, 6), // Limit to 6 digits
+      }));
+
+      // Validation
+      if (numericValue.length !== 6) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          pincode: "Pincode must be exactly 6 digits.",
+        }));
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          pincode: "",
+        }));
+      }
+    }
 
     setFormData((prevData) => ({
       ...prevData,
@@ -407,7 +402,7 @@ if (name === "lastName") {
         formData.firstName.trim().length > MAX_NAME_LENGTH ||
         !formData.lastName.trim() ||
         !nameRegex.test(formData.lastName.trim()) ||
-         formData.lastName.trim().length > MAX_NAME_LENGTH || 
+        formData.lastName.trim().length > MAX_NAME_LENGTH ||
         !formData.emailId ||
         !emailIdRegex.test(formData.emailId) ||
         !formData.password ||
@@ -439,25 +434,25 @@ if (name === "lastName") {
     let tempErrors: FormErrors = {};
 
     if (activeStep === 0) {
-     if (!formData.firstName.trim()) {
-  tempErrors.firstName = "First Name is required.";
-} else if (!nameRegex.test(formData.firstName.trim())) {
-  tempErrors.firstName = formData.firstName.includes('  ') ? 
-    "Only one space allowed between words" : 
-    "First Name should contain only alphabets with single spaces";
-} else if (formData.firstName.trim().length > MAX_NAME_LENGTH) {
-  tempErrors.firstName = `First Name should not exceed ${MAX_NAME_LENGTH} characters.`;
-}
+      if (!formData.firstName.trim()) {
+        tempErrors.firstName = "First Name is required.";
+      } else if (!nameRegex.test(formData.firstName.trim())) {
+        tempErrors.firstName = formData.firstName.includes("  ")
+          ? "Only one space allowed between words"
+          : "First Name should contain only alphabets with single spaces";
+      } else if (formData.firstName.trim().length > MAX_NAME_LENGTH) {
+        tempErrors.firstName = `First Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+      }
 
- if (!formData.lastName.trim()) {
-  tempErrors.lastName = "Last Name is required.";
-} else if (!nameRegex.test(formData.lastName.trim())) {
-  tempErrors.lastName = formData.lastName.includes('  ') ? 
-    "Only one space allowed between words" : 
-    "Last Name should contain only alphabets with single spaces";
-} else if (formData.lastName.trim().length > MAX_NAME_LENGTH) {
-  tempErrors.lastName = `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`;
-}
+      if (!formData.lastName.trim()) {
+        tempErrors.lastName = "Last Name is required.";
+      } else if (!nameRegex.test(formData.lastName.trim())) {
+        tempErrors.lastName = formData.lastName.includes("  ")
+          ? "Only one space allowed between words"
+          : "Last Name should contain only alphabets with single spaces";
+      } else if (formData.lastName.trim().length > MAX_NAME_LENGTH) {
+        tempErrors.lastName = `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`;
+      }
       if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
         tempErrors.emailId = "Valid email is required.";
       }
@@ -485,11 +480,11 @@ if (name === "lastName") {
       if (!formData.street) {
         tempErrors.street = "State is required.";
       }
-    if (!formData.pincode) {
-    tempErrors.pincode = "Pincode is required.";
-} else if (formData.pincode.length !== 6) {
-    tempErrors.pincode = "Pincode must be exactly 6 digits.";
-}
+      if (!formData.pincode) {
+        tempErrors.pincode = "Pincode is required.";
+      } else if (formData.pincode.length !== 6) {
+        tempErrors.pincode = "Pincode must be exactly 6 digits.";
+      }
 
       if (!formData.currentLocation) {
         tempErrors.currentLocation = "Current Location is required.";
@@ -511,84 +506,89 @@ if (name === "lastName") {
   };
 
   const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
+    if (activeStep === 0) {
+      onBackToLogin(true); // Navigate to the login page
+    } else {
+      setActiveStep((prevStep) => prevStep - 1); // Go to the previous step
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (validateForm()) {
-    try {
-      // Image upload logic
-      if (image) {
-        const formData1 = new FormData();
-        formData1.append("image", image);
+    if (validateForm()) {
+      try {
+        // Image upload logic
+        if (image) {
+          const formData1 = new FormData();
+          formData1.append("image", image);
 
-        const imageResponse = await axiosInstance.post(
-          "http://65.2.153.173:3000/upload",
-          formData1,
+          const imageResponse = await axiosInstance.post(
+            "http://65.2.153.173:3000/upload",
+            formData1,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+
+          if (imageResponse.status === 200) {
+            formData.profilePic = imageResponse.data.imageUrl;
+          }
+        }
+
+        // Main form submission
+        const response = await axiosInstance.post(
+          "/api/customer/add-customer",
+          formData,
           {
             headers: {
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           }
         );
 
-        if (imageResponse.status === 200) {
-          formData.profilePic = imageResponse.data.imageUrl;
-        }
-      }
+        // Only proceed to show success if main form submission succeeds
+        if (response.status === 201) {
+          // Email sending (now optional)
+          try {
+            const data = { email: formData.emailId, name: formData.firstName };
+            await axiosInstance.post(
+              "http://3.110.168.35:3000/send-email",
+              data,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+          } catch (emailError) {
+            console.warn("Email sending failed (optional):", emailError);
+            // Don't treat email failure as an overall failure
+          }
 
-      // Main form submission
-      const response = await axiosInstance.post(
-        "/api/customer/add-customer",
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+          setSnackbarSeverity("success");
+          setSnackbarMessage("User  added successfully!");
+          setSnackbarOpen(true);
 
-      // Only proceed to show success if main form submission succeeds
-      if (response.status === 201) {
-        // Email sending (now optional)
-        try {
-          const data = { email: formData.emailId, name: formData.firstName };
-          await axiosInstance.post(
-            "http://3.110.168.35:3000/send-email",
-            data,
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        } catch (emailError) {
-          console.warn("Email sending failed (optional):", emailError);
-          // Don't treat email failure as an overall failure
+          setTimeout(() => {
+            onBackToLogin(true);
+            closeDialog(); // Close the dialog after successful registration
+          }, 3000);
         }
-
-        setSnackbarSeverity("success");
-        setSnackbarMessage("User added successfully!");
+      } catch (error) {
         setSnackbarOpen(true);
-
-        setTimeout(() => {
-          onBackToLogin(true);
-        }, 3000);
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Failed to add User. Please try again.");
+        console.error("Error submitting form:", error);
       }
-    } catch (error) {
+    } else {
       setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-      setSnackbarMessage("Failed to add User. Please try again.");
-      console.error("Error submitting form:", error);
+      setSnackbarSeverity("warning");
+      setSnackbarMessage("Please fill out all required fields.");
     }
-  } else {
-    setSnackbarOpen(true);
-    setSnackbarSeverity("warning");
-    setSnackbarMessage("Please fill out all required fields.");
-  }
-};
+  };
 
   const handleNext = () => {
     if (validateForm()) {
@@ -740,7 +740,11 @@ if (name === "lastName") {
                           edge="end"
                           aria-label="toggle password visibility"
                         >
-                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
+                          {showConfirmPassword ? (
+                            <Visibility />
+                          ) : (
+                            <VisibilityOff />
+                          )}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -803,31 +807,31 @@ if (name === "lastName") {
                   helperText={errors.street}
                 />
               </Grid>
-            <Grid item xs={12} sm={6}>
-         <TextField
-         placeholder="Pincode *"
-         name="pincode"
-         fullWidth
-         required
-         value={formData.pincode}
-         onChange={handleRealTimeValidation}
-         error={!!errors.pincode}
-         helperText={errors.pincode}
-         inputProps={{
-         maxLength: 6,
-         inputMode: 'numeric',
-         pattern: '[0-9]*'
-    }}
-    onKeyPress={(e) => {
-      if (!/[0-9]/.test(e.key)) {
-        e.preventDefault();
-      }
-        }}
-  />
-            </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  placeholder="BuildingName *"
+                  placeholder="Pincode *"
+                  name="pincode"
+                  fullWidth
+                  required
+                  value={formData.pincode}
+                  onChange={handleRealTimeValidation}
+                  error={!!errors.pincode}
+                  helperText={errors.pincode}
+                  inputProps={{
+                    maxLength: 6,
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                  }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  placeholder="Building Name *"
                   name="buildingName"
                   fullWidth
                   required
@@ -839,7 +843,7 @@ if (name === "lastName") {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  placeholder="CurrentLocation *"
+                  placeholder="Current Location *"
                   name="currentLocation"
                   fullWidth
                   required
@@ -873,7 +877,7 @@ if (name === "lastName") {
                 onChange={handleChange}
               />
             </Grid>
-          <Grid item xs={12}>
+            <Grid item xs={12}>
               <Autocomplete
                 multiple
                 freeSolo
@@ -887,7 +891,7 @@ if (name === "lastName") {
                     placeholder="Pick/Type Your Languages"
                     fullWidth
                   />
-                )} 
+                )}
               />
             </Grid>
           </Grid>
@@ -922,98 +926,99 @@ if (name === "lastName") {
   };
 
   return (
-    <Box
-      sx={{ maxWidth: 600, margin: "auto", padding: 2, display: "block" }}
-      className="parent"
-    >
-      <Typography variant="h5" gutterBottom className="text">
-        User Registration
-      </Typography>
-      <Stepper
-        activeStep={activeStep}
-        alternativeLabel
-        style={{ overflow: "overlay" }}
-      >
-        {steps.map((label, index) => (
-          <Step key={index}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-      <form onSubmit={handleSubmit}>
-        {renderStepContent(activeStep)}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: 2,
-          }}
-        >
-          <Button
-            onClick={() =>
-              activeStep === 0 ? handleBackLogin("true") : handleBack()
-            }
-            variant="contained"
-            color="primary"
-            startIcon={<ArrowBack />}
-          >
-            Back
+    <>
+      <Dialog fullWidth maxWidth="sm" open={true}>
+        <DialogContent>
+          <Box sx={{ padding: 2 }}>
+            <Typography variant="h5" gutterBottom className="text-center pb-3">
+              User Registration
+            </Typography>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {steps.map((label, index) => (
+                <Step key={index}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+            <form onSubmit={handleSubmit}>
+              {renderStepContent(activeStep)}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 2,
+                }}
+              >
+                <Button
+                  onClick={handleBack}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<ArrowBack />}
+                >
+                  Back
+                </Button>
+                {activeStep === steps.length - 1 ? (
+                  <Tooltip
+                    title={
+                      !formData.agreeToTerms
+                        ? "Check terms and conditions to enable Submit"
+                        : ""
+                    }
+                  >
+                    <span>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={!formData.agreeToTerms}
+                      >
+                        Submit
+                      </Button>
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNext}
+                    endIcon={<ArrowForward />}
+                    disabled={currentStepHasErrors()}
+                  >
+                    Next
+                  </Button>
+                )}
+              </Box>
+            </form>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => onBackToLogin(true)} color="primary">
+            Cancel
           </Button>
-          {activeStep === steps.length - 1 ? (
-         <Tooltip title={!formData.agreeToTerms ? "Check terms and conditions to enable Submit" : ""}>
-  <span> {/* Wrapping in a span to avoid tooltip issue on disabled buttons */}
-    <Button 
-      type="submit" 
-      variant="contained" 
-      color="primary" 
-      disabled={!formData.agreeToTerms}
-    >
-      Submit
-    </Button>
-  </span>
-</Tooltip>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleNext}
-              endIcon={<ArrowForward />}
-              disabled={currentStepHasErrors()}
-            >
-              Next
-            </Button>
-          )}
-        </Box>
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        sx={{ marginTop: "60px" }}
+      >
+        <Alert
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-          sx={{ marginTop: "60px" }}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: "100%" }}
         >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbarSeverity}
-            variant="filled"
-            sx={{ width: "100%" }}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-        <div className="flex flex-col mt-4 items-center justify-center text-sm">
-          <h3 className="dark:text-gray-300">
-            Already have an account?{" "}
-            <button
-              className="text-blue-500 ml-2 underline"
-              onClick={(e) => handleBackLogin("true")}
-            >
-              Sign in
-            </button>
-          </h3>
-        </div>
-      </form>
-    </Box>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
 export default Registration;
+function closeDialog() {
+  throw new Error("Function not implemented.");
+}
