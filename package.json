@@ -34,6 +34,7 @@
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.7",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.3.24",
     "lucide-react": "^0.474.0",
@@ -60,6 +61,7 @@
     "react-time-picker": "^7.0.0",
     "react-time-range": "^1.0.4",
     "servease_ui": "file:",
+    "tailwind-merge": "^3.3.1",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },

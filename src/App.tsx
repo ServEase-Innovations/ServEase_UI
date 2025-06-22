@@ -24,6 +24,7 @@ import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
 import NotificationButton from "./components/NotificationButton";
+import HomePage from "./components/HomePage/HomePage";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -57,6 +58,7 @@ if (userRole === "CUSTOMER") {
 }
 
   const handleDataFromChild = (e: string) => {
+    console.log("Data received from child component:", e);
     setSelection(e);
   };
 
@@ -95,10 +97,11 @@ if (userRole === "CUSTOMER") {
     
     if (!selection) {
       return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <Landingpage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType} />
+        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType}/>
       </ServiceProviderContext.Provider>;
     } else if (selection) {
       if (selection === DETAILS) {
+
         return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider} />;
       } else if (selection === CONFIRMATION) {
         console.log("selected details -> ", serviceProviderDetails);
@@ -128,18 +131,12 @@ if (userRole === "CUSTOMER") {
   
 
   return (
-    <div className="App">
-      <div className="header-class">
-        <Header sendDataToParent={handleDataFromChild} />
+    
+    <div className="bg-gray-50 text-gray-800">
+      <Header sendDataToParent={handleDataFromChild}/>
+      <div className="bg-gray-50 text-gray-800">
+      {renderContent()}
       </div>
-     {/* <ServiceProviderDashboard />  */}
-       <section className="flex-grow flex justify-center items-center py-6 relative">
-        {renderContent()}
-        {/* <NotificationButton /> */}
-      </section>
-      <footer className="footer-container">
-        <Footer />
-      </footer>
     </div>
   );
 }

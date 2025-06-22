@@ -9,7 +9,6 @@ import {
   MenuItem,
   DialogContent,
   DialogActions,
-  Button,
   Dialog,
   DialogTitle,
   useMediaQuery,
@@ -32,6 +31,8 @@ import { useDispatch } from 'react-redux'
 import { remove } from "../../features/user/userSlice";
 import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import { MapPin, ShoppingCart, User } from "lucide-react";
+import { Button } from "../Button/button";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -204,200 +205,32 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   return (
     <>
-      <Navbar className="header" expand="lg">
-        <div className="header-alignment">
-          <div className="logo-container">
-            <img
-              src="../pic2.png"
-              className="logo-style"
-              alt="logo"
-              onClick={() => handleClick("")}
-              style={{ cursor: "pointer" }}
-            />
-            <div className="logo-text">
-              <span className="servease-text">ServEaso</span>
-            </div>
-          </div>
-
-          <div className="dropdowns-container">
-          <div style={{
-  position: 'relative',
-  width: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  backgroundColor: 'white',
-  border: `1px solid ${location ? '#0d6efd' : '#ccc'}`,
-  borderRadius: '8px',
-  cursor: 'pointer',
-  transition: 'border-color 0.3s ease',
-
-}} onClick={handleClickOpen}>
-  <LocationOnIcon style={{
-    marginLeft: '8px',
-    fontSize: '30px',
-    color: '#0d6efd'
-  }} />
-  <input
-    type="text"
-    value={location}
-    readOnly
-    style={{
-      width: '100%',
-      border: 'none',
-      outline: 'none',
-      padding: '12px',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      color:  'inherit'
-    }}
-    placeholder="Select location"
-  />
-</div>
-       <IconButton onClick={handleProceedToCheckout}>
-  <Badge badgeContent={cart?.selecteditem?.length ? cart?.selecteditem?.length : 0} color="primary">
-    <ShoppingCartIcon color="action" />
-  </Badge>
-</IconButton>
-            <IconButton
-  size="large"
-  edge="end"
-  aria-label="account"
-  onClick={handleAccountMenuOpen}
-  color="inherit"
-  sx={{
-    width: 40, // Size of the button
-    height: 40,
-    borderRadius: '50%', // Circular shape
-    padding: 0, // Remove default padding
-    overflow: 'hidden', // Ensure image stays within the circle
-    display: 'flex', // Center image within the button
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0', // Optional background color
-  }}
->
-  {/* Conditionally render profile picture or icon */}
-  {user && (user.customerDetails?.profilePic || user.serviceProviderDetails?.profilePic) ? (
-    <img
-      src={user.customerDetails?.profilePic || user.serviceProviderDetails?.profilePic}
-      alt="account"
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover', // Ensures the image covers the entire button
-      }}
-    />
-  ) : (
-    <AccountCircle sx={{ fontSize: 30, color: "#0d6efd" }} />
-  )}
-</IconButton>
-
-
-            <Menu
-              id="menu-appbar"
-              anchorEl={accountEl}
-              anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-              }}
-              open={Boolean(accountEl)}
-              onClose={handleAccountMenuClose}
-            >
-              {!user && (
-    <MenuItem
-      onClick={() => {
-        handleClick(LOGIN);
-        handleAccountMenuClose();
-      }}
-    >
-      Login / Register
-    </MenuItem>
-  )}
-  {!user && (
-    <MenuItem
-      onClick={() => {
-        handleClick(LOGIN);
-        handleAccountMenuClose();
-      }}
-    >
-      Contact Us
-    </MenuItem>
-  )}
-              {/* <MenuItem onClick={handleAccountMenuClose}>Privacy Policy</MenuItem>
-              <MenuItem onClick={handleAccountMenuClose}>Notification</MenuItem> */}
-              {user && ( <MenuItem
-                onClick={() => {
-                  handleClick(PROFILE);
-                  handleAccountMenuClose();
-                }}
-              >
-                Profile
-              </MenuItem> )}
-              {user?.role === "CUSTOMER" && ( 
-             <MenuItem
-              onClick={() => {
-             handleClick(BOOKINGS);
-             handleAccountMenuClose();
-            }}
-            >
-            Bookings
-            </MenuItem> 
-            )}
-
-              {user?.role==="SERVICE_PROVIDER"&& ( <MenuItem
-                onClick={() => {
-                  handleClick(DASHBOARD);
-                  handleAccountMenuClose();
-                }}
-              >
-                DASHBOARD
-              </MenuItem> )}
-              {user && ( <MenuItem
-                onClick={() => {
-                  handleClick("sign_out");
-                  handleAccountMenuClose();
-                }}
-              >
-                Sign Out
-              </MenuItem> )}
-              <MenuItem
-                onClick={() => {
-                  handleClick(ADMIN);
-                  handleAccountMenuClose();
-                }}
-              >
-                Admin - For Demo purpose Only
-              </MenuItem>
-            </Menu>
-          </div>
-        </div>
-        <Dialog open={open} onClose={handleClose}>
-          <DialogTitle>Set Location</DialogTitle>
-          <DialogContent
-            sx={{ p: 0, display: "flex", flexDirection: "column", width: "600px" }}
-          >
-            <div style={{ height: "400px", width: "100%" }}>
-              <MapComponent
-                style={{ height: "100%", width: "100%" }}
-                onLocationSelect={updateLocationFromMap}
-              />
-            </div>
-          </DialogContent>
-
-          <DialogActions sx={{ padding: "10px" }}>
-            <Button color="primary" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button color="primary" onClick={handleSave}>
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Navbar>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between" style={{ height: '10%' }}>
+                <div className="flex items-center space-x-2">
+                    <img
+                        src="logo.png"
+                        alt="ServEase Logo"
+                        className="h-16 w-auto max-w-[160]"
+                    />
+                    <span className="text-xl font-semibold text-blue-600">ServEaso</span>
+                </div>
+                <div className="hidden md:flex items-center gap-4">
+                    <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-100">
+                        <MapPin className="w-4 h-4 text-gray-500 mr-2" />
+                        <input
+                            type="text"
+                            placeholder="Location"
+                            className="bg-transparent outline-none text-sm"
+                        />
+                    </div>
+                    <Button variant="ghost" size="icon" className={undefined}>
+                        <ShoppingCart className="w-5 h-5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className={undefined}>
+                        <User className="w-5 h-5" />
+                    </Button>
+                </div>
+            </header>
     </>
   );
 };

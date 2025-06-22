@@ -37,6 +37,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
   const dispatch = useDispatch();
 
+  console.log("HIKKERS", selectedProviderType);
+
   const handleCheckoutData = (data: any) => {
     console.log("Received checkout data:", data);
 
@@ -101,13 +103,15 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const handleSearch = (formData: { serviceType: string; startTime: string; endTime: string }) => {
     console.log("Search data received in MainComponent:", formData);
     setSearchData(formData); // Save data in state
-    performSearch(formData); // Call the method
+    // performSearch(formData); // Call the method
   };
 
+ 
 
-  const performSearch = async (formData) => {
-    const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
-    const housekeepingRole = selected?.toUpperCase() || "";
+
+  const performSearch = async () => {
+    // const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
+    const housekeepingRole = selected?.toUpperCase() || "cook";
   
     // Wrap geolocation in a promise
     const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
@@ -136,13 +140,13 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       const params = {
         startDate: "2025-04-01",
         endDate: "2025-04-30",
-        timeslot: timeSlotFormatted,
+        // timeslot: timeSlotFormatted,
         housekeepingRole,
         latitude,
         longitude,
       };
   
-      const response = await axiosInstance.get('/api/serviceproviders/search', { params });
+      const response = await axiosInstance.get('/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=COOK&latitude=12.903315860899282&longitude=77.57114232594643');
       console.log('Response:', response.data);
       setServiceProviderData(response.data);
     } catch (error : any) {
@@ -151,13 +155,15 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
   
 
+  // performSearch();
+
   console.log("Service Providers Data:", ServiceProvidersData);
   console.log("Service Providers Data:", serviceProviderData);
 
   return (
-    <div className="main-container">
-      <div className="search">
-      <HeaderSearch onSearch={handleSearch}/>
+    <main className="main-container" pt-16>
+       <div className="search">
+      {/* <HeaderSearch onSearch={handleSearch}/> */}
       {/* <PreferenceSelection />  */}
       </div>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
@@ -167,7 +173,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     ) : (
       <div>No Data</div> // Optional: Display something when there's no data
     )} 
-    </div>  
+      
+    </main>  
   );
 };
 
