@@ -226,7 +226,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                     <Button variant="ghost" size="icon" className={undefined}>
                         <ShoppingCart className="w-5 h-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className={undefined}>
+                    <Button variant="ghost" size="icon" className={undefined} onClick={() => handleClick(LOGIN)}>
                         <User className="w-5 h-5" />
                     </Button>
                 </div>

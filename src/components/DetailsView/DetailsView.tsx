@@ -47,34 +47,34 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     }
   };
 
-  useEffect(() => {
-    console.log("Selected ...", selected);
-    setSelectedProviderType(selected || ""); // Set a default empty string if `selected` is undefined
+  // useEffect(() => {
+  //   console.log("Selected ...", selected);
+  //   setSelectedProviderType(selected || ""); // Set a default empty string if `selected` is undefined
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        let response;
-        if (selected) {
-          response = await axiosInstance.get(
-            "api/serviceproviders/role?role=" + selected.toUpperCase()
-          );
-        } else {
-          response = await axiosInstance.get(
-            "api/serviceproviders/serviceproviders/all"
-          );
-        }
-        setServiceProvidersData(response?.data);
-        dispatch(add(response?.data))
+  //   const fetchData = async () => {
+  //     try {
+  //       setLoading(true);
+  //       let response;
+  //       if (selected) {
+  //         response = await axiosInstance.get(
+  //           "api/serviceproviders/role?role=" + selected.toUpperCase()
+  //         );
+  //       } else {
+  //         response = await axiosInstance.get(
+  //           "api/serviceproviders/serviceproviders/all"
+  //         );
+  //       }
+  //       setServiceProvidersData(response?.data);
+  //       dispatch(add(response?.data))
 
-      } catch (err) {
-        console.error("There was a problem with the fetch operation:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [selected]);
+  //     } catch (err) {
+  //       console.error("There was a problem with the fetch operation:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchData();
+  // }, [selected]);
 
   const handleBackClick = () => {
     sendDataToParent("");
@@ -107,7 +107,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
  
-
+  
 
   const performSearch = async () => {
     // const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
@@ -148,7 +148,12 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   
       const response = await axiosInstance.get('/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=COOK&latitude=12.903315860899282&longitude=77.57114232594643');
       console.log('Response:', response.data);
+      if(response.data.length === 0) {
+        setLoading(true);
+      } else {
+        setLoading(false);
       setServiceProviderData(response.data);
+      }
     } catch (error : any) {
       console.error('Geolocation or API error:', error.message || error);
     }
@@ -157,22 +162,27 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
   // performSearch();
 
+  performSearch();
+
   console.log("Service Providers Data:", ServiceProvidersData);
   console.log("Service Providers Data:", serviceProviderData);
 
   return (
     <main className="main-container" pt-16>
-       <div className="search">
-      {/* <HeaderSearch onSearch={handleSearch}/> */}
-      {/* <PreferenceSelection />  */}
-      </div>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
       serviceProviderData.map((provider, index) => (
+        <div style={{paddingTop:'1%'}}>
         <ProviderDetails  {...provider}/>
+        </div>
       ))
     ) : (
-      <div>No Data</div> // Optional: Display something when there's no data
+      <div style={{width: "100%", display: "grid", justifyContent: "center", alignItems: "center" , position:"absolute", top: "40%"}}>
+        <img src="search.gif" alt="No Data" />
+        <p> Search providers near you</p>
+      </div> 
     )} 
+
+
       
     </main>  
   );
