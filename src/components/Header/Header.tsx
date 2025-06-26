@@ -1,38 +1,21 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  Autocomplete,
-  Avatar,
-  TextField,
-  IconButton,
-  Menu,
-  MenuItem,
-  DialogContent,
-  DialogActions,
-  Dialog,
-  DialogTitle,
   useMediaQuery,
   useTheme,
-  InputAdornment,
-  Badge,
 } from "@mui/material";
-import AccountCircle from "@mui/icons-material/AccountCircle";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import Navbar from "react-bootstrap/Navbar";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
-import { Landingpage } from "../Landing_Page/Landingpage";
-import SearchIcon from "@mui/icons-material/Search";
-import MapComponent from "../MapComponent/MapComponent";
 import { useSelector } from "react-redux";
 import { useDispatch } from 'react-redux'
 import { remove } from "../../features/user/userSlice";
 import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { MapPin, ShoppingCart, User } from "lucide-react";
+import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Button } from "../Button/button";
+import { useAuth0 } from "@auth0/auth0-react";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -48,11 +31,14 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
+  const { loginWithRedirect, logout, user, isAuthenticated, isLoading , getAccessTokenSilently } = useAuth0();
+
   const cart = useSelector((state : any) => state.cart?.value);
 
   console.log("Cart in header ... ", cart)
+   const [dropDownOpen, setdropDownOpen] = useState(false);
 
-  const user = useSelector((state : any) => state.user?.value);
+  // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
 
   const [location, setLocation] = useState("");
@@ -62,10 +48,10 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const [open, setOpen] = useState(false);
   const [loggedInUser , setLoggedInUser] = useState();
 
-  useEffect(() => {
-    setLoggedInUser(user);
-    console.log("User role is:", user?.role); 
-  }, [user]);
+  // useEffect(() => {
+  //   setLoggedInUser(user);
+  //   console.log("User role is:", user?.role); 
+  // }, [user]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -226,9 +212,46 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                     <Button variant="ghost" size="icon" className={undefined}>
                         <ShoppingCart className="w-5 h-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className={undefined} onClick={() => handleClick(LOGIN)}>
-                        <User className="w-5 h-5" />
-                    </Button>
+                    {!isAuthenticated ? (
+       <Button variant="ghost" size="icon" className={undefined} onClick={() => loginWithRedirect()}>
+       <User className="w-5 h-5" />
+   </Button>
+      ) : (
+        <div className="relative inline-block text-left">
+      <button
+        onClick={() => setdropDownOpen((prev) => !prev)}
+        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+      >
+        <img
+          src={user?.picture}
+          alt={user?.name}
+          className="w-8 h-8 rounded-full"
+        />
+        <span className="font-medium">{user?.name}</span>
+        <ChevronDown className="w-4 h-4" />
+      </button>
+
+      {dropDownOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
+          <ul className="py-2">
+            <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+              Profile
+            </li>
+            <li
+              className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+              onClick={() =>
+                logout({ logoutParams: { returnTo: window.location.origin } })
+              }
+            >
+              Logout
+            </li>
+          </ul>
+        </div>
+      )}
+      
+    </div>
+      )}
+                    
                 </div>
             </header>
     </>

@@ -9,6 +9,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // I
 import Admin from "./components/Admin/Admin";
 import AppleHomeScreen from "./components/test/AppleHomeScreen";
 import StylishLayout from "./components/test/StylishLayout";
+import { Auth0Provider } from '@auth0/auth0-react';
+
+const domain = "dev-plavkbiy7v55pbg4.us.auth0.com";
+const clientId = "FkZvRgSNTXloPOo2ZVRmt24MbTrfIusi";
+
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -23,7 +28,14 @@ if ('serviceWorker' in navigator) {
 }
 
 root.render(
-  <React.StrictMode>
+  <Auth0Provider
+    domain={domain}
+    clientId={clientId}
+    authorizationParams={{
+      redirect_uri: window.location.origin
+    }}
+  >
+    <React.StrictMode>
     <Provider store={store}>
       <Router>  
         <Routes>
@@ -35,6 +47,8 @@ root.render(
       </Router>
     </Provider>
   </React.StrictMode>
+  </Auth0Provider>
+  
 );
 
 reportWebVitals();
