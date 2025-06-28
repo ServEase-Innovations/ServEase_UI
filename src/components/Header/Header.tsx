@@ -35,8 +35,69 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const cart = useSelector((state : any) => state.cart?.value);
 
-  console.log("Cart in header ... ", cart)
    const [dropDownOpen, setdropDownOpen] = useState(false);
+
+   console.log("User: ", user);
+
+   useEffect(() => {
+    getLocation();
+    if (!isAuthenticated || isLoading || !user?.email) return;
+
+    const triggerPostLoginAPIs = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        console.log("Access Token:", token);
+        console.log("User authenticated:", user);
+        const email = user.email ?? "";
+
+        const response = await axios.get(
+          `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
+        );
+        console.log("Email check response:", response.data);
+        if(response.data.exists === false){
+          createUser(user)
+        }
+      } catch (error) {
+        console.error("Error during post-login API call:", error);
+      }
+    };
+
+    triggerPostLoginAPIs();
+  }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+
+  const createUser = async (user: any) => {}
+
+  const getLocation = async () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await axios.get(
+              `https://maps.googleapis.com/maps/api/geocode/json`,
+              {
+                params: {
+                  latlng: `${latitude},${longitude}`,
+                  key: keys.api_key,
+                },
+              }
+            );
+            const address = response.data.results[0]?.formatted_address;
+            setLocation(address || "Location not found");
+            console.log("Location fetched: ", address);
+          } catch (error) {
+            console.log("Failed to fetch location: ", error);
+          }
+        },
+        (error : any) => {
+          console.log("Geolocation error: ", error.message);
+          setError(error.message);
+        }
+      );
+    } else {
+      console.log("Geolocation is not supported by this browser.");
+    }
+  }
 
   // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
@@ -47,11 +108,6 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [loggedInUser , setLoggedInUser] = useState();
-
-  // useEffect(() => {
-  //   setLoggedInUser(user);
-  //   console.log("User role is:", user?.role); 
-  // }, [user]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -206,6 +262,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                         <input
                             type="text"
                             placeholder="Location"
+                            value={location}
                             className="bg-transparent outline-none text-sm"
                         />
                     </div>
