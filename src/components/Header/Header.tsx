@@ -1,6 +1,10 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -16,6 +20,8 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
+import MapComponent from "../MapComponent/MapComponent";
+import { get } from "http";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -141,46 +147,46 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }, []);
   
 
-  const [inputValue, setInputValue] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [inputValue, setInputValue] = useState("test");
+  const [suggestions, setSuggestions] = useState([{name : "Detect Location" , index : 1 }, {name : "Add Address" , index : 2}]);
   const [dataFromMap, setDataFromMap] = useState("");
 
   const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
   const PLACES_API_URL =
     "https://maps.googleapis.com/maps/api/place/autocomplete/json";
 
-  useEffect(() => {
-    if (inputValue.trim() === "") {
-      setSuggestions([]);
-      setError(null);
-      return;
-    }
+  // useEffect(() => {
+  //   if (inputValue.trim() === "") {
+  //     setSuggestions([]);
+  //     setError(null);
+  //     return;
+  //   }
 
-    const fetchSuggestions = async () => {
-      try {
-        const response = await axios.get(CORS_PROXY + PLACES_API_URL, {
-          params: {
-            input: inputValue,
-            key: keys.api_key,
-            types: "geocode",
-          },
-        });
+  //   const fetchSuggestions = async () => {
+  //     try {
+  //       const response = await axios.get(CORS_PROXY + PLACES_API_URL, {
+  //         params: {
+  //           input: inputValue,
+  //           key: keys.api_key,
+  //           types: "geocode",
+  //         },
+  //       });
 
-        if (response.data.status === "OK") {
-          const sub = response.data.predictions.map((res) => res.description);
-          setSuggestions(sub);
-        } else {
-          setError(response.data.error_message || "An error occurred");
-          setSuggestions([]);
-        }
-      } catch (error) {
-        console.log("Failed to fetch suggestions");
-        setSuggestions([]);
-      }
-    };
+  //       if (response.data.status === "OK") {
+  //         const sub = response.data.predictions.map((res) => res.description);
+  //         setSuggestions(sub);
+  //       } else {
+  //         setError(response.data.error_message || "An error occurred");
+  //         setSuggestions([]);
+  //       }
+  //     } catch (error) {
+  //       console.log("Failed to fetch suggestions");
+  //       setSuggestions([]);
+  //     }
+  //   };
 
-    fetchSuggestions();
-  }, [inputValue]);
+  //   fetchSuggestions();
+  // }, [inputValue]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -199,10 +205,15 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     setInputValue(newValue);
   };
 
-  const handleChange = (event: any, newValue: any) => {
-    if (newValue) {
-      setLocation(newValue);
+  const handleChange = ( newValue: any) => {
+    if (newValue === "Add Address") {
+      setOpen(true);
+    } else if (newValue === "Detect Location") {
+      getLocation();
     }
+    // if (newValue) {
+    //   setLocation(newValue);
+    // }
   };
 
   const handleLocationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -245,6 +256,9 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     setDataFromMap(data);
   }
 
+  const [showDropdown, setShowDropdown] = useState(false);
+
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between" style={{ height: '10%' }}>
@@ -259,12 +273,35 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                 <div className="hidden md:flex items-center gap-4">
                     <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-100">
                         <MapPin className="w-4 h-4 text-gray-500 mr-2" />
-                        <input
-                            type="text"
-                            placeholder="Location"
-                            value={location}
-                            className="bg-transparent outline-none text-sm"
-                        />
+                        <div className="relative">
+  <input
+    type="text"
+    placeholder="Location"
+    value={location}
+    onFocus={() => setShowDropdown(true)}
+    onClick={() => setShowDropdown(true)}
+    onBlur={() => setTimeout(() => setShowDropdown(false), 150)} // small delay so click on option registers
+    className="bg-transparent outline-none text-sm w-64 px-2 py-1"
+  />
+
+  {showDropdown && suggestions.length > 0 && (
+    <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto">
+      {suggestions.map((suggestion, index) => (
+        <li
+          key={index}
+          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+          onClick={() => {
+            handleChange(suggestion.name);
+            setLocation(suggestion.name);
+            setShowDropdown(false);
+          }}
+        >
+          {suggestion.name}
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
                     </div>
                     <Button variant="ghost" size="icon" className={undefined}>
                         <ShoppingCart className="w-5 h-5" />
@@ -311,6 +348,28 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                     
                 </div>
             </header>
+            <Dialog open={open} onClose={handleClose}>
+          <DialogTitle>Set Location</DialogTitle>
+          <DialogContent
+            sx={{ p: 0, display: "flex", flexDirection: "column", width: "600px" }}
+          >
+            <div style={{ height: "400px", width: "100%" }}>
+              <MapComponent
+                style={{ height: "100%", width: "100%" }}
+                onLocationSelect={updateLocationFromMap}
+              />
+            </div>
+          </DialogContent>
+
+          <DialogActions sx={{ padding: "10px" }}>
+            <Button color="primary" onClick={handleClose} className={undefined}>
+              Cancel
+            </Button>
+            <Button color="primary" onClick={handleSave} className={undefined}>
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
     </>
   );
 };
