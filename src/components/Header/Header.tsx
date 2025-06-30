@@ -30,9 +30,11 @@ import { useSelector } from "react-redux";
 import { useDispatch } from 'react-redux'
 import { remove } from "../../features/user/userSlice";
 import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { MapPin, ShoppingCart, User } from "lucide-react";
 import { Button } from "../Button/button";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import { CartDialog } from "../AddToCart/CartDialog";
+import { selectCartItemCount } from "../../features/addToCart/addToSlice";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -48,9 +50,9 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
-  const cart = useSelector((state : any) => state.cart?.value);
+  // const cart = useSelector((state : any) => state.cart?.value);
 
-  console.log("Cart in header ... ", cart)
+  // console.log("Cart in header ... ", cart)
 
   const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
@@ -61,7 +63,10 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [loggedInUser , setLoggedInUser] = useState();
-
+const [cartOpen, setCartOpen] = useState(false); 
+const handleCartOpen = () => setCartOpen(true);
+const handleCartClose = () => setCartOpen(false);
+const totalCartItems = useSelector(selectCartItemCount);
   useEffect(() => {
     setLoggedInUser(user);
     console.log("User role is:", user?.role); 
@@ -223,13 +228,23 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                             className="bg-transparent outline-none text-sm"
                         />
                     </div>
-                    <Button variant="ghost" size="icon" className={undefined}>
-                        <ShoppingCart className="w-5 h-5" />
-                    </Button>
+                  <IconButton onClick={handleCartOpen}>
+  <Badge badgeContent={totalCartItems} color="primary">
+    <ShoppingCartIcon color="action" />
+  </Badge>
+</IconButton>
                     <Button variant="ghost" size="icon" className={undefined} onClick={() => handleClick(LOGIN)}>
                         <User className="w-5 h-5" />
                     </Button>
                 </div>
+                <CartDialog 
+  open={cartOpen} 
+  handleClose={handleCartClose}
+  handleCheckout={() => {
+    handleCartClose();
+    sendDataToParent(CHECKOUT); // Only navigate on checkout button click
+  }}
+/>
             </header>
     </>
   );

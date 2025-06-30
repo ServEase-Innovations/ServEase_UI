@@ -4,7 +4,7 @@ import cartReducer from '../features/cart/cartSlice';
 import bookingTypeReducer from '../features/bookingType/bookingTypeSlice';
 import pricingReducer from '../features/pricing/pricingSlice';
 import detailsDataReducer from '../features/detailsData/detailsDataSlice';
-
+import  addToCartReducer  from '../features/addToCart/addToSlice';
 // Configure your Redux store
 const store = configureStore({
   reducer: {
@@ -12,7 +12,8 @@ const store = configureStore({
     cart: cartReducer,
     bookingType: bookingTypeReducer,
     pricing: pricingReducer,
-    detailsData : detailsDataReducer
+    detailsData : detailsDataReducer,
+     addToCart: addToCartReducer,
   },
 });
 

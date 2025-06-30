@@ -9,6 +9,10 @@ import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import axiosInstance from '../../services/axiosInstance';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import { addToCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
+import { isMaidCartItem } from '../../types/cartSlice';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -24,6 +28,140 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   sendDataToParent
 }) => {
   const [activeTab, setActiveTab] = useState('regular');
+
+const allCartItems = useSelector(selectCartItems);
+const maidCartItems = allCartItems.filter(isMaidCartItem);
+  // Initialize cartItems based on what's in Redux store
+const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
+  const initialCartItems = {
+    utensilCleaning: false,
+    sweepingMopping: false,
+    bathroomCleaning: false,
+    bathroomDeepCleaning: false,
+    normalDusting: false,
+    deepDusting: false,
+    utensilDrying: false,
+    clothesDrying: false
+  };
+
+  // Set initial state based on items already in Redux store
+  maidCartItems.forEach(item => {
+    if (item.serviceType === 'package') {
+      initialCartItems[item.name] = true;
+    } else if (item.serviceType === 'addon') {
+      initialCartItems[item.name] = true;
+    }
+  });
+
+  return initialCartItems;
+});
+
+const handleAddPackageToCart = (packageName: string) => {
+  const packageDetails = {
+    id: `package_${packageName}`,
+    type: 'maid' as const,
+    serviceType: 'package' as const,
+    name: packageName,
+    price: getPackagePrice(packageName),
+    description: getPackageDescription(packageName),
+    details: getPackageDetails(packageName)
+  };
+
+  if (cartItems[packageName]) {
+    dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
+  } else {
+    dispatch(addToCart(packageDetails));
+  }
+
+  setCartItems(prev => ({
+    ...prev,
+    [packageName]: !prev[packageName]
+  }));
+};
+
+const handleAddAddOnToCart = (addOnName: string) => {
+  const addOnDetails = {
+    id: `addon_${addOnName}`,
+    type: 'maid' as const,
+    serviceType: 'addon' as const,
+    name: addOnName,
+    price: getAddOnPrice(addOnName),
+    description: getAddOnDescription(addOnName)
+  };
+
+  if (cartItems[addOnName]) {
+    dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
+  } else {
+    dispatch(addToCart(addOnDetails));
+  }
+
+  setCartItems(prev => ({
+    ...prev,
+    [addOnName]: !prev[addOnName]
+  }));
+};
+// Helper functions
+const getPackagePrice = (packageName: string): number => {
+  switch(packageName) {
+    case 'utensilCleaning': return 1200;
+    case 'sweepingMopping': return 1200;
+    case 'bathroomCleaning': return 600;
+    default: return 0;
+  }
+};
+
+const getPackageDescription = (packageName: string): string => {
+  switch(packageName) {
+    case 'utensilCleaning': 
+      return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
+    case 'sweepingMopping':
+      return 'Daily sweeping and mopping';
+    case 'bathroomCleaning':
+      return 'Weekly cleaning of bathrooms';
+    default: return '';
+  }
+};
+
+const getPackageDetails = (packageName: string) => {
+  switch(packageName) {
+    case 'utensilCleaning':
+      return { persons: packageStates.utensilCleaning.persons };
+    case 'sweepingMopping':
+      return { houseSize: packageStates.sweepingMopping.houseSize };
+    case 'bathroomCleaning':
+      return { bathrooms: packageStates.bathroomCleaning.bathrooms };
+    default: return {};
+  }
+};
+
+const getAddOnPrice = (addOnName: string): number => {
+  switch(addOnName) {
+    case 'bathroomDeepCleaning': return 1000;
+    case 'normalDusting': return 1000;
+    case 'deepDusting': return 1500;
+    case 'utensilDrying': return 1000;
+    case 'clothesDrying': return 1000;
+    default: return 0;
+  }
+};
+
+const getAddOnDescription = (addOnName: string): string => {
+  switch(addOnName) {
+    case 'bathroomDeepCleaning':
+      return 'Weekly cleaning of bathrooms, all bathroom walls cleaned';
+    case 'normalDusting':
+      return 'Daily furniture dusting, doors, carpet, bed making';
+    case 'deepDusting':
+      return 'Includes chemical agents cleaning: décor items, furniture';
+    case 'utensilDrying':
+      return 'Househelp will dry and make proper arrangements';
+    case 'clothesDrying':
+      return 'Househelp will get clothes from/to drying place';
+    default: return '';
+  }
+};
+
+
   const [packageStates, setPackageStates] = useState({
     utensilCleaning: {
       persons: 3,
@@ -222,25 +360,6 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     }
 
     const totalAmount = calculateTotal();
-
-    // Step: Call calculate-payment API
-//     const calculatePaymentResponse = await axiosInstance.post("/api/payments/calculate-payment", null, {
-//     params: {
-//     customerId,
-//     baseAmount: totalAmount,
-//     startDate_P: bookingType?.startDate || "",
-//     endDate_P: bookingType?.endDate || "",
-//     paymentMode: "UPI", // or whatever mode is selected
-//   },
-// });
-    
-
-//     if (!calculatePaymentResponse || calculatePaymentResponse.status !== 200) {
-//       alert("Failed to calculate payment.");
-//       return;
-//     }
-
-    // Step: Create Razorpay order
     const response = await axios.post(
       "http://13.201.229.41:3000/create-order",
       { amount: totalAmount * 100 },
@@ -472,22 +591,40 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <span>Party used type utensil cleaning</span>
                   </div>
                 </div>
+<div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+  <button 
+    onClick={() => handlePackageSelect('utensilCleaning')}
+    style={{
+      width: '50%',
+      padding: '12px',
+      backgroundColor: packageStates.utensilCleaning.selected ? '#e17055' : '#fff',
+      color: packageStates.utensilCleaning.selected ? '#fff' : '#e17055',
+      border: '1px solid #e17055',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+      cursor: 'pointer'
+    }}
+  >
+    {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
+  </button>
+  <button 
+    onClick={() => handleAddPackageToCart('utensilCleaning')}
+    style={{
+      width: '50%',
+      padding: '12px',
+      backgroundColor: cartItems.utensilCleaning ? ' #e17055' : '#fff',
+      color: cartItems.utensilCleaning ? '#fff' : ' #e17055',
+      border: `1px solid ${cartItems.utensilCleaning ? ' #e17055' : ' #e17055'}`,
+      borderRadius: '6px',
+      fontWeight: 'bold',
+      cursor: 'pointer'
+    }}
+  >
+    { cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+    {cartItems.utensilCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+  </button>
+</div>
                 
-                <button 
-                  onClick={() => handlePackageSelect('utensilCleaning')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packageStates.utensilCleaning.selected ? '#e17055' : '#fff',
-                    color: packageStates.utensilCleaning.selected ? '#fff' : '#e17055',
-                    border: '1px solid #e17055',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
               </div>
               
               {/* Sweeping & Mopping */}
@@ -556,11 +693,12 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <span>Daily sweeping and mopping of 2 rooms, 1 Hall</span>
                   </div>
                 </div>
-                
+        
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button 
                   onClick={() => handlePackageSelect('sweepingMopping')}
                   style={{
-                    width: '100%',
+                    width: '50%',
                     padding: '12px',
                     backgroundColor: packageStates.sweepingMopping.selected ? '#00b894' : '#fff',
                     color: packageStates.sweepingMopping.selected ? '#fff' : '#00b894',
@@ -572,6 +710,23 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 >
                   {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
                 </button>
+  <button 
+    onClick={() => handleAddPackageToCart('sweepingMopping')}
+    style={{
+      width: '50%',
+      padding: '12px',
+      backgroundColor: cartItems.sweepingMopping? '#00b894' : '#fff',
+      color: cartItems.sweepingMopping ? '#fff' : '#00b894',
+      border: `1px solid ${cartItems.sweepingMopping ? '#00b894' : '#00b894'}`,
+      borderRadius: '6px',
+      fontWeight: 'bold',
+      cursor: 'pointer'
+    }}
+  >
+    { cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+    {cartItems.sweepingMopping ? 'ADDED TO CART' : 'ADD TO CART'}
+  </button>
+</div>
               </div>
               
               {/* Bathroom Cleaning */}
@@ -641,10 +796,12 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                   </div>
                 </div>
                 
+
+  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button 
                   onClick={() => handlePackageSelect('bathroomCleaning')}
                   style={{
-                    width: '100%',
+                    width: '50%',
                     padding: '12px',
                     backgroundColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#fff',
                     color: packageStates.bathroomCleaning.selected ? '#fff' : '#0984e3',
@@ -656,6 +813,22 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 >
                   {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
                 </button>
+  <button 
+    onClick={() => handleAddPackageToCart('bathroomCleaning')}
+    style={{
+      width: '50%',
+      padding: '12px',
+      backgroundColor: cartItems.bathroomCleaning? '#0984e3' : '#fff',
+      color: cartItems.bathroomCleaning ? '#fff' : '#0984e3',
+      border: `1px solid ${cartItems.bathroomCleaning? '#0984e3': '#0984e3'}`,
+      borderRadius: '6px',
+      fontWeight: 'bold',
+      cursor: 'pointer'
+    }}
+  > { cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+    {cartItems.bathroomCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+  </button>
+</div>
               </div>
               
               {/* Add-ons Section */}
@@ -772,7 +945,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                       }}
                     >
                       <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.deepDusting ? 'ADDED' : 'Add This Service'}
+                        {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
                       </span>
                     </button>
                   </div>
@@ -832,6 +1005,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
                       Househelp will get clothes from/to drying place
                     </div>
+                    
                     <button 
                       onClick={() => handleAddOnSelect('clothesDrying')}
                       style={{
