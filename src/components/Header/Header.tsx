@@ -1,6 +1,9 @@
-
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   useMediaQuery,
   useTheme,
   Badge,
@@ -11,14 +14,23 @@ import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
 import { useSelector } from "react-redux";
-import { useDispatch } from 'react-redux'
+import { useDispatch } from "react-redux";
 import { remove } from "../../features/user/userSlice";
-import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
+import { selectCartItemCount } from "../../features/addToCart/addToSlice";
+import {
+  ADMIN,
+  BOOKINGS,
+  CHECKOUT,
+  DASHBOARD,
+  LOGIN,
+  PROFILE,
+} from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
-import { selectCartItemCount } from "../../features/addToCart/addToSlice";
+import MapComponent from "../MapComponent/MapComponent";
+import { get } from "http";
 import { CartDialog } from "../AddToCart/CartDialog";
 
 interface ChildComponentProps {
@@ -27,23 +39,33 @@ interface ChildComponentProps {
 
 export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const handleClick = (e: any) => {
-    if(e === 'sign_out'){
-      dispatch(remove())
+    if (e === "sign_out") {
+      dispatch(remove());
       sendDataToParent("");
     } else {
       sendDataToParent(e);
     }
   };
 
-  const { loginWithRedirect, logout, user, isAuthenticated, isLoading , getAccessTokenSilently } = useAuth0();
+  const {
+    loginWithRedirect,
+    logout,
+    user,
+    isAuthenticated,
+    isLoading,
+    getAccessTokenSilently,
+  } = useAuth0();
 
-  const cart = useSelector((state : any) => state.cart?.value);
+  const cart = useSelector((state: any) => state.cart?.value);
 
-   const [dropDownOpen, setdropDownOpen] = useState(false);
+  const [dropDownOpen, setdropDownOpen] = useState(false);
 
-   console.log("User: ", user);
+  if(isAuthenticated && !isLoading) {
+    console.log("User: ", user);
+  } 
 
-   useEffect(() => {
+
+  useEffect(() => {
     getLocation();
     if (!isAuthenticated || isLoading || !user?.email) return;
 
@@ -55,11 +77,15 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
         const email = user.email ?? "";
 
         const response = await axios.get(
-          `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
+          `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(
+            email
+          )}`
         );
         console.log("Email check response:", response.data);
-        if(response.data.exists === false){
-          createUser(user)
+        if (response.data.exists === false) {
+          createUser(user);
+          user.customerid = 1;
+          getCustomerPreferences(user.customerid);
         }
       } catch (error) {
         console.error("Error during post-login API call:", error);
@@ -69,7 +95,32 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     triggerPostLoginAPIs();
   }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
 
-  const createUser = async (user: any) => {}
+  const createUser = async (user: any) => {};
+
+  const getCustomerPreferences = async (customerId: number) => {
+    try {
+      const response = await axios.get("https://utils-ndt3.onrender.com/user-settings/1");
+      console.log("Response from user settings API:", response.data);
+    
+      if (response.status === 200) {
+        console.log("Customer preferences fetched successfully:", response.data);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        createUserPreferences(customerId);  // Ensure customerId is valid
+      } else {
+        console.error("Unexpected error fetching user settings:", error);
+      }
+    }
+    
+  }
+
+  const createUserPreferences = async (customerId: number) => {
+      const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", {
+        "customerId": customerId,
+        "savedLocations": []
+      });
+  }
 
   const getLocation = async () => {
     if (navigator.geolocation) {
@@ -93,7 +144,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
             console.log("Failed to fetch location: ", error);
           }
         },
-        (error : any) => {
+        (error: any) => {
           console.log("Geolocation error: ", error.message);
           setError(error.message);
         }
@@ -101,7 +152,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     } else {
       console.log("Geolocation is not supported by this browser.");
     }
-  }
+  };
 
   // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
@@ -111,12 +162,11 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
-  const [loggedInUser , setLoggedInUser] = useState();
+  const [loggedInUser, setLoggedInUser] = useState();
   const [cartOpen, setCartOpen] = useState(false); 
   const handleCartOpen = () => setCartOpen(true);
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
- 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -138,7 +188,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
             console.log("Failed to fetch location: ", error);
           }
         },
-        (error : any) => {
+        (error: any) => {
           console.log("Geolocation error: ", error.message);
           setError(error.message);
         }
@@ -147,48 +197,12 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       console.log("Geolocation is not supported by this browser.");
     }
   }, []);
-  
 
-  const [inputValue, setInputValue] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState([
+    { name: "Detect Location", index: 1 },
+    { name: "Add Address", index: 2 },
+  ]);
   const [dataFromMap, setDataFromMap] = useState("");
-
-  const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
-  const PLACES_API_URL =
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json";
-
-  useEffect(() => {
-    if (inputValue.trim() === "") {
-      setSuggestions([]);
-      setError(null);
-      return;
-    }
-
-    const fetchSuggestions = async () => {
-      try {
-        const response = await axios.get(CORS_PROXY + PLACES_API_URL, {
-          params: {
-            input: inputValue,
-            key: keys.api_key,
-            types: "geocode",
-          },
-        });
-
-        if (response.data.status === "OK") {
-          const sub = response.data.predictions.map((res) => res.description);
-          setSuggestions(sub);
-        } else {
-          setError(response.data.error_message || "An error occurred");
-          setSuggestions([]);
-        }
-      } catch (error) {
-        console.log("Failed to fetch suggestions");
-        setSuggestions([]);
-      }
-    };
-
-    fetchSuggestions();
-  }, [inputValue]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -203,13 +217,11 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
-  const handleInputChange = (event: React.SyntheticEvent, newValue: string) => {
-    setInputValue(newValue);
-  };
-
-  const handleChange = (event: any, newValue: any) => {
-    if (newValue) {
-      setLocation(newValue);
+  const handleChange = (newValue: any) => {
+    if (newValue === "Add Address") {
+      setOpen(true);
+    } else if (newValue === "Detect Location") {
+      getLocation();
     }
   };
 
@@ -243,9 +255,9 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   };
 
   const handleProceedToCheckout = () => {
-   sendDataToParent(CHECKOUT);
+    sendDataToParent(CHECKOUT);
   };
-  
+
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -253,82 +265,142 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     setDataFromMap(data);
   }
 
+  const [showDropdown, setShowDropdown] = useState(false);
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between" style={{ height: '10%' }}>
-                <div className="flex items-center space-x-2">
-                    <img
-                        src="logo.png"
-                        alt="ServEase Logo"
-                        className="h-16 w-auto max-w-[160]"
-                    />
-                    <span className="text-xl font-semibold text-blue-600">ServEaso</span>
-                </div>
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-100">
-                        <MapPin className="w-4 h-4 text-gray-500 mr-2" />
-                        <input
-                            type="text"
-                            placeholder="Location"
-                            value={location}
-                            className="bg-transparent outline-none text-sm"
-                        />
-                    </div>
-                    <IconButton onClick={handleCartOpen}>
-    <Badge  badgeContent={totalCartItems}  color="primary">
-      <ShoppingCartIcon color="action" />
-    </Badge>
-  </IconButton>
-                    {!isAuthenticated ? (
-       <Button variant="ghost" size="icon" className={undefined} onClick={() => loginWithRedirect()}>
-       <User className="w-5 h-5" />
-   </Button>
-      ) : (
-        <div className="relative inline-block text-left">
-      <button
-        onClick={() => setdropDownOpen((prev) => !prev)}
-        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+      <header
+        className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between"
+        style={{ height: "10%" }}
       >
-        <img
-          src={user?.picture}
-          alt={user?.name}
-          className="w-8 h-8 rounded-full"
-        />
-        <span className="font-medium">{user?.name}</span>
-        <ChevronDown className="w-4 h-4" />
-      </button>
-
-      {dropDownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
-          <ul className="py-2">
-            <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
-              Profile
-            </li>
-            <li
-              className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-              onClick={() =>
-                logout({ logoutParams: { returnTo: window.location.origin } })
-              }
-            >
-              Logout
-            </li>
-          </ul>
+        <div className="flex items-center space-x-2">
+          <img
+            src="logo.png"
+            alt="ServEase Logo"
+            className="h-16 w-auto max-w-[160]"
+          />
+          <span className="text-xl font-semibold text-blue-600">ServEaso</span>
         </div>
-      )}
-      
-    </div>
-      )}
-                    
+        <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-100">
+            <MapPin className="w-4 h-4 text-gray-500 mr-2" />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Location"
+                value={location}
+                onFocus={() => setShowDropdown(true)}
+                onClick={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)} // small delay so click on option registers
+                className="bg-transparent outline-none text-sm w-64 px-2 py-1"
+              />
+
+              {showDropdown && suggestions.length > 0 && (
+                <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto">
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        handleChange(suggestion.name);
+                        setLocation(suggestion.name);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      {suggestion.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+   <Badge badgeContent={totalCartItems} color="primary">
+ <Button variant="ghost" size="icon" className={undefined} onClick={handleCartOpen}>
+    <ShoppingCart className="w-5 h-5" />
+  </Button>
+</Badge>
+          {!isAuthenticated ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={undefined}
+              onClick={() => loginWithRedirect()}
+            >
+              <User className="w-5 h-5" />
+            </Button>
+          ) : (
+            <div className="relative inline-block text-left">
+              <button
+                onClick={() => setdropDownOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+              >
+                <img
+                  src={user?.picture}
+                  alt={user?.name}
+                  className="w-8 h-8 rounded-full"
+                />
+                <span className="font-medium">{user?.name}</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {dropDownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
+                  <ul className="py-2">
+                    <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                      Profile
+                    </li>
+                    <li
+                      className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+                      onClick={() =>
+                        logout({
+                          logoutParams: { returnTo: window.location.origin },
+                        })
+                      }
+                    >
+                      Logout
+                    </li>
+                  </ul>
                 </div>
-            </header>
-            <CartDialog 
+              )}
+            </div>
+          )}
+        </div>
+      </header>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Set Location</DialogTitle>
+        <DialogContent
+          sx={{
+            p: 0,
+            display: "flex",
+            flexDirection: "column",
+            width: "600px",
+          }}
+        >
+          <div style={{ height: "400px", width: "100%" }}>
+            <MapComponent
+              style={{ height: "100%", width: "100%" }}
+              onLocationSelect={updateLocationFromMap}
+            />
+          </div>
+        </DialogContent>
+
+        <DialogActions sx={{ padding: "10px" }}>
+          <Button color="primary" onClick={handleClose} className={undefined}>
+            Cancel
+          </Button>
+          <Button color="primary" onClick={handleSave} className={undefined}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+       <CartDialog 
         open={cartOpen} 
         handleClose={handleCartClose}
         handleCheckout={() => {
           handleCartClose();
           sendDataToParent(CHECKOUT); // Only navigate on checkout button click
         }}
-        //  handleRemoveItem={handleRemoveItem}
       />
     </>
   );
