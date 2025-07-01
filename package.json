@@ -6,6 +6,7 @@
   "proxy": "http://43.205.212.94:8443",
   "dependencies": {
     "@angular/material": "^19.0.1",
+    "@auth0/auth0-react": "^2.3.0",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",

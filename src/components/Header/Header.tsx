@@ -1,40 +1,25 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  Autocomplete,
-  Avatar,
-  TextField,
-  IconButton,
-  Menu,
-  MenuItem,
-  DialogContent,
-  DialogActions,
-  Dialog,
-  DialogTitle,
   useMediaQuery,
   useTheme,
-  InputAdornment,
   Badge,
+  IconButton,
 } from "@mui/material";
-import AccountCircle from "@mui/icons-material/AccountCircle";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import Navbar from "react-bootstrap/Navbar";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
-import { Landingpage } from "../Landing_Page/Landingpage";
-import SearchIcon from "@mui/icons-material/Search";
-import MapComponent from "../MapComponent/MapComponent";
 import { useSelector } from "react-redux";
 import { useDispatch } from 'react-redux'
 import { remove } from "../../features/user/userSlice";
 import { ADMIN, BOOKINGS, CHECKOUT, DASHBOARD, LOGIN, PROFILE } from "../../Constants/pagesConstants";
-import { MapPin, ShoppingCart, User } from "lucide-react";
-import { Button } from "../Button/button";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { CartDialog } from "../AddToCart/CartDialog";
+import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
+import { Button } from "../Button/button";
+import { useAuth0 } from "@auth0/auth0-react";
 import { selectCartItemCount } from "../../features/addToCart/addToSlice";
+import { CartDialog } from "../AddToCart/CartDialog";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -50,11 +35,75 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
-  // const cart = useSelector((state : any) => state.cart?.value);
+  const { loginWithRedirect, logout, user, isAuthenticated, isLoading , getAccessTokenSilently } = useAuth0();
 
-  // console.log("Cart in header ... ", cart)
+  const cart = useSelector((state : any) => state.cart?.value);
 
-  const user = useSelector((state : any) => state.user?.value);
+   const [dropDownOpen, setdropDownOpen] = useState(false);
+
+   console.log("User: ", user);
+
+   useEffect(() => {
+    getLocation();
+    if (!isAuthenticated || isLoading || !user?.email) return;
+
+    const triggerPostLoginAPIs = async () => {
+      try {
+        const token = await getAccessTokenSilently();
+        console.log("Access Token:", token);
+        console.log("User authenticated:", user);
+        const email = user.email ?? "";
+
+        const response = await axios.get(
+          `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
+        );
+        console.log("Email check response:", response.data);
+        if(response.data.exists === false){
+          createUser(user)
+        }
+      } catch (error) {
+        console.error("Error during post-login API call:", error);
+      }
+    };
+
+    triggerPostLoginAPIs();
+  }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+
+  const createUser = async (user: any) => {}
+
+  const getLocation = async () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await axios.get(
+              `https://maps.googleapis.com/maps/api/geocode/json`,
+              {
+                params: {
+                  latlng: `${latitude},${longitude}`,
+                  key: keys.api_key,
+                },
+              }
+            );
+            const address = response.data.results[0]?.formatted_address;
+            setLocation(address || "Location not found");
+            console.log("Location fetched: ", address);
+          } catch (error) {
+            console.log("Failed to fetch location: ", error);
+          }
+        },
+        (error : any) => {
+          console.log("Geolocation error: ", error.message);
+          setError(error.message);
+        }
+      );
+    } else {
+      console.log("Geolocation is not supported by this browser.");
+    }
+  }
+
+  // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
 
   const [location, setLocation] = useState("");
@@ -63,15 +112,11 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [loggedInUser , setLoggedInUser] = useState();
-const [cartOpen, setCartOpen] = useState(false); 
-const handleCartOpen = () => setCartOpen(true);
-const handleCartClose = () => setCartOpen(false);
-const totalCartItems = useSelector(selectCartItemCount);
-  useEffect(() => {
-    setLoggedInUser(user);
-    console.log("User role is:", user?.role); 
-  }, [user]);
-
+  const [cartOpen, setCartOpen] = useState(false); 
+  const handleCartOpen = () => setCartOpen(true);
+  const handleCartClose = () => setCartOpen(false);
+  const totalCartItems = useSelector(selectCartItemCount);
+ 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -225,27 +270,66 @@ const totalCartItems = useSelector(selectCartItemCount);
                         <input
                             type="text"
                             placeholder="Location"
+                            value={location}
                             className="bg-transparent outline-none text-sm"
                         />
                     </div>
-                  <IconButton onClick={handleCartOpen}>
-  <Badge badgeContent={totalCartItems} color="primary">
-    <ShoppingCartIcon color="action" />
-  </Badge>
-</IconButton>
-                    <Button variant="ghost" size="icon" className={undefined} onClick={() => handleClick(LOGIN)}>
-                        <User className="w-5 h-5" />
-                    </Button>
+                    <IconButton onClick={handleCartOpen}>
+    <Badge  badgeContent={totalCartItems}  color="primary">
+      <ShoppingCartIcon color="action" />
+    </Badge>
+  </IconButton>
+                    {!isAuthenticated ? (
+       <Button variant="ghost" size="icon" className={undefined} onClick={() => loginWithRedirect()}>
+       <User className="w-5 h-5" />
+   </Button>
+      ) : (
+        <div className="relative inline-block text-left">
+      <button
+        onClick={() => setdropDownOpen((prev) => !prev)}
+        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+      >
+        <img
+          src={user?.picture}
+          alt={user?.name}
+          className="w-8 h-8 rounded-full"
+        />
+        <span className="font-medium">{user?.name}</span>
+        <ChevronDown className="w-4 h-4" />
+      </button>
+
+      {dropDownOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
+          <ul className="py-2">
+            <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+              Profile
+            </li>
+            <li
+              className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+              onClick={() =>
+                logout({ logoutParams: { returnTo: window.location.origin } })
+              }
+            >
+              Logout
+            </li>
+          </ul>
+        </div>
+      )}
+      
+    </div>
+      )}
+                    
                 </div>
-                <CartDialog 
-  open={cartOpen} 
-  handleClose={handleCartClose}
-  handleCheckout={() => {
-    handleCartClose();
-    sendDataToParent(CHECKOUT); // Only navigate on checkout button click
-  }}
-/>
             </header>
+            <CartDialog 
+        open={cartOpen} 
+        handleClose={handleCartClose}
+        handleCheckout={() => {
+          handleCartClose();
+          sendDataToParent(CHECKOUT); // Only navigate on checkout button click
+        }}
+        //  handleRemoveItem={handleRemoveItem}
+      />
     </>
   );
 };
