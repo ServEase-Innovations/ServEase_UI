@@ -20,6 +20,7 @@ import { add } from "../../features/bookingType/bookingTypeSlice";
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import BookingDialog from "../BookingDialog/BookingDialog";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
+import ServiceDetailsDialog from "./ServiceDetailsDialog";
 
 interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
@@ -37,6 +38,11 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false); // Changed this state name
+    const [serviceDialog, setServiceDialog] = useState<{
+    open: boolean;
+    type: "cook" | "maid" | "babycare" | null;
+    }>({ open: false, type: null });
+
 
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
@@ -150,32 +156,41 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
             <section className="py-10 px-6 md:px-20">
                 <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>
                 <div className="grid md:grid-cols-3 gap-6">
-                    {[
-                        {
-                            title: "Home Cook",
-                            desc: "Skilled and hygienic cooks who specialize in home-style meals.",
-                            icon: "👩‍🍳",
-                        },
-                        {
-                            title: "Cleaning Help",
-                            desc: "Reliable maids for daily, deep, or special occasion cleaning.",
-                            icon: "🧼",
-                        },
-                        {
-                            title: "Caregiver",
-                            desc: "Trained support for children, seniors, or patients at home.",
-                            icon: "❤️",
-                        },
-                    ].map((service, index) => (
-                        <Card key={index} className="text-center p-5">
-                            <CardContent className="space-y-3">
-                                <div className="text-4xl">{service.icon}</div>
-                                <h3 className="text-lg font-semibold">{service.title}</h3>
-                                <p className="text-sm text-gray-600">{service.desc}</p>
-                                <Button variant="link" className="text-sm">Learn More</Button>
-                            </CardContent>
-                        </Card>
-                    ))}
+                {[
+  {
+    title: "Home Cook",
+    desc: "Skilled and hygienic cooks who specialize in home-style meals.",
+    icon: "👩‍🍳",
+    type: "cook",
+  },
+  {
+    title: "Cleaning Help",
+    desc: "Reliable maids for daily, deep, or special occasion cleaning.",
+    icon: "🧼",
+    type: "maid",
+  },
+  {
+    title: "Caregiver",
+    desc: "Trained support for children, seniors, or patients at home.",
+    icon: "❤️",
+    type: "babycare",
+  },
+].map((service, index) => (
+  <Card key={index} className="text-center p-5">
+    <CardContent className="space-y-3">
+      <div className="text-4xl">{service.icon}</div>
+      <h3 className="text-lg font-semibold">{service.title}</h3>
+      <p className="text-sm text-gray-600">{service.desc}</p>
+      <Button
+        variant="link"
+        className="text-sm"
+        onClick={() => setServiceDialog({ open: true, type: service.type as any })}
+      >
+        Learn More
+      </Button>
+    </CardContent>
+  </Card>
+))}
                 </div>
             </section>
 
@@ -200,7 +215,11 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                     </div>
                 </div>
             </section>
-
+<ServiceDetailsDialog
+  open={serviceDialog.open}
+  onClose={() => setServiceDialog({ open: false, type: null })}
+  serviceType={serviceDialog.type as "cook" | "maid" | "babycare"}
+/>
             <BookingDialog
                 open={open}
                 onClose={handleClose}
