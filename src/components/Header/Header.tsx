@@ -99,7 +99,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     triggerPostLoginAPIs();
   }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
 
-  const [userPreference , setUserPreference] = useState<string[] | null>(null);
+  const [userPreference, setUserPreference] = useState<any[]>([]);
 
   const createUser = async (user: any) => {};
 
@@ -178,7 +178,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
 
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<any>("");
   const [locationAs, setLocationAs] = useState("");
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -226,7 +226,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     { name: "Detect Location", index: 1 },
     { name: "Add Address", index: 2 },
   ]);
-  const [dataFromMap, setDataFromMap] = useState("");
+  const [dataFromMap, setDataFromMap] = useState<{ formatted_address: string }[]>([]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -280,7 +280,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     } else {
       alert("Location saved successfully");
     }
-    setLocation(dataFromMap);
+    setLocation(dataFromMap[0]?.formatted_address || "Location not found");
     setOpen(false);
     setOpenSaveOptionForSave(true);
   };
@@ -294,25 +294,59 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const updateUserSetting = async () => {
-
-   const locationname = locationAs;
-   const address = dataFromMap;
-   console.log("Location name: ", dataFromMap);
-    const payload = {
-      customerId: user?.customerid,
-      savedLocations: userPreference ? [...userPreference, locationAs] : [locationAs],
+    if (!user?.customerid || !locationAs || !dataFromMap) {
+      console.error("Missing required data to update user setting.");
+      return;
+    }
+  
+    const newLocation = {
+      name: locationAs,
+      location: dataFromMap[0],
     };
-
+  
+    const updatedPreferences = userPreference && Array.isArray(userPreference)
+      ? [...userPreference, newLocation]
+      : [newLocation];
+  
+    const payload = {
+      customerId: user.customerid,
+      savedLocations: updatedPreferences,
+    };
+  
+    console.log("Payload for user settings:", payload);
+  
     try {
-      const response = await axios.put("https://utils-ndt3.onrender.com/user-settings/1", payload);
-      console.log("User settings updated successfully:", response.data);
-      setOpenSaveOptionForSave(false);
-      setLocationAs("");
+      const response = await axios.put(
+        `https://utils-ndt3.onrender.com/user-settings/${user.customerid}`,
+        payload
+      );
+  
+      if (response.status === 200 || response.status === 201) {
+        setUserPreference(updatedPreferences); // update local state
+        setOpenSaveOptionForSave(false);
+        setLocationAs("");
+
+        // const baseSuggestions = [
+        //   { name: "Detect Location", index: 1 },
+        //   { name: "Add Address", index: 2 },
+        // ];
+
+        // const savedLocationSuggestions = userPreference.map((loc, i) => ({
+        //   name: loc.name,
+        //   index: i + 3,
+        // }));
+
+
+      
+        // setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+      } else {
+        console.warn("Unexpected response while updating user settings:", response);
+      }
     } catch (error) {
       console.error("Error updating user settings:", error);
     }
-  }
-
+  };
+  
   const handleProceedToCheckout = () => {
     sendDataToParent(CHECKOUT);
   };
@@ -323,7 +357,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   function updateLocationFromMap(data: any): void {
     console.log("Location selected from map: ", data);
     console.log("Data from map: ", data[0].formatted_address);
-    setDataFromMap(data[0].formatted_address);
+    setDataFromMap(data);
   }
 
   const handleUserPreference = (preference? : string) => {
