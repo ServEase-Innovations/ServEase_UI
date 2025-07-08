@@ -75,24 +75,24 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         return (endTotalMinutes - startTotalMinutes) / 60;
     };
 
-    const handleSave = () => {
-        let duration = 0;
-        const booking: Bookingtype = {
-            startDate,
-            endDate,
-            bookingPreference: selectedRadioButtonValue,
-        };
-    
-        if (selectedRadioButtonValue === "Date") {
-            setOpenServiceDialog(true);
-        } 
-    
-        if (selectedRadioButtonValue != "Date") {
-            sendDataToParent(DETAILS);
-        }
-    
-        dispatch(add(booking));
+  const handleSave = () => {
+    let duration = 0;
+    const booking: Bookingtype = {
+        startDate,
+        endDate,
+        bookingPreference: selectedRadioButtonValue,
     };
+
+    if (selectedRadioButtonValue === "Date") {
+        setOpenServiceDialog(true);
+    } 
+    
+    if (selectedRadioButtonValue !== "Date") {
+        sendDataToParent(DETAILS);
+    }
+    
+    dispatch(add(booking));
+};
 
     function isConfirmDisabled(): boolean | undefined {
         return false;
@@ -220,6 +220,24 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
   onClose={() => setServiceDialog({ open: false, type: null })}
   serviceType={serviceDialog.type as "cook" | "maid" | "babycare"}
 />
+{selectedType === "COOK" && (
+    <CookServicesDialog
+        open={openServiceDialog}
+        handleClose={() => setOpenServiceDialog(false)}
+    />
+)}
+{selectedType === "MAID" && (
+    <MaidServiceDialog
+        open={openServiceDialog}
+        handleClose={() => setOpenServiceDialog(false)}
+    />
+)}
+{selectedType === "NANNY" && (
+    <NannyServicesDialog
+        open={openServiceDialog}
+        handleClose={() => setOpenServiceDialog(false)}
+    />
+)}
             <BookingDialog
                 open={open}
                 onClose={handleClose}

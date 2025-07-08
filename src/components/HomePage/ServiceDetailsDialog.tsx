@@ -12,8 +12,10 @@ import {
   ListItemText,
   Divider,
   Box,
+  IconButton,
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 
 type ServiceFeature = {
   title?: string;
@@ -24,7 +26,7 @@ type ServiceDetails = {
   title: string;
   description: string;
   features: ServiceFeature[];
-  icon?: string;
+   icon?: string | React.ReactNode;
 };
 
 interface ServiceDetailsDialogProps {
@@ -161,9 +163,19 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
       ]
     },
     babycare: {
-      title: "ServEaso Baby Care Services",
+      title: "ServEaso Caregiver Services",
       description: "Professional child care services",
-      icon: "👶",
+      icon: (
+    <img 
+      src="/CareGiver.png"
+      alt="Caregiver" 
+      style={{
+        width: "40px",
+        height: "40px",
+        objectFit: "contain"
+      }}
+    />
+  ),
       features: [
         {
           title: "Nurture and Safe Environment",
@@ -258,18 +270,35 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
         }
       }}
     >
-      <DialogTitle sx={{
+    <DialogTitle sx={{
         backgroundColor: "#f5f5f5",
         borderBottom: "1px solid #e0e0e0",
         fontWeight: "bold",
         fontSize: "1.5rem",
         display: "flex",
         alignItems: "center",
-        gap: 2
+        justifyContent: "space-between", // Align items with space between
+        color: "#1d4ed8",
+        paddingRight: "40px" // Add padding to prevent overlap
       }}>
-        {icon && <span style={{ fontSize: "1.5em" }}>{icon}</span>}
-        {title}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {icon && <span style={{ fontSize: "1.5em" }}>{icon}</span>}
+          {title}
+        </Box>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            color: '#1d4ed8',
+            position: 'absolute',
+            right: 16,
+            top: 16,
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
+
 
       <DialogContent dividers sx={{ padding: "24px", overflowY: "auto" }}>
         <Typography variant="body1" paragraph sx={{ marginBottom: "16px" }}>
@@ -282,7 +311,7 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
               <Typography variant="h6" sx={{ 
                 fontWeight: "bold", 
                 marginBottom: "12px",
-                color: "#1976d2"
+                color: "#1d4ed8" // Changed color here
               }}>
                 {feature.title}
               </Typography>
@@ -291,7 +320,7 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
               {feature.items.map((item, itemIndex) => (
                 <ListItem key={itemIndex} sx={{ paddingLeft: 0 }}>
                   <ListItemIcon sx={{ minWidth: "32px" }}>
-                    <CheckIcon color="primary" fontSize="small" />
+                    <CheckIcon sx={{ color: "#1d4ed8" }} fontSize="small" /> {/* Changed color here */}
                   </ListItemIcon>
                   <ListItemText 
                     primary={item} 
@@ -307,34 +336,45 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
         ))}
       </DialogContent>
 
-      <DialogActions sx={{ 
-        padding: "16px 24px", 
-        borderTop: "1px solid #e0e0e0",
-        justifyContent: "space-between"
-      }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            borderRadius: "8px",
-            padding: "8px 24px",
-            textTransform: "none"
-          }}
-        >
-          Close
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{
-            borderRadius: "8px",
-            padding: "8px 24px",
-            textTransform: "none"
-          }}
-        >
-          Book Now
-        </Button>
-      </DialogActions>
+    <DialogActions sx={{ 
+  padding: "16px 24px", 
+  borderTop: "1px solid #e0e0e0",
+  justifyContent: "center", // Changed from "space-between" to "center"
+  gap: 2 // Added gap between buttons
+}}>
+  {/* <Button
+    onClick={onClose}
+    variant="outlined"
+    sx={{
+      borderRadius: "8px",
+      padding: "8px 24px",
+      textTransform: "none",
+      borderColor: "#1d4ed8",
+      color: "#1d4ed8",
+      '&:hover': {
+        borderColor: "#1d4ed8",
+        backgroundColor: "rgba(29, 78, 216, 0.08)",
+      }
+    }}
+  >
+    Close
+  </Button> */}
+
+  <Button
+    variant="contained"
+    sx={{
+      backgroundColor: '#1d4ed8', 
+      borderRadius: "8px",
+      padding: "8px 24px",
+      textTransform: "none",
+      '&:hover': {
+        backgroundColor: '#1d4ed8', 
+      }
+    }}
+  >
+    Book Now
+  </Button>
+</DialogActions>
     </Dialog>
   );
 };
