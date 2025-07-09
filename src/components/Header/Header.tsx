@@ -8,6 +8,7 @@ import {
   useTheme,
   Badge,
   IconButton,
+  TextField,
 } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -32,6 +33,9 @@ import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
 import { get } from "http";
 import { CartDialog } from "../AddToCart/CartDialog";
+import { FaHome } from "react-icons/fa";
+import { HiBuildingOffice } from "react-icons/hi2";
+import { FaLocationArrow } from "react-icons/fa";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -95,6 +99,8 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     triggerPostLoginAPIs();
   }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
 
+  const [userPreference, setUserPreference] = useState<any[]>([]);
+
   const createUser = async (user: any) => {};
 
   const getCustomerPreferences = async (customerId: number) => {
@@ -104,6 +110,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     
       if (response.status === 200) {
         console.log("Customer preferences fetched successfully:", response.data);
+        setUserPreference(response.data);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -116,10 +123,24 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const createUserPreferences = async (customerId: number) => {
-      const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", {
-        "customerId": customerId,
-        "savedLocations": []
-      });
+    try {
+      const payload : any = {
+        customerId,
+        savedLocations: [],
+      };
+    
+      const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", payload);
+    
+      // Optionally check response before setting state
+      if (response.status === 200 || response.status === 201) {
+        setUserPreference(payload);
+      } else {
+        console.warn("Unexpected response:", response);
+      }
+    } catch (error) {
+      console.error("Error saving user settings:", error);
+    }
+    
   }
 
   const getLocation = async () => {
@@ -157,13 +178,16 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
 
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<any>("");
+  const [locationAs, setLocationAs] = useState("");
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState();
   const [cartOpen, setCartOpen] = useState(false); 
+  const [OpenSaveOptionForSave , setOpenSaveOptionForSave] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const handleCartOpen = () => setCartOpen(true);
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
@@ -202,7 +226,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     { name: "Detect Location", index: 1 },
     { name: "Add Address", index: 2 },
   ]);
-  const [dataFromMap, setDataFromMap] = useState("");
+  const [dataFromMap, setDataFromMap] = useState<{ formatted_address: string }[]>([]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -250,10 +274,79 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   };
 
   const handleSave = () => {
-    setLocation(dataFromMap);
+    if (!dataFromMap) {
+      console.error("No location data selected from map");
+      return;
+    } else {
+      alert("Location saved successfully");
+    }
+    setLocation(dataFromMap[0]?.formatted_address || "Location not found");
     setOpen(false);
+    setOpenSaveOptionForSave(true);
   };
 
+  const locationHandleSave = () => {
+    console.log("Location saved as:", locationAs);
+    console.log("user preference ", userPreference)
+
+    updateUserSetting()
+
+  }
+
+  const updateUserSetting = async () => {
+    if (!user?.customerid || !locationAs || !dataFromMap) {
+      console.error("Missing required data to update user setting.");
+      return;
+    }
+  
+    const newLocation = {
+      name: locationAs,
+      location: dataFromMap[0],
+    };
+  
+    const updatedPreferences = userPreference && Array.isArray(userPreference)
+      ? [...userPreference, newLocation]
+      : [newLocation];
+  
+    const payload = {
+      customerId: user.customerid,
+      savedLocations: updatedPreferences,
+    };
+  
+    console.log("Payload for user settings:", payload);
+  
+    try {
+      const response = await axios.put(
+        `https://utils-ndt3.onrender.com/user-settings/${user.customerid}`,
+        payload
+      );
+  
+      if (response.status === 200 || response.status === 201) {
+        setUserPreference(updatedPreferences); // update local state
+        setOpenSaveOptionForSave(false);
+        setLocationAs("");
+
+        // const baseSuggestions = [
+        //   { name: "Detect Location", index: 1 },
+        //   { name: "Add Address", index: 2 },
+        // ];
+
+        // const savedLocationSuggestions = userPreference.map((loc, i) => ({
+        //   name: loc.name,
+        //   index: i + 3,
+        // }));
+
+
+      
+        // setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+      } else {
+        console.warn("Unexpected response while updating user settings:", response);
+      }
+    } catch (error) {
+      console.error("Error updating user settings:", error);
+    }
+  };
+  
   const handleProceedToCheckout = () => {
     sendDataToParent(CHECKOUT);
   };
@@ -261,8 +354,21 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
 
-  function updateLocationFromMap(data: string): void {
+  function updateLocationFromMap(data: any): void {
+    console.log("Location selected from map: ", data);
+    console.log("Data from map: ", data[0].formatted_address);
     setDataFromMap(data);
+  }
+
+  const handleUserPreference = (preference? : string) => {
+
+    if(!preference) {
+      setShowInput(true) ;
+      setLocationAs(locationAs);
+    } else {
+      setShowInput(false) ;
+      setLocationAs(preference);
+    } 
   }
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -367,7 +473,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
           )}
         </div>
       </header>
-      <Dialog open={open} onClose={handleClose}>
+      <Dialog open={open} onClose={handleClose} >
         <DialogTitle>Set Location</DialogTitle>
         <DialogContent
           sx={{
@@ -390,6 +496,44 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
             Cancel
           </Button>
           <Button color="primary" onClick={handleSave} className={undefined}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={OpenSaveOptionForSave} onClose={handleClose} >
+        <DialogTitle>Save As</DialogTitle>
+        <DialogContent>
+          <div >
+            <div> 
+              Save As : 
+            </div>
+            <Button startIcon={<FaHome />} className={undefined} onClick={() => {handleUserPreference("home") }}>
+    Home
+  </Button>
+  <Button startIcon={<HiBuildingOffice />} className={undefined} onClick={() => {handleUserPreference("Office")}}>
+    Office
+  </Button>
+  <Button startIcon={<FaLocationArrow />} className={undefined} onClick={() => {handleUserPreference()}}>
+    Others
+  </Button>
+
+          </div>
+          {showInput && (
+            <TextField
+              id="standard-basic"
+              label="Enter Location Name"
+              variant="standard"
+              fullWidth
+              onChange={(e) => setLocationAs(e.target.value)}
+            />
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ padding: "10px" }}>
+          <Button color="primary" onClick={handleClose} className={undefined}>
+            Cancel
+          </Button>
+          <Button color="primary" onClick={locationHandleSave} className={undefined}>
             Save
           </Button>
         </DialogActions>

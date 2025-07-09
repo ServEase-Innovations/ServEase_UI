@@ -5,7 +5,6 @@ import moment from "moment";
 import {
   TextField,
   Input,
-  Button,
   InputAdornment,
   IconButton,
   Grid,
@@ -41,7 +40,7 @@ import ProfileImageUpload from "./ProfileImageUpload";
 import axios from "axios";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
-
+import { Button } from "../Button/button";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;

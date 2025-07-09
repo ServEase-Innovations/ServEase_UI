@@ -10,7 +10,7 @@ interface Location {
 
 interface MapComponentProps {
     style: React.CSSProperties;
-    onLocationSelect: (data : string) => void; // Callback to pass the selected location
+    onLocationSelect: (data : any) => void; // Callback to pass the selected location
   }
 
 const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect }) => {
@@ -36,23 +36,26 @@ const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect })
   const reverseGeocode = (lat: number, lng: number) => {
     const geocoder = new google.maps.Geocoder();
     const latLng = new google.maps.LatLng(lat, lng);
-
+  
     geocoder
       .geocode({ location: latLng })
       .then((response) => {
-        if (response.results[0]) {
-          setAddress(response.results[0].formatted_address);
+        if (response.results && response.results.length > 0) {
+          const formatted = response.results[0].formatted_address;
+          console.log("Fetched address:", formatted);
+          setAddress(formatted);
+          onLocationSelect(response.results);
         } else {
           setAddress('No address found for this location.');
+          console.warn('No address found in reverse geocode result.');
         }
-        
-
-        onLocationSelect(response.results[0].formatted_address)
       })
       .catch((error) => {
+        console.error('Geocode error:', error);
         setAddress('Error fetching address.');
       });
   };
+  
 
   useEffect(() => {
     // If geolocation is available, get the user's current position

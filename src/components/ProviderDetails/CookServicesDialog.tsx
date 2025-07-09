@@ -14,7 +14,7 @@ import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { addToCart, removeFromCart, updateCartItem } from '../../features/addToCart/addToSlice';
 import { MealPackage } from '../../types/mealPackage';
 import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton } from './CookServicesDialog.styles';
-
+import { Button } from "../Button/button";
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -635,9 +635,9 @@ useEffect(() => {
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <LoginButton onClick={handleLogin}>
+                    <Button onClick={handleLogin}>
                       LOGIN TO CONTINUE
-                    </LoginButton>
+                    </Button>
                   </>
                 )}
                 

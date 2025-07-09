@@ -4,7 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   List,
   ListItem,
@@ -16,6 +15,7 @@ import {
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import { Button } from "../Button/button";
 
 type ServiceFeature = {
   title?: string;
@@ -359,21 +359,8 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
   >
     Close
   </Button> */}
-
-  <Button
-    variant="contained"
-    sx={{
-      backgroundColor: '#1d4ed8', 
-      borderRadius: "8px",
-      padding: "8px 24px",
-      textTransform: "none",
-      '&:hover': {
-        backgroundColor: '#1d4ed8', 
-      }
-    }}
-  >
-    Book Now
-  </Button>
+             <Button variant="outline" className="text-sm px-4 py-2">Book Now</Button>
+ 
 </DialogActions>
     </Dialog>
   );
