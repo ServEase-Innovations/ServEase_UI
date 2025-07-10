@@ -21,6 +21,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import BookingDialog from "../BookingDialog/BookingDialog";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
+import Chatbot from "../Chat/Chatbot";
 
 interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
@@ -37,6 +38,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     const [endDate, setEndDate] = useState<string | null>(null);
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
+    const [chatbotOpen, setChatbotOpen] = useState(false);
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false); // Changed this state name
     const [serviceDialog, setServiceDialog] = useState<{
     open: boolean;
@@ -138,7 +140,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                         </div>
                     </div>
                     <div className="flex gap-3 pt-3" style={{justifyContent:'center'}}>
-                        <Button variant="outline" className="text-sm px-4 py-2">I need help</Button>
+                        <Button variant="outline" className="text-sm px-4 py-2"   onClick={() => setChatbotOpen(true)}>I need help</Button>
                         <Button variant="outline" className="text-sm px-4 py-2" onClick={handleWorkClick}>I want to work</Button>
                     </div>
                 </div>
@@ -263,6 +265,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
             >
                 <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
             </DialogComponent>
+            <Chatbot open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
         </main>
     );
 }
