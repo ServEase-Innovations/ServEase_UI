@@ -64,10 +64,6 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const [dropDownOpen, setdropDownOpen] = useState(false);
 
-  if(isAuthenticated && !isLoading) {
-    console.log("User: ", user);
-  } 
-
 
   useEffect(() => {
     getLocation();
@@ -99,7 +95,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     triggerPostLoginAPIs();
   }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
 
-  const [userPreference, setUserPreference] = useState<any[]>([]);
+  const [userPreference, setUserPreference] = useState<any>([]);
 
   const createUser = async (user: any) => {};
 
@@ -304,16 +300,16 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       location: dataFromMap[0],
     };
   
-    const updatedPreferences = userPreference && Array.isArray(userPreference)
-      ? [...userPreference, newLocation]
-      : [newLocation];
+    // Safely extract existing savedLocations from state
+    const existingLocations =
+      Array.isArray(userPreference?.savedLocations) ? userPreference.savedLocations : [];
+  
+    const updatedLocations = [...existingLocations, newLocation];
   
     const payload = {
       customerId: user.customerid,
-      savedLocations: updatedPreferences,
+      savedLocations: updatedLocations,
     };
-  
-    console.log("Payload for user settings:", payload);
   
     try {
       const response = await axios.put(
@@ -322,23 +318,20 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       );
   
       if (response.status === 200 || response.status === 201) {
-        setUserPreference(updatedPreferences); // update local state
+        setUserPreference({ customerId: user.customerid, savedLocations: updatedLocations });
         setOpenSaveOptionForSave(false);
         setLocationAs("");
-
-        // const baseSuggestions = [
-        //   { name: "Detect Location", index: 1 },
-        //   { name: "Add Address", index: 2 },
-        // ];
-
-        // const savedLocationSuggestions = userPreference.map((loc, i) => ({
-        //   name: loc.name,
-        //   index: i + 3,
-        // }));
-
-
-      
-        // setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+  
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        const savedLocationSuggestions = updatedLocations.map((loc, i) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
+  
+        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       } else {
         console.warn("Unexpected response while updating user settings:", response);
       }
@@ -346,6 +339,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       console.error("Error updating user settings:", error);
     }
   };
+  
   
   const handleProceedToCheckout = () => {
     sendDataToParent(CHECKOUT);
