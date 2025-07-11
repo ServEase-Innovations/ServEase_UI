@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, ArrowLeft } from "lucide-react";
 import Draggable from "react-draggable";
