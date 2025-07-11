@@ -106,7 +106,18 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     
       if (response.status === 200) {
         console.log("Customer preferences fetched successfully:", response.data);
+
         setUserPreference(response.data);
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        const savedLocationSuggestions = response.data[0].savedLocations.map((loc, i) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
+  
+        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -242,7 +253,13 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       setOpen(true);
     } else if (newValue === "Detect Location") {
       getLocation();
-    }
+    } else {
+      console.log("Selected location:", newValue);
+      console.log("user preference ", userPreference)
+      const loc = userPreference[0]?.savedLocations?.find((location: any) => location.name === newValue);
+      console.log("Location from user preference: ", loc.location.formatted_address);
+       setLocation(loc.location.formatted_address);
+      }
   };
 
   const handleLocationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -403,7 +420,6 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       onClick={() => {
                         handleChange(suggestion.name);
-                        setLocation(suggestion.name);
                         setShowDropdown(false);
                       }}
                     >
