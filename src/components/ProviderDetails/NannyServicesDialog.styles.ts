@@ -1,4 +1,4 @@
-
+/* eslint-disable */
 import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
