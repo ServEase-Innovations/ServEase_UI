@@ -154,14 +154,17 @@ let longitude = 0;
 if (!location) {
   ({ latitude, longitude } = await getCoordinates());
 } else {
-  // console.log("Location from Redux:", JSON.stringify(location));
-  latitude = location.lat;
-  longitude = location.lng;
+  const latLng = location.location.geometry.location;
+
+  console.log("Location from Redux:", JSON.stringify(latLng));
+
+  const latitude = latLng?.lat;
+  const longitude = latLng?.lng;
+
+  console.log("Latitude:", latitude);
+  console.log("Longitude:", longitude);
 }
 
-      
-  
-      console.log("Latitude:", latitude, "Longitude:", longitude);
   
       const params = {
         startDate: "2025-04-01",
@@ -177,6 +180,7 @@ if (!location) {
       console.log('Response:', response.data);
       if(response.data.length === 0) {
         setLoading(true);
+        setServiceProviderData([])
       } else {
         setLoading(false);
       setServiceProviderData(response.data);
@@ -208,9 +212,6 @@ if (!location) {
         <p> Search providers near you</p>
       </div> 
     )} 
-
-
-      
     </main>  
   );
 };
