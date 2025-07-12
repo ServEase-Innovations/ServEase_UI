@@ -121,7 +121,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                         Book trusted household help in minutes
                     </h1>
                     <p className="text-gray-600 text-sm">
-                        ServEase connects you to trained maids, cooks, and caregivers on demand. Safe, affordable and instant.
+                        ServEaso connects you to trained maids, cooks, and caregivers on demand. safe, affordable and instant.
                     </p>
                     <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <div className="card" onClick={() => handleClick('COOK')}>

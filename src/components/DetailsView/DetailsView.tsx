@@ -9,7 +9,7 @@ import axiosInstance from "../../services/axiosInstance";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import { CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { add } from "../../features/detailsData/detailsDataSlice";
 import HeaderSearch from "../HeaderSearch/HeaderSearch";
 import PreferenceSelection from "../PreferenceSelection/PreferenceSelection";
@@ -37,6 +37,14 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
   const dispatch = useDispatch();
 
+  const location = useSelector((state: any) => {
+    return state?.geoLocation?.value;
+  });
+  
+
+
+  // console.log("Location from Redux:", location);
+
   console.log("HIKKERS", selectedProviderType);
 
   const handleCheckoutData = (data: any) => {
@@ -46,6 +54,10 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       checkoutItem(data); // Send data to the parent component
     }
   };
+
+  useEffect(() => {
+    performSearch();
+  }, [selectedProviderType , location]);
 
   // useEffect(() => {
   //   console.log("Selected ...", selected);
@@ -76,6 +88,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   //   fetchData();
   // }, [selected]);
 
+  // useEffect(() => {
+
+  // }, [state])
   const handleBackClick = () => {
     sendDataToParent("");
   };
@@ -133,7 +148,18 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     
   
     try {
-      const { latitude, longitude } = await getCoordinates();
+      let latitude = 0;
+let longitude = 0;
+
+if (!location) {
+  ({ latitude, longitude } = await getCoordinates());
+} else {
+  // console.log("Location from Redux:", JSON.stringify(location));
+  latitude = location.lat;
+  longitude = location.lng;
+}
+
+      
   
       console.log("Latitude:", latitude, "Longitude:", longitude);
   
@@ -145,8 +171,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         latitude,
         longitude,
       };
-  
-      const response = await axiosInstance.get('/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=COOK&latitude=12.903315860899282&longitude=77.57114232594643');
+      
+
+      const response = await axiosInstance.get(`/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=COOK&latitude=${latitude}&longitude=${longitude}`);
       console.log('Response:', response.data);
       if(response.data.length === 0) {
         setLoading(true);
@@ -162,7 +189,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
   // performSearch();
 
-  performSearch();
+
 
   console.log("Service Providers Data:", ServiceProvidersData);
   console.log("Service Providers Data:", serviceProviderData);

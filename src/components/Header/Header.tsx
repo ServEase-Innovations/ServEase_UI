@@ -11,7 +11,7 @@ import {
   IconButton,
   TextField,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
@@ -37,6 +37,7 @@ import { CartDialog } from "../AddToCart/CartDialog";
 import { FaHome } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
 import { FaLocationArrow } from "react-icons/fa";
+import { add } from "../../features/geoLocation/geoLocationSlice";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -261,6 +262,8 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
+ 
+
   const handleChange = (newValue: any) => {
     if (newValue === "Add Address") {
       setOpen(true);
@@ -268,12 +271,22 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       getLocation();
     } else {
       console.log("Selected location:", newValue);
-      console.log("user preference ", userPreference)
-      const loc = userPreference?.savedLocations?.find((location: any) => location.name === newValue);
-      console.log("Location from user preference: ", loc.location.formatted_address);
-       setLocation(loc.location.formatted_address);
+      console.log("user preference ", userPreference);
+  
+      const loc = userPreference?.savedLocations?.find(
+        (location: any) => location.name === newValue
+      );
+  
+      if (loc?.location?.formatted_address) {
+        console.log("Location from user preference: ", loc.location.formatted_address);
+        setLocation(loc.location.formatted_address);
+        dispatch(add(loc));
+      } else {
+        console.warn("No matching location found for:", newValue);
       }
+    }
   };
+  
 
   const handleLocationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
