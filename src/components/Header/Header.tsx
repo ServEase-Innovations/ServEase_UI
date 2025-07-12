@@ -303,9 +303,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     if (!dataFromMap) {
       console.error("No location data selected from map");
       return;
-    } else {
-      alert("Location saved successfully");
-    }
+    } 
     setLocation(dataFromMap[0]?.formatted_address || "Location not found");
     setOpen(false);
     setOpenSaveOptionForSave(true);
