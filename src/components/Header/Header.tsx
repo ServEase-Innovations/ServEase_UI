@@ -83,10 +83,12 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
           )}`
         );
         console.log("Email check response:", response.data);
-        if (response.data.exists === false) {
+        if (!response.data.user_role) {
           createUser(user);
           user.customerid = 1;
-          getCustomerPreferences(user.customerid);
+          // getCustomerPreferences(user.customerid);
+        } else {
+          getCustomerPreferences(Number(response.data.id));
         }
       } catch (error) {
         console.error("Error during post-login API call:", error);
@@ -102,13 +104,18 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const getCustomerPreferences = async (customerId: number) => {
     try {
-      const response = await axios.get("https://utils-ndt3.onrender.com/user-settings/1");
+      const response = await axios.get(`https://utils-ndt3.onrender.com/user-settings/${customerId}`);
       console.log("Response from user settings API:", response.data);
     
       if (response.status === 200) {
         console.log("Customer preferences fetched successfully:", response.data);
 
         setUserPreference(response.data);
+        if (user) {
+          user.customerid = customerId; // Update user object with customerId
+        }
+
+        console.log("Updated user object with customerId:", user);
         const baseSuggestions = [
           { name: "Detect Location", index: 1 },
           { name: "Add Address", index: 2 },
@@ -131,11 +138,16 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const createUserPreferences = async (customerId: number) => {
+    if (user) {
+      user.customerid = customerId; // Ensure user object has customerId
+    }
     try {
       const payload : any = {
         customerId,
         savedLocations: [],
       };
+
+      console.log("Creating user preferences with payload:", payload);
     
       const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", payload);
     
@@ -257,7 +269,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     } else {
       console.log("Selected location:", newValue);
       console.log("user preference ", userPreference)
-      const loc = userPreference[0]?.savedLocations?.find((location: any) => location.name === newValue);
+      const loc = userPreference?.savedLocations?.find((location: any) => location.name === newValue);
       console.log("Location from user preference: ", loc.location.formatted_address);
        setLocation(loc.location.formatted_address);
       }
@@ -308,7 +320,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const updateUserSetting = async () => {
-    if (!user?.customerid || !locationAs || !dataFromMap) {
+    if (!user || !locationAs || !dataFromMap ) {
       console.error("Missing required data to update user setting.");
       return;
     }
