@@ -10,7 +10,6 @@ import {
   Paper,
   Card,
   CardContent,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,7 +24,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store/userStore';
 import { update } from "../../features/bookingType/bookingTypeSlice";
 import ProviderDetails from '../ProviderDetails/ProviderDetails';
-
+import { Button } from "../Button/button";
+import UserHoliday from './UserHoliday';
 type UserState = {
   value?: {
     serviceeType?: string;
@@ -76,8 +76,65 @@ const Booking: React.FC = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
+const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
+  // Function to generate dummy current bookings data
+  const generateDummyCurrentBookings = (): Booking[] => {
+    return [
+      {
+        id: 1,
+        name: 'Dummy Booking 1',
+        serviceProviderId: 101,
+        timeSlot: '09:00-12:00',
+        date: new Date().toLocaleDateString(),
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        bookingType: 'Regular',
+        monthlyAmount: 5000,
+        paymentMode: 'Online',
+        address: '123 Dummy Street, Dummy City',
+        customerName: 'John Doe',
+        serviceProviderName: 'Jane Smith (Dummy)',
+        taskStatus: 'PENDING',
+        bookingDate: new Date().toISOString().split('T')[0],
+        engagements: 'Cleaning',
+        serviceeType: 'Home Cleaning',
+        serviceType: 'Cleaning',
+        childAge: '',
+        experience: '',
+        noOfPersons: '2',
+        mealType: '',
+        responsibilities: 'General cleaning'
+      },
+      {
+        id: 2,
+        name: 'Dummy Booking 2',
+        serviceProviderId: 102,
+        timeSlot: '14:00-16:00',
+        date: new Date().toLocaleDateString(),
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        bookingType: 'One-time',
+        monthlyAmount: 3000,
+        paymentMode: 'Cash',
+        address: '456 Example Ave, Test City',
+        customerName: 'John Doe',
+        serviceProviderName: 'Mike Johnson (Dummy)',
+        taskStatus: 'CONFIRMED',
+        bookingDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        engagements: 'Cooking',
+        serviceeType: 'Chef Service',
+        serviceType: 'Cooking',
+        childAge: '',
+        experience: '5 years',
+        noOfPersons: '4',
+        mealType: 'Vegetarian',
+        responsibilities: 'Prepare dinner'
+      }
+    ];
+  };
 
-  // Fetch available time slots for a service provider
   const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
     try {
       const response = await axiosInstance.get(
@@ -93,7 +150,6 @@ const Booking: React.FC = () => {
         `${(i + 6).toString().padStart(2, "0")}:00`
       );
       
-
       const processedSlots = engagementData.map(entry => {
         const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
         const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
@@ -120,21 +176,20 @@ const Booking: React.FC = () => {
 
   useEffect(() => {
     if (customerId !== null) {
-      const page = 0; // Default page
-      const size = 100; // Default size
+      setIsLoading(true);
+      const page = 0;
+      const size = 100;
 
       axiosInstance
         .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
-          console.log('Past Bookings:', past);
+          
           const mapBookingData = (data: any[]) =>
             Array.isArray(data)
               ? data
                   .filter((item) => item.customerId === customerId)
                   .map((item) => {
-                    console.log("Service Provider ID:", item.serviceProviderId);
-
                     return {
                       id: item.id,
                       customerId: item.customerId,
@@ -165,25 +220,40 @@ const Booking: React.FC = () => {
               : [];
 
           setPastBookings(mapBookingData(past));
-          console.log('Past :', setPastBookings);
-          setCurrentBookings(mapBookingData(current));
+          const currentBookingsData = mapBookingData(current);
+          
+          if (currentBookingsData.length === 0 && selectedTab === 0) {
+            setCurrentBookings(generateDummyCurrentBookings());
+          } else {
+            setCurrentBookings(currentBookingsData);
+          }
+          
           setFutureBookings(mapBookingData(future));
         })
         .catch((error) => {
           console.error("Error fetching booking details:", error);
+          if (selectedTab === 0) {
+            setCurrentBookings(generateDummyCurrentBookings());
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
     }
-  }, [customerId]);
+  }, [customerId, selectedTab]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
+    
+    if (newValue === 0 && currentBookings.length === 0) {
+      setCurrentBookings(generateDummyCurrentBookings());
+    }
   };
 
   const handleModifyBooking = async (booking: Booking) => {
     setSelectedBooking(booking);
     setSelectedTimeSlot(booking.timeSlot);
 
-    // Fetch available time slots for the service provider
     const availableSlots = await generateTimeSlots(booking.serviceProviderId);
     setTimeSlots(availableSlots);
 
@@ -208,7 +278,7 @@ const Booking: React.FC = () => {
         startDate: selectedBooking.startDate,
         endDate: selectedBooking.endDate,
         engagements: selectedBooking.engagements,
-        timeslot: selectedTimeSlot, // Updated time slot
+        timeslot: selectedTimeSlot,
         monthlyAmount: selectedBooking.monthlyAmount,
         paymentMode: selectedBooking.paymentMode,
         bookingType: selectedBooking.bookingType,
@@ -232,9 +302,6 @@ const Booking: React.FC = () => {
           updatePayload
         );
 
-        console.log("Update Response:", response.data);
-
-        // Update state to reflect the change
         setCurrentBookings((prev) =>
           prev.map((b) =>
             b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
@@ -251,13 +318,6 @@ const Booking: React.FC = () => {
         setOpenSnackbar(true);
       } catch (error: any) {
         console.error("Error updating task status:", error);
-        if (error.response) {
-          console.error("Full error response:", error.response.data);
-        } else if (error.message) {
-          console.error("Error message:", error.message);
-        } else {
-          console.error("Unknown error occurred");
-        }
       }
     }
   };
@@ -268,11 +328,11 @@ const Booking: React.FC = () => {
     const updatePayload = {
       id: booking.id,
       serviceProviderId: booking.serviceProviderId,
-      customerId: customerId, // Fixed: Use `booking.customerId` instead of `customerId`
+      customerId: customerId,
       startDate: booking.startDate,
       endDate: booking.endDate,
       engagements: booking.engagements,
-      timeslot: booking.timeSlot, // Fixed: Match field name (not timeSlot)
+      timeslot: booking.timeSlot,
       monthlyAmount: booking.monthlyAmount,
       paymentMode: booking.paymentMode,
       bookingType: booking.bookingType,
@@ -283,23 +343,19 @@ const Booking: React.FC = () => {
       noOfPersons: booking.noOfPersons,
       experience: booking.experience,
       childAge: booking.childAge,
-      serviceeType: booking.serviceeType, // Kept as it is since it exists in your JSON
+      serviceeType: booking.serviceeType,
       customerName: booking.customerName,
       serviceProviderName: booking.serviceProviderName,
       address: booking.address,
-      taskStatus: updatedStatus, // Updated task status
+      taskStatus: updatedStatus,
     };
 
     try {
-      console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
       const response = await axiosInstance.put(
         `/api/serviceproviders/update/engagement/${booking.id}`,
         updatePayload
       );
 
-      console.log("Update Response:", response.data);
-
-      // Update state to reflect the change
       setCurrentBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
@@ -312,127 +368,155 @@ const Booking: React.FC = () => {
       );
     } catch (error: any) {
       console.error("Error updating task status:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      } else if (error.message) {
-        console.error("Error message:", error.message);
-      } else {
-        console.error("Unknown error occurred");
-      }
     }
     setOpenSnackbar(true);
   };
+const handleLeaveSubmit = async (startDate: string, endDate: string) => {
+  if (!selectedBookingForLeave) return;
 
+  try {
+    const response = await axiosInstance.post(
+      `/api/bookings/${selectedBookingForLeave.id}/apply-leave`,
+      {
+        startDate,
+        endDate,
+        // Add any other required parameters
+      }
+    );
+    // Optionally refresh bookings or update state
+  } catch (error) {
+    console.error("Error applying leave:", error);
+    throw error; // This will be caught in the UserHoliday component
+  }
+};
+const handleApplyLeaveClick = (booking: Booking) => {
+  setSelectedBookingForLeave(booking);
+  setHolidayDialogOpen(true);
+};
   const renderBookings = (bookings: Booking[]) => (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
-      {bookings.length > 0 ? (
-        bookings.map((booking) => (
-          <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
-            <CardContent>
-              {booking.taskStatus === "CANCELLED" && (
-                <Typography
-                  variant="body2"
-                  color="white"
-                  sx={{
-                    backgroundColor: "rgba(255, 0, 0, 0.5)",
-                    color: "rgba(255, 255, 255, 0.9)",
-                    padding: "8px 16px",
-                    borderRadius: "4px",
-                    fontWeight: "bold",
-                    marginBottom: "16px",
-                    textAlign: "center",
-                  }}
-                  gutterBottom
-                >
-                  Task Status: CANCELLED
-                </Typography>
-              )}
-
-              <Typography variant="h6" gutterBottom>
-                Service Provider: {booking.serviceProviderName}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Service Type: {booking.serviceeType}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Start Date: {booking.startDate}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                End Date: {booking.endDate}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Payment Mode: {booking.paymentMode}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Booking Date: {booking.bookingDate}
-              </Typography>
-
-              {booking.taskStatus !== "CANCELLED" && (
-                <>
-                  <Typography variant="body2" color="textSecondary">
-                    Time Slot: {booking.timeSlot}
-                  </Typography>
-
-                  <Typography variant="body2" color="textSecondary">
-                    Booking Type: {booking.bookingType}
-                  </Typography>
-
-                  <Typography variant="body2" color="textSecondary">
-                    Monthly Amount: ₹{booking.monthlyAmount}
-                  </Typography>
-
-                  <Typography variant="body2" color="textSecondary">
-                    Address: {booking.address}
-                  </Typography>
-
-                  <Typography variant="body2" color="textSecondary">
-                    Task Status: {booking.taskStatus}
-                  </Typography>
-                </>
-              )}
-              <Box display="flex" justifyContent="space-between" marginTop={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleModifyBooking(booking)}
-                  style={{
-                    padding: "8px 16px",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Modify
-                </Button>
-                {booking.taskStatus !== "CANCELLED" && (
-                  <button
-                    onClick={() => handleCancelBooking(booking)}
-                    style={{
-                      backgroundColor: "red",
-                      color: "white",
+      {/* {
+      isLoading ? (
+        <Typography textAlign="center" color="textSecondary">
+          Loading bookings...
+        </Typography>
+      ) :bookings.length > 0 ? ( */}
+        <>
+          {selectedTab === 0 && bookings.some(b => b.serviceProviderName.includes('(Dummy)')) && (
+            <Alert severity="info" sx={{ marginBottom: 2 }}>
+              Note: Displaying sample dummy data as no real bookings were found.
+            </Alert>
+          )}
+          
+          {bookings.map((booking) => (
+            <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
+              <CardContent>
+                {booking.taskStatus === "CANCELLED" && (
+                  <Typography
+                    variant="body2"
+                    color="white"
+                    sx={{
+                      backgroundColor: "rgba(255, 0, 0, 0.5)",
+                      color: "rgba(255, 255, 255, 0.9)",
                       padding: "8px 16px",
-                      border: "none",
                       borderRadius: "4px",
-                      cursor: "pointer",
+                      fontWeight: "bold",
+                      marginBottom: "16px",
+                      textAlign: "center",
                     }}
+                    gutterBottom
                   >
-                    Cancel
-                  </button>
+                    Task Status: CANCELLED
+                  </Typography>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
-        ))
-      ) : (
+
+                <Typography variant="h6" gutterBottom>
+                  Service Provider: {booking.serviceProviderName}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Service Type: {booking.serviceeType}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Start Date: {booking.startDate}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  End Date: {booking.endDate}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Payment Mode: {booking.paymentMode}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Booking Date: {booking.bookingDate}
+                </Typography>
+
+                {booking.taskStatus !== "CANCELLED" && (
+                  <>
+                    <Typography variant="body2" color="textSecondary">
+                      Time Slot: {booking.timeSlot}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Booking Type: {booking.bookingType}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Monthly Amount: ₹{booking.monthlyAmount}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Address: {booking.address}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Task Status: {booking.taskStatus}
+                    </Typography>
+                  </>
+                )}
+                <Box display="flex" justifyContent="space-between" marginTop={2}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleModifyBooking(booking)}
+                  >
+                    Modify
+                  </Button>
+                    <Button
+      variant="contained"
+      color="secondary"
+    onClick={() => handleApplyLeaveClick(booking)}
+    >
+      Apply Leave
+    </Button>
+                  {booking.taskStatus !== "CANCELLED" && (
+                    <button
+                      onClick={() => handleCancelBooking(booking)}
+                      style={{
+                        backgroundColor: "red",
+                        color: "white",
+                        padding: "8px 16px",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </>
+      {/* ) : (
         <Typography textAlign="center" color="textSecondary">
           No bookings found.
         </Typography>
-      )}
+      )} */}
     </Box>
   );
 
@@ -460,7 +544,6 @@ const Booking: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* Dialog for modifying bookings */}
       <Dialog open={openDialog} onClose={handleDialogClose}>
         <DialogTitle>Modify Booking</DialogTitle>
         <DialogContent>
@@ -489,8 +572,13 @@ const Booking: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <UserHoliday
+  open={holidayDialogOpen}
+  onClose={() => setHolidayDialogOpen(false)}
+  booking={selectedBookingForLeave}
+  onLeaveSubmit={handleLeaveSubmit}
+/>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}

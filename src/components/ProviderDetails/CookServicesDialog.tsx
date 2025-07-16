@@ -628,7 +628,7 @@ useEffect(() => {
               </div>
               
               <FooterButtons>
-                {!loggedInUser && (
+                {/* {!loggedInUser && (
                   <>
                     <Tooltip title="You need to login to proceed with checkout">
                       <IconButton size="small" style={{ marginRight: '8px' }}>
@@ -639,16 +639,16 @@ useEffect(() => {
                       LOGIN TO CONTINUE
                     </Button>
                   </>
-                )}
+                )} */}
                 
-                {loggedInUser && (
+                {/* {loggedInUser && ( */}
                   <CheckoutButton
                     onClick={handleCheckout}
                     disabled={totalItems === 0}
                   >
                     CHECKOUT
                   </CheckoutButton>
-                )}
+                {/* )} */}
               </FooterButtons>
             </FooterContainer>
           </DialogContainer>

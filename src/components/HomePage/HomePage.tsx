@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { Card, CardContent } from "../Card/card";
 import { CalendarIcon, HandIcon, HomeIcon, MapPin, ShoppingCart, User } from "lucide-react";
@@ -23,6 +23,7 @@ import ServiceProviderRegistration from "../Registration/ServiceProviderRegistra
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
 
+const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
     bookingType: (data: string) => void;
@@ -39,6 +40,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [chatbotOpen, setChatbotOpen] = useState(false);
+     const [notificationPermission, setNotificationPermission] = useState<string>(Notification.permission);
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false); // Changed this state name
     const [serviceDialog, setServiceDialog] = useState<{
     open: boolean;
@@ -110,7 +112,67 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         }
         return start.toISOString().split('T')[0];
     };
+     useEffect(() => {
+        const requestNotificationPermission = async () => {
+          try {
+            if ('serviceWorker' in navigator && 'Notification' in window) {
+              const permission = await Notification.requestPermission();
+              setNotificationPermission(permission);
+              
+              if (permission === 'granted') {
+                await subscribeUser();
+              }
+            }
+          } catch (error) {
+            console.error('Error requesting notification permission:', error);
+          }
+        };
+    
+        // Only request permission if it hasn't been granted or denied yet
+        if (notificationPermission === 'default') {
+          requestNotificationPermission();
+        } else if (notificationPermission === 'granted') {
+          // If already granted, subscribe the user
+          subscribeUser();
+        }
+      }, [notificationPermission]);
+ const subscribeUser = async () => {
+    try {
+      const register = await navigator.serviceWorker.ready;
 
+      const existingSubscription = await register.pushManager.getSubscription();
+      if (existingSubscription) {
+        await existingSubscription.unsubscribe();
+      }
+
+      const subscription = await register.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+      });
+
+      await fetch('http://localhost:4000/subscribe', {
+        method: 'POST',
+        body: JSON.stringify(subscription),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      console.log('User subscribed:', subscription);
+    } catch (error) {
+      console.error('Error subscribing user:', error);
+    }
+  };
+
+   function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
     return (
         <main className="pt-16">
             {/* Hero Section */}
@@ -120,7 +182,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                         Book trusted household help in minutes
                     </h1>
                     <p className="text-gray-600 text-sm">
-                        ServEase connects you to trained maids, cooks, and caregivers on demand. Safe, affordable and instant.
+                        ServEaso connects you to trained maids, cooks, and caregivers on demand. Safe, affordable and instant.
                     </p>
                     <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <div className="card" onClick={() => handleClick('COOK')}>
