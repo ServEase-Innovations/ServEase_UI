@@ -1,5 +1,6 @@
+/* eslint-disable */
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, ArrowLeft } from "lucide-react";
+import { MessageCircle, X, Send, ArrowLeft, ChevronDown } from "lucide-react";
 import Draggable from "react-draggable";
 import { Button, Card, CardContent } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,14 +28,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
   const user = useSelector((state: any) => state.user?.value);
   const dispatch = useDispatch();
   const customerId = user?.customerDetails?.customerId || null;
-  console.log('customer details:', user)
   const currentLocation = user?.customerDetails?.currentLocation;
   const role = user?.role;
-  console.log(role);
   const firstName = user?.customerDetails?.firstName;
   const lastName = user?.customerDetails?.lastName;
   const customerName = `${firstName} ${lastName}`;
-  console.log("CUSTOMER NAME:", customerName);
   const faqData = role === "CUSTOMER" ? [...generalFaqData, ...customerFaqData] : generalFaqData;
 
   const [opens, setOpen] = useState(false);
@@ -43,6 +41,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
     { text: `Namaste ! Welcome to ServEase. How can we assist you today?`, sender: "bot" }
   ]);
   const [inputText, setInputText] = useState("");
+  const [showAllFaq, setShowAllFaq] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -55,6 +54,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
       { text: faq.question, sender: "user" },
       { text: faq.answer, sender: "bot" }
     ]);
+    // After clicking a question, hide the FAQs (show View All button)
+    setShowAllFaq(false);
   };
 
   const handleSendMessage = () => {
@@ -73,7 +74,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
               
               {/* Header Section */}
               <div className="flex justify-between items-center border-b pb-2">
-                {/* Back Button - Only when chatOpen is true */}
                 {chatOpen && (
                   <Button onClick={() => setChatOpen(false)} className="mr-2">
                     <ArrowLeft size={28} />
@@ -105,32 +105,44 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
                   </div>
                 ))}
 
-                {!chatOpen &&
-                  faqData.map((faq, index) => (
+                {!chatOpen && (
+                  <>
+                    {/* Show either all FAQs or the View All button */}
+                    {showAllFaq ? (
+                      faqData.map((faq, index) => (
+                        <Button
+                          key={index}
+                          variant="outlined"
+                          className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                          onClick={() => handleQuestionClick(faq)}
+                        >
+                          {faq.question}
+                        </Button>
+                      ))
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between"
+                        onClick={() => setShowAllFaq(true)}
+                      >
+                        View All FAQs
+                        <ChevronDown size={16} className="ml-2" />
+                      </Button>
+                    )}
+
                     <Button
-                      key={index}
                       variant="outlined"
                       className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
-                      onClick={() => handleQuestionClick(faq)}
+                      onClick={() => setChatOpen(true)}
                     >
-                      {faq.question}
+                      Chat with Assistant
                     </Button>
-                  ))
-                }
-
-                {!chatOpen && (
-                  <Button
-                    variant="outlined"
-                    className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
-                    onClick={() => setChatOpen(true)}
-                  >
-                    Chat with Assistant
-                  </Button>
+                  </>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Chat Input Section - Only when chatOpen is true */}
+              {/* Chat Input Section */}
               {chatOpen && (
                 <div className="flex items-center border-t p-4 bg-gray-100">
                   <input

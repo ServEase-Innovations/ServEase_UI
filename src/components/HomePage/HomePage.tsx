@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { Card, CardContent } from "../Card/card";
@@ -182,7 +183,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                         Book trusted household help in minutes
                     </h1>
                     <p className="text-gray-600 text-sm">
-                        ServEaso connects you to trained maids, cooks, and caregivers on demand. Safe, affordable and instant.
+                        ServEaso connects you to trained maids, cooks, and caregivers on demand. safe, affordable and instant.
                     </p>
                     <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <div className="card" onClick={() => handleClick('COOK')}>

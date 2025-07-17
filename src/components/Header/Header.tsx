@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
 import {
   Dialog,
   DialogActions,
@@ -10,7 +11,7 @@ import {
   IconButton,
   TextField,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
@@ -36,6 +37,7 @@ import { CartDialog } from "../AddToCart/CartDialog";
 import { FaHome } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
 import { FaLocationArrow } from "react-icons/fa";
+import { add } from "../../features/geoLocation/geoLocationSlice";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
@@ -64,10 +66,6 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
 
   const [dropDownOpen, setdropDownOpen] = useState(false);
 
-  if(isAuthenticated && !isLoading) {
-    console.log("User: ", user);
-  } 
-
 
   useEffect(() => {
     getLocation();
@@ -86,10 +84,12 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
           )}`
         );
         console.log("Email check response:", response.data);
-        if (response.data.exists === false) {
+        if (!response.data.user_role) {
           createUser(user);
           user.customerid = 1;
-          getCustomerPreferences(user.customerid);
+          // getCustomerPreferences(user.customerid);
+        } else {
+          getCustomerPreferences(Number(response.data.id));
         }
       } catch (error) {
         console.error("Error during post-login API call:", error);
@@ -99,18 +99,67 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     triggerPostLoginAPIs();
   }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
 
-  const [userPreference, setUserPreference] = useState<any[]>([]);
+  const [userPreference, setUserPreference] = useState<any>([]);
 
-  const createUser = async (user: any) => {};
+  // const createUser = async (user: any) => {};
+  const createUser = async (user: any) => {
+  try {
+ 
+    const userData = {
+      firstName: user.given_name || user.name.split(' ')[0] || 'User', // Fallback to 'User' if no first name
+      lastName: user.family_name || user.name.split(' ')[1] || '', // Empty string if no last name
+      emailId: user.email,
+      password: "password" 
+    };
+
+    console.log("Creating user with data:", userData);
+
+    
+    const response = await axios.post(
+      "https://servease-be-5x7f.onrender.com/api/customer/add-customer-new",
+      userData
+    );
+
+    console.log("User creation response:", response.data);
+
+  
+    if (response.data && response.data.id) {
+      const customerId = Number(response.data.id);
+      user.customerid = customerId;
+      await getCustomerPreferences(customerId);
+    } else {
+      console.warn("Unexpected response format:", response.data);
+    }
+  } catch (error) {
+    console.error("Error creating user:", error);
+   
+  }
+};
 
   const getCustomerPreferences = async (customerId: number) => {
     try {
-      const response = await axios.get("https://utils-ndt3.onrender.com/user-settings/1");
+      const response = await axios.get(`https://utils-ndt3.onrender.com/user-settings/${customerId}`);
       console.log("Response from user settings API:", response.data);
     
       if (response.status === 200) {
         console.log("Customer preferences fetched successfully:", response.data);
+
         setUserPreference(response.data);
+        if (user) {
+          user.customerid = customerId; // Update user object with customerId
+        }
+
+        console.log("Updated user object with customerId:", user);
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        const savedLocationSuggestions = response.data[0].savedLocations.map((loc, i) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
+  
+        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -123,11 +172,16 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const createUserPreferences = async (customerId: number) => {
+    if (user) {
+      user.customerid = customerId; // Ensure user object has customerId
+    }
     try {
       const payload : any = {
         customerId,
         savedLocations: [],
       };
+
+      console.log("Creating user preferences with payload:", payload);
     
       const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", payload);
     
@@ -241,13 +295,31 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     }
   };
 
+ 
+
   const handleChange = (newValue: any) => {
     if (newValue === "Add Address") {
       setOpen(true);
     } else if (newValue === "Detect Location") {
       getLocation();
+    } else {
+      console.log("Selected location:", newValue);
+      console.log("user preference ", userPreference);
+  
+      const loc = userPreference?.savedLocations?.find(
+        (location: any) => location.name === newValue
+      );
+  
+      if (loc?.location?.formatted_address) {
+        console.log("Location from user preference: ", loc.location.formatted_address);
+        setLocation(loc.location.formatted_address);
+        dispatch(add(loc));
+      } else {
+        console.warn("No matching location found for:", newValue);
+      }
     }
   };
+  
 
   const handleLocationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -277,9 +349,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
     if (!dataFromMap) {
       console.error("No location data selected from map");
       return;
-    } else {
-      alert("Location saved successfully");
-    }
+    } 
     setLocation(dataFromMap[0]?.formatted_address || "Location not found");
     setOpen(false);
     setOpenSaveOptionForSave(true);
@@ -294,7 +364,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   }
 
   const updateUserSetting = async () => {
-    if (!user?.customerid || !locationAs || !dataFromMap) {
+    if (!user || !locationAs || !dataFromMap ) {
       console.error("Missing required data to update user setting.");
       return;
     }
@@ -304,16 +374,16 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       location: dataFromMap[0],
     };
   
-    const updatedPreferences = userPreference && Array.isArray(userPreference)
-      ? [...userPreference, newLocation]
-      : [newLocation];
+    // Safely extract existing savedLocations from state
+    const existingLocations =
+      Array.isArray(userPreference?.savedLocations) ? userPreference.savedLocations : [];
+  
+    const updatedLocations = [...existingLocations, newLocation];
   
     const payload = {
       customerId: user.customerid,
-      savedLocations: updatedPreferences,
+      savedLocations: updatedLocations,
     };
-  
-    console.log("Payload for user settings:", payload);
   
     try {
       const response = await axios.put(
@@ -322,23 +392,20 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       );
   
       if (response.status === 200 || response.status === 201) {
-        setUserPreference(updatedPreferences); // update local state
+        setUserPreference({ customerId: user.customerid, savedLocations: updatedLocations });
         setOpenSaveOptionForSave(false);
         setLocationAs("");
-
-        // const baseSuggestions = [
-        //   { name: "Detect Location", index: 1 },
-        //   { name: "Add Address", index: 2 },
-        // ];
-
-        // const savedLocationSuggestions = userPreference.map((loc, i) => ({
-        //   name: loc.name,
-        //   index: i + 3,
-        // }));
-
-
-      
-        // setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+  
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        const savedLocationSuggestions = updatedLocations.map((loc, i) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
+  
+        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       } else {
         console.warn("Unexpected response while updating user settings:", response);
       }
@@ -346,6 +413,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
       console.error("Error updating user settings:", error);
     }
   };
+  
   
   const handleProceedToCheckout = () => {
     sendDataToParent(CHECKOUT);
@@ -409,7 +477,6 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       onClick={() => {
                         handleChange(suggestion.name);
-                        setLocation(suggestion.name);
                         setShowDropdown(false);
                       }}
                     >
