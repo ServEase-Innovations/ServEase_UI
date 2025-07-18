@@ -1018,27 +1018,30 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               sm={12}
               className="mt-4 flex justify-center items-center ml-10"
             >
-              <TextField
-                select
-                label="Select Service Type"
-                name="housekeepingRole"
-                fullWidth
-                value={formData.housekeepingRole}
-                onChange={(e) => handleChange(e)}
-                error={!!errors.housekeepingRole}
-                helperText={errors.housekeepingRole}
-                required
-              >
-                <MenuItem value="" disabled>
-                  Select Service Type
-                </MenuItem>
-                <MenuItem value="COOK">Cook</MenuItem>
-                <MenuItem value="NANNY">Nanny</MenuItem>
-                <MenuItem value="MAID">Maid</MenuItem>
-              </TextField>
+             <TextField
+  select
+  label="Select Service Type"
+  name="housekeepingRole"
+  fullWidth
+  value={formData.housekeepingRole}
+  onChange={(e) => {
+    handleChange(e);
+    setIsCookSelected(e.target.value === "COOK");
+  }}
+  error={!!errors.housekeepingRole}
+  helperText={errors.housekeepingRole}
+  required
+>
+  <MenuItem value="" disabled>
+    Select Service Type
+  </MenuItem>
+  <MenuItem value="COOK">Cook</MenuItem>
+  <MenuItem value="NANNY">Nanny</MenuItem>
+  <MenuItem value="MAID">Maid</MenuItem>
+</TextField>
             </Grid>
             {isCookSelected && (
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} >
                 <FormControl
                   component="fieldset"
                   error={!!errors.cookingSpeciality}
