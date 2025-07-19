@@ -58,10 +58,21 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
   const updateStartDate = (newValue: dayjs.Dayjs | null) => {
     if (newValue) {
-        setStartDate(newValue.format("YYYY-MM-DD")); // Changed to YYYY-MM-DD format
+        setStartDate(newValue.format("YYYY-MM-DD"));
         setStartTime(newValue);
-        // console.log("Start Date (YYYY-MM-DD):", newValue.format("YYYY-MM-DD"));
-        // console.log("Start Time:", newValue.format("hh:mm A"));
+        
+        // Add this logic for Monthly preference
+        if (selectedOption === "Monthly") {
+            const endDateValue = newValue.add(1, 'month');
+            setEndDate(endDateValue.format("YYYY-MM-DD"));
+            setEndTime(endDateValue);
+        }
+        
+        // For Date preference, set end date same as start date
+        if (selectedOption === "Date") {
+            setEndDate(newValue.format("YYYY-MM-DD"));
+            setEndTime(newValue);
+        }
     }
 };
 
@@ -73,6 +84,30 @@ const updateEndDate = (newValue: dayjs.Dayjs | null) => {
         // console.log("End Time:", newValue.format("hh:mm A"));
     }
 };
+
+const isConfirmDisabled = () => {
+  if (!selectedOption) return true;
+
+  switch (selectedOption) {
+    case "Date":
+      return !startDate || !startTime;
+    case "Short term":
+      if (!startDate || !endDate || !startTime || !endTime) return true;
+      return dayjs(endDate).isBefore(dayjs(startDate));
+    case "Monthly":
+      return !startDate || !startTime;
+    default:
+      return true;
+  }
+};
+const handleOptionChange = (val: string) => {
+  setStartDate(null);
+  setEndDate(null);
+  setStartTime(null);
+  setEndTime(null);
+  onOptionChange(val);
+};
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { width: "40%" } }}>
             <DialogTitle>Select your Booking</DialogTitle>
@@ -85,7 +120,7 @@ const updateEndDate = (newValue: dayjs.Dayjs | null) => {
                         row
                         name="booking-option"
                         value={selectedOption}
-                        onChange={(e) => onOptionChange(e.target.value)}
+                        onChange={(e) => handleOptionChange(e.target.value)}
                     >
                         <FormControlLabel value="Date" control={<Radio />} label="Date" />
                         <FormControlLabel value="Short term" control={<Radio />} label="Short term" />
@@ -147,10 +182,16 @@ const updateEndDate = (newValue: dayjs.Dayjs | null) => {
                 </LocalizationProvider>
             </DialogContent>
 
-            <DialogActions>
-                <Button onClick={onClose} variant="outlined">Cancel</Button>
-                <Button onClick={onSave} variant="outlined">Confirm</Button>
-            </DialogActions>
+           <DialogActions>
+    <Button onClick={onClose} variant="outlined">Cancel</Button>
+    <Button 
+        onClick={onSave} 
+        variant="outlined"
+        disabled={isConfirmDisabled()}
+    >
+        Confirm
+    </Button>
+</DialogActions>
         </Dialog>
     );
 };

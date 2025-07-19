@@ -360,115 +360,130 @@ const handleApplyLeaveClick = (booking: Booking) => {
   const renderBookings = (bookings: Booking[]) => (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
       {bookings.length > 0 ? (
-        bookings.map((booking) => (
-          <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
-            <CardContent>
-              {booking.taskStatus === "CANCELLED" && (
-                <Typography
-                  variant="body2"
-                  color="white"
-                  sx={{
-                    backgroundColor: "rgba(255, 0, 0, 0.5)",
-                    color: "rgba(255, 255, 255, 0.9)",
-                    padding: "8px 16px",
-                    borderRadius: "4px",
-                    fontWeight: "bold",
-                    marginBottom: "16px",
-                    textAlign: "center",
-                  }}
-                  gutterBottom
-                >
-                  Task Status: CANCELLED
+        bookings.map((booking) => {
+          const isOnDemandService = booking.startDate === booking.endDate;
+          
+          return (
+            <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
+              <CardContent>
+                {booking.taskStatus === "CANCELLED" && (
+                  <Typography
+                    variant="body2"
+                    color="white"
+                    sx={{
+                      backgroundColor: "rgba(255, 0, 0, 0.5)",
+                      color: "rgba(255, 255, 255, 0.9)",
+                      padding: "8px 16px",
+                      borderRadius: "4px",
+                      fontWeight: "bold",
+                      marginBottom: "16px",
+                      textAlign: "center",
+                    }}
+                    gutterBottom
+                  >
+                    Task Status: CANCELLED
+                  </Typography>
+                )}
+
+                <Typography variant="h6" gutterBottom>
+                  {isOnDemandService ? "On-Demand Service" : `Service Provider: ${booking.serviceProviderName}`}
                 </Typography>
-              )}
 
-              <Typography variant="h6" gutterBottom>
-                Service Provider: {booking.serviceProviderName}
-              </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Service Type: {booking.bookingType}
+                </Typography>
 
-              <Typography variant="body2" color="textSecondary">
-                Service Type: {booking.serviceeType}
-              </Typography>
+                {!isOnDemandService && (
+                  <>
+                    <Typography variant="body2" color="textSecondary">
+                      Start Date: {booking.startDate}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      End Date: {booking.endDate}
+                    </Typography>
+                  </>
+                )}
 
-              <Typography variant="body2" color="textSecondary">
-                Start Date: {booking.startDate}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                End Date: {booking.endDate}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Payment Mode: {booking.paymentMode}
-              </Typography>
-
-              <Typography variant="body2" color="textSecondary">
-                Booking Date: {booking.bookingDate}
-              </Typography>
-
-              {booking.taskStatus !== "CANCELLED" && (
-                <>
+                {isOnDemandService && (
                   <Typography variant="body2" color="textSecondary">
-                    Time Slot: {booking.timeSlot}
+                    Service Date: {booking.startDate}
                   </Typography>
+                )}
 
-                  <Typography variant="body2" color="textSecondary">
-                    Booking Type: {booking.bookingType}
-                  </Typography>
+                {/* ... (keep the rest of the card content the same) */}
+                <Typography variant="body2" color="textSecondary">
+                  Payment Mode: {booking.paymentMode}
+                </Typography>
 
-                  <Typography variant="body2" color="textSecondary">
-                    Monthly Amount: ₹{booking.monthlyAmount}
-                  </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Booking Date: {booking.bookingDate}
+                </Typography>
 
-                  <Typography variant="body2" color="textSecondary">
-                    Address: {booking.address}
-                  </Typography>
-
-                  <Typography variant="body2" color="textSecondary">
-                    Task Status: {booking.taskStatus}
-                  </Typography>
-                </>
-              )}
-              <Box display="flex" justifyContent="space-between" marginTop={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleModifyBooking(booking)}
-                  style={{
-                    padding: "8px 16px",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Modify
-                </Button>
-                  <Button
-      variant="contained"
-      color="secondary"
-    onClick={() => handleApplyLeaveClick(booking)}
-    >
-      Apply Holiday
-    </Button>
                 {booking.taskStatus !== "CANCELLED" && (
-                  <button
-                    onClick={() => handleCancelBooking(booking)}
+                  <>
+                    <Typography variant="body2" color="textSecondary">
+                      Time Slot: {booking.timeSlot}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Booking Type: {booking.bookingType}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Monthly Amount: ₹{booking.monthlyAmount}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Address: {booking.address}
+                    </Typography>
+
+                    <Typography variant="body2" color="textSecondary">
+                      Task Status: {booking.taskStatus}
+                    </Typography>
+                  </>
+                )}
+                <Box display="flex" justifyContent="space-between" marginTop={2}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleModifyBooking(booking)}
                     style={{
-                      backgroundColor: "red",
-                      color: "white",
                       padding: "8px 16px",
                       border: "none",
                       borderRadius: "4px",
                       cursor: "pointer",
                     }}
                   >
-                    Cancel
-                  </button>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        ))
+                    Modify
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => handleApplyLeaveClick(booking)}
+                    disabled={isOnDemandService} 
+                  >
+                    Apply Holiday
+                  </Button>
+                  {booking.taskStatus !== "CANCELLED" && (
+                    <button
+                      onClick={() => handleCancelBooking(booking)}
+                      style={{
+                        backgroundColor: "red",
+                        color: "white",
+                        padding: "8px 16px",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          );
+        })
       ) : (
         <Typography textAlign="center" color="textSecondary">
           No bookings found.

@@ -79,7 +79,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     timeslot: "",
     monthlyAmount: 0,
     paymentMode: "UPI",
-    bookingType: "MEAL_PACKAGE",
+    bookingType: "COOK",
     taskStatus: "NOT_STARTED", 
     responsibilities: [],
   };
@@ -423,7 +423,6 @@ useEffect(() => {
         bookingDetails.address = currentLocation;
         bookingDetails.startDate =bookingType?.startDate || "",
         bookingDetails.endDate = bookingType?.endDate || "";
-
         bookingDetails.engagements = selectedPackages
           .map((pkg) => `${pkg.mealType} for ${pkg.persons} persons`)
           .join(", ");
