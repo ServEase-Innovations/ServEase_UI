@@ -112,7 +112,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
   const [searchData, setSearchData] = useState<any>();
-  const [serviceProviderData, setServiceProviderData] = useState<any>();
+  const [serviceProviderData, setServiceProviderData] = useState<any>([]);
 
 
   const handleSearch = (formData: { serviceType: string; startTime: string; endTime: string }) => {
@@ -125,10 +125,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   
 
   const performSearch = async () => {
-    // const timeSlotFormatted = `${formData.startTime}-${formData.endTime}`;
-    const housekeepingRole = selected?.toUpperCase() || "cook";
+    const housekeepingRole = selected?.toUpperCase() || "COOK";
   
-    // Wrap geolocation in a promise
     const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
       new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -145,50 +143,43 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
           );
         }
       });
-    
   
     try {
-      let latitude = 0;
-let longitude = 0;
-
-if (!location) {
-  ({ latitude, longitude } = await getCoordinates());
-} else {
-  const latLng = location.location.geometry.location;
-
-  console.log("Location from Redux:", JSON.stringify(latLng));
-
-  const latitude = latLng?.lat;
-  const longitude = latLng?.lng;
-
-  console.log("Latitude:", latitude);
-  console.log("Longitude:", longitude);
-}
-
+      setLoading(true); // ✅ Start loading
   
-      const params = {
-        startDate: "2025-04-01",
-        endDate: "2025-04-30",
-        // timeslot: timeSlotFormatted,
-        housekeepingRole,
-        latitude,
-        longitude,
-      };
-      
-
-      const response = await axiosInstance.get(`/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=COOK&latitude=${latitude}&longitude=${longitude}`);
-      console.log('Response:', response.data);
-      if(response.data.length === 0) {
-        setLoading(true);
-        setServiceProviderData([])
+      let latitude = 0;
+      let longitude = 0;
+  
+      if (!location) {
+        ({ latitude, longitude } = await getCoordinates());
       } else {
-        setLoading(false);
-      setServiceProviderData(response.data);
+        const latLng = location.location.geometry.location;
+        console.log("Location from Redux:", JSON.stringify(latLng));
+        latitude = latLng?.lat;
+        longitude = latLng?.lng;
+        console.log("Latitude:", latitude);
+        console.log("Longitude:", longitude);
       }
-    } catch (error : any) {
-      console.error('Geolocation or API error:', error.message || error);
+  
+      const response = await axiosInstance.get(
+        `/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=${housekeepingRole}&latitude=${latitude}&longitude=${longitude}`
+      );
+  
+      console.log("Response:", response.data);
+  
+      if (response.data.length === 0) {
+        setServiceProviderData([]);
+      } else {
+        setServiceProviderData(response.data);
+      }
+    } catch (error: any) {
+      console.error("Geolocation or API error:", error.message || error);
+      setServiceProviderData([]);
+    } finally {
+      setLoading(false); // ✅ Always stop loading
     }
   };
+  
   
 
   // performSearch();
@@ -201,17 +192,43 @@ if (!location) {
   return (
     <main className="main-container" pt-16>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
-      serviceProviderData.map((provider, index) => (
-        <div style={{paddingTop:'1%'}}>
-        <ProviderDetails  {...provider}/>
-        </div>
-      ))
-    ) : (
-      <div style={{width: "100%", display: "grid", justifyContent: "center", alignItems: "center" , position:"absolute", top: "40%"}}>
-        <img src="search.gif" alt="No Data" />
-        <p> Search providers near you</p>
-      </div> 
-    )} 
+  serviceProviderData.map((provider, index) => (
+    <div key={index} style={{ paddingTop: '1%' }}>
+      <ProviderDetails {...provider} />
+    </div>
+  ))
+) : loading === true ? (
+  // Show loading placeholder
+  <div
+    style={{
+      width: "100%",
+      display: "grid",
+      justifyContent: "center",
+      alignItems: "center",
+      position: "absolute",
+      top: "40%"
+    }}
+  >
+    <img src="search.gif" alt="Loading" />
+    <p> Searching providers near you...</p>
+  </div>
+) : (
+  // Show "no providers found" message
+  <div
+    style={{
+      width: "100%",
+      display: "grid",
+      justifyContent: "center",
+      alignItems: "center",
+      position: "absolute",
+      top: "40%"
+    }}
+  >
+    <img src="no-data.png" alt="No Providers Found" />
+    <p> No providers found near you</p>
+  </div>
+)}
+
     </main>  
   );
 };

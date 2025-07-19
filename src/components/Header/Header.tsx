@@ -86,7 +86,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
         console.log("Email check response:", response.data);
         if (!response.data.user_role) {
           createUser(user);
-          user.customerid = 1;
+          // user.customerid = 1;
           // getCustomerPreferences(user.customerid);
         } else {
           getCustomerPreferences(Number(response.data.id));

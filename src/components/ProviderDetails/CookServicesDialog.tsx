@@ -383,7 +383,7 @@ useEffect(() => {
       );
 
       const response = await axios.post(
-        "https://utils-dmua.onrender.com/create-order",
+        "https://utils-ndt3.onrender.com/create-order",
         { amount: totalAmount * 100 },
         { headers: { "Content-Type": "application/json" } }
       );

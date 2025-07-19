@@ -87,7 +87,7 @@ if (userRole === "CUSTOMER") {
   });
 
   const getPricingData = () => {
-    axios.get('https://utils-dmua.onrender.com/records').then(function (response) {
+    axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });
