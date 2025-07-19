@@ -514,8 +514,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault(); // Prevent default form submission
+
+    // Only proceed if we're on the last step
+    if (activeStep !== steps.length - 1) return;
 
     // Filter out empty values from the form data
     const filteredPayload = Object.fromEntries(
@@ -524,30 +527,26 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       )
     );
 
-    // Form validation (optional)
+    // Form validation
     if (validateForm()) {
       try {
         if (image) {
-          // If image is provided, upload the image first
           const formData1 = new FormData();
           formData1.append("image", image);
 
-          // Axios call for image upload
           const imageResponse = await axiosInstance.post(
             "http://65.2.153.173:3000/upload",
             formData1,
             {
               headers: {
-                "Content-Type": "multipart/form-data", // Ensure correct content type
+                "Content-Type": "multipart/form-data",
               },
             }
           );
 
           if (imageResponse.status === 200) {
-            // Add image URL to the payload
             filteredPayload.profilePic = imageResponse.data.imageUrl;
           } else {
-            // If image upload fails, notify the user
             setSnackbarOpen(true);
             setSnackbarSeverity("error");
             setSnackbarMessage(
@@ -556,7 +555,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           }
         }
 
-        // Add service provider
         const response = await axiosInstance.post(
           "/api/serviceproviders/serviceprovider/add",
           filteredPayload,
@@ -567,30 +565,26 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           }
         );
 
-        // Success handling
         setSnackbarOpen(true);
         setSnackbarSeverity("success");
         setSnackbarMessage("Service provider added successfully!");
-        console.log("Success:", response.data);
-
-        // Navigate back to login after a delay
+        
         setTimeout(() => {
           onBackToLogin(true);
-        }, 3000); // Wait for 3 seconds to display Snackbar
+        }, 3000);
       } catch (error) {
-        // Error handling for adding service provider
         setSnackbarOpen(true);
         setSnackbarSeverity("error");
         setSnackbarMessage("Failed to add service provider. Please try again.");
         console.error("Error submitting form:", error);
       }
     } else {
-      // Form validation failed
       setSnackbarOpen(true);
       setSnackbarSeverity("warning");
       setSnackbarMessage("Please fill out all required fields.");
     }
   };
+
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
@@ -1264,7 +1258,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       case 4:
         return (
           <Grid container spacing={2}>
-            <Typography variant="h6" align="center">
+            <Typography variant="h5" align="center">
               All steps completed - You're ready to submit your information!
             </Typography>
             <Grid item xs={12}>
@@ -1304,7 +1298,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               </Step>
             ))}
           </Stepper>
-          <form onSubmit={handleSubmit}>
+             <form onSubmit={(e) => {
+            e.preventDefault();
+            if (activeStep === steps.length - 1) {
+              handleSubmit(e);
+            }
+          }}>
             {renderStepContent(activeStep)}
             <Box
               sx={{
@@ -1331,7 +1330,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 >
                   <span>
                     <Button
-                      type="submit"
+                      type="submit" // This will trigger form submission
                       variant="contained"
                       color="primary"
                       disabled={!formData.agreeToTerms}
@@ -1344,7 +1343,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 <Button
                   variant="contained"
                   color="primary"
-                  onClick={handleNext}
+                  onClick={(e) => {
+                    e.preventDefault(); // Prevent form submission
+                    handleNext(); // Only proceed to next step
+                  }}
                   endIcon={<ArrowForward />}
                 >
                   Next
