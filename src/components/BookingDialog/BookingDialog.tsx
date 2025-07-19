@@ -56,15 +56,23 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 }) => {
     const [value, setValue] = useState<Dayjs | null>(dayjs());
 
-    const updateStartDate = (newValue: dayjs.Dayjs | null) => {
-        console.log("Selected date/time:", newValue?.format("DD/MM/YYYY hh:mm A"));
-        setStartDate(newValue?.format("DD/MM/YYYY hh:mm A") || null);
+  const updateStartDate = (newValue: dayjs.Dayjs | null) => {
+    if (newValue) {
+        setStartDate(newValue.format("YYYY-MM-DD")); // Changed to YYYY-MM-DD format
+        setStartTime(newValue);
+        // console.log("Start Date (YYYY-MM-DD):", newValue.format("YYYY-MM-DD"));
+        // console.log("Start Time:", newValue.format("hh:mm A"));
     }
+};
 
-    const updateEndDate = (newValue: dayjs.Dayjs | null) => {
-        console.log("Selected date/time:", newValue?.format("DD/MM/YYYY hh:mm A"));
+const updateEndDate = (newValue: dayjs.Dayjs | null) => {
+    if (newValue) {
+        setEndDate(newValue.format("YYYY-MM-DD")); // Changed to YYYY-MM-DD format
+        setEndTime(newValue);
+        // console.log("End Date (YYYY-MM-DD):", newValue.format("YYYY-MM-DD"));
+        // console.log("End Time:", newValue.format("hh:mm A"));
     }
-
+};
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { width: "40%" } }}>
             <DialogTitle>Select your Booking</DialogTitle>

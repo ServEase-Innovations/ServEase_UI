@@ -18,6 +18,13 @@ import { MealPackage } from '../../types/mealPackage';
 import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton } from './CookServicesDialog.styles';
 import { Button } from "../Button/button";
 
+
+import { useAuth0 } from "@auth0/auth0-react";
+ 
+
+ 
+
+
 interface CookServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -37,7 +44,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
 }) => {
   const dispatch = useDispatch();
   
-  const user = useSelector((state: any) => state.user?.value);
+  const users = useSelector((state: any) => state.user?.value);
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const [packages, setPackages] = useState<PackagesState>({});
   const [loginOpen, setLoginOpen] = useState(false);
@@ -45,13 +52,21 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const cart = useSelector((state: any) => state.addToCart?.items || []);
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
+  console.log("bookingType",bookingType)
+  const currentLocation = users?.customerDetails?.currentLocation;
+  const firstName = users?.customerDetails?.firstName;
+  const lastName = users?.customerDetails?.lastName;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-
+ const { user, isAuthenticated} =  useAuth0();
+   useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("User Info:", user);
+       console.log("Name:", user.name);
+      console.log("Customer ID:", user.customerid);
+    }
+  }, [isAuthenticated, user]);
+  
+  
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
     serviceProviderName: "",
@@ -381,7 +396,8 @@ useEffect(() => {
         (sum, pkg) => sum + pkg.price,
         0
       );
-
+    const customerName = user?.name || "Guest";
+    const customerId = user?.customerid || "guest-id";
       const response = await axios.post(
         "https://utils-ndt3.onrender.com/create-order",
         { amount: totalAmount * 100 },
@@ -405,8 +421,7 @@ useEffect(() => {
         bookingDetails.customerId = customerId;
         bookingDetails.customerName = customerName;
         bookingDetails.address = currentLocation;
-        bookingDetails.startDate =
-          bookingType?.startDate || new Date().toISOString().split("T")[0];
+        bookingDetails.startDate =bookingType?.startDate || "",
         bookingDetails.endDate = bookingType?.endDate || "";
 
         bookingDetails.engagements = selectedPackages

@@ -10,6 +10,7 @@ import {
   Paper,
   Card,
   CardContent,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,8 +25,9 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store/userStore';
 import { update } from "../../features/bookingType/bookingTypeSlice";
 import ProviderDetails from '../ProviderDetails/ProviderDetails';
-import { Button } from "../Button/button";
+import { useAuth0 } from '@auth0/auth0-react';
 import UserHoliday from './UserHoliday';
+
 type UserState = {
   value?: {
     serviceeType?: string;
@@ -68,73 +70,23 @@ const Booking: React.FC = () => {
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
-  const user = useSelector((state: RootState) => state.user as UserState);
-  const customerId = user?.value?.customerDetails?.customerId ?? null;
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
-const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
-  // Function to generate dummy current bookings data
-  const generateDummyCurrentBookings = (): Booking[] => {
-    return [
-      {
-        id: 1,
-        name: 'Dummy Booking 1',
-        serviceProviderId: 101,
-        timeSlot: '09:00-12:00',
-        date: new Date().toLocaleDateString(),
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        bookingType: 'Regular',
-        monthlyAmount: 5000,
-        paymentMode: 'Online',
-        address: '123 Dummy Street, Dummy City',
-        customerName: 'John Doe',
-        serviceProviderName: 'Jane Smith (Dummy)',
-        taskStatus: 'PENDING',
-        bookingDate: new Date().toISOString().split('T')[0],
-        engagements: 'Cleaning',
-        serviceeType: 'Home Cleaning',
-        serviceType: 'Cleaning',
-        childAge: '',
-        experience: '',
-        noOfPersons: '2',
-        mealType: '',
-        responsibilities: 'General cleaning'
-      },
-      {
-        id: 2,
-        name: 'Dummy Booking 2',
-        serviceProviderId: 102,
-        timeSlot: '14:00-16:00',
-        date: new Date().toLocaleDateString(),
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        bookingType: 'One-time',
-        monthlyAmount: 3000,
-        paymentMode: 'Cash',
-        address: '456 Example Ave, Test City',
-        customerName: 'John Doe',
-        serviceProviderName: 'Mike Johnson (Dummy)',
-        taskStatus: 'CONFIRMED',
-        bookingDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        engagements: 'Cooking',
-        serviceeType: 'Chef Service',
-        serviceType: 'Cooking',
-        childAge: '',
-        experience: '5 years',
-        noOfPersons: '4',
-        mealType: 'Vegetarian',
-        responsibilities: 'Prepare dinner'
-      }
-    ];
-  };
+  const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
+  const { user: auth0User, isAuthenticated } = useAuth0();
+  const [customerId, setCustomerId] = useState<number | null>(null);
 
+useEffect(() => {
+  if (isAuthenticated && auth0User) {
+    setCustomerId(auth0User.customerid); // Use this directly
+  }
+}, [isAuthenticated, auth0User]);
+  // Fetch available time slots for a service provider
   const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
     try {
       const response = await axiosInstance.get(
@@ -150,6 +102,7 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
         `${(i + 6).toString().padStart(2, "0")}:00`
       );
       
+
       const processedSlots = engagementData.map(entry => {
         const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
         const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
@@ -176,20 +129,21 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
 
   useEffect(() => {
     if (customerId !== null) {
-      setIsLoading(true);
-      const page = 0;
-      const size = 100;
+      const page = 0; // Default page
+      const size = 100; // Default size
 
       axiosInstance
         .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
-          
+          console.log('Past Bookings:', past);
           const mapBookingData = (data: any[]) =>
             Array.isArray(data)
               ? data
                   .filter((item) => item.customerId === customerId)
                   .map((item) => {
+                    console.log("Service Provider ID:", item.serviceProviderId);
+
                     return {
                       id: item.id,
                       customerId: item.customerId,
@@ -220,40 +174,25 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
               : [];
 
           setPastBookings(mapBookingData(past));
-          const currentBookingsData = mapBookingData(current);
-          
-          if (currentBookingsData.length === 0 && selectedTab === 0) {
-            setCurrentBookings(generateDummyCurrentBookings());
-          } else {
-            setCurrentBookings(currentBookingsData);
-          }
-          
+          console.log('Past :', setPastBookings);
+          setCurrentBookings(mapBookingData(current));
           setFutureBookings(mapBookingData(future));
         })
         .catch((error) => {
           console.error("Error fetching booking details:", error);
-          if (selectedTab === 0) {
-            setCurrentBookings(generateDummyCurrentBookings());
-          }
-        })
-        .finally(() => {
-          setIsLoading(false);
         });
     }
-  }, [customerId, selectedTab]);
+  }, [customerId]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
-    
-    if (newValue === 0 && currentBookings.length === 0) {
-      setCurrentBookings(generateDummyCurrentBookings());
-    }
   };
 
   const handleModifyBooking = async (booking: Booking) => {
     setSelectedBooking(booking);
     setSelectedTimeSlot(booking.timeSlot);
 
+    // Fetch available time slots for the service provider
     const availableSlots = await generateTimeSlots(booking.serviceProviderId);
     setTimeSlots(availableSlots);
 
@@ -278,7 +217,7 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
         startDate: selectedBooking.startDate,
         endDate: selectedBooking.endDate,
         engagements: selectedBooking.engagements,
-        timeslot: selectedTimeSlot,
+        timeslot: selectedTimeSlot, // Updated time slot
         monthlyAmount: selectedBooking.monthlyAmount,
         paymentMode: selectedBooking.paymentMode,
         bookingType: selectedBooking.bookingType,
@@ -302,6 +241,9 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
           updatePayload
         );
 
+        console.log("Update Response:", response.data);
+
+        // Update state to reflect the change
         setCurrentBookings((prev) =>
           prev.map((b) =>
             b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
@@ -318,6 +260,13 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
         setOpenSnackbar(true);
       } catch (error: any) {
         console.error("Error updating task status:", error);
+        if (error.response) {
+          console.error("Full error response:", error.response.data);
+        } else if (error.message) {
+          console.error("Error message:", error.message);
+        } else {
+          console.error("Unknown error occurred");
+        }
       }
     }
   };
@@ -328,11 +277,11 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
     const updatePayload = {
       id: booking.id,
       serviceProviderId: booking.serviceProviderId,
-      customerId: customerId,
+      customerId: customerId, // Fixed: Use `booking.customerId` instead of `customerId`
       startDate: booking.startDate,
       endDate: booking.endDate,
       engagements: booking.engagements,
-      timeslot: booking.timeSlot,
+      timeslot: booking.timeSlot, // Fixed: Match field name (not timeSlot)
       monthlyAmount: booking.monthlyAmount,
       paymentMode: booking.paymentMode,
       bookingType: booking.bookingType,
@@ -343,19 +292,23 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
       noOfPersons: booking.noOfPersons,
       experience: booking.experience,
       childAge: booking.childAge,
-      serviceeType: booking.serviceeType,
+      serviceeType: booking.serviceeType, // Kept as it is since it exists in your JSON
       customerName: booking.customerName,
       serviceProviderName: booking.serviceProviderName,
       address: booking.address,
-      taskStatus: updatedStatus,
+      taskStatus: updatedStatus, // Updated task status
     };
 
     try {
+      console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
       const response = await axiosInstance.put(
         `/api/serviceproviders/update/engagement/${booking.id}`,
         updatePayload
       );
 
+      console.log("Update Response:", response.data);
+
+      // Update state to reflect the change
       setCurrentBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
@@ -368,155 +321,159 @@ const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking |
       );
     } catch (error: any) {
       console.error("Error updating task status:", error);
+      if (error.response) {
+        console.error("Full error response:", error.response.data);
+      } else if (error.message) {
+        console.error("Error message:", error.message);
+      } else {
+        console.error("Unknown error occurred");
+      }
     }
     setOpenSnackbar(true);
   };
-const handleLeaveSubmit = async (startDate: string, endDate: string) => {
-  if (!selectedBookingForLeave) return;
+ const handleLeaveSubmit = async (startDate: string, endDate: string): Promise<void> => {
+  if (!selectedBookingForLeave || !customerId) {
+    throw new Error("Missing required information for leave application");
+  }
 
   try {
-    const response = await axiosInstance.post(
-      `/api/bookings/${selectedBookingForLeave.id}/apply-leave`,
+    await axiosInstance.post(
+      '/api/customer/add-customer-holiday',
       {
-        startDate,
-        endDate,
-        // Add any other required parameters
+        customerId: customerId,
+        startDate: startDate,
+        endDate: endDate
       }
     );
-    // Optionally refresh bookings or update state
+    setOpenSnackbar(true);
   } catch (error) {
     console.error("Error applying leave:", error);
-    throw error; // This will be caught in the UserHoliday component
+    throw error;
   }
 };
+
 const handleApplyLeaveClick = (booking: Booking) => {
   setSelectedBookingForLeave(booking);
   setHolidayDialogOpen(true);
 };
+
   const renderBookings = (bookings: Booking[]) => (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
-      {/* {
-      isLoading ? (
-        <Typography textAlign="center" color="textSecondary">
-          Loading bookings...
-        </Typography>
-      ) :bookings.length > 0 ? ( */}
-        <>
-          {selectedTab === 0 && bookings.some(b => b.serviceProviderName.includes('(Dummy)')) && (
-            <Alert severity="info" sx={{ marginBottom: 2 }}>
-              Note: Displaying sample dummy data as no real bookings were found.
-            </Alert>
-          )}
-          
-          {bookings.map((booking) => (
-            <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
-              <CardContent>
-                {booking.taskStatus === "CANCELLED" && (
-                  <Typography
-                    variant="body2"
-                    color="white"
-                    sx={{
-                      backgroundColor: "rgba(255, 0, 0, 0.5)",
-                      color: "rgba(255, 255, 255, 0.9)",
-                      padding: "8px 16px",
-                      borderRadius: "4px",
-                      fontWeight: "bold",
-                      marginBottom: "16px",
-                      textAlign: "center",
-                    }}
-                    gutterBottom
-                  >
-                    Task Status: CANCELLED
+      {bookings.length > 0 ? (
+        bookings.map((booking) => (
+          <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
+            <CardContent>
+              {booking.taskStatus === "CANCELLED" && (
+                <Typography
+                  variant="body2"
+                  color="white"
+                  sx={{
+                    backgroundColor: "rgba(255, 0, 0, 0.5)",
+                    color: "rgba(255, 255, 255, 0.9)",
+                    padding: "8px 16px",
+                    borderRadius: "4px",
+                    fontWeight: "bold",
+                    marginBottom: "16px",
+                    textAlign: "center",
+                  }}
+                  gutterBottom
+                >
+                  Task Status: CANCELLED
+                </Typography>
+              )}
+
+              <Typography variant="h6" gutterBottom>
+                Service Provider: {booking.serviceProviderName}
+              </Typography>
+
+              <Typography variant="body2" color="textSecondary">
+                Service Type: {booking.serviceeType}
+              </Typography>
+
+              <Typography variant="body2" color="textSecondary">
+                Start Date: {booking.startDate}
+              </Typography>
+
+              <Typography variant="body2" color="textSecondary">
+                End Date: {booking.endDate}
+              </Typography>
+
+              <Typography variant="body2" color="textSecondary">
+                Payment Mode: {booking.paymentMode}
+              </Typography>
+
+              <Typography variant="body2" color="textSecondary">
+                Booking Date: {booking.bookingDate}
+              </Typography>
+
+              {booking.taskStatus !== "CANCELLED" && (
+                <>
+                  <Typography variant="body2" color="textSecondary">
+                    Time Slot: {booking.timeSlot}
                   </Typography>
-                )}
 
-                <Typography variant="h6" gutterBottom>
-                  Service Provider: {booking.serviceProviderName}
-                </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Booking Type: {booking.bookingType}
+                  </Typography>
 
-                <Typography variant="body2" color="textSecondary">
-                  Service Type: {booking.serviceeType}
-                </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Monthly Amount: ₹{booking.monthlyAmount}
+                  </Typography>
 
-                <Typography variant="body2" color="textSecondary">
-                  Start Date: {booking.startDate}
-                </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Address: {booking.address}
+                  </Typography>
 
-                <Typography variant="body2" color="textSecondary">
-                  End Date: {booking.endDate}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Payment Mode: {booking.paymentMode}
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary">
-                  Booking Date: {booking.bookingDate}
-                </Typography>
-
-                {booking.taskStatus !== "CANCELLED" && (
-                  <>
-                    <Typography variant="body2" color="textSecondary">
-                      Time Slot: {booking.timeSlot}
-                    </Typography>
-
-                    <Typography variant="body2" color="textSecondary">
-                      Booking Type: {booking.bookingType}
-                    </Typography>
-
-                    <Typography variant="body2" color="textSecondary">
-                      Monthly Amount: ₹{booking.monthlyAmount}
-                    </Typography>
-
-                    <Typography variant="body2" color="textSecondary">
-                      Address: {booking.address}
-                    </Typography>
-
-                    <Typography variant="body2" color="textSecondary">
-                      Task Status: {booking.taskStatus}
-                    </Typography>
-                  </>
-                )}
-                <Box display="flex" justifyContent="space-between" marginTop={2}>
+                  <Typography variant="body2" color="textSecondary">
+                    Task Status: {booking.taskStatus}
+                  </Typography>
+                </>
+              )}
+              <Box display="flex" justifyContent="space-between" marginTop={2}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleModifyBooking(booking)}
+                  style={{
+                    padding: "8px 16px",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Modify
+                </Button>
                   <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => handleModifyBooking(booking)}
-                  >
-                    Modify
-                  </Button>
-                    <Button
       variant="contained"
       color="secondary"
     onClick={() => handleApplyLeaveClick(booking)}
     >
-      Apply Leave
+      Apply Holiday
     </Button>
-                  {booking.taskStatus !== "CANCELLED" && (
-                    <button
-                      onClick={() => handleCancelBooking(booking)}
-                      style={{
-                        backgroundColor: "red",
-                        color: "white",
-                        padding: "8px 16px",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </>
-      {/* ) : (
+                {booking.taskStatus !== "CANCELLED" && (
+                  <button
+                    onClick={() => handleCancelBooking(booking)}
+                    style={{
+                      backgroundColor: "red",
+                      color: "white",
+                      padding: "8px 16px",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
         <Typography textAlign="center" color="textSecondary">
           No bookings found.
         </Typography>
-      )} */}
+      )}
     </Box>
   );
 
@@ -544,6 +501,7 @@ const handleApplyLeaveClick = (booking: Booking) => {
         </Box>
       </Paper>
 
+      {/* Dialog for modifying bookings */}
       <Dialog open={openDialog} onClose={handleDialogClose}>
         <DialogTitle>Modify Booking</DialogTitle>
         <DialogContent>
