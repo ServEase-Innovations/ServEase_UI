@@ -390,7 +390,7 @@ const handleApplyLeaveClick = (booking: Booking) => {
                 </Typography>
 
                 <Typography variant="body2" color="textSecondary">
-                  Service Type: {booking.bookingType}
+                  Service Type: {booking.serviceType}
                 </Typography>
 
                 {!isOnDemandService && (

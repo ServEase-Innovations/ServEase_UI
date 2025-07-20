@@ -79,8 +79,9 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     timeslot: "",
     monthlyAmount: 0,
     paymentMode: "UPI",
-    bookingType: "COOK",
+    bookingType: "",
     taskStatus: "NOT_STARTED", 
+    serviceType: "COOK",
     responsibilities: [],
   };
 
@@ -376,7 +377,14 @@ useEffect(() => {
   const handleApplyVoucher = () => {
     // Voucher application logic
   };
-
+const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+  if (!bookingPreference) return 'MONTHLY'; // default
+  
+  const pref = bookingPreference.toLowerCase();
+  if (pref === 'date') return 'ON_DEMAND';
+  if (pref === 'short term') return 'SHORT_TERM';
+  return 'MONTHLY';
+};
   const handleCheckout = async () => {
     try {
       const selectedPackages = Object.entries(packages)
@@ -428,7 +436,7 @@ useEffect(() => {
           .join(", ");
         bookingDetails.monthlyAmount = totalAmount;
         bookingDetails.timeslot = bookingType.timeRange;
-
+         bookingDetails.bookingType = getBookingTypeFromPreference(bookingType?.bookingPreference);
         const options = {
           key: "rzp_test_lTdgjtSRlEwreA",
           amount,
