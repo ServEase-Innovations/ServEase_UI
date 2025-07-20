@@ -107,6 +107,27 @@ const handleOptionChange = (val: string) => {
   setEndTime(null);
   onOptionChange(val);
 };
+    const today = dayjs();
+    const maxDate21Days = today.add(21, 'day');
+     const maxDate90Days = today.add(90, 'day');
+     // Function to disable dates outside our range
+    // Disable dates outside the allowed range (differs by booking type)
+    const shouldDisableDate = (date: Dayjs) => {
+        if (selectedOption === "Monthly") {
+            return date.isBefore(today, 'day') || date.isAfter(maxDate90Days, 'day');
+        } else { // "Date" or "Short term"
+            return date.isBefore(today, 'day') || date.isAfter(maxDate21Days, 'day');
+        }
+    };
+
+    // Disable months outside the allowed range
+    const shouldDisableMonth = (month: Dayjs) => {
+        if (selectedOption === "Monthly") {
+            return month.isBefore(today, 'month') || month.isAfter(maxDate90Days, 'month');
+        } else { // "Date" or "Short term"
+            return month.isBefore(today, 'month') || month.isAfter(maxDate21Days, 'month');
+        }
+    };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { width: "40%" } }}>
@@ -136,7 +157,14 @@ const handleOptionChange = (val: string) => {
 
                                     <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
                                         updateStartDate(newValue);
-                                    }} />
+                                    }} 
+                                     minDate={today}
+                                maxDate={maxDate21Days}
+                                shouldDisableDate={shouldDisableDate}
+                                disableFuture={false}
+                                disablePast={false}
+                                viewRenderers={{ month: undefined }}/>
+
                                 </DemoContainer>
                             </LocalizationProvider>
                         </>
@@ -174,7 +202,12 @@ const handleOptionChange = (val: string) => {
 
                                     <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
                                         updateStartDate(newValue);
-                                    }} />
+                                    }} 
+                                minDate={today}
+                                maxDate={maxDate90Days}
+                                shouldDisableDate={shouldDisableDate}
+                                disableFuture={false}
+                                disablePast={false}/>
                                 </DemoContainer>
                             </LocalizationProvider>
                         </>

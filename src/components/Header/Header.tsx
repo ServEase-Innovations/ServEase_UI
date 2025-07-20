@@ -11,7 +11,7 @@ import {
   IconButton,
   TextField,
 } from "@mui/material";
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useState, useEffect, useReducer, useRef } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
@@ -63,9 +63,25 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   } = useAuth0();
 
   const cart = useSelector((state: any) => state.cart?.value);
-
+   const dropdownRef = useRef<HTMLDivElement>(null); 
   const [dropDownOpen, setdropDownOpen] = useState(false);
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setdropDownOpen(false); // Close dropdown if clicked outside
+    }
+  };
 
+  // Attach the listener when dropdown is open
+  if (dropDownOpen) {
+    document.addEventListener("mousedown", handleClickOutside);
+  }
+
+  // Clean up the listener
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [dropDownOpen]); // Only re-run if dropDownOpen changes
 
   useEffect(() => {
     getLocation();
@@ -518,7 +534,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
               </button>
 
               {dropDownOpen && (
-  <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
+  <div  ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
     <ul className="py-2">
       <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
         Profile
