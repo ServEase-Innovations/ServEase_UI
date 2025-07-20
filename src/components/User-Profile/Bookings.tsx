@@ -271,66 +271,71 @@ useEffect(() => {
     }
   };
 
-  const handleCancelBooking = async (booking: Booking) => {
-    const updatedStatus = "CANCELLED";
+ const handleCancelBooking = async (booking: Booking) => {
+  const updatedStatus = "CANCELLED";
 
-    const updatePayload = {
-      id: booking.id,
-      serviceProviderId: booking.serviceProviderId,
-      customerId: customerId, // Fixed: Use `booking.customerId` instead of `customerId`
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      engagements: booking.engagements,
-      timeslot: booking.timeSlot, // Fixed: Match field name (not timeSlot)
-      monthlyAmount: booking.monthlyAmount,
-      paymentMode: booking.paymentMode,
-      bookingType: booking.bookingType,
-      bookingDate: booking.bookingDate,
-      responsibilities: booking.responsibilities,
-      serviceType: booking.serviceType,
-      mealType: booking.mealType,
-      noOfPersons: booking.noOfPersons,
-      experience: booking.experience,
-      childAge: booking.childAge,
-      serviceeType: booking.serviceeType, // Kept as it is since it exists in your JSON
-      customerName: booking.customerName,
-      serviceProviderName: booking.serviceProviderName,
-      address: booking.address,
-      taskStatus: updatedStatus, // Updated task status
-    };
-
-    try {
-      console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
-      const response = await axiosInstance.put(
-        `/api/serviceproviders/update/engagement/${booking.id}`,
-        updatePayload
-      );
-
-      console.log("Update Response:", response.data);
-
-      // Update state to reflect the change
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-        )
-      );
-    } catch (error: any) {
-      console.error("Error updating task status:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      } else if (error.message) {
-        console.error("Error message:", error.message);
-      } else {
-        console.error("Unknown error occurred");
-      }
-    }
-    setOpenSnackbar(true);
+  // Create base payload without service provider info
+  const updatePayload: any = {
+    id: booking.id,
+    customerId: customerId,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    engagements: booking.engagements,
+    timeslot: booking.timeSlot,
+    monthlyAmount: booking.monthlyAmount,
+    paymentMode: booking.paymentMode,
+    bookingType: booking.bookingType,
+    bookingDate: booking.bookingDate,
+    responsibilities: booking.responsibilities,
+    serviceType: booking.serviceType,
+    mealType: booking.mealType,
+    noOfPersons: booking.noOfPersons,
+    experience: booking.experience,
+    childAge: booking.childAge,
+    serviceeType: booking.serviceeType,
+    customerName: booking.customerName,
+    address: booking.address,
+    taskStatus: updatedStatus,
   };
+
+  // Only include service provider info if not ON_DEMAND
+  if (booking.bookingType !== "ON_DEMAND") {
+    updatePayload.serviceProviderId = booking.serviceProviderId;
+    updatePayload.serviceProviderName = booking.serviceProviderName;
+  }
+
+  try {
+    console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
+    const response = await axiosInstance.put(
+      `/api/serviceproviders/update/engagement/${booking.id}`,
+      updatePayload
+    );
+
+    console.log("Update Response:", response.data);
+
+    // Update state to reflect the change
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+      )
+    );
+  } catch (error: any) {
+    console.error("Error updating task status:", error);
+    if (error.response) {
+      console.error("Full error response:", error.response.data);
+    } else if (error.message) {
+      console.error("Error message:", error.message);
+    } else {
+      console.error("Unknown error occurred");
+    }
+  }
+  setOpenSnackbar(true);
+};
  const handleLeaveSubmit = async (startDate: string, endDate: string): Promise<void> => {
   if (!selectedBookingForLeave || !customerId) {
     throw new Error("Missing required information for leave application");
@@ -361,7 +366,7 @@ const handleApplyLeaveClick = (booking: Booking) => {
     <Box display="flex" flexDirection="column" gap={2} width="100%">
       {bookings.length > 0 ? (
         bookings.map((booking) => {
-          const isOnDemandService = booking.startDate === booking.endDate;
+           const isOnDemandService = booking.bookingType === "ON_DEMAND";
           
           return (
             <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
