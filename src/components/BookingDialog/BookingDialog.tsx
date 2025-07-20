@@ -108,8 +108,8 @@ const handleOptionChange = (val: string) => {
   onOptionChange(val);
 };
     const today = dayjs();
-    const maxDate21Days = today.add(21, 'day');
-     const maxDate90Days = today.add(90, 'day');
+    const maxDate21Days = today.add(20, 'day');
+     const maxDate90Days = today.add(89, 'day');
      // Function to disable dates outside our range
     // Disable dates outside the allowed range (differs by booking type)
     const shouldDisableDate = (date: Dayjs) => {
