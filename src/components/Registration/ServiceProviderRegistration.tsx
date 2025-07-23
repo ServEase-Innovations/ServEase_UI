@@ -568,6 +568,20 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         setSnackbarOpen(true);
         setSnackbarSeverity("success");
         setSnackbarMessage("Service provider added successfully!");
+
+        // add SP in autho DB
+        const authPayload = {
+          email: filteredPayload.emailId,
+          password: filteredPayload.password,
+          name : `${filteredPayload.firstName} ${filteredPayload.lastName}`,
+        };
+
+        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+          .then((authResponse) => {
+            console.log("AuthO user created successfully:", authResponse.data);
+          }).catch((authError) => {
+            console.error("Error creating AuthO user:", authError);
+          });
         
         setTimeout(() => {
           onBackToLogin(true);
