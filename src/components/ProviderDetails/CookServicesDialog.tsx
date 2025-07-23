@@ -5,7 +5,7 @@ import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box, CircularProgress } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
@@ -47,10 +47,9 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   const currentLocation = users?.customerDetails?.currentLocation;
-  const firstName = users?.customerDetails?.firstName;
-  const lastName = users?.customerDetails?.lastName;
+   const [loading, setLoading] = useState(false);
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-  const { user, isAuthenticated } = useAuth0();
+  const { user,loginWithRedirect, isAuthenticated } = useAuth0();
   
   // Agreement state
   const [agreements, setAgreements] = useState({
@@ -159,11 +158,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     setPackages(initialPackages);
   }, [pricing, bookingType, cart]);
 
-  useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
-    }
-  }, [user]);
 
   const getPreparationTime = (category: string): string => {
     switch(category) {
@@ -357,7 +351,9 @@ const handleProceedToPayment = async () => {
 };
 
   const handleCheckout = async () => {
+   
     try {
+      setLoading(true);
       const selectedPackages = Object.entries(packages)
         .filter(([_, pkg]) => pkg.selected)
         .map(([name, pkg]) => ({
@@ -480,6 +476,8 @@ const handleProceedToPayment = async () => {
     } catch (error) {
       console.log("error => ", error);
       alert("Failed to initiate payment. Please try again.");
+    }finally {
+      setLoading(false);
     }
   };
   const allAgreed = agreements.terms && agreements.privacy && agreements.keyFacts;
@@ -619,15 +617,32 @@ const handleProceedToPayment = async () => {
                 </FooterText>
                 <FooterPrice>₹{totalPrice.toFixed(2)}</FooterPrice>
               </div>
-              
               <FooterButtons>
-                <CheckoutButton
-                  onClick={handleOpenAgreementDialog}
-                  disabled={totalItems === 0}
-                >
-                  CHECKOUT
-                </CheckoutButton>
-              </FooterButtons>
+  {!isAuthenticated && (
+    <>
+      <Tooltip title="You need to login to proceed with checkout">
+        <IconButton size="small" style={{ marginRight: '8px' }}>
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <LoginButton onClick={() => loginWithRedirect()}>
+        LOGIN TO CONTINUE
+      </LoginButton>
+    </>
+  )}
+  
+  {isAuthenticated && (
+    <CheckoutButton
+      onClick={handleOpenAgreementDialog}
+      // disabled={calculateTotal() === 0}
+       disabled={totalItems === 0}
+    >
+      {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+    </CheckoutButton>
+  )}
+</FooterButtons>
+             
+              
             </FooterContainer>
           </DialogContainer>
         </StyledDialogContent>
@@ -639,17 +654,6 @@ const handleProceedToPayment = async () => {
   onClose={() => setAgreementDialogOpen(false)}
   onProceed={handleProceedToPayment}
 />
-      <Dialog 
-        style={{padding:'0px'}}
-        open={loginOpen}
-        onClose={handleLoginClose}
-        aria-labelledby="login-dialog-title"
-        aria-describedby="login-dialog-description"
-      >
-        <DialogContent>
-          <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

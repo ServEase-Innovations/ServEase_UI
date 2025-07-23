@@ -99,6 +99,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         endDate: endDate || startDate || "", // Use startDate as fallback for endDate
        timeRange: timeRange,  // Changed from timeRange to timeSlot to match your BookingDetails interface
         bookingPreference: selectedRadioButtonValue,
+        housekeepingRole:selectedType,
     };
 
     console.log("Booking details:", {
@@ -213,7 +214,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                                 <img src="../maidWomen.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>
                         </div>
-                        <div className="card">
+                        <div className="card"onClick={() => handleClick('NANNY')}>
                             <div className="card-body">
                                 <img src="../newNanny.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>

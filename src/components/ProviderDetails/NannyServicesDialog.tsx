@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
 import { Dialog, DialogContent, Tooltip, IconButton, Snackbar, Alert, CircularProgress } from '@mui/material';
-import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
@@ -55,7 +54,8 @@ import {
   LoginButton,
   CheckoutButton
 } from './NannyServicesDialog.styles';
-
+import { useAuth0 } from "@auth0/auth0-react";
+import { Button } from '../Button/button';
 interface NannyServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -86,17 +86,17 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const [loading, setLoading] = useState(false);
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const user = useSelector((state: any) => state.user?.value);
+  const users = useSelector((state: any) => state.user?.value);
+  const { user,  loginWithRedirect,isAuthenticated } = useAuth0();
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
-  const customerId = user?.customerDetails?.customerId || null;
+  // const customerId = user?.customerDetails?.customerId || null;
   const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
+  // const firstName = user?.customerDetails?.firstName;
+  // const lastName = user?.customerDetails?.lastName;
+  // const customerName = `${firstName} ${lastName}`;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-
   const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
     const initialCartItems = {
       babyDay: false,
@@ -116,10 +116,12 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   });
 
   useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
-    }
-  }, [user]);
+     if (isAuthenticated && user) {
+       console.log("User Info:", user);
+       console.log("Name:", user.name);
+       console.log("Customer ID:", user.customerid);
+     }
+   }, [isAuthenticated, user]);
 
   useEffect(() => {
     const updatedCartItems = { ...cartItems };
@@ -301,7 +303,14 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const handleApplyVoucher = () => {
     // Voucher logic here
   };
-
+ const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY'; // default
+    
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
   const handleCheckout = async () => {
     try {
       setLoading(true);
@@ -315,8 +324,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
       const bookingData: BookingDetails = {
         serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
         serviceProviderName: providerFullName,
-        customerId,
-        customerName,
+        customerId: customerId,
+        customerName: customerName, 
         address: currentLocation,
         startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
         endDate: bookingType?.endDate || "",
@@ -324,8 +333,9 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
         monthlyAmount: totalAmount,
         timeslot: bookingType?.timeRange || "",
         paymentMode: "UPI",
-        bookingType: "NANNY_SERVICES",
+        bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
         taskStatus: "NOT_STARTED",
+        serviceType: "NANNY",
         responsibilities: []
       };
 
@@ -343,6 +353,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
       setLoading(false);
     }
   };
+  const customerName = user?.name || "Guest";
+  const customerId = user?.customerid || "guest-id";
 
   const createRazorpayOrder = async (amount: number) => {
     return await axios.post(
@@ -746,44 +758,32 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
               </div>
               
               <FooterButtons>
-                {!loggedInUser && (
-                  <>
-                    <Tooltip title="You need to login to proceed with checkout">
-                      <IconButton size="small" style={{ marginRight: '8px' }}>
-                        <InfoOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <LoginButton onClick={handleLogin}>
-                      LOGIN TO CONTINUE
-                    </LoginButton>
-                  </>
-                )}
-                
-                {loggedInUser && (
-                  <CheckoutButton
-                    onClick={handleCheckout}
-                    disabled={calculateTotal() === 0}
-                  >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
-                  </CheckoutButton>
-                )}
-              </FooterButtons>
+  {!isAuthenticated && (
+    <>
+      <Tooltip title="You need to login to proceed with checkout">
+        <IconButton size="small" style={{ marginRight: '8px' }}>
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <LoginButton onClick={() => loginWithRedirect()}>
+        LOGIN TO CONTINUE
+      </LoginButton>
+    </>
+  )}
+  
+  {isAuthenticated && (
+    <CheckoutButton
+      onClick={handleCheckout}
+      disabled={calculateTotal() === 0}
+    >
+      {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+    </CheckoutButton>
+  )}
+</FooterButtons>
             </FooterContainer>
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
-
-      <Dialog 
-        style={{padding:'0px'}}
-        open={loginOpen}
-        onClose={handleLoginClose}
-        aria-labelledby="login-dialog-title"
-        aria-describedby="login-dialog-description"
-      >
-        <DialogContent>
-          <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog>
 
       <Snackbar
         open={!!error}

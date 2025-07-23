@@ -15,6 +15,8 @@ import HeaderSearch from "../HeaderSearch/HeaderSearch";
 import PreferenceSelection from "../PreferenceSelection/PreferenceSelection";
 import axios from "axios";
 import { keys } from "../../env/env";
+import { usePricingFilterService } from '../../utils/PricingFilter';
+
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -34,7 +36,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProviderType, setSelectedProviderType] = useState("");
-
+  const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
+ const bookingType = getBookingType();
+ console.log("Deatils:",bookingType);
   const dispatch = useDispatch();
 
   const location = useSelector((state: any) => {
@@ -123,9 +127,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
  
   
-
   const performSearch = async () => {
-    const housekeepingRole = selected?.toUpperCase() || "COOK";
+    // const housekeepingRole = selected?.toUpperCase()||"NANNY";
   
     const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
       new Promise((resolve, reject) => {
@@ -160,11 +163,18 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         console.log("Latitude:", latitude);
         console.log("Longitude:", longitude);
       }
-  
-      const response = await axiosInstance.get(
-        `/api/serviceproviders/search?startDate=2025-04-01&endDate=2025-04-30&timeslot=16:37-16:37&housekeepingRole=${housekeepingRole}&latitude=${latitude}&longitude=${longitude}`
-      );
-  
+    const queryParams = new URLSearchParams({
+      startDate: bookingType?.startDate || '2025-04-01', // Fallback to hardcoded if not available
+      endDate: bookingType?.endDate || '2025-04-30',    // Fallback to hardcoded if not available
+      timeslot: bookingType?.timeRange || '16:37-16:37', // Fallback to hardcoded if not available
+      housekeepingRole:bookingType?.housekeepingRole||"COOK", // Fallback to hardcoded if not available
+      latitude: latitude.toString(),
+      longitude: longitude.toString()
+    });
+     const response = await axiosInstance.get(
+      `/api/serviceproviders/search?${queryParams.toString()}`
+    );
+
       console.log("Response:", response.data);
   
       if (response.data.length === 0) {
