@@ -128,6 +128,16 @@ const handleOptionChange = (val: string) => {
             return month.isBefore(today, 'month') || month.isAfter(maxDate21Days, 'month');
         }
     };
+const shouldDisableStartDate = (date: Dayjs) => {
+  return date.isBefore(today, 'day') || date.isAfter(maxDate90Days, 'day');
+};
+
+const shouldDisableEndDate = (date: Dayjs) => {
+  if (!startDate) return true;
+  const start = dayjs(startDate);
+  return date.isBefore(start.add(1, 'day'), 'day') || 
+         date.isAfter(start.add(20, 'day'), 'day');
+};
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { width: "40%" } }}>
@@ -178,7 +188,10 @@ const handleOptionChange = (val: string) => {
 
                                         <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
                                             updateStartDate(newValue);
-                                        }} />
+                                        }}
+                                        minDate={today}
+                                        maxDate={maxDate90Days}
+                                        shouldDisableDate={shouldDisableStartDate} />
                                     </DemoContainer>
                                 </LocalizationProvider>
                             </Box>
@@ -186,9 +199,22 @@ const handleOptionChange = (val: string) => {
                                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                                     <DemoContainer components={['DateTimePicker']}>
 
-                                        <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
-                                            updateEndDate(newValue);
-                                        }} />
+                                      <DateTimePicker
+    label="Basic date time picker"
+    onChange={(newValue) => {
+        updateEndDate(newValue);
+    }}
+    shouldDisableDate={shouldDisableEndDate}
+    shouldDisableMonth={(month) => {
+        if (!startDate) return true;
+        const start = dayjs(startDate);
+        const max = start.add(20, 'day');
+        return month.isBefore(start, 'month') || month.isAfter(max, 'month');
+    }}
+    minDate={startDate ? dayjs(startDate).add(1, 'day') : today}
+    maxDate={startDate ? dayjs(startDate).add(20, 'day') : today}
+/>
+
                                     </DemoContainer>
                                 </LocalizationProvider>
                             </Box>

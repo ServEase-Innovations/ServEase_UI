@@ -1,12 +1,11 @@
 /* eslint-disable */
-
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
@@ -17,13 +16,8 @@ import { addToCart, removeFromCart, updateCartItem } from '../../features/addToC
 import { MealPackage } from '../../types/mealPackage';
 import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton } from './CookServicesDialog.styles';
 import { Button } from "../Button/button";
-
-
 import { useAuth0 } from "@auth0/auth0-react";
- 
-
- 
-
+import CheckoutWithAgreement from './CheckoutAgreementDialog';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -52,20 +46,27 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const cart = useSelector((state: any) => state.addToCart?.items || []);
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
-  console.log("bookingType",bookingType)
   const currentLocation = users?.customerDetails?.currentLocation;
   const firstName = users?.customerDetails?.firstName;
   const lastName = users?.customerDetails?.lastName;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
- const { user, isAuthenticated} =  useAuth0();
-   useEffect(() => {
+  const { user, isAuthenticated } = useAuth0();
+  
+  // Agreement state
+  const [agreements, setAgreements] = useState({
+    terms: false,
+    privacy: false,
+    keyFacts: false
+  });
+  const [agreementDialogOpen, setAgreementDialogOpen] = useState(false);
+
+  useEffect(() => {
     if (isAuthenticated && user) {
       console.log("User Info:", user);
-       console.log("Name:", user.name);
+      console.log("Name:", user.name);
       console.log("Customer ID:", user.customerid);
     }
   }, [isAuthenticated, user]);
-  
   
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
@@ -125,6 +126,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
       } else {
         basePrice = service["Price /Month (INR)"];
       }
+
       const cartItem = Array.isArray(cart) 
         ? cart.find((item: any) => 
             item.type === 'meal' && 
@@ -132,11 +134,14 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
           )
         : null;
       
+      const persons = cartItem?.persons || 1;
+      const calculatedPrice = calculatePriceForPersons(basePrice, persons);
+
       initialPackages[category] = {
         selected: !!cartItem,
-        persons: cartItem?.persons || 1,
+        persons,
         basePrice,
-        calculatedPrice: cartItem ? cartItem.price : calculatePriceForPersons(basePrice, 1),
+        calculatedPrice,
         maxPersons,
         description: service["Job Description"]
           .split('\n')
@@ -259,132 +264,98 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  // In the toggleCart function, replace with this updated version:
-const toggleCart = (packageName: string) => {
-  setPackages(prev => {
-    const currentPackage = prev[packageName];
-    if (!currentPackage) return prev;
+  const toggleCart = (packageName: string) => {
+    setPackages(prev => {
+      const currentPackage = prev[packageName];
+      if (!currentPackage) return prev;
 
-    const newInCartState = !currentPackage.inCart;
-    const shouldBeSelected = newInCartState;
+      const newInCartState = !currentPackage.inCart;
+      const shouldBeSelected = newInCartState;
 
-    if (newInCartState) {
-      // Check if item already exists in cart
-      const existingItemIndex = cart.findIndex(
-        (item: any) => 
-          item.type === 'meal' && 
-          item.id === packageName.toUpperCase()
-      );
+      if (newInCartState) {
+        const existingItemIndex = cart.findIndex(
+          (item: any) => 
+            item.type === 'meal' && 
+            item.id === packageName.toUpperCase()
+        );
 
-      if (existingItemIndex >= 0) {
-        // Update existing item
-        dispatch(updateCartItem({
-          id: packageName.toUpperCase(),
-          type: 'meal',
-          updates: {
+        if (existingItemIndex >= 0) {
+          dispatch(updateCartItem({
+            id: packageName.toUpperCase(),
+            type: 'meal',
+            updates: {
+              persons: currentPackage.persons,
+              price: currentPackage.calculatedPrice,
+              description: currentPackage.description.join(', '),
+              basePrice: currentPackage.basePrice,
+              maxPersons: currentPackage.maxPersons
+            }
+          }));
+        } else {
+          dispatch(addToCart({
+            type: 'meal',
+            id: packageName.toUpperCase(),
+            mealType: packageName.toUpperCase(),
             persons: currentPackage.persons,
             price: currentPackage.calculatedPrice,
             description: currentPackage.description.join(', '),
             basePrice: currentPackage.basePrice,
             maxPersons: currentPackage.maxPersons
-          }
-        }));
+          }));
+        }
       } else {
-        // Add new item
-        dispatch(addToCart({
-          type: 'meal',
+        dispatch(removeFromCart({
           id: packageName.toUpperCase(),
-          mealType: packageName.toUpperCase(),
-          persons: currentPackage.persons,
-          price: currentPackage.calculatedPrice,
-          description: currentPackage.description.join(', '),
-          basePrice: currentPackage.basePrice,
-          maxPersons: currentPackage.maxPersons
+          type: 'meal'
         }));
       }
-    } else {
-      dispatch(removeFromCart({
-        id: packageName.toUpperCase(),
-        type: 'meal'
-      }));
-    }
 
-    return {
-      ...prev,
-      [packageName]: {
-        ...currentPackage,
-        inCart: newInCartState,
-        selected: shouldBeSelected
-      }
-    };
-  });
-};
-
-// And in the useEffect that initializes packages, update it to properly sync with cart:
-useEffect(() => {
-  const updatedCookServices = getFilteredPricing("cook");
-  
-  if (!updatedCookServices || updatedCookServices.length === 0) {
-    setPackages({});
-    return;
-  }
-
-  const initialPackages: PackagesState = {};
-
-  updatedCookServices.forEach((service: any) => {
-    const category = service.Categories.toLowerCase();
-    const maxPersons = parseInt(service["Numbers/Size"].replace('<=', '')) || 3;
-    let basePrice = 0;
-    if(bookingType?.bookingPreference?.toLowerCase() === "date") {
-      basePrice = service["Price /Day (INR)"];
-    } else {
-      basePrice = service["Price /Month (INR)"];
-    }
-
-    // Find existing cart item and get current person count
-    const cartItem = Array.isArray(cart) 
-      ? cart.find((item: any) => 
-          item.type === 'meal' && 
-          item.mealType.toLowerCase() === category
-        )
-      : null;
-    
-    const persons = cartItem?.persons || 1;
-    const calculatedPrice = calculatePriceForPersons(basePrice, persons);
-
-    initialPackages[category] = {
-      selected: !!cartItem,
-      persons,
-      basePrice,
-      calculatedPrice,
-      maxPersons,
-      description: service["Job Description"]
-        .split('\n')
-        .filter((line: string) => line.trim() !== ''),
-      preparationTime: getPreparationTime(category),
-      rating: 4.84,
-      reviews: getReviewsText(category),
-      category: service.Categories,
-      jobDescription: service["Job Description"],
-      remarks: service["Remarks/Conditions"],
-      inCart: !!cartItem
-    };
-  });
-
-  setPackages(initialPackages);
-}, [pricing, bookingType, cart]);
+      return {
+        ...prev,
+        [packageName]: {
+          ...currentPackage,
+          inCart: newInCartState,
+          selected: shouldBeSelected
+        }
+      };
+    });
+  };
 
   const handleApplyVoucher = () => {
     // Voucher application logic
   };
-const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
-  if (!bookingPreference) return 'MONTHLY'; // default
-  
-  const pref = bookingPreference.toLowerCase();
-  if (pref === 'date') return 'ON_DEMAND';
-  if (pref === 'short term') return 'SHORT_TERM';
-  return 'MONTHLY';
+
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY'; // default
+    
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
+
+  const handleCheckboxChange = (name: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAgreements(prev => ({ ...prev, [name]: event.target.checked }));
+  };
+
+ const handleOpenAgreementDialog = () => {
+  const selectedPackages = Object.entries(packages)
+    .filter(([_, pkg]) => pkg.selected);
+
+  if (selectedPackages.length === 0) {
+    alert("Please select at least one package");
+    return;
+  }
+
+  setAgreementDialogOpen(true);
 };
+
+// Update handleProceedToPayment to just:
+const handleProceedToPayment = async () => {
+  setAgreementDialogOpen(false);
+  await handleCheckout();
+};
+
   const handleCheckout = async () => {
     try {
       const selectedPackages = Object.entries(packages)
@@ -395,17 +366,13 @@ const getBookingTypeFromPreference = (bookingPreference: string | undefined): st
           price: pkg.calculatedPrice,
         }));
 
-      if (selectedPackages.length === 0) {
-        alert("Please select at least one package");
-        return;
-      }
-
       const totalAmount = selectedPackages.reduce(
         (sum, pkg) => sum + pkg.price,
         0
       );
-    const customerName = user?.name || "Guest";
-    const customerId = user?.customerid || "guest-id";
+      const customerName = user?.name || "Guest";
+      const customerId = user?.customerid || "guest-id";
+      
       const response = await axios.post(
         "https://utils-ndt3.onrender.com/create-order",
         { amount: totalAmount * 100 },
@@ -429,14 +396,15 @@ const getBookingTypeFromPreference = (bookingPreference: string | undefined): st
         bookingDetails.customerId = customerId;
         bookingDetails.customerName = customerName;
         bookingDetails.address = currentLocation;
-        bookingDetails.startDate =bookingType?.startDate || "",
+        bookingDetails.startDate = bookingType?.startDate || "";
         bookingDetails.endDate = bookingType?.endDate || "";
         bookingDetails.engagements = selectedPackages
           .map((pkg) => `${pkg.mealType} for ${pkg.persons} persons`)
           .join(", ");
         bookingDetails.monthlyAmount = totalAmount;
         bookingDetails.timeslot = bookingType.timeRange;
-         bookingDetails.bookingType = getBookingTypeFromPreference(bookingType?.bookingPreference);
+        bookingDetails.bookingType = getBookingTypeFromPreference(bookingType?.bookingPreference);
+        
         const options = {
           key: "rzp_test_lTdgjtSRlEwreA",
           amount,
@@ -514,6 +482,7 @@ const getBookingTypeFromPreference = (bookingPreference: string | undefined): st
       alert("Failed to initiate payment. Please try again.");
     }
   };
+  const allAgreed = agreements.terms && agreements.privacy && agreements.keyFacts;
 
   const renderPackageSections = () => {
     return Object.entries(packages).map(([packageName, pkg]) => {
@@ -652,33 +621,24 @@ const getBookingTypeFromPreference = (bookingPreference: string | undefined): st
               </div>
               
               <FooterButtons>
-                {/* {!loggedInUser && (
-                  <>
-                    <Tooltip title="You need to login to proceed with checkout">
-                      <IconButton size="small" style={{ marginRight: '8px' }}>
-                        <InfoOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Button onClick={handleLogin}>
-                      LOGIN TO CONTINUE
-                    </Button>
-                  </>
-                )} */}
-                
-                {/* {loggedInUser && ( */}
-                  <CheckoutButton
-                    onClick={handleCheckout}
-                    disabled={totalItems === 0}
-                  >
-                    CHECKOUT
-                  </CheckoutButton>
-                {/* )} */}
+                <CheckoutButton
+                  onClick={handleOpenAgreementDialog}
+                  disabled={totalItems === 0}
+                >
+                  CHECKOUT
+                </CheckoutButton>
               </FooterButtons>
             </FooterContainer>
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
 
+      {/* Agreement Dialog */}
+    <CheckoutWithAgreement
+  open={agreementDialogOpen}
+  onClose={() => setAgreementDialogOpen(false)}
+  onProceed={handleProceedToPayment}
+/>
       <Dialog 
         style={{padding:'0px'}}
         open={loginOpen}
