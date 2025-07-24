@@ -209,7 +209,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                                 <img src="../newCook.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>
                         </div>
-                        <div className="card">
+                        <div className="card" onClick={() => handleClick('MAID')}>
                             <div className="card-body">
                                 <img src="../maidWomen.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>

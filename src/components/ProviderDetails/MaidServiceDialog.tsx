@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
+import { Dialog, DialogContent, Tooltip, IconButton, CircularProgress } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
@@ -13,7 +13,57 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { addToCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
 import { isMaidCartItem } from '../../types/cartSlice';
-
+import {
+  StyledDialog,
+  StyledDialogContent,
+  DialogContainer,
+  DialogHeader,
+  TabsContainer,
+  TabButton,
+  PackagesContainer,
+  PackageCard,
+  PackageHeader,
+  PackageTitle,
+  RatingContainer,
+  RatingValue,
+  ReviewsText,
+  PriceContainer,
+  PriceValue,
+  PreparationTime,
+  PersonsControl,
+  PersonsLabel,
+  PersonsInput,
+  DecrementButton,
+  IncrementButton,
+  PersonsValue,
+  DescriptionList,
+  DescriptionItem,
+  DescriptionBullet,
+  ButtonsContainer,
+  CartButton,
+  SelectButton,
+  AddOnsContainer,
+  AddOnsTitle,
+  AddOnsGrid,
+  AddOnCard,
+  AddOnHeader,
+  AddOnTitle,
+  AddOnPrice,
+  AddOnDescription,
+  AddOnButton,
+  VoucherContainer,
+  VoucherTitle,
+  VoucherInputContainer,
+  VoucherInput,
+  VoucherButton,
+  FooterContainer,
+  FooterText,
+  FooterPrice,
+  FooterButtons,
+  LoginButton,
+  CheckoutButton
+} from './MaidServiceDialog.styles';
+import { useAuth0 } from "@auth0/auth0-react";
 interface MaidServiceDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -28,139 +78,31 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   sendDataToParent
 }) => {
   const [activeTab, setActiveTab] = useState('regular');
+  const allCartItems = useSelector(selectCartItems);
+  const maidCartItems = allCartItems.filter(isMaidCartItem);
+  const [loading, setLoading] = useState(false);
+  const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
+    const initialCartItems = {
+      utensilCleaning: false,
+      sweepingMopping: false,
+      bathroomCleaning: false,
+      bathroomDeepCleaning: false,
+      normalDusting: false,
+      deepDusting: false,
+      utensilDrying: false,
+      clothesDrying: false
+    };
 
-const allCartItems = useSelector(selectCartItems);
-const maidCartItems = allCartItems.filter(isMaidCartItem);
-  // Initialize cartItems based on what's in Redux store
-const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
-  const initialCartItems = {
-    utensilCleaning: false,
-    sweepingMopping: false,
-    bathroomCleaning: false,
-    bathroomDeepCleaning: false,
-    normalDusting: false,
-    deepDusting: false,
-    utensilDrying: false,
-    clothesDrying: false
-  };
+    maidCartItems.forEach(item => {
+      if (item.serviceType === 'package') {
+        initialCartItems[item.name] = true;
+      } else if (item.serviceType === 'addon') {
+        initialCartItems[item.name] = true;
+      }
+    });
 
-  // Set initial state based on items already in Redux store
-  maidCartItems.forEach(item => {
-    if (item.serviceType === 'package') {
-      initialCartItems[item.name] = true;
-    } else if (item.serviceType === 'addon') {
-      initialCartItems[item.name] = true;
-    }
+    return initialCartItems;
   });
-
-  return initialCartItems;
-});
-
-const handleAddPackageToCart = (packageName: string) => {
-  const packageDetails = {
-    id: `package_${packageName}`,
-    type: 'maid' as const,
-    serviceType: 'package' as const,
-    name: packageName,
-    price: getPackagePrice(packageName),
-    description: getPackageDescription(packageName),
-    details: getPackageDetails(packageName)
-  };
-
-  if (cartItems[packageName]) {
-    dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
-  } else {
-    dispatch(addToCart(packageDetails));
-  }
-
-  setCartItems(prev => ({
-    ...prev,
-    [packageName]: !prev[packageName]
-  }));
-};
-
-const handleAddAddOnToCart = (addOnName: string) => {
-  const addOnDetails = {
-    id: `addon_${addOnName}`,
-    type: 'maid' as const,
-    serviceType: 'addon' as const,
-    name: addOnName,
-    price: getAddOnPrice(addOnName),
-    description: getAddOnDescription(addOnName)
-  };
-
-  if (cartItems[addOnName]) {
-    dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
-  } else {
-    dispatch(addToCart(addOnDetails));
-  }
-
-  setCartItems(prev => ({
-    ...prev,
-    [addOnName]: !prev[addOnName]
-  }));
-};
-// Helper functions
-const getPackagePrice = (packageName: string): number => {
-  switch(packageName) {
-    case 'utensilCleaning': return 1200;
-    case 'sweepingMopping': return 1200;
-    case 'bathroomCleaning': return 600;
-    default: return 0;
-  }
-};
-
-const getPackageDescription = (packageName: string): string => {
-  switch(packageName) {
-    case 'utensilCleaning': 
-      return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
-    case 'sweepingMopping':
-      return 'Daily sweeping and mopping';
-    case 'bathroomCleaning':
-      return 'Weekly cleaning of bathrooms';
-    default: return '';
-  }
-};
-
-const getPackageDetails = (packageName: string) => {
-  switch(packageName) {
-    case 'utensilCleaning':
-      return { persons: packageStates.utensilCleaning.persons };
-    case 'sweepingMopping':
-      return { houseSize: packageStates.sweepingMopping.houseSize };
-    case 'bathroomCleaning':
-      return { bathrooms: packageStates.bathroomCleaning.bathrooms };
-    default: return {};
-  }
-};
-
-const getAddOnPrice = (addOnName: string): number => {
-  switch(addOnName) {
-    case 'bathroomDeepCleaning': return 1000;
-    case 'normalDusting': return 1000;
-    case 'deepDusting': return 1500;
-    case 'utensilDrying': return 1000;
-    case 'clothesDrying': return 1000;
-    default: return 0;
-  }
-};
-
-const getAddOnDescription = (addOnName: string): string => {
-  switch(addOnName) {
-    case 'bathroomDeepCleaning':
-      return 'Weekly cleaning of bathrooms, all bathroom walls cleaned';
-    case 'normalDusting':
-      return 'Daily furniture dusting, doors, carpet, bed making';
-    case 'deepDusting':
-      return 'Includes chemical agents cleaning: décor items, furniture';
-    case 'utensilDrying':
-      return 'Househelp will dry and make proper arrangements';
-    case 'clothesDrying':
-      return 'Househelp will get clothes from/to drying place';
-    default: return '';
-  }
-};
-
 
   const [packageStates, setPackageStates] = useState({
     utensilCleaning: {
@@ -176,6 +118,7 @@ const getAddOnDescription = (addOnName: string): string => {
       selected: false
     }
   });
+  
   const [addOns, setAddOns] = useState({
     bathroomDeepCleaning: false,
     normalDusting: false,
@@ -183,29 +126,31 @@ const getAddOnDescription = (addOnName: string): string => {
     utensilDrying: false,
     clothesDrying: false
   });
+  
   const [loginOpen, setLoginOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
+  const dispatch = useDispatch();
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const user = useSelector((state: any) => state.user?.value);
-  const dispatch = useDispatch();
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
+  const users = useSelector((state: any) => state.user?.value);
+  // const customerId = user?.customerDetails?.customerId || null;
+  const currentLocation = users?.customerDetails?.currentLocation;
+  // const firstName = user?.customerDetails?.firstName;
+  // const lastName = user?.customerDetails?.lastName;
+  // const customerName = `${firstName} ${lastName}`;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
- const maidServices =
-    pricing?.maid?.filter((service: any) => service.Type === "Regular" || service.Type === "Regular Add-on") || [];
-  console.log("maidServices",maidServices);
-  maidServices.forEach((service: any) => {
-  console.log("Category:", service.Categories);
-  console.log("Number/Size:", service["Numbers/Size"]);
-  console.log("Price /Month (INR):", service["Price /Month (INR)"]);
-  console.log("----------");
-});
+  const maidServices = pricing?.maid?.filter((service: any) => service.Type === "Regular" || service.Type === "Regular Add-on") || [];
+  const { user,  loginWithRedirect,isAuthenticated } = useAuth0();
 
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY'; // default
+    
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
   const bookingDetails: BookingDetails = {
     serviceProviderId: 0,
     serviceProviderName: "",
@@ -218,16 +163,19 @@ const getAddOnDescription = (addOnName: string): string => {
     timeslot: "",
     monthlyAmount: 0,
     paymentMode: "UPI",
-    bookingType: "MAID_SERVICE",
+    bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
     taskStatus: "NOT_STARTED", 
     responsibilities: [],
+    serviceType: "MAID",
   };
 
   useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
-    }
-  }, [user]);
+      if (isAuthenticated && user) {
+        console.log("User Info:", user);
+        console.log("Name:", user.name);
+        console.log("Customer ID:", user.customerid);
+      }
+    }, [isAuthenticated, user]);
 
   const handleLogin = () => {
     setLoginOpen(true);
@@ -301,6 +249,111 @@ const getAddOnDescription = (addOnName: string): string => {
     }));
   };
 
+  const handleAddPackageToCart = (packageName: string) => {
+    const packageDetails = {
+      id: `package_${packageName}`,
+      type: 'maid' as const,
+      serviceType: 'package' as const,
+      name: packageName,
+      price: getPackagePrice(packageName),
+      description: getPackageDescription(packageName),
+      details: getPackageDetails(packageName)
+    };
+
+    if (cartItems[packageName]) {
+      dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
+    } else {
+      dispatch(addToCart(packageDetails));
+    }
+
+    setCartItems(prev => ({
+      ...prev,
+      [packageName]: !prev[packageName]
+    }));
+  };
+
+  const handleAddAddOnToCart = (addOnName: string) => {
+    const addOnDetails = {
+      id: `addon_${addOnName}`,
+      type: 'maid' as const,
+      serviceType: 'addon' as const,
+      name: addOnName,
+      price: getAddOnPrice(addOnName),
+      description: getAddOnDescription(addOnName)
+    };
+
+    if (cartItems[addOnName]) {
+      dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
+    } else {
+      dispatch(addToCart(addOnDetails));
+    }
+
+    setCartItems(prev => ({
+      ...prev,
+      [addOnName]: !prev[addOnName]
+    }));
+  };
+
+  const getPackagePrice = (packageName: string): number => {
+    switch(packageName) {
+      case 'utensilCleaning': return 1200;
+      case 'sweepingMopping': return 1200;
+      case 'bathroomCleaning': return 600;
+      default: return 0;
+    }
+  };
+
+  const getPackageDescription = (packageName: string): string => {
+    switch(packageName) {
+      case 'utensilCleaning': 
+        return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
+      case 'sweepingMopping':
+        return 'Daily sweeping and mopping';
+      case 'bathroomCleaning':
+        return 'Weekly cleaning of bathrooms';
+      default: return '';
+    }
+  };
+
+  const getPackageDetails = (packageName: string) => {
+    switch(packageName) {
+      case 'utensilCleaning':
+        return { persons: packageStates.utensilCleaning.persons };
+      case 'sweepingMopping':
+        return { houseSize: packageStates.sweepingMopping.houseSize };
+      case 'bathroomCleaning':
+        return { bathrooms: packageStates.bathroomCleaning.bathrooms };
+      default: return {};
+    }
+  };
+
+  const getAddOnPrice = (addOnName: string): number => {
+    switch(addOnName) {
+      case 'bathroomDeepCleaning': return 1000;
+      case 'normalDusting': return 1000;
+      case 'deepDusting': return 1500;
+      case 'utensilDrying': return 1000;
+      case 'clothesDrying': return 1000;
+      default: return 0;
+    }
+  };
+
+  const getAddOnDescription = (addOnName: string): string => {
+    switch(addOnName) {
+      case 'bathroomDeepCleaning':
+        return 'Weekly cleaning of bathrooms, all bathroom walls cleaned';
+      case 'normalDusting':
+        return 'Daily furniture dusting, doors, carpet, bed making';
+      case 'deepDusting':
+        return 'Includes chemical agents cleaning: décor items, furniture';
+      case 'utensilDrying':
+        return 'Househelp will dry and make proper arrangements';
+      case 'clothesDrying':
+        return 'Househelp will get clothes from/to drying place';
+      default: return '';
+    }
+  };
+
   const calculateTotal = () => {
     let total = 0;
     
@@ -332,825 +385,501 @@ const getAddOnDescription = (addOnName: string): string => {
   const hasSelectedServices = () => {
     return countSelectedServices() > 0 || countSelectedAddOns() > 0;
   };
-  const selectedServices: string[] = [];
-  const selectedAddOns: string[] = Object.entries(addOns)
-    .filter(([_, selected]) => selected)
-    .map(([name]) => name);
 
-    const handleCheckout = async () => {
-  try {
-    const selectedServices: string[] = [];
-    const selectedAddOns: string[] = Object.entries(addOns)
-      .filter(([_, selected]) => selected)
-      .map(([name]) => name);
+  const handleCheckout = async () => {
+    try {
+      const selectedServices: string[] = [];
+      const selectedAddOns: string[] = Object.entries(addOns)
+        .filter(([_, selected]) => selected)
+        .map(([name]) => name);
 
-    if (packageStates.utensilCleaning.selected) {
-      selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
-    }
-    if (packageStates.sweepingMopping.selected) {
-      selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
-    }
-    if (packageStates.bathroomCleaning.selected) {
-      selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
-    }
-
-    if (selectedServices.length === 0 && selectedAddOns.length === 0) {
-      alert('Please select at least one service or add-on');
-      return;
-    }
-
-    const totalAmount = calculateTotal();
-    const response = await axios.post(
-      "http://13.201.229.41:3000/create-order",
-      { amount: totalAmount * 100 },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    if (response.status === 200 && response.data.success) {
-      const orderId = response.data.orderId;
-      const amount = totalAmount * 100;
-      const currency = "INR";
-
-      if (typeof window.Razorpay === "undefined") {
-        alert("Razorpay SDK not loaded.");
-        return;
+      if (packageStates.utensilCleaning.selected) {
+        selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
+      }
+      if (packageStates.sweepingMopping.selected) {
+        selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
+      }
+      if (packageStates.bathroomCleaning.selected) {
+        selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
       }
 
-      // Populate booking details
-      bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
-        ? Number(providerDetails.serviceproviderId) 
-        : null;
-      bookingDetails.serviceProviderName = providerFullName;
-      bookingDetails.customerId = customerId;
-      bookingDetails.customerName = customerName;
-      bookingDetails.address = currentLocation;
-      bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
-      bookingDetails.endDate = bookingType?.endDate || "";
-      bookingDetails.engagements = [
-        ...selectedServices,
-        ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
-      ].join('; ');
-      bookingDetails.monthlyAmount = totalAmount;
-      bookingDetails.timeslot = bookingType.timeRange;
+      if (selectedServices.length === 0 && selectedAddOns.length === 0) {
+        alert('Please select at least one service or add-on');
+        return;
+      }
+  const customerName = user?.name || "Guest";
+  const customerId = user?.customerid || "guest-id";
+      const totalAmount = calculateTotal();
+      const response = await axios.post(
+        "https://utils-ndt3.onrender.com/create-order",
+        { amount: totalAmount * 100 },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount,
-        currency,
-        name: "Serveaso",
-        description: "Maid Service Booking",
-        order_id: orderId,
-        handler: async function (razorpayResponse: any) {
-          alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+      if (response.status === 200 && response.data.success) {
+        const orderId = response.data.orderId;
+        const amount = totalAmount * 100;
+        const currency = "INR";
 
-          try {
-            const bookingResponse = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              bookingDetails,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
+        if (typeof window.Razorpay === "undefined") {
+          alert("Razorpay SDK not loaded.");
+          return;
+        }
 
-            if (bookingResponse.status === 201) {
-              try {
-                const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    title: "Booking Confirmed",
-                    body: `Thank you, ${customerName}! Your booking has been confirmed.`,
-                    url: "http://localhost:3000",
-                  }),
+        bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
+          ? Number(providerDetails.serviceproviderId) 
+          : null;
+        bookingDetails.serviceProviderName = providerFullName;
+        bookingDetails.customerId = customerId;
+        bookingDetails.customerName = customerName;
+        bookingDetails.address = currentLocation;
+        bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
+        bookingDetails.endDate = bookingType?.endDate || "";
+        bookingDetails.engagements = [
+          ...selectedServices,
+          ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
+        ].join('; ');
+        bookingDetails.monthlyAmount = totalAmount;
+        bookingDetails.timeslot = bookingType.timeRange;
+
+        const options = {
+          key: "rzp_test_lTdgjtSRlEwreA",
+          amount,
+          currency,
+          name: "Serveaso",
+          description: "Maid Service Booking",
+          order_id: orderId,
+          handler: async function (razorpayResponse: any) {
+            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+
+            try {
+              const bookingResponse = await axiosInstance.post(
+                "/api/serviceproviders/engagement/add",
+                bookingDetails,
+                {
                   headers: {
                     "Content-Type": "application/json",
                   },
-                });
-
-                if (notifyResponse.ok) {
-                  console.log("Notification sent!");
-                  alert("Notification sent!");
-                } else {
-                  alert("Failed to send notification");
                 }
-              } catch (notifyError) {
-                alert("Error sending notification");
-              }
+              );
 
-              if (sendDataToParent) {
-                sendDataToParent(BOOKINGS);
+              if (bookingResponse.status === 201) {
+                try {
+                  const notifyResponse = await fetch("http://localhost:4000/send-notification", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      title: "Booking Confirmed",
+                      body: `Thank you, ${customerName}! Your booking has been confirmed.`,
+                      url: "http://localhost:3000",
+                    }),
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  });
+
+                  if (notifyResponse.ok) {
+                    console.log("Notification sent!");
+                    alert("Notification sent!");
+                  } else {
+                    alert("Failed to send notification");
+                  }
+                } catch (notifyError) {
+                  alert("Error sending notification");
+                }
+
+                if (sendDataToParent) {
+                  sendDataToParent(BOOKINGS);
+                }
+                handleClose();
               }
-              handleClose();
+            } catch (error) {
+              alert("Booking saved but failed to update server.");
             }
-          } catch (error) {
-            alert("Booking saved but failed to update server.");
-          }
-        },
-        prefill: {
-          name: customerName || "",
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-      };
+          },
+          prefill: {
+            name: customerName || "",
+            email: user?.email || "",
+            contact: user?.mobileNo || "",
+          },
+          theme: {
+            color: "#3399cc",
+          },
+        };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      }
+    } catch (error) {
+      console.log("error => ", error);
+      alert("Failed to initiate payment. Please try again.");
     }
-  } catch (error) {
-    console.log("error => ", error);
-    alert("Failed to initiate payment. Please try again.");
-  }
-};
+  };
 
   return (
     <>
-      <Dialog 
-        style={{padding:'0px', borderRadius: '12px'}}
+      <StyledDialog 
         open={open}
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
-        PaperProps={{
-          style: { width: '550px', borderRadius: '12px' }
-        }}
       >
-        <DialogContent style={{padding: '0'}}>
-          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '550px', width: '100%'}}>
-            {/* Header */}
-            <div style={{padding: '20px', borderBottom: '1px solid #f0f0f0'}}>
-              <h1 style={{color: '#2d3436', margin: '0', fontSize: '24px'}}>MAID SERVICE PACKAGES</h1>
-            </div>
+        <StyledDialogContent>
+          <DialogContainer>
+            <DialogHeader>
+              <h1>MAID SERVICE PACKAGES</h1>
+            </DialogHeader>
             
-            {/* Tabs */}
-            <div style={{display: 'flex', borderBottom: '1px solid #f0f0f0'}}>
-              <button 
+            <TabsContainer>
+              <TabButton 
+                active={activeTab === 'regular'}
                 onClick={() => handleTabChange('regular')}
-                style={{
-                  flex: 1,
-                  padding: '15px',
-                  backgroundColor: '#fff',
-                  border: 'none',
-                  borderBottom: activeTab === 'regular' ? '3px solid #e17055' : 'none',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  color: activeTab === 'regular' ? '#2d3436' : '#636e72'
-                }}
               >
                 Regular Services
-              </button>
-              <button 
+              </TabButton>
+              <TabButton 
+                active={activeTab === 'premium'}
                 onClick={() => handleTabChange('premium')}
-                style={{
-                  flex: 1,
-                  padding: '15px',
-                  backgroundColor: '#fff',
-                  border: 'none',
-                  borderBottom: activeTab === 'premium' ? '3px solid #e17055' : 'none',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  color: activeTab === 'premium' ? '#2d3436' : '#636e72'
-                }}
               >
                 Premium Services
-              </button>
-            </div>
+              </TabButton>
+            </TabsContainer>
             
-            {/* Package Sections */}
-            <div style={{padding: '20px'}}>
+            <PackagesContainer>
               {/* Regular Utensil Cleaning */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.utensilCleaning.selected ? '#e17055' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+              <PackageCard 
+                selected={packageStates.utensilCleaning.selected} 
+                color="#e17055"
+              >
+                <PackageHeader>
                   <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Utensil Cleaning</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#e17055', fontWeight: 'bold'}}>4.7</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.2M reviews)</span>
-                    </div>
+                    <PackageTitle>Utensil Cleaning</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#e17055">4.7</RatingValue>
+                      <ReviewsText>(1.2M reviews)</ReviewsText>
+                    </RatingContainer>
                   </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#e17055', fontSize: '18px'}}>₹1,200</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
+                  <PriceContainer>
+                    <PriceValue color="#e17055">₹1,200</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
                 
-                {/* Person Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handlePersonChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                <PersonsControl>
+                  <PersonsLabel>Persons:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handlePersonChange('decrement')}>
                       -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    </DecrementButton>
+                    <PersonsValue>
                       {packageStates.utensilCleaning.persons}
-                    </span>
-                    <button 
-                      onClick={() => handlePersonChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                    </PersonsValue>
+                    <IncrementButton onClick={() => handlePersonChange('increment')}>
                       +
-                    </button>
-                  </div>
-                </div>
+                    </IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
                 
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
                     <span>All kind of daily utensil cleaning</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                  </DescriptionItem>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
                     <span>Party used type utensil cleaning</span>
-                  </div>
-                </div>
-<div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-  <button 
-    onClick={() => handlePackageSelect('utensilCleaning')}
-    style={{
-      width: '50%',
-      padding: '12px',
-      backgroundColor: packageStates.utensilCleaning.selected ? '#e17055' : '#fff',
-      color: packageStates.utensilCleaning.selected ? '#fff' : '#e17055',
-      border: '1px solid #e17055',
-      borderRadius: '6px',
-      fontWeight: 'bold',
-      cursor: 'pointer'
-    }}
-  >
-    {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-  </button>
-  <button 
-    onClick={() => handleAddPackageToCart('utensilCleaning')}
-    style={{
-      width: '50%',
-      padding: '12px',
-      backgroundColor: cartItems.utensilCleaning ? ' #e17055' : '#fff',
-      color: cartItems.utensilCleaning ? '#fff' : ' #e17055',
-      border: `1px solid ${cartItems.utensilCleaning ? ' #e17055' : ' #e17055'}`,
-      borderRadius: '6px',
-      fontWeight: 'bold',
-      cursor: 'pointer'
-    }}
-  >
-    { cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-    {cartItems.utensilCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
-  </button>
-</div>
-                
-              </div>
+                  </DescriptionItem>
+                </DescriptionList>
+
+                <ButtonsContainer>
+                  <SelectButton
+                    selected={packageStates.utensilCleaning.selected}
+                    color="#e17055"
+                    onClick={() => handlePackageSelect('utensilCleaning')}
+                  >
+                    {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
+                  </SelectButton>
+                  <CartButton
+                    inCart={cartItems.utensilCleaning}
+                    color="#e17055"
+                    onClick={() => handleAddPackageToCart('utensilCleaning')}
+                  >
+                    {cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.utensilCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
               
               {/* Sweeping & Mopping */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.sweepingMopping.selected ? '#00b894' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+              <PackageCard 
+                selected={packageStates.sweepingMopping.selected} 
+                color="#00b894"
+              >
+                <PackageHeader>
                   <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Sweeping & Mopping</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#00b894', fontWeight: 'bold'}}>4.8</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.5M reviews)</span>
-                    </div>
+                    <PackageTitle>Sweeping & Mopping</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#00b894">4.8</RatingValue>
+                      <ReviewsText>(1.5M reviews)</ReviewsText>
+                    </RatingContainer>
                   </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#00b894', fontSize: '18px'}}>₹1,200</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
+                  <PriceContainer>
+                    <PriceValue color="#00b894">₹1,200</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
                 
-                {/* House Size Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>House Size:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handleHouseSizeChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                <PersonsControl>
+                  <PersonsLabel>House Size:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handleHouseSizeChange('decrement')}>
                       -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    </DecrementButton>
+                    <PersonsValue>
                       {packageStates.sweepingMopping.houseSize}
-                    </span>
-                    <button 
-                      onClick={() => handleHouseSizeChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                    </PersonsValue>
+                    <IncrementButton onClick={() => handleHouseSizeChange('increment')}>
                       +
-                    </button>
-                  </div>
-                </div>
+                    </IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
                 
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
                     <span>Daily sweeping and mopping of 2 rooms, 1 Hall</span>
-                  </div>
-                </div>
-        
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button 
-                  onClick={() => handlePackageSelect('sweepingMopping')}
-                  style={{
-                    width: '50%',
-                    padding: '12px',
-                    backgroundColor: packageStates.sweepingMopping.selected ? '#00b894' : '#fff',
-                    color: packageStates.sweepingMopping.selected ? '#fff' : '#00b894',
-                    border: '1px solid #00b894',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
-  <button 
-    onClick={() => handleAddPackageToCart('sweepingMopping')}
-    style={{
-      width: '50%',
-      padding: '12px',
-      backgroundColor: cartItems.sweepingMopping? '#00b894' : '#fff',
-      color: cartItems.sweepingMopping ? '#fff' : '#00b894',
-      border: `1px solid ${cartItems.sweepingMopping ? '#00b894' : '#00b894'}`,
-      borderRadius: '6px',
-      fontWeight: 'bold',
-      cursor: 'pointer'
-    }}
-  >
-    { cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-    {cartItems.sweepingMopping ? 'ADDED TO CART' : 'ADD TO CART'}
-  </button>
-</div>
-              </div>
+                  </DescriptionItem>
+                </DescriptionList>
+
+                <ButtonsContainer>
+                  <SelectButton
+                    selected={packageStates.sweepingMopping.selected}
+                    color="#00b894"
+                    onClick={() => handlePackageSelect('sweepingMopping')}
+                  >
+                    {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
+                  </SelectButton>
+                  <CartButton
+                    inCart={cartItems.sweepingMopping}
+                    color="#00b894"
+                    onClick={() => handleAddPackageToCart('sweepingMopping')}
+                  >
+                    {cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.sweepingMopping ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
               
               {/* Bathroom Cleaning */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+              <PackageCard 
+                selected={packageStates.bathroomCleaning.selected} 
+                color="#0984e3"
+              >
+                <PackageHeader>
                   <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Bathroom Cleaning</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#0984e3', fontWeight: 'bold'}}>4.6</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(980K reviews)</span>
-                    </div>
+                    <PackageTitle>Bathroom Cleaning</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#0984e3">4.6</RatingValue>
+                      <ReviewsText>(980K reviews)</ReviewsText>
+                    </RatingContainer>
                   </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#0984e3', fontSize: '18px'}}>₹600</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
+                  <PriceContainer>
+                    <PriceValue color="#0984e3">₹600</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
                 
-                {/* Bathroom Number Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Bathrooms:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handleBathroomChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                <PersonsControl>
+                  <PersonsLabel>Bathrooms:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handleBathroomChange('decrement')}>
                       -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
+                    </DecrementButton>
+                    <PersonsValue>
                       {packageStates.bathroomCleaning.bathrooms}
-                    </span>
-                    <button 
-                      onClick={() => handleBathroomChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
+                    </PersonsValue>
+                    <IncrementButton onClick={() => handleBathroomChange('increment')}>
                       +
-                    </button>
-                  </div>
-                </div>
+                    </IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
                 
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
                     <span>Weekly cleaning of bathrooms</span>
-                  </div>
-                </div>
-                
+                  </DescriptionItem>
+                </DescriptionList>
 
-  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button 
-                  onClick={() => handlePackageSelect('bathroomCleaning')}
-                  style={{
-                    width: '50%',
-                    padding: '12px',
-                    backgroundColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#fff',
-                    color: packageStates.bathroomCleaning.selected ? '#fff' : '#0984e3',
-                    border: '1px solid #0984e3',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
-  <button 
-    onClick={() => handleAddPackageToCart('bathroomCleaning')}
-    style={{
-      width: '50%',
-      padding: '12px',
-      backgroundColor: cartItems.bathroomCleaning? '#0984e3' : '#fff',
-      color: cartItems.bathroomCleaning ? '#fff' : '#0984e3',
-      border: `1px solid ${cartItems.bathroomCleaning? '#0984e3': '#0984e3'}`,
-      borderRadius: '6px',
-      fontWeight: 'bold',
-      cursor: 'pointer'
-    }}
-  > { cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-    {cartItems.bathroomCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
-  </button>
-</div>
-              </div>
+                <ButtonsContainer>
+                  <SelectButton
+                    selected={packageStates.bathroomCleaning.selected}
+                    color="#0984e3"
+                    onClick={() => handlePackageSelect('bathroomCleaning')}
+                  >
+                    {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
+                  </SelectButton>
+                  <CartButton
+                    inCart={cartItems.bathroomCleaning}
+                    color="#0984e3"
+                    onClick={() => handleAddPackageToCart('bathroomCleaning')}
+                  >
+                    {cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.bathroomCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
               
               {/* Add-ons Section */}
-              <div style={{marginBottom: '20px'}}>
-                <h3 style={{color: '#2d3436', marginBottom: '15px', fontSize: '18px'}}>Regular Add-on Services</h3>
-                
-                <div style={{display: 'flex', flexWrap: 'wrap', gap: '15px'}}>
+              <AddOnsContainer>
+                <AddOnsTitle>Regular Add-on Services</AddOnsTitle>
+                <AddOnsGrid>
                   {/* Bathroom Deep Cleaning */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.bathroomDeepCleaning ? '#00b894' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Bathroom Deep Cleaning</h4>
-                      <span style={{fontWeight: 'bold', color: '#00b894', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
+                  <AddOnCard selected={addOns.bathroomDeepCleaning} color="#00b894">
+                    <AddOnHeader>
+                      <AddOnTitle>Bathroom Deep Cleaning</AddOnTitle>
+                      <AddOnPrice color="#00b894">+₹1,000</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>
                       Weekly cleaning of bathrooms, all bathroom walls cleaned
-                    </div>
-                    <button 
+                    </AddOnDescription>
+                    <AddOnButton
+                      selected={addOns.bathroomDeepCleaning}
+                      color="#00b894"
                       onClick={() => handleAddOnSelect('bathroomDeepCleaning')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.bathroomDeepCleaning ? '#00b894' : 'rgba(228, 245, 241, 0.2)',
-                        color: addOns.bathroomDeepCleaning ? '#fff' : '#00b894',
-                        border: addOns.bathroomDeepCleaning ? 'none' : '2px solid #00b894',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
+                      {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
                   
                   {/* Normal Dusting */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.normalDusting ? '#0984e3' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Normal Dusting</h4>
-                      <span style={{fontWeight: 'bold', color: '#0984e3', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
+                  <AddOnCard selected={addOns.normalDusting} color="#0984e3">
+                    <AddOnHeader>
+                      <AddOnTitle>Normal Dusting</AddOnTitle>
+                      <AddOnPrice color="#0984e3">+₹1,000</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>
                       Daily furniture dusting, doors, carpet, bed making
-                    </div>
-                    <button 
+                    </AddOnDescription>
+                    <AddOnButton
+                      selected={addOns.normalDusting}
+                      color="#0984e3"
                       onClick={() => handleAddOnSelect('normalDusting')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.normalDusting ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
-                        color: addOns.normalDusting ? '#fff' : '#0984e3',
-                        border: addOns.normalDusting ? 'none' : '2px solid #0984e3',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
+                      {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
                   
                   {/* Deep Dusting */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.deepDusting ? '#e17055' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Deep Dusting</h4>
-                      <span style={{fontWeight: 'bold', color: '#e17055', fontSize: '16px'}}>+₹1,500</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
+                  <AddOnCard selected={addOns.deepDusting} color="#e17055">
+                    <AddOnHeader>
+                      <AddOnTitle>Deep Dusting</AddOnTitle>
+                      <AddOnPrice color="#e17055">+₹1,500</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>
                       Includes chemical agents cleaning: décor items, furniture
-                    </div>
-                    <button 
+                    </AddOnDescription>
+                    <AddOnButton
+                      selected={addOns.deepDusting}
+                      color="#e17055"
                       onClick={() => handleAddOnSelect('deepDusting')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.deepDusting ? '#e17055' : 'hsla(13, 87.50%, 96.90%, 0.20)',
-                        color: addOns.deepDusting ? '#fff' : '#e17055',
-                        border: addOns.deepDusting ? 'none' : '2px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
+                      {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
                   
                   {/* Utensil Drying */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.utensilDrying ? '#00b894' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Utensil Drying</h4>
-                      <span style={{fontWeight: 'bold', color: '#00b894', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
+                  <AddOnCard selected={addOns.utensilDrying} color="#00b894">
+                    <AddOnHeader>
+                      <AddOnTitle>Utensil Drying</AddOnTitle>
+                      <AddOnPrice color="#00b894">+₹1,000</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>
                       Househelp will dry and make proper arrangements
-                    </div>
-                    <button 
+                    </AddOnDescription>
+                    <AddOnButton
+                      selected={addOns.utensilDrying}
+                      color="#00b894"
                       onClick={() => handleAddOnSelect('utensilDrying')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.utensilDrying ? '#00b894' : 'rgba(228, 245, 241, 0.2)',
-                        color: addOns.utensilDrying ? '#fff' : '#00b894',
-                        border: addOns.utensilDrying ? 'none' : '2px solid #00b894',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
+                      {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
                   
                   {/* Clothes Drying */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.clothesDrying ? '#0984e3' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Clothes Drying</h4>
-                      <span style={{fontWeight: 'bold', color: '#0984e3', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
+                  <AddOnCard selected={addOns.clothesDrying} color="#0984e3">
+                    <AddOnHeader>
+                      <AddOnTitle>Clothes Drying</AddOnTitle>
+                      <AddOnPrice color="#0984e3">+₹1,000</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>
                       Househelp will get clothes from/to drying place
-                    </div>
-                    
-                    <button 
+                    </AddOnDescription>
+                    <AddOnButton
+                      selected={addOns.clothesDrying}
+                      color="#0984e3"
                       onClick={() => handleAddOnSelect('clothesDrying')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.clothesDrying ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
-                        color: addOns.clothesDrying ? '#fff' : '#0984e3',
-                        border: addOns.clothesDrying ? 'none' : '2px solid #0984e3',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
                     >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Voucher Section */}
-            <div style={{
-              padding: '15px 20px',
-              borderTop: '1px solid #f0f0f0',
-              borderBottom: '1px solid #f0f0f0',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <h3 style={{color: '#2d3436', margin: '0 0 10px 0', fontSize: '16px'}}>Apply Voucher</h3>
-              <div style={{display: 'flex', gap: '10px'}}>
-                <input
-                  type="text"
-                  placeholder="Enter voucher code"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <button style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}>
-                  APPLY
-                </button>
-              </div>
-            </div>
+                      {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+                </AddOnsGrid>
+              </AddOnsContainer>
+
+              {/* Voucher Section */}
+              <VoucherContainer>
+                <VoucherTitle>Apply Voucher</VoucherTitle>
+                <VoucherInputContainer>
+                  <VoucherInput
+                    type="text"
+                    placeholder="Enter voucher code"
+                  />
+                  <VoucherButton>
+                    APPLY
+                  </VoucherButton>
+                </VoucherInputContainer>
+              </VoucherContainer>
+            </PackagesContainer>
             
             {/* Footer with Checkout */}
-            <div
-              style={{
-                position: 'sticky',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: '15px 20px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#fff',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
-              }}
-            >
+            <FooterContainer>
               <div>
-                <div style={{color: '#636e72', fontSize: '14px'}}>
+                <FooterText>
                   Total for {countSelectedServices()} services ({countSelectedAddOns()} add-ons)
-                </div>
-                <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>
+                </FooterText>
+                <FooterPrice>
                   ₹{calculateTotal().toLocaleString('en-IN')}
-                </div>
+                </FooterPrice>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {!loggedInUser && (
-                  <>
-                    <Tooltip title="You need to login to proceed with checkout">
-                      <IconButton size="small" style={{ marginRight: '8px' }}>
-                        <InfoOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <button
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#1976d2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        width: 'fit-content'
-                      }}
-                      onClick={handleLogin}
-                    >
-                      LOGIN TO CONTINUE
-                    </button>
-                  </>
-                )}
-                
-                {loggedInUser && (
-                  <button
-                    style={{
-                      padding: '12px 25px',
-                      backgroundColor: hasSelectedServices() ? '#e17055' : '#bdc3c7',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      cursor: hasSelectedServices() ? 'pointer' : 'not-allowed'
-                    }}
-                    onClick={handleCheckout}
-                    disabled={!hasSelectedServices()}
-                  >
-                    CHECKOUT
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+              <FooterButtons>
+  {!isAuthenticated && (
+    <>
+      <Tooltip title="You need to login to proceed with checkout">
+        <IconButton size="small" style={{ marginRight: '8px' }}>
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <LoginButton onClick={() => loginWithRedirect()}>
+        LOGIN TO CONTINUE
+      </LoginButton>
+    </>
+  )}
+  
+  {isAuthenticated && (
+    <CheckoutButton
+      onClick={handleCheckout}
+      disabled={calculateTotal() === 0}
+    >
+      {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+    </CheckoutButton>
+  )}
+</FooterButtons>
+            </FooterContainer>
+          </DialogContainer>
+        </StyledDialogContent>
+      </StyledDialog>
 
-      {/* Login Dialog */}
-      <Dialog 
-        style={{padding:'0px'}}
-        open={loginOpen}
-        onClose={handleLoginClose}
-        aria-labelledby="login-dialog-title"
-        aria-describedby="login-dialog-description"
-      >
-        <DialogContent>
-          <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog>
+      
     </>
   );
 };
