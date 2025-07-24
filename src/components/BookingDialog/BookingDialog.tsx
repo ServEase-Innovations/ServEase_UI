@@ -165,7 +165,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DemoContainer components={['DateTimePicker']}>
 
-                                    <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
+                                    <DateTimePicker label="Select Start Date " onChange={(newValue) => {
                                         updateStartDate(newValue);
                                     }} 
                                      minDate={today}
@@ -186,7 +186,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                                     <DemoContainer components={['DateTimePicker']}>
 
-                                        <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
+                                        <DateTimePicker label="Select Start Date " onChange={(newValue) => {
                                             updateStartDate(newValue);
                                         }}
                                         minDate={today}
@@ -200,7 +200,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                                     <DemoContainer components={['DateTimePicker']}>
 
                                       <DateTimePicker
-    label="Basic date time picker"
+    label="Select End Date "
     onChange={(newValue) => {
         updateEndDate(newValue);
     }}
@@ -226,7 +226,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                             <LocalizationProvider dateAdapter={AdapterDayjs}>
                                 <DemoContainer components={['DateTimePicker']}>
 
-                                    <DateTimePicker label="Basic date time picker" onChange={(newValue) => {
+                                    <DateTimePicker label="Select Start Date " onChange={(newValue) => {
                                         updateStartDate(newValue);
                                     }} 
                                 minDate={today}
