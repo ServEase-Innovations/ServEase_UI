@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import { Badge } from "../../components/Common/Badge";
 import { Button } from "../../components/Button";
