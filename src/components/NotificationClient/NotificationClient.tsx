@@ -1,6 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const SERVICE_PROVIDER_ID = ''; // Replace with actual ID
+const SERVICE_PROVIDER_ID = '202'; // ✅ Replace dynamically if needed
+
+const sendWhenReady = (ws: WebSocket, data: any) => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+  } else {
+    ws.addEventListener(
+      'open',
+      () => {
+        ws.send(JSON.stringify(data));
+      },
+      { once: true }
+    );
+  }
+};
 
 const NotificationClient = () => {
   const ws = useRef<WebSocket | null>(null);
@@ -8,27 +22,30 @@ const NotificationClient = () => {
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    ws.current = new WebSocket('wss://utils-ndt3.onrender.com');
+    ws.current = new WebSocket('ws://localhost:5000/');
 
-    ws.current.onopen = () => {
-      console.log('WebSocket connected');
-      ws.current?.send("202"); // Identify the client by number
-    };
+    // Send IDENTIFY only when ready
+    if (ws.current) {
+      sendWhenReady(ws.current, {
+        type: 'IDENTIFY',
+        id: SERVICE_PROVIDER_ID,
+      });
+    }
 
     ws.current.onmessage = (event: MessageEvent) => {
       const message = event.data;
-      console.log('Message received:', message);
+      console.log('📨 Message received:', message);
 
       setMessages((prev) => [...prev, message]);
       setPopupMessage(message); // Show popup dialog
     };
 
     ws.current.onerror = (error: Event) => {
-      console.error('WebSocket error:', error);
+      console.error('❌ WebSocket error:', error);
     };
 
     ws.current.onclose = () => {
-      console.log('WebSocket disconnected');
+      console.log('🔌 WebSocket disconnected');
     };
 
     return () => {
@@ -38,12 +55,9 @@ const NotificationClient = () => {
     };
   }, []);
 
-  const handleClosePopup = () => {
-    setPopupMessage(null);
-  };
-
+  const handleClosePopup = () => setPopupMessage(null);
   const handleView = () => {
-    alert('Viewing details...'); // Replace with navigation or modal
+    alert('Viewing details...');
     setPopupMessage(null);
   };
 
@@ -55,14 +69,11 @@ const NotificationClient = () => {
       ) : (
         <ul>
           {messages.map((msg, index) => (
-            <li key={index} style={{ marginBottom: '0.5rem' }}>
-              {msg}
-            </li>
+            <li key={index} style={{ marginBottom: '0.5rem' }}>{msg}</li>
           ))}
         </ul>
       )}
 
-      {/* Popup Dialog */}
       {popupMessage && (
         <div style={{
           position: 'fixed',
@@ -81,9 +92,7 @@ const NotificationClient = () => {
           <h3>🔔 New Notification</h3>
           <p>{popupMessage}</p>
           <div style={{ marginTop: '1rem' }}>
-            <button onClick={handleView} style={{ marginRight: '10px' }}>
-              View
-            </button>
+            <button onClick={handleView} style={{ marginRight: '10px' }}>View</button>
             <button onClick={handleClosePopup}>Close</button>
           </div>
         </div>

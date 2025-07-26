@@ -15,7 +15,6 @@ import UserProfile from "./components/User-Profile/UserProfile";
 import Booking from "./components/User-Profile/Bookings";
 import { ADMIN, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PROFILE } from "./Constants/pagesConstants";
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
-import New from "./components/AddToCart/New";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux"; // Import useSelector
@@ -44,6 +43,7 @@ type UserState = {
 
 // Extract user data from Redux with correct type
 const user = useSelector((state: RootState) => state.user as UserState);
+const [notificationReceived, setNotificationReceived] = useState(false);
 
 // Ensure `value` is not null before accessing `role`
 const userRole = user?.value?.role ?? "No Role";
@@ -85,6 +85,25 @@ if (userRole === "CUSTOMER") {
   useEffect(() => {
     getPricingData();
   });
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:5000/");
+
+    ws.onopen = () => {
+      const serviceProviderId = user?.value?.customerDetails?.id; // Adjust field as needed
+      if (serviceProviderId) {
+        ws.send(JSON.stringify({ type: "IDENTIFY", id: serviceProviderId }));
+      }
+    };
+
+    ws.onmessage = (event) => {
+      console.log("WebSocket message received:", event.data);
+      setNotificationReceived(true);
+    };
+
+    return () => ws.close();
+  }, []);
+
 
   const getPricingData = () => {
     axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
@@ -134,8 +153,8 @@ if (userRole === "CUSTOMER") {
     
     <div className="bg-gray-50 text-gray-800">
       <Header sendDataToParent={handleDataFromChild}/>
+      {notificationReceived && <NotificationClient />}
       <div className="bg-gray-50 text-gray-800">
-      {/* <NotificationClient /> */}
       {renderContent()}
       </div>
     </div>
