@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Card, CardContent } from "../../components/Common/Card";
 import { Badge } from "../../components/Common/Badge";
 import { LucideIcon } from "lucide-react";

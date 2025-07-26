@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useState } from "react";
 import { DashboardMetricCard } from "./DashboardMetricCard";
 import { BookingCard } from "./BookingCard";

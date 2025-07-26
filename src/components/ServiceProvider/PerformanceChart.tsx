@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/Common/Card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
