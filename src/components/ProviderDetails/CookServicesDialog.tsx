@@ -14,11 +14,11 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { addToCart, removeFromCart, updateCartItem } from '../../features/addToCart/addToSlice';
 import { MealPackage } from '../../types/mealPackage';
-import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton } from './CookServicesDialog.styles';
+import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton, CloseButton } from './CookServicesDialog.styles';
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import CheckoutWithAgreement from './CheckoutAgreementDialog';
-
+import CloseIcon from '@mui/icons-material/Close';
 interface CookServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -75,7 +75,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     startDate: new Date().toISOString().split('T')[0],
     endDate: "",
     engagements: "",
-    address: "",
+    address: " Durgapur, West Bengal 713205, India",
     timeslot: "",
     monthlyAmount: 0,
     paymentMode: "UPI",
@@ -222,41 +222,41 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  const togglePackageSelection = (packageName: string) => {
-    setPackages(prev => {
-      const currentPackage = prev[packageName];
-      if (!currentPackage) return prev;
+  // const togglePackageSelection = (packageName: string) => {
+  //   setPackages(prev => {
+  //     const currentPackage = prev[packageName];
+  //     if (!currentPackage) return prev;
 
-      const newSelectedState = !currentPackage.selected;
-      const shouldBeInCart = newSelectedState;
-      if (shouldBeInCart && !currentPackage.inCart) {
-        dispatch(addToCart({
-          type: 'meal',
-          id: packageName.toUpperCase(),
-          mealType: packageName.toUpperCase(),
-          persons: currentPackage.persons,
-          price: currentPackage.calculatedPrice,
-          description: currentPackage.description.join(', '),
-          basePrice: currentPackage.basePrice,
-          maxPersons: currentPackage.maxPersons
-        }));
-      } else if (!shouldBeInCart && currentPackage.inCart) {
-        dispatch(removeFromCart({
-          id: packageName.toUpperCase(),
-          type: 'meal'
-        }));
-      }
+  //     const newSelectedState = !currentPackage.selected;
+  //     const shouldBeInCart = newSelectedState;
+  //     if (shouldBeInCart && !currentPackage.inCart) {
+  //       dispatch(addToCart({
+  //         type: 'meal',
+  //         id: packageName.toUpperCase(),
+  //         mealType: packageName.toUpperCase(),
+  //         persons: currentPackage.persons,
+  //         price: currentPackage.calculatedPrice,
+  //         description: currentPackage.description.join(', '),
+  //         basePrice: currentPackage.basePrice,
+  //         maxPersons: currentPackage.maxPersons
+  //       }));
+  //     } else if (!shouldBeInCart && currentPackage.inCart) {
+  //       dispatch(removeFromCart({
+  //         id: packageName.toUpperCase(),
+  //         type: 'meal'
+  //       }));
+  //     }
 
-      return {
-        ...prev,
-        [packageName]: {
-          ...currentPackage,
-          selected: newSelectedState,
-          inCart: shouldBeInCart
-        }
-      };
-    });
-  };
+  //     return {
+  //       ...prev,
+  //       [packageName]: {
+  //         ...currentPackage,
+  //         selected: newSelectedState,
+  //         inCart: shouldBeInCart
+  //       }
+  //     };
+  //   });
+  // };
 
   const toggleCart = (packageName: string) => {
     setPackages(prev => {
@@ -558,16 +558,7 @@ const handleProceedToPayment = async () => {
               {pkg.inCart ? 'ADDED TO CART' : 'ADD TO CART'}
             </CartButton>
             
-            <SelectButton 
-              selected={pkg.selected}
-              color={categoryColor}
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePackageSelection(packageName);
-              }}
-            >
-              {pkg.selected ? 'SELECTED' : 'SELECT PACKAGE'}
-            </SelectButton>
+          
           </ButtonsContainer>
         </PackageCard>
       );
@@ -590,9 +581,15 @@ const handleProceedToPayment = async () => {
         <StyledDialogContent>
           <DialogContainer>
             <DialogHeader>
-              <h1>MEAL PACKAGES</h1>
-            </DialogHeader>
-            
+              <h1>👩‍🍳Home Cook</h1>
+                <CloseButton 
+    aria-label="close" 
+    onClick={handleClose}
+    size="small"
+  >
+    <CloseIcon />
+  </CloseButton>
+            </DialogHeader>         
             <PackagesContainer>
               {renderPackageSections()}
             </PackagesContainer>

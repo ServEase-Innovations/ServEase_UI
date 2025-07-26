@@ -14,7 +14,7 @@ import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import dayjs, { Dayjs } from "dayjs";
 import { PickerSelectionState } from "@mui/x-date-pickers/internals";
 import { DateView } from "@mui/x-date-pickers/models";
-import { Bookingtype } from "@/types/bookingTypeData";
+import { Bookingtype } from "../../types/bookingTypeData";
 import { DETAILS } from "../../Constants/pagesConstants";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/bookingType/bookingTypeSlice";

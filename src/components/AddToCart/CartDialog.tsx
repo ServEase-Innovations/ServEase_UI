@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems, updateCartItem } from '../../features/addToCart/addToSlice';
 import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../../types/cartSlice';
-
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -177,6 +177,71 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
                 <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
               </Box>
+              <Divider sx={{ my: 2 }} />
+
+<Box sx={{ mt: 2 }}>
+  <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: 500, mb: 1 }}>
+     We kindly ask you to review and agree to the following policies before proceeding:
+  </Typography>
+
+  <Box component="ul" sx={{
+    pl: 2,
+    listStyle: 'none',
+    '& li': {
+      mb: 1.5,
+      display: 'flex',
+      alignItems: 'center',
+    }
+  }}>
+    <li>
+      <input type="checkbox" style={{ marginRight: '8px' }} />
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+        I agree to the ServEaso {' '}
+        <a 
+          href="https://www.servease.com/keyfacts" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+        >
+          Key Facts Statement
+          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+        </a>
+      </Typography>
+    </li>
+
+    <li>
+      <input type="checkbox" style={{ marginRight: '8px' }} />
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+        I agree to the ServEaso {' '}
+        <a 
+          href="https://www.servease.com/tnc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+        >
+          Terms and Conditions
+          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+        </a>
+      </Typography>
+    </li>
+
+    <li>
+      <input type="checkbox" style={{ marginRight: '8px' }} />
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+        I agree to the ServEaso {' '}
+        <a 
+          href="https://www.servease.com/privacy" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+        >
+          Privacy Statement
+          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+        </a>
+      </Typography>
+    </li>
+  </Box>
+</Box>
             </Box>
           </>
         )}
@@ -525,6 +590,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
           ₹{item.price.toFixed(2)}
         </Typography>
       </Box>
+      
     </Box>
   );
 };

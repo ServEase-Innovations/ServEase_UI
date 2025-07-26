@@ -3,6 +3,11 @@ import { Dialog, DialogContent, IconButton } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 
+// Define the Dinner package color scheme
+const DINNER_COLOR = '#0984e3';
+const DINNER_BG_COLOR = '#0984e310'; // 10% opacity
+const DINNER_HOVER_COLOR = '#0873c7';
+
 export const StyledDialog = styled(Dialog)`
   padding: 0;
   border-radius: 12px;
@@ -26,14 +31,27 @@ export const DialogContainer = styled.div`
   flex-direction: column;
 `;
 
+export const CloseButton = styled(IconButton)`
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  color: #2d3436;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+`;
+
 export const DialogHeader = styled.div`
+  position: relative;
   padding: 20px;
   border-bottom: 1px solid #f0f0f0;
 
   h1 {
     color: #2d3436;
-    margin: 0;
+    margin: 0 0 15px 0;
     font-size: 24px;
+    padding-right: 30px;
   }
 `;
 
@@ -47,7 +65,7 @@ export const TabButton = styled.button<{ active: boolean }>`
   padding: 15px;
   background-color: #fff;
   border: none;
-  border-bottom: ${props => props.active ? '3px solid #e17055' : 'none'};
+  border-bottom: ${props => props.active ? `3px solid ${DINNER_COLOR}` : 'none'};
   font-weight: bold;
   cursor: pointer;
   color: ${props => props.active ? '#2d3436' : '#636e72'};
@@ -62,13 +80,13 @@ export const PackagesContainer = styled.div`
   padding: 20px;
 `;
 
-export const PackageCard = styled.div<{ selected: boolean; color: string }>`
+export const PackageCard = styled.div<{ selected: boolean }>`
   border: 1px solid #dfe6e9;
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 20px;
-  background-color: ${props => props.selected ? `${props.color}10` : '#fff'};
-  border-left: ${props => props.selected ? `3px solid ${props.color}` : '1px solid #dfe6e9'};
+  background-color: ${props => props.selected ? DINNER_BG_COLOR : '#fff'};
+  border-left: ${props => props.selected ? `3px solid ${DINNER_COLOR}` : '1px solid #dfe6e9'};
   transition: all 0.2s ease;
 `;
 
@@ -89,8 +107,8 @@ export const RatingContainer = styled.div`
   margin-bottom: 10px;
 `;
 
-export const RatingValue = styled.span<{ color: string }>`
-  color: ${props => props.color};
+export const RatingValue = styled.span`
+  color: ${DINNER_COLOR};
   font-weight: bold;
 `;
 
@@ -104,9 +122,9 @@ export const PriceContainer = styled.div`
   text-align: right;
 `;
 
-export const PriceValue = styled.div<{ color: string }>`
+export const PriceValue = styled.div`
   font-weight: bold;
-  color: ${props => props.color};
+  color: ${DINNER_COLOR};
   font-size: 18px;
 `;
 
@@ -183,12 +201,12 @@ export const ButtonsContainer = styled.div`
   margin-top: 10px;
 `;
 
-export const CartButton = styled.button<{ inCart: boolean; color: string }>`
+export const CartButton = styled.button<{ inCart: boolean }>`
   flex: 1;
   padding: 12px;
-  background-color: ${props => props.inCart ? props.color : '#fff'};
-  color: ${props => props.inCart ? '#fff' : props.color};
-  border: 1px solid ${props => props.color};
+  background-color: ${props => props.inCart ? DINNER_COLOR : '#fff'};
+  color: ${props => props.inCart ? '#fff' : DINNER_COLOR};
+  border: 1px solid ${DINNER_COLOR};
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
@@ -199,23 +217,23 @@ export const CartButton = styled.button<{ inCart: boolean; color: string }>`
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: ${props => props.inCart ? props.color : '#f5f5f5'};
+    background-color: ${props => props.inCart ? DINNER_HOVER_COLOR : '#f5f5f5'};
   }
 `;
 
-export const SelectButton = styled.button<{ selected: boolean; color: string }>`
+export const SelectButton = styled.button<{ selected: boolean }>`
   flex: 1;
   padding: 12px;
-  background-color: ${props => props.selected ? props.color : '#fff'};
-  color: ${props => props.selected ? '#fff' : props.color};
-  border: 1px solid ${props => props.color};
+  background-color: ${props => props.selected ? DINNER_COLOR : '#fff'};
+  color: ${props => props.selected ? '#fff' : DINNER_COLOR};
+  border: 1px solid ${DINNER_COLOR};
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: ${props => props.selected ? props.color : '#f5f5f5'};
+    background-color: ${props => props.selected ? DINNER_HOVER_COLOR : '#f5f5f5'};
   }
 `;
 
@@ -235,14 +253,14 @@ export const AddOnsGrid = styled.div`
   gap: 15px;
 `;
 
-export const AddOnCard = styled.div<{ selected: boolean; color: string }>`
+export const AddOnCard = styled.div<{ selected: boolean }>`
   border: 1px solid #dfe6e9;
   border-radius: 10px;
   padding: 15px;
   flex: 1 1 45%;
   min-width: 200px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border-color: ${props => props.selected ? props.color : '#dfe6e9'};
+  border-color: ${props => props.selected ? DINNER_COLOR : '#dfe6e9'};
   transition: all 0.2s ease;
 `;
 
@@ -259,9 +277,9 @@ export const AddOnTitle = styled.h4`
   font-weight: 600;
 `;
 
-export const AddOnPrice = styled.span<{ color: string }>`
+export const AddOnPrice = styled.span`
   font-weight: bold;
-  color: ${props => props.color};
+  color: ${DINNER_COLOR};
   font-size: 16px;
 `;
 
@@ -272,12 +290,12 @@ export const AddOnDescription = styled.div`
   line-height: 1.4;
 `;
 
-export const AddOnButton = styled.button<{ selected: boolean; color: string }>`
+export const AddOnButton = styled.button<{ selected: boolean }>`
   width: 100%;
   padding: 10px;
-  background-color: ${props => props.selected ? props.color : `rgba(${hexToRgb(props.color)}, 0.1)`};
-  color: ${props => props.selected ? '#fff' : props.color};
-  border: ${props => props.selected ? 'none' : `2px solid ${props.color}`};
+  background-color: ${props => props.selected ? DINNER_COLOR : `rgba(9, 132, 227, 0.1)`};
+  color: ${props => props.selected ? '#fff' : DINNER_COLOR};
+  border: ${props => props.selected ? 'none' : `2px solid ${DINNER_COLOR}`};
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
@@ -285,7 +303,7 @@ export const AddOnButton = styled.button<{ selected: boolean; color: string }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${props => props.selected ? props.color : `rgba(${hexToRgb(props.color)}, 0.2)`};
+    background-color: ${props => props.selected ? DINNER_HOVER_COLOR : `rgba(9, 132, 227, 0.2)`};
   }
 `;
 
@@ -317,7 +335,7 @@ export const VoucherInput = styled.input`
 
 export const VoucherButton = styled.button`
   padding: 10px 20px;
-  background-color: #27ae60;
+  background-color: ${DINNER_COLOR};
   color: white;
   border: none;
   border-radius: 6px;
@@ -327,7 +345,7 @@ export const VoucherButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #219955;
+    background-color: ${DINNER_HOVER_COLOR};
   }
 `;
 
@@ -353,7 +371,7 @@ export const FooterText = styled.div`
 export const FooterPrice = styled.div`
   font-weight: bold;
   font-size: 20px;
-  color: #2d3436;
+  color: ${DINNER_COLOR};
 `;
 
 export const FooterButtons = styled.div`
@@ -363,7 +381,7 @@ export const FooterButtons = styled.div`
 
 export const LoginButton = styled.button`
   padding: 8px 16px;
-  background-color: #1976d2;
+  background-color: ${DINNER_COLOR};
   color: white;
   border: none;
   border-radius: 6px;
@@ -374,13 +392,13 @@ export const LoginButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #1565c0;
+    background-color: ${DINNER_HOVER_COLOR};
   }
 `;
 
 export const CheckoutButton = styled.button<{ disabled: boolean }>`
   padding: 12px 25px;
-  background-color: ${props => props.disabled ? '#bdc3c7' : '#e17055'};
+  background-color: ${props => props.disabled ? '#bdc3c7' : DINNER_COLOR};
   color: white;
   border: none;
   border-radius: 6px;
@@ -389,19 +407,6 @@ export const CheckoutButton = styled.button<{ disabled: boolean }>`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: ${props => props.disabled ? '#bdc3c7' : '#d35400'};
+    background-color: ${props => props.disabled ? '#bdc3c7' : DINNER_HOVER_COLOR};
   }
 `;
-
-// Helper function to convert hex to rgb
-function hexToRgb(hex: string): string {
-  // Remove # if present
-  hex = hex.replace('#', '');
-
-  // Parse r, g, b values
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-
-  return `${r}, ${g}, ${b}`;
-}

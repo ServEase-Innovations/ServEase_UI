@@ -61,9 +61,11 @@ import {
   FooterPrice,
   FooterButtons,
   LoginButton,
-  CheckoutButton
+  CheckoutButton,
+  CloseButton
 } from './MaidServiceDialog.styles';
 import { useAuth0 } from "@auth0/auth0-react";
+import CloseIcon from '@mui/icons-material/Close';
 interface MaidServiceDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -81,51 +83,51 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const allCartItems = useSelector(selectCartItems);
   const maidCartItems = allCartItems.filter(isMaidCartItem);
   const [loading, setLoading] = useState(false);
-  const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
-    const initialCartItems = {
-      utensilCleaning: false,
-      sweepingMopping: false,
-      bathroomCleaning: false,
-      bathroomDeepCleaning: false,
-      normalDusting: false,
-      deepDusting: false,
-      utensilDrying: false,
-      clothesDrying: false
-    };
-
-    maidCartItems.forEach(item => {
-      if (item.serviceType === 'package') {
-        initialCartItems[item.name] = true;
-      } else if (item.serviceType === 'addon') {
-        initialCartItems[item.name] = true;
-      }
-    });
-
-    return initialCartItems;
-  });
-
-  const [packageStates, setPackageStates] = useState({
-    utensilCleaning: {
-      persons: 3,
-      selected: false
-    },
-    sweepingMopping: {
-      houseSize: '2BHK',
-      selected: false
-    },
-    bathroomCleaning: {
-      bathrooms: 2,
-      selected: false
-    }
-  });
-  
-  const [addOns, setAddOns] = useState({
+ const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
+  const initialCartItems = {
+    utensilCleaning: false,
+    sweepingMopping: false,
+    bathroomCleaning: false,
     bathroomDeepCleaning: false,
     normalDusting: false,
     deepDusting: false,
     utensilDrying: false,
     clothesDrying: false
+  };
+
+  maidCartItems.forEach(item => {
+    if (item.serviceType === 'package') {
+      initialCartItems[item.name] = true;
+    } else if (item.serviceType === 'addon') {
+      initialCartItems[item.name] = true;
+    }
   });
+
+  return initialCartItems;
+});
+
+const [packageStates, setPackageStates] = useState({
+  utensilCleaning: {
+    persons: 3,
+    selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'utensilCleaning')
+  },
+  sweepingMopping: {
+    houseSize: '2BHK',
+    selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'sweepingMopping')
+  },
+  bathroomCleaning: {
+    bathrooms: 2,
+    selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'bathroomCleaning')
+  }
+});
+
+const [addOns, setAddOns] = useState({
+  bathroomDeepCleaning: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'bathroomDeepCleaning'),
+  normalDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'normalDusting'),
+  deepDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'deepDusting'),
+  utensilDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'utensilDrying'),
+  clothesDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'clothesDrying')
+});
   
   const [loginOpen, setLoginOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
@@ -159,7 +161,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     startDate: new Date().toISOString().split('T')[0],
     endDate: "",
     engagements: "",
-    address: "",
+    address: " Durgapur, West Bengal 713205, India",
     timeslot: "",
     monthlyAmount: 0,
     paymentMode: "UPI",
@@ -232,15 +234,54 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     }));
   };
 
-  const handlePackageSelect = (packageName: string) => {
+useEffect(() => {
+  if (open) {
+    // Sync cart items from Redux
+    const updatedCartItems = {
+      utensilCleaning: false,
+      sweepingMopping: false,
+      bathroomCleaning: false,
+      bathroomDeepCleaning: false,
+      normalDusting: false,
+      deepDusting: false,
+      utensilDrying: false,
+      clothesDrying: false
+    };
+
+    maidCartItems.forEach(item => {
+      if (item.serviceType === 'package' || item.serviceType === 'addon') {
+        updatedCartItems[item.name] = true;
+      }
+    });
+
+    setCartItems(updatedCartItems);
+
+    // Sync package states
     setPackageStates(prev => ({
-      ...prev,
-      [packageName]: {
-        ...prev[packageName],
-        selected: !prev[packageName].selected
+      utensilCleaning: {
+        ...prev.utensilCleaning,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'utensilCleaning')
+      },
+      sweepingMopping: {
+        ...prev.sweepingMopping,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'sweepingMopping')
+      },
+      bathroomCleaning: {
+        ...prev.bathroomCleaning,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'bathroomCleaning')
       }
     }));
-  };
+
+    // Sync add-ons
+    setAddOns({
+      bathroomDeepCleaning: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'bathroomDeepCleaning'),
+      normalDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'normalDusting'),
+      deepDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'deepDusting'),
+      utensilDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'utensilDrying'),
+      clothesDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'clothesDrying')
+    });
+  }
+}, [open, maidCartItems]);
 
   const handleAddOnSelect = (addOnName: string) => {
     setAddOns(prev => ({
@@ -250,49 +291,70 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   };
 
   const handleAddPackageToCart = (packageName: string) => {
-    const packageDetails = {
-      id: `package_${packageName}`,
-      type: 'maid' as const,
-      serviceType: 'package' as const,
-      name: packageName,
-      price: getPackagePrice(packageName),
-      description: getPackageDescription(packageName),
-      details: getPackageDetails(packageName)
-    };
+  const isCurrentlyInCart = cartItems[packageName];
 
-    if (cartItems[packageName]) {
-      dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
-    } else {
-      dispatch(addToCart(packageDetails));
-    }
-
-    setCartItems(prev => ({
-      ...prev,
-      [packageName]: !prev[packageName]
-    }));
+  const packageDetails = {
+    id: `package_${packageName}`,
+    type: 'maid' as const,
+    serviceType: 'package' as const,
+    name: packageName,
+    price: getPackagePrice(packageName),
+    description: getPackageDescription(packageName),
+    details: getPackageDetails(packageName)
   };
+
+  if (isCurrentlyInCart) {
+    dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
+  } else {
+    dispatch(addToCart(packageDetails));
+  }
+
+  // Update cart state and select state together
+  setCartItems(prev => ({
+    ...prev,
+    [packageName]: !isCurrentlyInCart
+  }));
+
+  setPackageStates(prev => ({
+    ...prev,
+    [packageName]: {
+      ...prev[packageName],
+      selected: !isCurrentlyInCart
+    }
+  }));
+};
+
 
   const handleAddAddOnToCart = (addOnName: string) => {
-    const addOnDetails = {
-      id: `addon_${addOnName}`,
-      type: 'maid' as const,
-      serviceType: 'addon' as const,
-      name: addOnName,
-      price: getAddOnPrice(addOnName),
-      description: getAddOnDescription(addOnName)
-    };
+  const isCurrentlyInCart = cartItems[addOnName];
 
-    if (cartItems[addOnName]) {
-      dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
-    } else {
-      dispatch(addToCart(addOnDetails));
-    }
-
-    setCartItems(prev => ({
-      ...prev,
-      [addOnName]: !prev[addOnName]
-    }));
+  const addOnDetails = {
+    id: `addon_${addOnName}`,
+    type: 'maid' as const,
+    serviceType: 'addon' as const,
+    name: addOnName,
+    price: getAddOnPrice(addOnName),
+    description: getAddOnDescription(addOnName)
   };
+
+  if (isCurrentlyInCart) {
+    dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
+  } else {
+    dispatch(addToCart(addOnDetails));
+  }
+
+  // Update cart state and selected state together
+  setCartItems(prev => ({
+    ...prev,
+    [addOnName]: !isCurrentlyInCart
+  }));
+
+  setAddOns(prev => ({
+    ...prev,
+    [addOnName]: !isCurrentlyInCart
+  }));
+};
+
 
   const getPackagePrice = (packageName: string): number => {
     switch(packageName) {
@@ -526,7 +588,14 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
         <StyledDialogContent>
           <DialogContainer>
             <DialogHeader>
-              <h1>MAID SERVICE PACKAGES</h1>
+              <h1>🧹Maid Service</h1>
+              <CloseButton 
+                aria-label="close" 
+                onClick={handleClose}
+                size="small"
+              >
+                <CloseIcon />
+              </CloseButton>
             </DialogHeader>
             
             <TabsContainer>
@@ -591,16 +660,8 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 </DescriptionList>
 
                 <ButtonsContainer>
-                  <SelectButton
-                    selected={packageStates.utensilCleaning.selected}
-                    color="#e17055"
-                    onClick={() => handlePackageSelect('utensilCleaning')}
-                  >
-                    {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                  </SelectButton>
                   <CartButton
                     inCart={cartItems.utensilCleaning}
-                    color="#e17055"
                     onClick={() => handleAddPackageToCart('utensilCleaning')}
                   >
                     {cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
@@ -651,16 +712,8 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 </DescriptionList>
 
                 <ButtonsContainer>
-                  <SelectButton
-                    selected={packageStates.sweepingMopping.selected}
-                    color="#00b894"
-                    onClick={() => handlePackageSelect('sweepingMopping')}
-                  >
-                    {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                  </SelectButton>
                   <CartButton
                     inCart={cartItems.sweepingMopping}
-                    color="#00b894"
                     onClick={() => handleAddPackageToCart('sweepingMopping')}
                   >
                     {cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
@@ -711,16 +764,8 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 </DescriptionList>
 
                 <ButtonsContainer>
-                  <SelectButton
-                    selected={packageStates.bathroomCleaning.selected}
-                    color="#0984e3"
-                    onClick={() => handlePackageSelect('bathroomCleaning')}
-                  >
-                    {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                  </SelectButton>
                   <CartButton
                     inCart={cartItems.bathroomCleaning}
-                    color="#0984e3"
                     onClick={() => handleAddPackageToCart('bathroomCleaning')}
                   >
                     {cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
@@ -745,7 +790,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <AddOnButton
                       selected={addOns.bathroomDeepCleaning}
                       color="#00b894"
-                      onClick={() => handleAddOnSelect('bathroomDeepCleaning')}
+                      onClick={() => handleAddAddOnToCart('bathroomDeepCleaning')}
                     >
                       {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
                     </AddOnButton>
@@ -763,7 +808,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <AddOnButton
                       selected={addOns.normalDusting}
                       color="#0984e3"
-                      onClick={() => handleAddOnSelect('normalDusting')}
+                      onClick={() => handleAddAddOnToCart('normalDusting')}
                     >
                       {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
                     </AddOnButton>
@@ -781,7 +826,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <AddOnButton
                       selected={addOns.deepDusting}
                       color="#e17055"
-                      onClick={() => handleAddOnSelect('deepDusting')}
+                      onClick={() => handleAddAddOnToCart('deepDusting')}
                     >
                       {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
                     </AddOnButton>
@@ -799,7 +844,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <AddOnButton
                       selected={addOns.utensilDrying}
                       color="#00b894"
-                      onClick={() => handleAddOnSelect('utensilDrying')}
+                      onClick={() => handleAddAddOnToCart('utensilDrying')}
                     >
                       {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
                     </AddOnButton>
@@ -817,7 +862,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     <AddOnButton
                       selected={addOns.clothesDrying}
                       color="#0984e3"
-                      onClick={() => handleAddOnSelect('clothesDrying')}
+                      onClick={() => handleAddAddOnToCart('clothesDrying')}
                     >
                       {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
                     </AddOnButton>

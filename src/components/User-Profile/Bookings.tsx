@@ -2,15 +2,16 @@
 /* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/Common/Card';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 
-import { Button } from '@/components/Button/button';
-import { Badge } from '@/components/Common/Badge/Badge';
-import { Separator } from '@/components/Common/Separator/Separator';
+import { Button } from '../../components/Button/button';
+import { Badge } from '../../components/Common/Badge/Badge';
+import { Separator } from '../../components/Common/Separator/Separator';
 import axiosInstance from '../../services/axiosInstance';
 import { useAuth0 } from '@auth0/auth0-react';
 import UserHoliday from './UserHoliday';
+
 
 
 interface Booking {
@@ -30,7 +31,6 @@ interface Booking {
   taskStatus: string;
   bookingDate: string;
   engagements: string;
-  serviceeType: string;
   serviceType: string;
   childAge: string;
   experience: string;
@@ -43,13 +43,13 @@ const getServiceIcon = (type: string) => {
   const iconClass = "h-5 w-5";
   switch (type) {
     case 'maid':
-      return <span className={`{iconClass} text-orange-500`}>👩‍🍳</span>;
+      return <span className={`{iconClass} text-orange-500`}>🧹</span>;
     case 'cleaning':
       return <span className={`{iconClass} text-pink-500`}>🧹</span>;
     case 'nanny':
       return <span className={`{iconClass} text-red-500`}>❤️</span>;
     default:
-      return <span className={iconClass}>🔧</span>;
+      return <span className={iconClass}>👩‍🍳</span>;
   }
 };
 
@@ -85,7 +85,26 @@ const getStatusBadge = (status: string) => {
       return null;
   }
 };
-
+const getBookingTypeBadge = (type: string) => {
+  switch (type) {
+    case 'ON_DEMAND':
+      return <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+        On Demand
+      </Badge>;
+    case 'MONTHLY':
+      return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+        Monthly
+      </Badge>;
+    case 'SHORT_TERM':
+      return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+        Short Term
+      </Badge>;
+    default:
+      return <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+        {type}
+      </Badge>;
+  }
+};
 const getServiceTitle = (type: string) => {
   switch (type) {
     case 'cook':
@@ -175,7 +194,7 @@ useEffect(() => {
       const size = 100; // Default size
 
       axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history?page=0&size=100`)
+        .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
           console.log('Past Bookings:', past);
@@ -191,7 +210,6 @@ useEffect(() => {
     customerId: item.customerId,
     serviceProviderId: item.serviceProviderId,
     name: item.customerName,
-    serviceeType: item.serviceeType,
     timeSlot: item.timeslot,
     date: item.startDate,
     startDate: item.startDate,
@@ -230,7 +248,7 @@ useEffect(() => {
     setSelectedTab(newValue);
   };
 
-  const handleModifyBooking = async (booking: Booking) => {
+   const handleModifyBooking = async (booking: Booking) => {
     setSelectedBooking(booking);
     setSelectedTimeSlot(booking.timeSlot);
 
@@ -250,7 +268,7 @@ useEffect(() => {
     setSelectedTimeSlot(event.target.value as string);
   };
 
-  const handleSave = async () => {
+ const handleSave = async () => {
     if (selectedBooking && selectedTimeSlot) {
       const updatePayload = {
         id: selectedBooking.id,
@@ -270,7 +288,6 @@ useEffect(() => {
         noOfPersons: selectedBooking.noOfPersons,
         experience: selectedBooking.experience,
         childAge: selectedBooking.childAge,
-        serviceeType: selectedBooking.serviceeType,
         customerName: selectedBooking.customerName,
         serviceProviderName: selectedBooking.serviceProviderName,
         address: selectedBooking.address,
@@ -279,7 +296,7 @@ useEffect(() => {
 
       try {
         const response = await axiosInstance.put(
-          `/api/serviceproviders/update/engagement/{selectedBooking.id}`,
+          `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
           updatePayload
         );
 
@@ -313,9 +330,10 @@ useEffect(() => {
     }
   };
 
+
  const handleCancelBooking = async (booking: Booking) => {
   const updatedStatus = "CANCELLED";
-
+ const serviceTypeUpperCase = booking.serviceType.toUpperCase();
   // Create base payload without service provider info
   const updatePayload: any = {
     id: booking.id,
@@ -329,12 +347,11 @@ useEffect(() => {
     bookingType: booking.bookingType,
     bookingDate: booking.bookingDate,
     responsibilities: booking.responsibilities,
-    serviceType: booking.serviceType,
+    serviceType:  serviceTypeUpperCase ,
     mealType: booking.mealType,
     noOfPersons: booking.noOfPersons,
     experience: booking.experience,
     childAge: booking.childAge,
-    serviceeType: booking.serviceeType,
     customerName: booking.customerName,
     address: booking.address,
     taskStatus: updatedStatus,
@@ -349,7 +366,7 @@ useEffect(() => {
   try {
     console.log(`Updating engagement with ID {booking.id} to status {updatedStatus}`);
     const response = await axiosInstance.put(
-      `/api/serviceproviders/update/engagement/{booking.id}`,
+      `/api/serviceproviders/update/engagement/${booking.id}`, 
       updatePayload
     );
 
@@ -405,7 +422,9 @@ const handleApplyLeaveClick = (booking: Booking) => {
 };
 
 
-
+const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) => 
+  new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+);
     return (
       <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
         {/* Header */}
@@ -424,16 +443,16 @@ const handleApplyLeaveClick = (booking: Booking) => {
               <div className="flex-1">
                 <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
                 <p className="text-sm text-muted-foreground">
-                  {currentBookings.length} {currentBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+                  {upcomingBookings.length} {upcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
                 </p>
               </div>
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                {currentBookings.length}
+                {upcomingBookings.length}
               </Badge>
             </div>
-            {currentBookings.length > 0 ? (
+            {upcomingBookings.length > 0 ? (
               <div className="grid gap-4">
-                {currentBookings.map((booking) => (
+                {upcomingBookings.map((booking) => (
                   <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
@@ -444,7 +463,10 @@ const handleApplyLeaveClick = (booking: Booking) => {
                             <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
                           </div>
                         </div>
-                        {getStatusBadge(booking['status'] || booking.taskStatus)}
+                       <div className="flex gap-2">
+                         {getBookingTypeBadge(booking.bookingType)}
+                          {getStatusBadge(booking['status'] || booking.taskStatus)}
+                        </div>
                       </div>
                     </CardHeader>
                     
@@ -463,7 +485,7 @@ const handleApplyLeaveClick = (booking: Booking) => {
                           
                           <div className="flex items-center gap-2 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking['time']} ({booking['duration']})</span>
+                            <span>{booking.timeSlot}</span>
                           </div>
                           
                           <div className="flex items-center gap-2 text-sm">
@@ -490,19 +512,51 @@ const handleApplyLeaveClick = (booking: Booking) => {
                       <Separator />
                       
                       <div className="flex gap-2 flex-wrap">
-                        {booking.address && (
-                          <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                            <Phone className="h-4 w-4 mr-2" />
-                            Call Provider
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Message
-                        </Button>
-                        <Button variant="destructive" size="sm" className="flex-1 min-w-0">
-                          Cancel Booking
-                        </Button>
+                    {booking.taskStatus === 'CANCELLED' ? (
+    <Button variant="outline" size="sm" className="flex-1 min-w-0">
+      Book Again
+    </Button>
+  ) : (
+    <>
+      {booking.address && (
+        <Button variant="outline" size="sm" className="flex-1 min-w-0">
+          <Phone className="h-4 w-4 mr-2" />
+          Call Provider
+        </Button>
+      )}
+      <Button variant="outline" size="sm" className="flex-1 min-w-0">
+        <MessageCircle className="h-4 w-4 mr-2" />
+        Message
+      </Button>
+        <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex-1 min-w-0"
+        onClick={() => handleApplyLeaveClick(booking)}
+      >
+        {/* <CalendarIcon className="h-4 w-4 mr-2" /> */}
+        Apply Holiday
+      </Button>
+      <Button 
+        variant="destructive" 
+        size="sm" 
+        className="flex-1 min-w-0" 
+        onClick={() => handleCancelBooking(booking)}
+      >
+        <XCircle className="h-4 w-4 mr-2" />
+        Cancel Booking
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex-1 min-w-0" 
+        onClick={() => handleModifyBooking(booking)}
+      >
+        <Edit className="h-4 w-4 mr-2" />
+        Modify Booking
+      </Button>
+    </>
+  )}
                       </div>
                     </CardContent>
                   </Card>
@@ -547,7 +601,10 @@ const handleApplyLeaveClick = (booking: Booking) => {
                             <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
                           </div>
                         </div>
-                        {getStatusBadge(booking.taskStatus)}
+                       <div className="flex gap-2">
+      {getBookingTypeBadge(booking.bookingType)}
+      {getStatusBadge( booking.taskStatus)}
+    </div>
                       </div>
                     </CardHeader>
                     

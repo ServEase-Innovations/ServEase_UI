@@ -4,6 +4,8 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import styled from '@emotion/styled';
 
+const DINNER_COLOR = '#0984e3'; // The blue color from Dinner package
+const DINNER_BG_COLOR = '#0984e310'; // Light blue background (10% opacity)
 export const StyledDialog = styled(Dialog)`
   padding: 0px;
   border-radius: 12px;
@@ -24,7 +26,21 @@ export const DialogContainer = styled.div`
   width: 100%;
 `;
 
+// Add this new styled component at the top of your styles file
+export const CloseButton = styled(IconButton)`
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  color: #2d3436;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+`;
+
+// Update the DialogHeader to include position relative
 export const DialogHeader = styled.div`
+  position: relative;
   padding: 20px;
   border-bottom: 1px solid #f0f0f0;
 
@@ -32,6 +48,7 @@ export const DialogHeader = styled.div`
     color: #2d3436;
     margin: 0;
     font-size: 24px;
+    padding-right: 30px; // Add space for the close button
   }
 `;
 
@@ -39,15 +56,14 @@ export const PackagesContainer = styled.div`
   padding: 20px;
 `;
 
-export const PackageCard = styled.div<{ selected: boolean; color: string }>`
+export const PackageCard = styled.div<{ selected: boolean }>`
   border: 1px solid #dfe6e9;
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 20px;
-  background-color: ${props => props.selected ? `${props.color}10` : '#fff'};
-  border-left: ${props => props.selected ? `3px solid ${props.color}` : '1px solid #dfe6e9'};
+  background-color: ${props => props.selected ? DINNER_BG_COLOR : '#fff'};
+  border-left: ${props => props.selected ? `3px solid ${DINNER_COLOR}` : '1px solid #dfe6e9'};
 `;
-
 export const PackageHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -65,8 +81,8 @@ export const RatingContainer = styled.div`
   margin-bottom: 10px;
 `;
 
-export const RatingValue = styled.span<{ color: string }>`
-  color: ${props => props.color};
+export const RatingValue = styled.span`
+  color: ${DINNER_COLOR};
   font-weight: bold;
 `;
 
@@ -80,9 +96,9 @@ export const PriceContainer = styled.div`
   text-align: right;
 `;
 
-export const PriceValue = styled.div<{ color: string }>`
+export const PriceValue = styled.div`
   font-weight: bold;
-  color: ${props => props.color};
+  color: ${DINNER_COLOR};
   font-size: 18px;
 `;
 
@@ -160,12 +176,12 @@ export const ButtonsContainer = styled.div`
   margin-top: 10px;
 `;
 
-export const CartButton = styled.button<{ inCart: boolean; color: string }>`
+export const CartButton = styled.button<{ inCart: boolean }>`
   flex: 1;
   padding: 12px;
-  background-color: ${props => props.inCart ? props.color : '#fff'};
-  color: ${props => props.inCart ? '#fff' : props.color};
-  border: 1px solid ${props => props.inCart ? props.color : '#dfe6e9'};
+  background-color: ${props => props.inCart ? DINNER_COLOR : '#fff'};
+  color: ${props => props.inCart ? '#fff' : DINNER_COLOR};
+  border: 1px solid ${DINNER_COLOR};
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
@@ -174,6 +190,10 @@ export const CartButton = styled.button<{ inCart: boolean; color: string }>`
   justify-content: center;
   gap: 8px;
   transition: all 0.3s ease;
+
+  &:hover {
+    background-color: ${props => props.inCart ? DINNER_COLOR : '#f5f5f5'};
+  }
 `;
 
 export const SelectButton = styled.button<{ selected: boolean; color: string }>`
@@ -247,7 +267,7 @@ export const FooterText = styled.div`
 export const FooterPrice = styled.div`
   font-weight: bold;
   font-size: 20px;
-  color: #2d3436;
+  color: ${DINNER_COLOR};
 `;
 
 export const FooterButtons = styled.div`
@@ -269,7 +289,7 @@ export const LoginButton = styled.button`
 
 export const CheckoutButton = styled.button<{ disabled: boolean }>`
   padding: 12px 25px;
-  background-color: ${props => props.disabled ? '#bdc3c7' : '#e17055'};
+   background-color: ${props => props.disabled ? '#bdc3c7' : DINNER_COLOR};
   color: white;
   border: none;
   border-radius: 6px;

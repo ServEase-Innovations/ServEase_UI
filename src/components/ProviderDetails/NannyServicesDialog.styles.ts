@@ -3,6 +3,10 @@ import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import styled from '@emotion/styled';
+import CloseIcon from '@mui/icons-material/Close'; // Add this import
+
+const DINNER_COLOR = '#0984e3'; // The blue color from Dinner package
+const DINNER_BG_COLOR = '#0984e310'; // Light blue background (10% opacity)
 
 export const StyledDialog = styled(Dialog)`
   padding: 0px;
@@ -24,7 +28,21 @@ export const DialogContainer = styled.div`
   width: 100%;
 `;
 
+// Add this new styled component at the top of your styles file
+export const CloseButton = styled(IconButton)`
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  color: #2d3436;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+`;
+
+// Update the DialogHeader to include position relative
 export const DialogHeader = styled.div`
+  position: relative;
   padding: 20px;
   border-bottom: 1px solid #f0f0f0;
 
@@ -32,6 +50,7 @@ export const DialogHeader = styled.div`
     color: #2d3436;
     margin: 0 0 15px 0;
     font-size: 24px;
+    padding-right: 30px; // Add space for the close button
   }
 `;
 
@@ -40,20 +59,27 @@ export const TabContainer = styled.div`
   border-bottom: 1px solid #f0f0f0;
 `;
 
-export const TabButton = styled.button`
+export const TabButton = styled.button<{ active: boolean }>`
   flex: 1;
   padding: 15px;
-  background-color: #fff;
+  background-color: ${props => props.active ? '#f5fbff' : '#fff'};
   border: none;
   font-weight: bold;
   cursor: pointer;
-  color: #2d3436;
+  color: ${props => props.active ? '#0984e3' : '#2d3436'};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #0984e3;
+    background-color: #f5fbff;
+  }
 `;
 
 export const TabIndicator = styled.div<{ active: boolean }>`
-  border-bottom: ${props => props.active ? '2px solid #e17055' : 'none'};
+  border-bottom: ${props => props.active ? '2px solid #0984e3' : 'none'};
   width: 50%;
   margin: 0 auto;
+  padding-bottom: 8px; 
 `;
 
 export const PackagesContainer = styled.div`
@@ -65,7 +91,9 @@ export const PackageCard = styled.div<{ selected: boolean }>`
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 20px;
-  background-color: ${props => props.selected ? '#fff8f6' : '#fff'};
+  background-color: ${props => props.selected ? '#0984e310' : '#fff'};
+  border-left: ${props => props.selected ? '3px solid #0984e3' : '1px solid #dfe6e9'};
+  transition: all 0.2s ease;
 `;
 
 export const PackageHeader = styled.div`
@@ -85,7 +113,7 @@ export const RatingContainer = styled.div`
 `;
 
 export const RatingValue = styled.span<{ color: string }>`
-  color: ${props => props.color};
+color: ${DINNER_COLOR};
   font-weight: bold;
 `;
 
@@ -101,7 +129,7 @@ export const PriceContainer = styled.div`
 
 export const PriceValue = styled.div<{ color: string }>`
   font-weight: bold;
-  color: ${props => props.color};
+   color: ${DINNER_COLOR};
   font-size: 18px;
 `;
 
@@ -185,11 +213,11 @@ export const SelectButton = styled.button<{ selected: boolean; color: string }>`
 `;
 
 export const CartButton = styled.button<{ inCart: boolean; color: string }>`
-  width: 50%;
+  width: 100%;
   padding: 12px;
-  background-color: ${props => props.inCart ? props.color : '#fff'};
-  color: ${props => props.inCart ? '#fff' : props.color};
-  border: 1px solid ${props => props.color};
+  background-color: ${props => props.inCart ? '#0984e3' : '#fff'};
+  color: ${props => props.inCart ? '#fff' : '#0984e3'};
+  border: 1px solid #0984e3;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
@@ -197,6 +225,7 @@ export const CartButton = styled.button<{ inCart: boolean; color: string }>`
   align-items: center;
   justify-content: center;
   gap: 5px;
+  transition: all 0.2s ease;
 `;
 
 export const VoucherContainer = styled.div`
@@ -258,7 +287,7 @@ export const FooterText = styled.div`
 export const FooterPrice = styled.div`
   font-weight: bold;
   font-size: 20px;
-  color: #2d3436;
+  color: ${DINNER_COLOR};
 `;
 
 export const FooterButtons = styled.div`
@@ -280,7 +309,7 @@ export const LoginButton = styled.button`
 
 export const CheckoutButton = styled.button<{ disabled: boolean }>`
   padding: 12px 25px;
-  background-color: ${props => props.disabled ? '#bdc3c7' : '#e17055'};
+   background-color: ${props => props.disabled ? '#bdc3c7' : DINNER_COLOR};
   color: white;
   border: none;
   border-radius: 6px;

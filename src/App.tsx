@@ -15,7 +15,6 @@ import UserProfile from "./components/User-Profile/UserProfile";
 import Booking from "./components/User-Profile/Bookings";
 import { ADMIN, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PROFILE } from "./Constants/pagesConstants";
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
-import AddToCart from "./components/AddToCart/AddToCart";
 import New from "./components/AddToCart/New";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";

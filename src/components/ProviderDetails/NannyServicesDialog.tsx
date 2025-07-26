@@ -52,10 +52,12 @@ import {
   FooterPrice,
   FooterButtons,
   LoginButton,
-  CheckoutButton
+  CheckoutButton,
+  CloseButton
 } from './NannyServicesDialog.styles';
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from '../Button/button';
+import CloseIcon from '@mui/icons-material/Close';
 interface NannyServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -123,24 +125,42 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
      }
    }, [isAuthenticated, user]);
 
-  useEffect(() => {
-    const updatedCartItems = { ...cartItems };
-    
-    // Reset all nanny cart items to false
-    Object.keys(cartItems).forEach(key => {
-      if (key.startsWith('baby') || key.startsWith('elderly')) {
-        updatedCartItems[key] = false;
-      }
-    });
+ useEffect(() => {
+  const updatedCartItems = { ...cartItems };
+  const updatedBabyPackages = { ...babyPackages };
+  const updatedElderlyPackages = { ...elderlyPackages };
+  
+  // Reset all states
+  Object.keys(cartItems).forEach(key => {
+    if (key.startsWith('baby') || key.startsWith('elderly')) {
+      updatedCartItems[key] = false;
+    }
+  });
 
-    // Update based on current cart items
-    nannyCartItems.forEach(item => {
-      const packageKey = `${item.careType}${item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)}`;
-      updatedCartItems[packageKey as keyof typeof updatedCartItems] = true;
-    });
+  Object.keys(updatedBabyPackages).forEach(key => {
+    updatedBabyPackages[key as keyof typeof updatedBabyPackages].selected = false;
+  });
 
-    setCartItems(updatedCartItems);
-  }, [nannyCartItems]);
+  Object.keys(updatedElderlyPackages).forEach(key => {
+    updatedElderlyPackages[key as keyof typeof updatedElderlyPackages].selected = false;
+  });
+
+  // Update based on current cart items
+  nannyCartItems.forEach(item => {
+    const packageKey = `${item.careType}${item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)}`;
+    updatedCartItems[packageKey as keyof typeof updatedCartItems] = true;
+
+    if (item.careType === 'baby') {
+      updatedBabyPackages[item.packageType as keyof typeof updatedBabyPackages].selected = true;
+    } else {
+      updatedElderlyPackages[item.packageType as keyof typeof updatedElderlyPackages].selected = true;
+    }
+  });
+
+  setCartItems(updatedCartItems);
+  setBabyPackages(updatedBabyPackages);
+  setElderlyPackages(updatedElderlyPackages);
+}, [nannyCartItems, open]); // Added 'open' to dependencies
 
   const handleLogin = () => setLoginOpen(true);
   const handleLoginClose = () => setLoginOpen(false);
@@ -186,63 +206,85 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     }
   };
 
-  const handleAddToCart = (packageKey: string) => {
-    try {
-      let type: 'baby' | 'elderly';
-      let packageType: 'day' | 'night' | 'fullTime';
+ const handleAddToCart = (packageKey: string) => {
+  try {
+    let type: 'baby' | 'elderly';
+    let packageType: 'day' | 'night' | 'fullTime';
 
-      if (packageKey.startsWith('baby')) {
-        type = 'baby';
-        packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
-                     packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
-      } else if (packageKey.startsWith('elderly')) {
-        type = 'elderly';
-        packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
-                     packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
-      } else {
-        console.error('Invalid package key:', packageKey);
-        return;
-      }
-
-      const packages = type === 'baby' ? babyPackages : elderlyPackages;
-      const packageDetails = packages[packageType as keyof typeof packages];
-
-      if (!packageDetails) {
-        console.error('Package details not found for:', packageKey);
-        return;
-      }
-
-      const age = packageDetails.age;
-      const price = getPackagePrice(type, packageType);
-      const description = getPackageDescription(type, packageType);
-
-      const cartItem = {
-        id: `${type}_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-        type: 'nanny' as const,
-        careType: type,
-        packageType,
-        age,
-        price,
-        description,
-        providerId: providerDetails?.serviceproviderId || '',
-        providerName: providerFullName
-      };
-
-      if (cartItems[packageKey]) {
-        dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
-      } else {
-        dispatch(addToCart(cartItem));
-      }
-
-      setCartItems(prev => ({
-        ...prev,
-        [packageKey]: !prev[packageKey]
-      }));
-    } catch (error) {
-      console.error('Error in handleAddToCart:', error);
-      setError('Failed to update cart. Please try again.');
+    if (packageKey.startsWith('baby')) {
+      type = 'baby';
+      packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
+                   packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
+    } else if (packageKey.startsWith('elderly')) {
+      type = 'elderly';
+      packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
+                   packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
+    } else {
+      console.error('Invalid package key:', packageKey);
+      return;
     }
-  };
+
+    const packages = type === 'baby' ? babyPackages : elderlyPackages;
+    const packageDetails = packages[packageType];
+
+    if (!packageDetails) {
+      console.error('Package details not found for:', packageKey);
+      return;
+    }
+
+    const age = packageDetails.age;
+    const price = getPackagePrice(type, packageType);
+    const description = getPackageDescription(type, packageType);
+
+    const cartItem = {
+      id: `${type}_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+      type: 'nanny' as const,
+      careType: type,
+      packageType,
+      age,
+      price,
+      description,
+      providerId: providerDetails?.serviceproviderId || '',
+      providerName: providerFullName
+    };
+
+    const isInCart = cartItems[packageKey];
+    
+    if (isInCart) {
+      dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
+    } else {
+      dispatch(addToCart(cartItem));
+    }
+
+    // Update all states atomically
+    setCartItems(prev => ({
+      ...prev,
+      [packageKey]: !isInCart
+    }));
+
+    if (type === 'baby') {
+      setBabyPackages(prev => ({
+        ...prev,
+        [packageType]: {
+          ...prev[packageType],
+          selected: !isInCart
+        }
+      }));
+    } else {
+      setElderlyPackages(prev => ({
+        ...prev,
+        [packageType]: {
+          ...prev[packageType],
+          selected: !isInCart
+        }
+      }));
+    }
+
+  } catch (error) {
+    console.error('Error in handleAddToCart:', error);
+    setError('Failed to update cart. Please try again.');
+  }
+};
 
   const getPackagePrice = (type: 'baby' | 'elderly', packageType: string): number => {
     const prices = {
@@ -326,7 +368,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
         serviceProviderName: providerFullName,
         customerId: customerId,
         customerName: customerName, 
-        address: currentLocation,
+        address: " Durgapur, West Bengal 713205, India",
         startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
         endDate: bookingType?.endDate || "",
         engagements: getSelectedServicesDescription(),
@@ -552,15 +594,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
           ))}
         </DescriptionList>
         
-        <ButtonsContainer>
-          <SelectButton 
-            selected={packageData.selected}
-            color={color}
-            onClick={() => togglePackageSelection(packageType, true)}
-          >
-            {packageData.selected ? 'SELECTED' : 'SELECT SERVICE'}
-          </SelectButton>
-          
+        <ButtonsContainer> 
           <CartButton 
             inCart={cartItems[packageKey]}
             color={color}
@@ -664,14 +698,6 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
         </DescriptionList>
         
         <ButtonsContainer>
-          <SelectButton 
-            selected={packageData.selected}
-            color={color}
-            onClick={() => togglePackageSelection(packageType, false)}
-          >
-            {packageData.selected ? 'SELECTED' : 'SELECT SERVICE'}
-          </SelectButton>
-          
           <CartButton 
             inCart={cartItems[packageKey]}
             color={color}
@@ -704,21 +730,35 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
       >
         <StyledDialogContent>
           <DialogContainer>
-            <DialogHeader>
-              <h1>NANNY SERVICES</h1>
-              <TabContainer>
-                <TabButton onClick={() => setActiveTab('baby')}>
-                  <TabIndicator active={activeTab === 'baby'}>
-                    Baby Care
-                  </TabIndicator>
-                </TabButton>
-                <TabButton onClick={() => setActiveTab('elderly')}>
-                  <TabIndicator active={activeTab === 'elderly'}>
-                    Elderly Care
-                  </TabIndicator>
-                </TabButton>
-              </TabContainer>
-            </DialogHeader>
+          
+<DialogHeader>
+  <h1> ❤️Caregiver Service</h1>
+  <CloseButton 
+    aria-label="close" 
+    onClick={handleClose}
+    size="small"
+  >
+    <CloseIcon />
+  </CloseButton>
+  <TabContainer>
+  <TabButton 
+    onClick={() => setActiveTab('baby')}
+    active={activeTab === 'baby'}
+  >
+    <TabIndicator active={activeTab === 'baby'}>
+      Baby Care
+    </TabIndicator>
+  </TabButton>
+  <TabButton 
+    onClick={() => setActiveTab('elderly')}
+    active={activeTab === 'elderly'}
+  >
+    <TabIndicator active={activeTab === 'elderly'}>
+      Elderly Care
+    </TabIndicator>
+  </TabButton>
+</TabContainer>
+</DialogHeader>
             
             <PackagesContainer>
               {activeTab === 'baby' ? (
