@@ -49,7 +49,7 @@ const ServiceProviderDashboard: React.FC = () => {
         const size = 100;
   
         const response = await axiosInstance.get(
-          `/api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`
+          `/api/serviceproviders/get-sp-booking-history?page=0&size=100`
         );
   
         if (response.data) {

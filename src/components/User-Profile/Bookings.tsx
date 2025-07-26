@@ -175,7 +175,7 @@ useEffect(() => {
       const size = 100; // Default size
 
       axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history?page={page}&size={size}`)
+        .get(`api/serviceproviders/get-sp-booking-history?page=0&size=100`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
           console.log('Past Bookings:', past);

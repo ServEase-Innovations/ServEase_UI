@@ -25,6 +25,7 @@ import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDa
 import { RootState } from './store/userStore'; 
 import NotificationButton from "./components/NotificationButton";
 import HomePage from "./components/HomePage/HomePage";
+import NotificationClient from "./components/NotificationClient/NotificationClient";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -135,6 +136,7 @@ if (userRole === "CUSTOMER") {
     <div className="bg-gray-50 text-gray-800">
       <Header sendDataToParent={handleDataFromChild}/>
       <div className="bg-gray-50 text-gray-800">
+      {/* <NotificationClient /> */}
       {renderContent()}
       </div>
     </div>
