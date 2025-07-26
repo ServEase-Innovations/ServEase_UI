@@ -545,6 +545,12 @@ useEffect(() => {
       >
         My Booking
       </li>
+      <li 
+        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+        onClick={() => handleClick(DASHBOARD)}
+      >
+        Dashboard
+      </li>
       <li
         className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
         onClick={() =>

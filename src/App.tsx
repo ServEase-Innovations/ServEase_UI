@@ -24,6 +24,7 @@ import { RootState } from './store/userStore';
 import NotificationButton from "./components/NotificationButton";
 import HomePage from "./components/HomePage/HomePage";
 import NotificationClient from "./components/NotificationClient/NotificationClient";
+import Dashboard from "./components/ServiceProvider/Dashboard";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -137,7 +138,7 @@ if (userRole === "CUSTOMER") {
         return <Booking />;
       }
       else if (selection === DASHBOARD) {
-        return <ServiceProviderDashboard />;
+        return <Dashboard />;
       }
        else if (selection === PROFILE) {
         return <UserProfile goBack={() => { throw new Error("Function not implemented."); }} />;
