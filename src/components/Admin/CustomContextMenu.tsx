@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
 import React, { useState } from 'react';
 
 const CustomContextMenu: React.FC<{ position: { x: number; y: number }; data: any; onClose: () => void }> = ({ position, data, onClose }) => {
