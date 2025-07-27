@@ -258,17 +258,18 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
 
   return (
     <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "12px",
-          boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-          maxHeight: "80vh"
-        }
-      }}
+   open={open}
+  onClose={onClose}
+  maxWidth="sm" // This makes it smaller than the default 'md' size
+  fullWidth={false} // Important: prevents stretching to full width
+  PaperProps={{
+    sx: {
+      borderRadius: "12px",
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+      maxHeight: "80vh",
+      width: "450px", // Set your desired fixed width
+    }
+  }}
     >
     <DialogTitle sx={{
         backgroundColor: "#f5f5f5",
@@ -335,33 +336,6 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
           </Box>
         ))}
       </DialogContent>
-
-    <DialogActions sx={{ 
-  padding: "16px 24px", 
-  borderTop: "1px solid #e0e0e0",
-  justifyContent: "center", // Changed from "space-between" to "center"
-  gap: 2 // Added gap between buttons
-}}>
-  {/* <Button
-    onClick={onClose}
-    variant="outlined"
-    sx={{
-      borderRadius: "8px",
-      padding: "8px 24px",
-      textTransform: "none",
-      borderColor: "#1d4ed8",
-      color: "#1d4ed8",
-      '&:hover': {
-        borderColor: "#1d4ed8",
-        backgroundColor: "rgba(29, 78, 216, 0.08)",
-      }
-    }}
-  >
-    Close
-  </Button> */}
-             <Button variant="outline" className="text-sm px-4 py-2">Book Now</Button>
- 
-</DialogActions>
     </Dialog>
   );
 };
