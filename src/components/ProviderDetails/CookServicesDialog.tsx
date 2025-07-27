@@ -303,8 +303,10 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                 if (sendDataToParent) {
                   sendDataToParent(BOOKINGS);
                 }
+                
                 handleClose();
                 setCartDialogOpen(false);
+                
               }
             } catch (error) {
               console.error("Error in payment handler:", error);

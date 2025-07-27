@@ -11,6 +11,7 @@ import { Separator } from '../../components/Common/Separator/Separator';
 import axiosInstance from '../../services/axiosInstance';
 import { useAuth0 } from '@auth0/auth0-react';
 import UserHoliday from './UserHoliday';
+import { Alert, Snackbar } from '@mui/material';
 
 
 
@@ -681,6 +682,22 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
             )}
           </section>
         </div>
+        <UserHoliday 
+  open={holidayDialogOpen}
+  onClose={() => setHolidayDialogOpen(false)}
+  booking={selectedBookingForLeave}
+  onLeaveSubmit={handleLeaveSubmit}
+/>
+
+<Snackbar
+  open={openSnackbar}
+  autoHideDuration={3000}
+  onClose={() => setOpenSnackbar(false)}
+>
+  <Alert severity="success" onClose={() => setOpenSnackbar(false)}>
+    Leave application submitted successfully!
+  </Alert>
+</Snackbar>
       </div>
     );
 };
