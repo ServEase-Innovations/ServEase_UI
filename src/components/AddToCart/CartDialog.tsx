@@ -4,6 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems, updateCartItem } from '../../features/addToCart/addToSlice';
 import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../../types/cartSlice';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CloseIcon from '@mui/icons-material/Close';
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -54,17 +55,36 @@ export const CartDialog: React.FC<CartDialogProps> = ({
         border: '1px solid #e0e0e0'
       }
     }}>
-      <DialogTitle sx={{ 
-        backgroundColor: '#f8f9fa',
-        borderBottom: '1px solid #e9ecef',
-        fontWeight: '600',
-        fontSize: '1.25rem',
-        py: 2,
-        px: 3,
-        color: '#2d3748'
-      }}>
-        Your Order Summary
-      </DialogTitle>
+     <DialogTitle sx={{ 
+  backgroundColor: '#f8f9fa',
+  borderBottom: '1px solid #e9ecef',
+  fontWeight: '600',
+  fontSize: '1.25rem',
+  py: 2,
+  px: 3,
+  color: '#2d3748',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  position: 'relative' // Add this for proper positioning
+}}>
+  Your Order Summary
+  <IconButton
+    aria-label="close"
+    onClick={handleClose}
+    sx={{
+      position: 'absolute',
+      right: 8,
+      top: 8,
+      color: '#718096',
+      '&:hover': {
+        backgroundColor: 'rgba(0, 0, 0, 0.04)'
+      }
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogTitle>
       
       <DialogContent sx={{ p: 0, backgroundColor: '#f8f9fa' }}>
         {allCartItems.length === 0 ? (
@@ -177,7 +197,11 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
                 <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
               </Box>
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ 
+  my: 2,
+  borderColor: '#cbd5e0', // Darker grey color
+  borderWidth: '1px' // Slightly thicker
+}} />
 
 <Box sx={{ mt: 2 }}>
   <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: 500, mb: 1 }}>

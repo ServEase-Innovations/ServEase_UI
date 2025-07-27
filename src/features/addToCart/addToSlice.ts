@@ -53,13 +53,19 @@ export const addToSlice = createSlice({
     },
 
     // Remove item from cart
-    removeFromCart: (state, action: PayloadAction<{ id: string; type: CartItem['type'] }>) => {
-      state.items = state.items.filter(
-        (item) => !(item.id === action.payload.id && item.type === action.payload.type)
-      );
-      localStorage.setItem('unifiedCart', JSON.stringify(state.items));
-    },
-
+  // Update the removeFromCart reducer to handle both cases:
+removeFromCart: (state, action: PayloadAction<{ id?: string; type: CartItem['type'] }>) => {
+  if (action.payload.id) {
+    // Remove specific item
+    state.items = state.items.filter(
+      (item) => !(item.id === action.payload.id && item.type === action.payload.type)
+    );
+  } else {
+    // Remove all items of this type
+    state.items = state.items.filter((item) => item.type !== action.payload.type);
+  }
+  localStorage.setItem('unifiedCart', JSON.stringify(state.items));
+},
     // Update specific fields of an item
     updateCartItem: (
       state,

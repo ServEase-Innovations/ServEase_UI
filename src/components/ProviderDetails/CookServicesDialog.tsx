@@ -17,8 +17,10 @@ import { MealPackage } from '../../types/mealPackage';
 import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton, CloseButton } from './CookServicesDialog.styles';
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
-import CheckoutWithAgreement from './CheckoutAgreementDialog';
 import CloseIcon from '@mui/icons-material/Close';
+import { CartDialog } from '../AddToCart/CartDialog';
+
+
 interface CookServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -37,75 +39,33 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   sendDataToParent
 }) => {
   const dispatch = useDispatch();
-  
   const users = useSelector((state: any) => state.user?.value);
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const [packages, setPackages] = useState<PackagesState>({});
   const [loginOpen, setLoginOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
-  const cart = useSelector((state: any) => state.addToCart?.items || []);
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user, loginWithRedirect, isAuthenticated } = useAuth0();
+  const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   const currentLocation = users?.customerDetails?.currentLocation;
-   const [loading, setLoading] = useState(false);
-  const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-  const { user,loginWithRedirect, isAuthenticated } = useAuth0();
-  
-  // Agreement state
-  const [agreements, setAgreements] = useState({
-    terms: false,
-    privacy: false,
-    keyFacts: false
-  });
-  const [agreementDialogOpen, setAgreementDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log("User Info:", user);
-      console.log("Name:", user.name);
-      console.log("Customer ID:", user.customerid);
-    }
-  }, [isAuthenticated, user]);
-  
-  const bookingDetails: BookingDetails = {
-    serviceProviderId: 0,
-    serviceProviderName: "",
-    customerId: 0,
-    customerName: "", 
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: "",
-    engagements: "",
-    address: " Durgapur, West Bengal 713205, India",
-    timeslot: "",
-    monthlyAmount: 0,
-    paymentMode: "UPI",
-    bookingType: "",
-    taskStatus: "NOT_STARTED", 
-    serviceType: "COOK",
-    responsibilities: [],
-  };
-
+  // Calculate price based on number of persons
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
-    if (persons <= 3) {
-      return basePrice;
-    } else if (persons > 3 && persons <= 6) {
-      const extraPeople = persons - 3;
-      return basePrice + basePrice * 0.2 * extraPeople;
-    } else if (persons > 6 && persons <= 9) {
+    if (persons <= 3) return basePrice;
+    if (persons > 3 && persons <= 6) return basePrice + basePrice * 0.2 * (persons - 3);
+    if (persons > 6 && persons <= 9) {
       const priceFor6 = basePrice + basePrice * 0.2 * 3;
-      const extraPeople = persons - 6;
-      return priceFor6 + priceFor6 * 0.1 * extraPeople;
-    } else if (persons > 9) {
-      const priceFor6 = basePrice + basePrice * 0.2 * 3;
-      const priceFor9 = priceFor6 + priceFor6 * 0.1 * 3;
-      const extraPeople = persons - 9;
-      return priceFor9 + priceFor9 * 0.05 * extraPeople;
+      return priceFor6 + priceFor6 * 0.1 * (persons - 6);
     }
-    return basePrice;
+    const priceFor6 = basePrice + basePrice * 0.2 * 3;
+    const priceFor9 = priceFor6 + priceFor6 * 0.1 * 3;
+    return priceFor9 + priceFor9 * 0.05 * (persons - 9);
   };
 
-  const cookServices = useMemo(() => getFilteredPricing("cook"), [getFilteredPricing]);
-
+  // Initialize packages
   useEffect(() => {
     const updatedCookServices = getFilteredPricing("cook");
     
@@ -115,50 +75,34 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     }
 
     const initialPackages: PackagesState = {};
-
     updatedCookServices.forEach((service: any) => {
       const category = service.Categories.toLowerCase();
       const maxPersons = parseInt(service["Numbers/Size"].replace('<=', '')) || 3;
-      let basePrice = 0;
-      if(bookingType?.bookingPreference?.toLowerCase() === "date") {
-        basePrice = service["Price /Day (INR)"];
-      } else {
-        basePrice = service["Price /Month (INR)"];
-      }
-
-      const cartItem = Array.isArray(cart) 
-        ? cart.find((item: any) => 
-            item.type === 'meal' && 
-            item.mealType.toLowerCase() === category
-          )
-        : null;
-      
-      const persons = cartItem?.persons || 1;
-      const calculatedPrice = calculatePriceForPersons(basePrice, persons);
+      const basePrice = bookingType?.bookingPreference?.toLowerCase() === "date" 
+        ? service["Price /Day (INR)"] 
+        : service["Price /Month (INR)"];
 
       initialPackages[category] = {
-        selected: !!cartItem,
-        persons,
+        selected: false,
+        persons: 1,
         basePrice,
-        calculatedPrice,
+        calculatedPrice: basePrice,
         maxPersons,
-        description: service["Job Description"]
-          .split('\n')
-          .filter((line: string) => line.trim() !== ''),
+        description: service["Job Description"].split('\n').filter((line: string) => line.trim() !== ''),
         preparationTime: getPreparationTime(category),
         rating: 4.84,
         reviews: getReviewsText(category),
         category: service.Categories,
         jobDescription: service["Job Description"],
         remarks: service["Remarks/Conditions"],
-        inCart: !!cartItem
+        inCart: false
       };
     });
 
     setPackages(initialPackages);
-  }, [pricing, bookingType, cart]);
+  }, [pricing, bookingType]);
 
-
+  // Helper functions
   const getPreparationTime = (category: string): string => {
     switch(category) {
       case 'breakfast': return '30 mins preparation';
@@ -186,30 +130,15 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     }
   };
 
-  const handleLogin = () => {
-    setLoginOpen(true);
-  };
-
-  const handleLoginClose = () => {
-    setLoginOpen(false);
-  };
-
-  const handleBookingPage = () => {
-    setLoginOpen(false);
-  };
-
+  // Person change handler
   const handlePersonChange = (packageName: string, operation: 'increment' | 'decrement') => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
       if (!currentPackage) return prev;
 
       let newValue = currentPackage.persons;
-      
-      if (operation === 'increment') {
-        newValue += 1;
-      } else if (operation === 'decrement' && newValue > 1) {
-        newValue -= 1;
-      }
+      if (operation === 'increment') newValue += 1;
+      else if (operation === 'decrement' && newValue > 1) newValue -= 1;
       
       return {
         ...prev,
@@ -222,81 +151,25 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  // const togglePackageSelection = (packageName: string) => {
-  //   setPackages(prev => {
-  //     const currentPackage = prev[packageName];
-  //     if (!currentPackage) return prev;
-
-  //     const newSelectedState = !currentPackage.selected;
-  //     const shouldBeInCart = newSelectedState;
-  //     if (shouldBeInCart && !currentPackage.inCart) {
-  //       dispatch(addToCart({
-  //         type: 'meal',
-  //         id: packageName.toUpperCase(),
-  //         mealType: packageName.toUpperCase(),
-  //         persons: currentPackage.persons,
-  //         price: currentPackage.calculatedPrice,
-  //         description: currentPackage.description.join(', '),
-  //         basePrice: currentPackage.basePrice,
-  //         maxPersons: currentPackage.maxPersons
-  //       }));
-  //     } else if (!shouldBeInCart && currentPackage.inCart) {
-  //       dispatch(removeFromCart({
-  //         id: packageName.toUpperCase(),
-  //         type: 'meal'
-  //       }));
-  //     }
-
-  //     return {
-  //       ...prev,
-  //       [packageName]: {
-  //         ...currentPackage,
-  //         selected: newSelectedState,
-  //         inCart: shouldBeInCart
-  //       }
-  //     };
-  //   });
-  // };
-
+  // Toggle cart item
   const toggleCart = (packageName: string) => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
       if (!currentPackage) return prev;
 
       const newInCartState = !currentPackage.inCart;
-      const shouldBeSelected = newInCartState;
-
+      
       if (newInCartState) {
-        const existingItemIndex = cart.findIndex(
-          (item: any) => 
-            item.type === 'meal' && 
-            item.id === packageName.toUpperCase()
-        );
-
-        if (existingItemIndex >= 0) {
-          dispatch(updateCartItem({
-            id: packageName.toUpperCase(),
-            type: 'meal',
-            updates: {
-              persons: currentPackage.persons,
-              price: currentPackage.calculatedPrice,
-              description: currentPackage.description.join(', '),
-              basePrice: currentPackage.basePrice,
-              maxPersons: currentPackage.maxPersons
-            }
-          }));
-        } else {
-          dispatch(addToCart({
-            type: 'meal',
-            id: packageName.toUpperCase(),
-            mealType: packageName.toUpperCase(),
-            persons: currentPackage.persons,
-            price: currentPackage.calculatedPrice,
-            description: currentPackage.description.join(', '),
-            basePrice: currentPackage.basePrice,
-            maxPersons: currentPackage.maxPersons
-          }));
-        }
+        dispatch(addToCart({
+          type: 'meal',
+          id: packageName.toUpperCase(),
+          mealType: packageName.toUpperCase(),
+          persons: currentPackage.persons,
+          price: currentPackage.calculatedPrice,
+          description: currentPackage.description.join(', '),
+          basePrice: currentPackage.basePrice,
+          maxPersons: currentPackage.maxPersons
+        }));
       } else {
         dispatch(removeFromCart({
           id: packageName.toUpperCase(),
@@ -309,49 +182,50 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         [packageName]: {
           ...currentPackage,
           inCart: newInCartState,
-          selected: shouldBeSelected
+          selected: newInCartState
         }
       };
     });
   };
 
-  const handleApplyVoucher = () => {
-    // Voucher application logic
+  // Prepare cart for checkout (clear old and add new)
+  const prepareCartForCheckout = () => {
+    // Clear all existing cart items
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
+
+    // Add only the currently selected packages
+    Object.entries(packages).forEach(([packageName, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'meal',
+          id: packageName.toUpperCase(),
+          mealType: packageName.toUpperCase(),
+          persons: pkg.persons,
+          price: pkg.calculatedPrice,
+          description: pkg.description.join(', '),
+          basePrice: pkg.basePrice,
+          maxPersons: pkg.maxPersons
+        }));
+      }
+    });
   };
 
-  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
-    if (!bookingPreference) return 'MONTHLY'; // default
-    
-    const pref = bookingPreference.toLowerCase();
-    if (pref === 'date') return 'ON_DEMAND';
-    if (pref === 'short term') return 'SHORT_TERM';
-    return 'MONTHLY';
+  // Open cart dialog handler
+  const handleOpenCartDialog = () => {
+    const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
+    if (selectedPackages.length === 0) {
+      alert("Please select at least one package");
+      return;
+    }
+
+    prepareCartForCheckout();
+    setCartDialogOpen(true);
   };
 
-  const handleCheckboxChange = (name: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setAgreements(prev => ({ ...prev, [name]: event.target.checked }));
-  };
-
- const handleOpenAgreementDialog = () => {
-  const selectedPackages = Object.entries(packages)
-    .filter(([_, pkg]) => pkg.selected);
-
-  if (selectedPackages.length === 0) {
-    alert("Please select at least one package");
-    return;
-  }
-
-  setAgreementDialogOpen(true);
-};
-
-// Update handleProceedToPayment to just:
-const handleProceedToPayment = async () => {
-  setAgreementDialogOpen(false);
-  await handleCheckout();
-};
-
+  // Checkout handler (Razorpay payment)
   const handleCheckout = async () => {
-   
     try {
       setLoading(true);
       const selectedPackages = Object.entries(packages)
@@ -362,10 +236,7 @@ const handleProceedToPayment = async () => {
           price: pkg.calculatedPrice,
         }));
 
-      const totalAmount = selectedPackages.reduce(
-        (sum, pkg) => sum + pkg.price,
-        0
-      );
+      const totalAmount = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
       const customerName = user?.name || "Guest";
       const customerId = user?.customerid || "guest-id";
       
@@ -380,27 +251,24 @@ const handleProceedToPayment = async () => {
         const amount = totalAmount * 100;
         const currency = "INR";
 
-        if (typeof window.Razorpay === "undefined") {
-          alert("Razorpay SDK not loaded.");
-          return;
-        }
+        const bookingDetails: BookingDetails = {
+          serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+          serviceProviderName: providerFullName,
+          customerId: customerId,
+          customerName: customerName,
+          startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
+          endDate: bookingType?.endDate || "",
+          engagements: selectedPackages.map(pkg => `${pkg.mealType} for ${pkg.persons} persons`).join(", "),
+          address: currentLocation,
+          timeslot: bookingType?.timeRange || "",
+          monthlyAmount: totalAmount,
+          paymentMode: "UPI",
+          bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
+          taskStatus: "NOT_STARTED",
+          serviceType: "COOK",
+          responsibilities: [],
+        };
 
-        bookingDetails.serviceProviderId = providerDetails?.serviceproviderId
-          ? Number(providerDetails.serviceproviderId)
-          : null;
-        bookingDetails.serviceProviderName = providerFullName;
-        bookingDetails.customerId = customerId;
-        bookingDetails.customerName = customerName;
-        bookingDetails.address = currentLocation;
-        bookingDetails.startDate = bookingType?.startDate || "";
-        bookingDetails.endDate = bookingType?.endDate || "";
-        bookingDetails.engagements = selectedPackages
-          .map((pkg) => `${pkg.mealType} for ${pkg.persons} persons`)
-          .join(", ");
-        bookingDetails.monthlyAmount = totalAmount;
-        bookingDetails.timeslot = bookingType.timeRange;
-        bookingDetails.bookingType = getBookingTypeFromPreference(bookingType?.bookingPreference);
-        
         const options = {
           key: "rzp_test_lTdgjtSRlEwreA",
           amount,
@@ -409,59 +277,41 @@ const handleProceedToPayment = async () => {
           description: "Meal Package Booking",
           order_id: orderId,
           handler: async function (razorpayResponse: any) {
-            alert(
-              `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
-            );
-
             try {
+              // Save booking
               const bookingResponse = await axiosInstance.post(
                 "/api/serviceproviders/engagement/add",
-                bookingDetails,
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
+                bookingDetails
               );
 
               if (bookingResponse.status === 201) {
-                try {
-                  const notifyResponse = await fetch(
-                    "http://localhost:4000/send-notification",
-                    {
-                      method: "POST",
-                      body: JSON.stringify({
-                        title: "Hello from ServEaso!",
-                        body: `Your booking for ${bookingDetails.engagements} has been successfully confirmed!`,
-                        url: "http://localhost:3000",
-                      }),
-                      headers: { "Content-Type": "application/json" },
-                    }
-                  );
+                // Clear cart after successful payment
+                dispatch(removeFromCart({ type: 'meal' }));
+                dispatch(removeFromCart({ type: 'maid' }));
+                dispatch(removeFromCart({ type: 'nanny' }));
 
-                  if (notifyResponse.ok) {
-                    console.log("Notification triggered!");
-                    alert("Notification sent!");
-                  } else {
-                    console.error("Notification failed");
-                    alert("Failed to send notification");
-                  }
-                } catch (error) {
-                  console.error("Error sending notification:", error);
-                  alert("Error sending notification");
-                }
+                // Send notification
+                await fetch("http://localhost:4000/send-notification", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title: "Hello from ServEaso!",
+                    body: `Your booking for ${bookingDetails.engagements} has been confirmed!`,
+                    url: "http://localhost:3000",
+                  }),
+                });
 
                 if (sendDataToParent) {
                   sendDataToParent(BOOKINGS);
                 }
                 handleClose();
+                setCartDialogOpen(false);
               }
             } catch (error) {
-              console.error("Error saving booking:", error);
+              console.error("Error in payment handler:", error);
             }
           },
           prefill: {
-            name: customerName || "",
+            name: customerName,
             email: user?.email || "",
             contact: user?.mobileNo || "",
           },
@@ -474,24 +324,28 @@ const handleProceedToPayment = async () => {
         rzp.open();
       }
     } catch (error) {
-      console.log("error => ", error);
+      console.error("Checkout error:", error);
       alert("Failed to initiate payment. Please try again.");
-    }finally {
+    } finally {
       setLoading(false);
     }
   };
-  const allAgreed = agreements.terms && agreements.privacy && agreements.keyFacts;
 
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY';
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
+
+  // Render package sections
   const renderPackageSections = () => {
     return Object.entries(packages).map(([packageName, pkg]) => {
       const categoryColor = getCategoryColor(packageName);
 
       return (
-        <PackageCard 
-          key={packageName}
-          selected={pkg.selected}
-          color={categoryColor}
-        >
+        <PackageCard key={packageName} selected={pkg.selected} color={categoryColor}>
           <PackageHeader>
             <div>
               <PackageTitle>{packageName}</PackageTitle>
@@ -557,8 +411,6 @@ const handleProceedToPayment = async () => {
               {pkg.inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
               {pkg.inCart ? 'ADDED TO CART' : 'ADD TO CART'}
             </CartButton>
-            
-          
           </ButtonsContainer>
         </PackageCard>
       );
@@ -582,13 +434,9 @@ const handleProceedToPayment = async () => {
           <DialogContainer>
             <DialogHeader>
               <h1>👩‍🍳Home Cook</h1>
-                <CloseButton 
-    aria-label="close" 
-    onClick={handleClose}
-    size="small"
-  >
-    <CloseIcon />
-  </CloseButton>
+              <CloseButton aria-label="close" onClick={handleClose} size="small">
+                <CloseIcon />
+              </CloseButton>
             </DialogHeader>         
             <PackagesContainer>
               {renderPackageSections()}
@@ -597,13 +445,8 @@ const handleProceedToPayment = async () => {
             <VoucherContainer>
               <VoucherTitle>Apply Voucher</VoucherTitle>
               <VoucherInputContainer>
-                <VoucherInput
-                  type="text"
-                  placeholder="Enter voucher code"
-                />
-                <VoucherButton onClick={handleApplyVoucher}>
-                  APPLY
-                </VoucherButton>
+                <VoucherInput type="text" placeholder="Enter voucher code" />
+                <VoucherButton >APPLY</VoucherButton>
               </VoucherInputContainer>
             </VoucherContainer>
             
@@ -615,42 +458,37 @@ const handleProceedToPayment = async () => {
                 <FooterPrice>₹{totalPrice.toFixed(2)}</FooterPrice>
               </div>
               <FooterButtons>
-  {!isAuthenticated && (
-    <>
-      <Tooltip title="You need to login to proceed with checkout">
-        <IconButton size="small" style={{ marginRight: '8px' }}>
-          <InfoOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <LoginButton onClick={() => loginWithRedirect()}>
-        LOGIN TO CONTINUE
-      </LoginButton>
-    </>
-  )}
-  
-  {isAuthenticated && (
-    <CheckoutButton
-      onClick={handleOpenAgreementDialog}
-      // disabled={calculateTotal() === 0}
-       disabled={totalItems === 0}
-    >
-      {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
-    </CheckoutButton>
-  )}
-</FooterButtons>
-             
-              
+                {!isAuthenticated && (
+                  <>
+                    <Tooltip title="You need to login to proceed with checkout">
+                      <IconButton size="small" style={{ marginRight: '8px' }}>
+                        <InfoOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <LoginButton onClick={() => loginWithRedirect()}>
+                      LOGIN TO CONTINUE
+                    </LoginButton>
+                  </>
+                )}
+                {isAuthenticated && (
+                  <CheckoutButton
+                    onClick={handleOpenCartDialog}
+                    disabled={totalItems === 0}
+                  >
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                  </CheckoutButton>
+                )}
+              </FooterButtons>
             </FooterContainer>
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
 
-      {/* Agreement Dialog */}
-    <CheckoutWithAgreement
-  open={agreementDialogOpen}
-  onClose={() => setAgreementDialogOpen(false)}
-  onProceed={handleProceedToPayment}
-/>
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleCheckout={handleCheckout}
+      />
     </>
   );
 };

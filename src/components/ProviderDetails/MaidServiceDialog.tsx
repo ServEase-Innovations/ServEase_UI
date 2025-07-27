@@ -13,6 +13,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { addToCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
 import { isMaidCartItem } from '../../types/cartSlice';
+import { CartDialog } from '../AddToCart/CartDialog';
 import {
   StyledDialog,
   StyledDialogContent,
@@ -233,6 +234,40 @@ const [addOns, setAddOns] = useState({
       }
     }));
   };
+  const getSelectedServicesDescription = (): string => {
+  const selectedServices: string[] = [];
+  
+  // Add selected packages
+  if (packageStates.utensilCleaning.selected) {
+    selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
+  }
+  if (packageStates.sweepingMopping.selected) {
+    selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
+  }
+  if (packageStates.bathroomCleaning.selected) {
+    selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
+  }
+
+  // Add selected add-ons
+  const selectedAddOns = Object.entries(addOns)
+    .filter(([_, selected]) => selected)
+    .map(([name]) => {
+      switch(name) {
+        case 'bathroomDeepCleaning': return 'Bathroom deep cleaning';
+        case 'normalDusting': return 'Normal dusting';
+        case 'deepDusting': return 'Deep dusting';
+        case 'utensilDrying': return 'Utensil drying';
+        case 'clothesDrying': return 'Clothes drying';
+        default: return name;
+      }
+    });
+
+  if (selectedAddOns.length > 0) {
+    selectedServices.push(`Add-ons: ${selectedAddOns.join(', ')}`);
+  }
+
+  return selectedServices.join('; ');
+};
 
 useEffect(() => {
   if (open) {
@@ -447,135 +482,243 @@ useEffect(() => {
   const hasSelectedServices = () => {
     return countSelectedServices() > 0 || countSelectedAddOns() > 0;
   };
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
+  
+// Add this function to MaidServiceDialog
+const prepareCartForCheckout = () => {
+  // Clear all existing cart items
+  dispatch(removeFromCart({ type: 'meal' }));
+  dispatch(removeFromCart({ type: 'maid' }));
+  dispatch(removeFromCart({ type: 'nanny' }));
 
-  const handleCheckout = async () => {
-    try {
-      const selectedServices: string[] = [];
-      const selectedAddOns: string[] = Object.entries(addOns)
-        .filter(([_, selected]) => selected)
-        .map(([name]) => name);
+  // Add selected packages
+  if (packageStates.utensilCleaning.selected) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `package_utensilCleaning`,
+      serviceType: 'package',
+      name: 'utensilCleaning',
+      price: getPackagePrice('utensilCleaning'),
+      description: getPackageDescription('utensilCleaning'),
+      details: { persons: packageStates.utensilCleaning.persons }
+    }));
+  }
 
-      if (packageStates.utensilCleaning.selected) {
-        selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
-      }
-      if (packageStates.sweepingMopping.selected) {
-        selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
-      }
-      if (packageStates.bathroomCleaning.selected) {
-        selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
-      }
+  if (packageStates.sweepingMopping.selected) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `package_sweepingMopping`,
+      serviceType: 'package',
+      name: 'sweepingMopping',
+      price: getPackagePrice('sweepingMopping'),
+      description: getPackageDescription('sweepingMopping'),
+      details: { houseSize: packageStates.sweepingMopping.houseSize }
+    }));
+  }
 
-      if (selectedServices.length === 0 && selectedAddOns.length === 0) {
-        alert('Please select at least one service or add-on');
-        return;
-      }
-  const customerName = user?.name || "Guest";
-  const customerId = user?.customerid || "guest-id";
-      const totalAmount = calculateTotal();
-      const response = await axios.post(
-        "https://utils-ndt3.onrender.com/create-order",
-        { amount: totalAmount * 100 },
-        { headers: { "Content-Type": "application/json" } }
-      );
+  if (packageStates.bathroomCleaning.selected) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `package_bathroomCleaning`,
+      serviceType: 'package',
+      name: 'bathroomCleaning',
+      price: getPackagePrice('bathroomCleaning'),
+      description: getPackageDescription('bathroomCleaning'),
+      details: { bathrooms: packageStates.bathroomCleaning.bathrooms }
+    }));
+  }
 
-      if (response.status === 200 && response.data.success) {
-        const orderId = response.data.orderId;
-        const amount = totalAmount * 100;
-        const currency = "INR";
+  // Add selected add-ons
+  if (addOns.bathroomDeepCleaning) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `addon_bathroomDeepCleaning`,
+      serviceType: 'addon',
+      name: 'bathroomDeepCleaning',
+      price: getAddOnPrice('bathroomDeepCleaning'),
+      description: getAddOnDescription('bathroomDeepCleaning')
+    }));
+  }
 
-        if (typeof window.Razorpay === "undefined") {
-          alert("Razorpay SDK not loaded.");
-          return;
-        }
+  if (addOns.normalDusting) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `addon_normalDusting`,
+      serviceType: 'addon',
+      name: 'normalDusting',
+      price: getAddOnPrice('normalDusting'),
+      description: getAddOnDescription('normalDusting')
+    }));
+  }
 
-        bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
-          ? Number(providerDetails.serviceproviderId) 
-          : null;
-        bookingDetails.serviceProviderName = providerFullName;
-        bookingDetails.customerId = customerId;
-        bookingDetails.customerName = customerName;
-        bookingDetails.address = currentLocation;
-        bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
-        bookingDetails.endDate = bookingType?.endDate || "";
-        bookingDetails.engagements = [
-          ...selectedServices,
-          ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
-        ].join('; ');
-        bookingDetails.monthlyAmount = totalAmount;
-        bookingDetails.timeslot = bookingType.timeRange;
+  if (addOns.deepDusting) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `addon_deepDusting`,
+      serviceType: 'addon',
+      name: 'deepDusting',
+      price: getAddOnPrice('deepDusting'),
+      description: getAddOnDescription('deepDusting')
+    }));
+  }
 
-        const options = {
-          key: "rzp_test_lTdgjtSRlEwreA",
-          amount,
-          currency,
-          name: "Serveaso",
-          description: "Maid Service Booking",
-          order_id: orderId,
-          handler: async function (razorpayResponse: any) {
-            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
+  if (addOns.utensilDrying) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `addon_utensilDrying`,
+      serviceType: 'addon',
+      name: 'utensilDrying',
+      price: getAddOnPrice('utensilDrying'),
+      description: getAddOnDescription('utensilDrying')
+    }));
+  }
 
-            try {
-              const bookingResponse = await axiosInstance.post(
-                "/api/serviceproviders/engagement/add",
-                bookingDetails,
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
+  if (addOns.clothesDrying) {
+    dispatch(addToCart({
+      type: 'maid',
+      id: `addon_clothesDrying`,
+      serviceType: 'addon',
+      name: 'clothesDrying',
+      price: getAddOnPrice('clothesDrying'),
+      description: getAddOnDescription('clothesDrying')
+    }));
+  }
+};
 
-              if (bookingResponse.status === 201) {
-                try {
-                  const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      title: "Booking Confirmed",
-                      body: `Thank you, ${customerName}! Your booking has been confirmed.`,
-                      url: "http://localhost:3000",
-                    }),
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  });
+// Update handleOpenCartDialog
+const handleOpenCartDialog = () => {
+  if (!hasSelectedServices()) {
+    alert("Please select at least one service");
+    return;
+  }
 
-                  if (notifyResponse.ok) {
-                    console.log("Notification sent!");
-                    alert("Notification sent!");
-                  } else {
-                    alert("Failed to send notification");
-                  }
-                } catch (notifyError) {
-                  alert("Error sending notification");
-                }
-
-                if (sendDataToParent) {
-                  sendDataToParent(BOOKINGS);
-                }
-                handleClose();
-              }
-            } catch (error) {
-              alert("Booking saved but failed to update server.");
-            }
-          },
-          prefill: {
-            name: customerName || "",
-            email: user?.email || "",
-            contact: user?.mobileNo || "",
-          },
-          theme: {
-            color: "#3399cc",
-          },
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      }
-    } catch (error) {
-      console.log("error => ", error);
-      alert("Failed to initiate payment. Please try again.");
+  prepareCartForCheckout();
+  setCartDialogOpen(true);
+};
+const handleCheckout = async () => {
+  try {
+    setLoading(true);
+    
+    // Calculate total from Redux cart items (more reliable than local state)
+    const maidCartItems = allCartItems.filter(isMaidCartItem);
+    const totalAmount = maidCartItems.reduce((sum, item) => sum + item.price, 0);
+    
+    if (totalAmount <= 0) {
+      alert("No items selected for checkout");
+      return;
     }
-  };
+
+    const customerName = user?.name || "Guest";
+    const customerId = user?.customerid || "guest-id";
+    
+    const response = await axios.post(
+      "https://utils-ndt3.onrender.com/create-order",
+      { amount: totalAmount * 100 },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.status === 200 && response.data.success) {
+      const orderId = response.data.orderId;
+      const amount = totalAmount * 100;
+      const currency = "INR";
+
+      // Generate engagements description from cart items
+      const engagements = maidCartItems.map(item => {
+        if (isMaidCartItem(item)) {
+          if (item.serviceType === 'package') {
+            if (item.name === 'utensilCleaning') {
+              return `Utensil cleaning for ${item.details?.persons || 1} persons`;
+            } else if (item.name === 'sweepingMopping') {
+              return `Sweeping & mopping for ${item.details?.houseSize || '2BHK'}`;
+            } else if (item.name === 'bathroomCleaning') {
+              return `Bathroom cleaning for ${item.details?.bathrooms || 2} bathrooms`;
+            }
+          } else if (item.serviceType === 'addon') {
+            return item.name.split(/(?=[A-Z])/).join(' '); // Convert camelCase to normal text
+          }
+        }
+        return item.name;
+      }).join(', ');
+
+      const bookingDetails: BookingDetails = {
+        serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+        serviceProviderName: providerFullName,
+        customerId: customerId,
+        customerName: customerName,
+        startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
+        endDate: bookingType?.endDate || "",
+        engagements: engagements,
+        address: currentLocation,
+        timeslot: bookingType?.timeRange || "",
+        monthlyAmount: totalAmount,
+        paymentMode: "UPI",
+        bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
+        taskStatus: "NOT_STARTED",
+        serviceType: "MAID",
+        responsibilities: [],
+      };
+
+      const options = {
+        key: "rzp_test_lTdgjtSRlEwreA",
+        amount,
+        currency,
+        name: "Serveaso",
+        description: "Maid Service Booking",
+        order_id: orderId,
+        handler: async function (razorpayResponse: any) {
+          try {
+            // Save booking
+            const bookingResponse = await axiosInstance.post(
+              "/api/serviceproviders/engagement/add",
+              bookingDetails
+            );
+
+            if (bookingResponse.status === 201) {
+              // Clear cart after successful payment
+              dispatch(removeFromCart({ type: 'meal' }));
+              dispatch(removeFromCart({ type: 'maid' }));
+              dispatch(removeFromCart({ type: 'nanny' }));
+              
+              // Send notification
+              await fetch("http://localhost:4000/send-notification", {
+                method: "POST",
+                body: JSON.stringify({
+                  title: "Hello from ServEaso!",
+                  body: `Your maid service booking has been confirmed!`,
+                  url: "http://localhost:3000",
+                }),
+              });
+
+              if (sendDataToParent) {
+                sendDataToParent(BOOKINGS);
+              }
+              handleClose();
+              setCartDialogOpen(false);
+            }
+          } catch (error) {
+            console.error("Error in payment handler:", error);
+          }
+        },
+        prefill: {
+          name: customerName,
+          email: user?.email || "",
+          contact: user?.mobileNo || "",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    }
+  } catch (error) {
+    console.error("Checkout error:", error);
+    alert("Failed to initiate payment. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
@@ -912,7 +1055,7 @@ useEffect(() => {
   
   {isAuthenticated && (
     <CheckoutButton
-      onClick={handleCheckout}
+     onClick={handleOpenCartDialog}
       disabled={calculateTotal() === 0}
     >
       {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
@@ -923,8 +1066,11 @@ useEffect(() => {
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
-
-      
+<CartDialog
+  open={cartDialogOpen}
+  handleClose={() => setCartDialogOpen(false)}
+  handleCheckout={handleCheckout}
+/>
     </>
   );
 };
