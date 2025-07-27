@@ -88,7 +88,7 @@ if (userRole === "CUSTOMER") {
   });
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:5000/");
+    const ws = new WebSocket("wss://utils-ndt3.onrender.com/");
 
     ws.onopen = () => {
       const serviceProviderId = user?.value?.customerDetails?.id; // Adjust field as needed
