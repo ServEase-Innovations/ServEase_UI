@@ -22,7 +22,7 @@ const NotificationClient = () => {
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    ws.current = new WebSocket('ws://localhost:5000/');
+    ws.current = new WebSocket('wss://utils-ndt3.onrender.com/');
 
     // Send IDENTIFY only when ready
     if (ws.current) {
