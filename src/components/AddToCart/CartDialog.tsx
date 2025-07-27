@@ -5,6 +5,7 @@ import { removeFromCart, selectCartItems, updateCartItem } from '../../features/
 import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../../types/cartSlice';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
+import { useState } from 'react';
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -46,7 +47,22 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const handleRemoveItem = (id: string, itemType: CartItem['type']) => {
     dispatch(removeFromCart({ id, type: itemType }));
   };
+const [termsAccepted, setTermsAccepted] = useState({
+  keyFacts: false,
+  termsConditions: false, 
+  privacyPolicy: false
+});
 
+// Check if ALL terms are accepted
+const allTermsAccepted = termsAccepted.keyFacts && 
+                        termsAccepted.termsConditions && 
+                        termsAccepted.privacyPolicy;
+const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  setTermsAccepted(prev => ({
+    ...prev,
+    [term]: e.target.checked
+  }));
+};
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{
       sx: {
@@ -218,7 +234,12 @@ export const CartDialog: React.FC<CartDialogProps> = ({
     }
   }}>
     <li>
-      <input type="checkbox" style={{ marginRight: '8px' }} />
+   <input
+  type="checkbox"
+  checked={termsAccepted.keyFacts}
+  onChange={handleCheckboxChange('keyFacts')}
+  style={{ marginRight: '8px' }}
+/>
       <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
         I agree to the ServEaso {' '}
         <a 
@@ -234,7 +255,12 @@ export const CartDialog: React.FC<CartDialogProps> = ({
     </li>
 
     <li>
-      <input type="checkbox" style={{ marginRight: '8px' }} />
+       <input
+  type="checkbox" 
+  checked={termsAccepted.termsConditions}
+  onChange={handleCheckboxChange('termsConditions')}
+  style={{ marginRight: '8px' }}
+/>
       <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
         I agree to the ServEaso {' '}
         <a 
@@ -250,7 +276,12 @@ export const CartDialog: React.FC<CartDialogProps> = ({
     </li>
 
     <li>
-      <input type="checkbox" style={{ marginRight: '8px' }} />
+      <input
+  type="checkbox"
+  checked={termsAccepted.privacyPolicy}
+  onChange={handleCheckboxChange('privacyPolicy')} 
+  style={{ marginRight: '8px' }}
+/>
       <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
         I agree to the ServEaso {' '}
         <a 
@@ -314,7 +345,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
           <Button
             variant="contained"
             onClick={handleCheckout}
-            disabled={allCartItems.length === 0}
+           disabled={allCartItems.length === 0 || !allTermsAccepted}
             sx={{ 
               fontWeight: '500',
               borderRadius: '6px',
