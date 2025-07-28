@@ -207,39 +207,84 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     }
   };
 
-const handleAddToCart = (packageKey: string) => {
-  let type: 'baby' | 'elderly';
-  let packageType: 'day' | 'night' | 'fullTime';
+ const handleAddToCart = (packageKey: string) => {
+  try {
+    let type: 'baby' | 'elderly';
+    let packageType: 'day' | 'night' | 'fullTime';
 
-  if (packageKey.startsWith('baby')) {
-    type = 'baby';
-    packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
-                 packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
-    setBabyPackages(prev => ({
+    if (packageKey.startsWith('baby')) {
+      type = 'baby';
+      packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
+                   packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
+    } else if (packageKey.startsWith('elderly')) {
+      type = 'elderly';
+      packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
+                   packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
+    } else {
+      console.error('Invalid package key:', packageKey);
+      return;
+    }
+
+    const packages = type === 'baby' ? babyPackages : elderlyPackages;
+    const packageDetails = packages[packageType];
+
+    if (!packageDetails) {
+      console.error('Package details not found for:', packageKey);
+      return;
+    }
+
+    const age = packageDetails.age;
+    const price = getPackagePrice(type, packageType);
+    const description = getPackageDescription(type, packageType);
+
+    const cartItem = {
+      id: `${type}_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+      type: 'nanny' as const,
+      careType: type,
+      packageType,
+      age,
+      price,
+      description,
+      providerId: providerDetails?.serviceproviderId || '',
+      providerName: providerFullName
+    };
+
+    const isInCart = cartItems[packageKey];
+    
+    if (isInCart) {
+      dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
+    } else {
+      dispatch(addToCart(cartItem));
+    }
+
+    // Update all states atomically
+    setCartItems(prev => ({
       ...prev,
-      [packageType]: {
-        ...prev[packageType],
-        selected: !prev[packageType].selected
-      }
+      [packageKey]: !isInCart
     }));
-  } else if (packageKey.startsWith('elderly')) {
-    type = 'elderly';
-    packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
-                 packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
-    setElderlyPackages(prev => ({
-      ...prev,
-      [packageType]: {
-        ...prev[packageType],
-        selected: !prev[packageType].selected
-      }
-    }));
+
+    if (type === 'baby') {
+      setBabyPackages(prev => ({
+        ...prev,
+        [packageType]: {
+          ...prev[packageType],
+          selected: !isInCart
+        }
+      }));
+    } else {
+      setElderlyPackages(prev => ({
+        ...prev,
+        [packageType]: {
+          ...prev[packageType],
+          selected: !isInCart
+        }
+      }));
+    }
+
+  } catch (error) {
+    console.error('Error in handleAddToCart:', error);
+    setError('Failed to update cart. Please try again.');
   }
-
-  // Update cartItems state for UI
-  setCartItems(prev => ({
-    ...prev,
-    [packageKey]: !prev[packageKey]
-  }));
 };
 
   const getPackagePrice = (type: 'baby' | 'elderly', packageType: string): number => {
@@ -361,6 +406,8 @@ const handleAddToCart = (packageKey: string) => {
   prepareCartForCheckout();
   setCartDialogOpen(true);
 };
+const customerName = user?.name || "Guest";
+  const customerId = user?.customerid|| "guest-id";
   const handleCheckout = async () => {
   try {
     setLoading(true);
@@ -403,8 +450,7 @@ const handleAddToCart = (packageKey: string) => {
     setLoading(false);
   }
 };
-  const customerName = user?.name || "Guest";
-  const customerId = user?.customerid || "guest-id";
+  
 
   const createRazorpayOrder = async (amount: number) => {
     return await axios.post(
@@ -474,7 +520,7 @@ const handleAddToCart = (packageKey: string) => {
       );
 
       if (bookingResponse.status === 201) {
-      dispatch(removeFromCart({ type: 'meal' }));
+          dispatch(removeFromCart({ type: 'meal' }));
       dispatch(removeFromCart({ type: 'maid' }));
       dispatch(removeFromCart({ type: 'nanny' }));
 
