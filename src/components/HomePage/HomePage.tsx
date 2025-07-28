@@ -116,6 +116,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     }
     
     dispatch(add(booking));
+    setOpen(false);
 };
     function isConfirmDisabled(): boolean | undefined {
         return false;

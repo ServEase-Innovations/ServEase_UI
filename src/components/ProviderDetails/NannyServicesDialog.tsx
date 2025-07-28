@@ -551,6 +551,8 @@ const customerName = user?.name || "Guest";
       }
     } catch (err) {
       console.error("Error saving booking:", err);
+      handleClose();
+       setCartDialogOpen(false); // Close cart dialog on error too
       throw new Error("Payment succeeded but booking failed. Please contact support.");
     }
   };

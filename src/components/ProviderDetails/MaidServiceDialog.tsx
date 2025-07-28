@@ -697,6 +697,8 @@ const handleCheckout = async () => {
             }
           } catch (error) {
             console.error("Error in payment handler:", error);
+             handleClose();
+              setCartDialogOpen(false);
           }
         },
         prefill: {

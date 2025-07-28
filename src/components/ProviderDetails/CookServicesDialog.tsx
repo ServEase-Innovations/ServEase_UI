@@ -310,6 +310,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
               }
             } catch (error) {
               console.error("Error in payment handler:", error);
+                handleClose();
+      setCartDialogOpen(false);
             }
           },
           prefill: {
