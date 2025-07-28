@@ -140,7 +140,21 @@ const shouldDisableEndDate = (date: Dayjs) => {
 };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { width: "40%" } }}>
+        <Dialog
+  open={open}
+  onClose={onClose}
+  PaperProps={{
+    sx: {
+      width: {
+        xs: '90%', // Mobile devices
+        sm: '60%', // Small tablets
+        md: '40%', // Medium and up
+      },
+      maxWidth: '100%',
+      margin: 'auto',
+    },
+  }}
+>
             <DialogTitle>Select your Booking</DialogTitle>
             <DialogContent>
                 <FormControl component="fieldset" sx={{ mb: 2 }}>
@@ -173,6 +187,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                                 shouldDisableDate={shouldDisableDate}
                                 disableFuture={false}
                                 disablePast={false}
+                                slotProps={{ textField: { fullWidth: true } }}
                                 viewRenderers={{ month: undefined }}/>
 
                                 </DemoContainer>
@@ -241,7 +256,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
                 </LocalizationProvider>
             </DialogContent>
 
-           <DialogActions>
+          <DialogActions style={{ paddingRight: '20px' }}>
     <Button onClick={onClose} variant="outlined">Cancel</Button>
     <Button 
         onClick={onSave} 
