@@ -547,6 +547,7 @@ const customerName = user?.name || "Guest";
 
         if (sendDataToParent) sendDataToParent(BOOKINGS);
         handleClose();
+         setCartDialogOpen(false);
       }
     } catch (err) {
       console.error("Error saving booking:", err);
