@@ -58,6 +58,7 @@ import {
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from '../Button/button';
 import CloseIcon from '@mui/icons-material/Close';
+import { CartDialog } from '../AddToCart/CartDialog';
 interface NannyServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -206,84 +207,39 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     }
   };
 
- const handleAddToCart = (packageKey: string) => {
-  try {
-    let type: 'baby' | 'elderly';
-    let packageType: 'day' | 'night' | 'fullTime';
+const handleAddToCart = (packageKey: string) => {
+  let type: 'baby' | 'elderly';
+  let packageType: 'day' | 'night' | 'fullTime';
 
-    if (packageKey.startsWith('baby')) {
-      type = 'baby';
-      packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
-                   packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
-    } else if (packageKey.startsWith('elderly')) {
-      type = 'elderly';
-      packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
-                   packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
-    } else {
-      console.error('Invalid package key:', packageKey);
-      return;
-    }
-
-    const packages = type === 'baby' ? babyPackages : elderlyPackages;
-    const packageDetails = packages[packageType];
-
-    if (!packageDetails) {
-      console.error('Package details not found for:', packageKey);
-      return;
-    }
-
-    const age = packageDetails.age;
-    const price = getPackagePrice(type, packageType);
-    const description = getPackageDescription(type, packageType);
-
-    const cartItem = {
-      id: `${type}_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-      type: 'nanny' as const,
-      careType: type,
-      packageType,
-      age,
-      price,
-      description,
-      providerId: providerDetails?.serviceproviderId || '',
-      providerName: providerFullName
-    };
-
-    const isInCart = cartItems[packageKey];
-    
-    if (isInCart) {
-      dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
-    } else {
-      dispatch(addToCart(cartItem));
-    }
-
-    // Update all states atomically
-    setCartItems(prev => ({
+  if (packageKey.startsWith('baby')) {
+    type = 'baby';
+    packageType = packageKey.replace('baby', '').charAt(0).toLowerCase() + 
+                 packageKey.replace('baby', '').slice(1) as 'day' | 'night' | 'fullTime';
+    setBabyPackages(prev => ({
       ...prev,
-      [packageKey]: !isInCart
+      [packageType]: {
+        ...prev[packageType],
+        selected: !prev[packageType].selected
+      }
     }));
-
-    if (type === 'baby') {
-      setBabyPackages(prev => ({
-        ...prev,
-        [packageType]: {
-          ...prev[packageType],
-          selected: !isInCart
-        }
-      }));
-    } else {
-      setElderlyPackages(prev => ({
-        ...prev,
-        [packageType]: {
-          ...prev[packageType],
-          selected: !isInCart
-        }
-      }));
-    }
-
-  } catch (error) {
-    console.error('Error in handleAddToCart:', error);
-    setError('Failed to update cart. Please try again.');
+  } else if (packageKey.startsWith('elderly')) {
+    type = 'elderly';
+    packageType = packageKey.replace('elderly', '').charAt(0).toLowerCase() + 
+                 packageKey.replace('elderly', '').slice(1) as 'day' | 'night' | 'fullTime';
+    setElderlyPackages(prev => ({
+      ...prev,
+      [packageType]: {
+        ...prev[packageType],
+        selected: !prev[packageType].selected
+      }
+    }));
   }
+
+  // Update cartItems state for UI
+  setCartItems(prev => ({
+    ...prev,
+    [packageKey]: !prev[packageKey]
+  }));
 };
 
   const getPackagePrice = (type: 'baby' | 'elderly', packageType: string): number => {
@@ -353,48 +309,100 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     if (pref === 'short term') return 'SHORT_TERM';
     return 'MONTHLY';
   };
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
+  const prepareCartForCheckout = () => {
+  // Clear all existing cart items
+  dispatch(removeFromCart({ type: 'meal' }));
+  dispatch(removeFromCart({ type: 'maid' }));
+  dispatch(removeFromCart({ type: 'nanny' }));
+
+  // Add only the currently selected packages
+  if (activeTab === 'baby') {
+    Object.entries(babyPackages).forEach(([packageType, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'nanny',
+          id: `baby_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+          careType: 'baby',
+          packageType: packageType as 'day' | 'night' | 'fullTime',
+          age: pkg.age,
+          price: getPackagePrice('baby', packageType),
+          description: getPackageDescription('baby', packageType),
+          providerId: providerDetails?.serviceproviderId || '',
+          providerName: providerFullName
+        }));
+      }
+    });
+  } else {
+    Object.entries(elderlyPackages).forEach(([packageType, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'nanny',
+          id: `elderly_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+          careType: 'elderly',
+          packageType: packageType as 'day' | 'night' | 'fullTime',
+          age: pkg.age,
+          price: getPackagePrice('elderly', packageType),
+          description: getPackageDescription('elderly', packageType),
+          providerId: providerDetails?.serviceproviderId || '',
+          providerName: providerFullName
+        }));
+      }
+    });
+  }
+};
+  const handleOpenCartDialog = () => {
+  const selectedCount = getSelectedPackagesCount();
+  if (selectedCount === 0) {
+    setError("Please select at least one package");
+    return;
+  }
+  
+  prepareCartForCheckout();
+  setCartDialogOpen(true);
+};
   const handleCheckout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      const totalAmount = calculateTotal();
-      if (totalAmount === 0) {
-        throw new Error('Please select at least one service');
-      }
-
-      const bookingData: BookingDetails = {
-        serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-        serviceProviderName: providerFullName,
-        customerId: customerId,
-        customerName: customerName, 
-        address: " Durgapur, West Bengal 713205, India",
-        startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        endDate: bookingType?.endDate || "",
-        engagements: getSelectedServicesDescription(),
-        monthlyAmount: totalAmount,
-        timeslot: bookingType?.timeRange || "",
-        paymentMode: "UPI",
-        bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
-        taskStatus: "NOT_STARTED",
-        serviceType: "NANNY",
-        responsibilities: []
-      };
-
-      try {
-        const orderResponse = await createRazorpayOrder(totalAmount);
-        await handlePaymentSuccess(orderResponse.data.orderId, bookingData);
-      } catch (backendError) {
-        console.warn("Backend order creation failed, falling back to client-side", backendError);
-        await createClientSideOrder(totalAmount, bookingData);
-      }
-
-    } catch (err: any) {
-      handlePaymentError(err);
-    } finally {
-      setLoading(false);
+    const totalAmount = calculateTotal();
+    if (totalAmount === 0) {
+      throw new Error('Please select at least one service');
     }
-  };
+
+    const bookingData: BookingDetails = {
+      serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+      serviceProviderName: providerFullName,
+      customerId: customerId,
+      customerName: customerName, 
+      address: currentLocation || "Durgapur, West Bengal 713205, India",
+      startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
+      endDate: bookingType?.endDate || "",
+      engagements: getSelectedServicesDescription(),
+      monthlyAmount: totalAmount,
+      timeslot: bookingType?.timeRange || "",
+      paymentMode: "UPI",
+      bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
+      taskStatus: "NOT_STARTED",
+      serviceType: "NANNY",
+      responsibilities: []
+    };
+
+    try {
+      const orderResponse = await createRazorpayOrder(totalAmount);
+      await handlePaymentSuccess(orderResponse.data.orderId, bookingData);
+    } catch (backendError) {
+      console.warn("Backend order creation failed, falling back to client-side", backendError);
+      await createClientSideOrder(totalAmount, bookingData);
+    }
+
+  } catch (err: any) {
+    handlePaymentError(err);
+  } finally {
+    setLoading(false);
+  }
+};
   const customerName = user?.name || "Guest";
   const customerId = user?.customerid || "guest-id";
 
@@ -466,6 +474,10 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
       );
 
       if (bookingResponse.status === 201) {
+      dispatch(removeFromCart({ type: 'meal' }));
+      dispatch(removeFromCart({ type: 'maid' }));
+      dispatch(removeFromCart({ type: 'nanny' }));
+
         try {
           const notifyResponse = await fetch(
             "http://localhost:4000/send-notification",
@@ -813,7 +825,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   
   {isAuthenticated && (
     <CheckoutButton
-      onClick={handleCheckout}
+        onClick={handleOpenCartDialog}
       disabled={calculateTotal() === 0}
     >
       {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
@@ -824,7 +836,11 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
-
+    <CartDialog
+      open={cartDialogOpen}
+      handleClose={() => setCartDialogOpen(false)}
+      handleCheckout={handleCheckout}
+    />
       <Snackbar
         open={!!error}
         autoHideDuration={6000}
