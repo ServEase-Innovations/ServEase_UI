@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api'; // Update if different
+const API_URL = 'https://utils-ndt3.onrender.com/api'; // Update if different
 type LoginWith2FAProps = {
   onLoginSuccess: (role: string) => void;
 };

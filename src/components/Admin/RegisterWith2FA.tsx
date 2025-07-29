@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://utils-ndt3.onrender.com/api";
 
 const RegisterWith2FA = () => {
   const [username, setUsername] = useState("");

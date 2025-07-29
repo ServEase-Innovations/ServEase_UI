@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import RegisterWith2FA from "./RegisterWith2FA";
 import LoginWith2FA from "./LoginWith2FA";
-import { Dashboard } from "@mui/icons-material";
+import { DashboardLayout } from "./Dashboard/DashboardLayout";
 
 function Admin() {
   const [view, setView] = useState<"register" | "login" | "dashboard">("register");
@@ -15,15 +15,16 @@ function Admin() {
 
   return (
     <div>
+      {view != "dashboard" && 
       <header style={styles.header}>
         <button onClick={() => setView("register")} style={styles.button}>Register</button>
         <button onClick={() => setView("login")} style={styles.button}>Login</button>
-      </header>
+      </header> }
 
       <main>
         {view === "register" && <RegisterWith2FA />}
         {view === "login" && <LoginWith2FA onLoginSuccess={handleLoginSuccess} />}
-        {view === "dashboard" && <Dashboard role={role} />}
+        {view === "dashboard" && <DashboardLayout />}
       </main>
     </div>
   );
