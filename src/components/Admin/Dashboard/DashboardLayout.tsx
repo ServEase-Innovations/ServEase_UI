@@ -15,33 +15,69 @@ import { Bell, Search, User } from "lucide-react";
 import { Input } from "src/components/Common/input";
 import { Button } from "src/components/Common/button";
 
-export function DashboardLayout() {
+export function DashboardLayout ({ userRole }: { userRole: string })  {
   const [activeSection, setActiveSection] = useState("dashboard");
 
   const renderActiveSection = () => {
-    switch (activeSection) {
-      case "dashboard":
-        return <Dashboard />;
-      case "users":
-        return <Users />;
-      case "service-providers":
-        return <ServiceProviders />;
-      case "requests":
-        return <Requests />;
-      case "chats":
-        return <Chats />;
-      case "payments":
-        return <Payments />;
-      case "pricing":
-        return <Pricing />;
-      case "upload-data":
-        return <UploadData />;
-      case "settings":
-        return <Settings />;
-      default:
-        return <Dashboard />;
+    if (userRole === "user") {
+      return (
+        <div className="text-center mt-10 text-lg font-medium text-gray-600">
+          Please wait until your request is approved.
+        </div>
+      );
     }
+  
+    if (userRole.toLowerCase() === "admin") {
+      switch (activeSection) {
+        case "dashboard":
+          return <Dashboard />;
+        case "users":
+          return <Users />;
+        case "service-providers":
+          return <ServiceProviders />;
+        case "requests":
+          return <Requests />;
+        case "chats":
+          return <Chats />;
+        default:
+          return <Dashboard />;
+      }
+    }
+  
+    // For superAdmin — show everything
+    if (userRole === "SuperAdmin") {
+      switch (activeSection) {
+        case "dashboard":
+          return <Dashboard />;
+        case "users":
+          return <Users />;
+        case "service-providers":
+          return <ServiceProviders />;
+        case "requests":
+          return <Requests />;
+        case "chats":
+          return <Chats />;
+        case "payments":
+          return <Payments />;
+        case "pricing":
+          return <Pricing />;
+        case "upload-data":
+          return <UploadData />;
+        case "settings":
+          return <Settings />;
+        default:
+          return <Dashboard />;
+      }
+    }
+  
+    // Default fallback for unknown role
+    return (
+      <div className="text-center mt-10 text-lg font-medium text-red-500">
+        Invalid role. Please contact support.
+      </div>
+    );
   };
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">

@@ -24,7 +24,7 @@ function Admin() {
       <main>
         {view === "register" && <RegisterWith2FA />}
         {view === "login" && <LoginWith2FA onLoginSuccess={handleLoginSuccess} />}
-        {view === "dashboard" && <DashboardLayout />}
+        {view === "dashboard" && <DashboardLayout userRole={role} />}
       </main>
     </div>
   );
