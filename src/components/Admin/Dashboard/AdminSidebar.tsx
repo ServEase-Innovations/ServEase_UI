@@ -23,6 +23,7 @@ import {
     SidebarHeader,
     useSidebar,
   } from "../../Common/Sidebar/sidebar";
+import { title } from "process";
   
   const menuItems = [
     { title: "Dashboard", id: "dashboard", icon: LayoutDashboard },
@@ -34,6 +35,7 @@ import {
     { title: "Pricing", id: "pricing", icon: DollarSign },
     { title: "Upload Data", id: "upload-data", icon: Upload },
     { title: "Settings", id: "settings", icon: Settings },
+    {title : "Permissions", id: "permissions", icon: Settings } // Assuming Permissions is a settings-like section
   ];
   
   interface AdminSidebarProps {

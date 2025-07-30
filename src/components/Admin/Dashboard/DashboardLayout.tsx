@@ -14,6 +14,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { Bell, Search, User } from "lucide-react";
 import { Input } from "src/components/Common/input";
 import { Button } from "src/components/Common/button";
+import Permissions from "./Permissions";
 
 export function DashboardLayout ({ userRole }: { userRole: string })  {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -39,13 +40,15 @@ export function DashboardLayout ({ userRole }: { userRole: string })  {
           return <Requests />;
         case "chats":
           return <Chats />;
+        case "permissions":
+          return <Permissions />;
         default:
           return <Dashboard />;
       }
     }
   
     // For superAdmin — show everything
-    if (userRole === "SuperAdmin") {
+    if (userRole.toLowerCase() === "superadmin") {
       switch (activeSection) {
         case "dashboard":
           return <Dashboard />;
@@ -65,6 +68,8 @@ export function DashboardLayout ({ userRole }: { userRole: string })  {
           return <UploadData />;
         case "settings":
           return <Settings />;
+        case "permissions":
+            return <Permissions />;
         default:
           return <Dashboard />;
       }
