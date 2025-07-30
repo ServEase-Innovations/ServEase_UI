@@ -12,6 +12,8 @@ import axiosInstance from '../../services/axiosInstance';
 import { useAuth0 } from '@auth0/auth0-react';
 import UserHoliday from './UserHoliday';
 import { Alert, Snackbar } from '@mui/material';
+import ModifyBookingDialog from './ModifyBookingDialog';
+import dayjs from 'dayjs';
 
 
 
@@ -146,6 +148,7 @@ const Booking: React.FC = () => {
 useEffect(() => {
   if (isAuthenticated && auth0User) {
     setCustomerId(auth0User.customerid); // Use this directly
+    console.log("auth0User.customerid:",auth0User.customerid)
   }
 }, [isAuthenticated, auth0User]);
   // Fetch available time slots for a service provider
@@ -248,95 +251,116 @@ useEffect(() => {
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
 
-   const handleModifyBooking = async (booking: Booking) => {
-    setSelectedBooking(booking);
-    setSelectedTimeSlot(booking.timeSlot);
 
-    // Fetch available time slots for the service provider
-    const availableSlots = await generateTimeSlots(booking.serviceProviderId);
-    setTimeSlots(availableSlots);
+   const handleModifyBooking = (booking: Booking) => {
+  setSelectedBooking(booking);
+  // Fetch time slots here if needed
+  setModifyDialogOpen(true);
+};
+  const handleSaveModifiedBooking = async (updatedData: {
+  startDate: string;
+  endDate: string;
+  timeSlot: string;
+}) => {
+  if (!selectedBooking) return;
 
-    setOpenDialog(true);
+  const serviceTypeUpperCase = selectedBooking.serviceType.toUpperCase();
+
+  // Create base payload following the same structure as cancelBooking
+  let updatePayload: any = {
+    id: selectedBooking.id,
+    customerId: customerId,
+    startDate: updatedData.startDate,
+    endDate: updatedData.endDate,
+    engagements: selectedBooking.engagements,
+    timeslot: updatedData.timeSlot,
+    monthlyAmount: selectedBooking.monthlyAmount,
+    paymentMode: selectedBooking.paymentMode,
+    bookingType: selectedBooking.bookingType,
+    bookingDate: selectedBooking.bookingDate,
+    responsibilities: selectedBooking.responsibilities,
+    serviceType: serviceTypeUpperCase,
+    mealType: selectedBooking.mealType,
+    noOfPersons: selectedBooking.noOfPersons,
+    experience: selectedBooking.experience,
+    childAge: selectedBooking.childAge,
+    customerName: selectedBooking.customerName,
+    address: selectedBooking.address,
+    taskStatus: selectedBooking.taskStatus, // Keep original status
+     role :"CUSTOMER",
   };
 
-  const handleDialogClose = () => {
-    setOpenDialog(false);
-    setSelectedBooking(null);
-  };
+  // Add service provider info only if needed (same logic as cancel)
+  if (selectedBooking.bookingType !== "ON_DEMAND") {
+    updatePayload.serviceProviderId = selectedBooking.serviceProviderId;
+    updatePayload.serviceProviderName = selectedBooking.serviceProviderName;
+  }
 
-  const handleTimeSlotChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedTimeSlot(event.target.value as string);
-  };
+  // Remove null/undefined fields
+  updatePayload = removeNullFields(updatePayload);
 
- const handleSave = async () => {
-    if (selectedBooking && selectedTimeSlot) {
-      const updatePayload = {
-        id: selectedBooking.id,
-        serviceProviderId: selectedBooking.serviceProviderId,
-        customerId: customerId,
-        startDate: selectedBooking.startDate,
-        endDate: selectedBooking.endDate,
-        engagements: selectedBooking.engagements,
-        timeslot: selectedTimeSlot, // Updated time slot
-        monthlyAmount: selectedBooking.monthlyAmount,
-        paymentMode: selectedBooking.paymentMode,
-        bookingType: selectedBooking.bookingType,
-        bookingDate: selectedBooking.bookingDate,
-        responsibilities: selectedBooking.responsibilities,
-        serviceType: selectedBooking.serviceType,
-        mealType: selectedBooking.mealType,
-        noOfPersons: selectedBooking.noOfPersons,
-        experience: selectedBooking.experience,
-        childAge: selectedBooking.childAge,
-        customerName: selectedBooking.customerName,
-        serviceProviderName: selectedBooking.serviceProviderName,
-        address: selectedBooking.address,
-        taskStatus: selectedBooking.taskStatus,
-      };
+  try {
+    const response = await axiosInstance.put(
+      `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
+      updatePayload
+    );
 
-      try {
-        const response = await axiosInstance.put(
-          `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
-          updatePayload
-        );
+    // Update state with modified booking data
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === selectedBooking.id
+          ? { 
+              ...b, 
+              startDate: updatedData.startDate,
+              endDate: updatedData.endDate,
+              timeSlot: updatedData.timeSlot 
+            }
+          : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === selectedBooking.id
+          ? { 
+              ...b, 
+              startDate: updatedData.startDate,
+              endDate: updatedData.endDate,
+              timeSlot: updatedData.timeSlot 
+            }
+          : b
+      )
+    );
 
-        console.log("Update Response:", response.data);
-
-        // Update state to reflect the change
-        setCurrentBookings((prev) =>
-          prev.map((b) =>
-            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
-          )
-        );
-        setFutureBookings((prev) =>
-          prev.map((b) =>
-            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
-          )
-        );
-
-        setOpenDialog(false);
-        setSelectedBooking(null);
-        setOpenSnackbar(true);
-      } catch (error: any) {
-        console.error("Error updating task status:", error);
-        if (error.response) {
-          console.error("Full error response:", error.response.data);
-        } else if (error.message) {
-          console.error("Error message:", error.message);
-        } else {
-          console.error("Unknown error occurred");
-        }
-      }
+    setModifyDialogOpen(false);
+    setOpenSnackbar(true);
+  } catch (error: any) {
+    console.error("Error updating booking:", error);
+    if (error.response) {
+      console.error("Full error response:", error.response.data);
     }
-  };
+  }
+};
+
+const isModificationAllowed = (startDate: string) => {
+  const today = dayjs();
+  const bookingStartDate = dayjs(startDate);
+  const daysDifference = bookingStartDate.diff(today, 'day');
+  return daysDifference >= 2; // Only allow if at least 2 days before start
+}; 
+const removeNullFields = (obj: any) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== null && v !== undefined)
+  );
 
 
- const handleCancelBooking = async (booking: Booking) => {
+const handleCancelBooking = async (booking: Booking) => {
   const updatedStatus = "CANCELLED";
- const serviceTypeUpperCase = booking.serviceType.toUpperCase();
-  // Create base payload without service provider info
-  const updatePayload: any = {
+  const serviceTypeUpperCase = booking.serviceType.toUpperCase();
+
+  // Create base payload
+  let updatePayload: any = {
     id: booking.id,
     customerId: customerId,
     startDate: booking.startDate,
@@ -348,7 +372,7 @@ useEffect(() => {
     bookingType: booking.bookingType,
     bookingDate: booking.bookingDate,
     responsibilities: booking.responsibilities,
-    serviceType:  serviceTypeUpperCase ,
+    serviceType: serviceTypeUpperCase,
     mealType: booking.mealType,
     noOfPersons: booking.noOfPersons,
     experience: booking.experience,
@@ -356,24 +380,27 @@ useEffect(() => {
     customerName: booking.customerName,
     address: booking.address,
     taskStatus: updatedStatus,
+    role:"CUSTOMER"
   };
 
-  // Only include service provider info if not ON_DEMAND
+  // Add service provider info only if needed
   if (booking.bookingType !== "ON_DEMAND") {
     updatePayload.serviceProviderId = booking.serviceProviderId;
     updatePayload.serviceProviderName = booking.serviceProviderName;
   }
 
+  // Remove null/undefined fields
+  updatePayload = removeNullFields(updatePayload);
+
   try {
-    console.log(`Updating engagement with ID {booking.id} to status {updatedStatus}`);
+    
     const response = await axiosInstance.put(
-      `/api/serviceproviders/update/engagement/${booking.id}`, 
+      `/api/serviceproviders/update/engagement/${booking.id}`,
       updatePayload
     );
 
-    console.log("Update Response:", response.data);
+   
 
-    // Update state to reflect the change
     setCurrentBookings((prev) =>
       prev.map((b) =>
         b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
@@ -394,9 +421,13 @@ useEffect(() => {
       console.error("Unknown error occurred");
     }
   }
+
   setOpenSnackbar(true);
 };
- const handleLeaveSubmit = async (startDate: string, endDate: string): Promise<void> => {
+
+
+
+const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
   if (!selectedBookingForLeave || !customerId) {
     throw new Error("Missing required information for leave application");
   }
@@ -407,7 +438,8 @@ useEffect(() => {
       {
         customerId: customerId,
         startDate: startDate,
-        endDate: endDate
+        endDate: endDate,
+       serviceType: serviceType.toUpperCase()
       }
     );
     setOpenSnackbar(true);
@@ -529,15 +561,17 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
         <MessageCircle className="h-4 w-4 mr-2" />
         Message
       </Button>
-        <Button 
-        variant="outline" 
-        size="sm" 
-        className="flex-1 min-w-0"
-        onClick={() => handleApplyLeaveClick(booking)}
-      >
-        {/* <CalendarIcon className="h-4 w-4 mr-2" /> */}
-        Apply Holiday
-      </Button>
+         {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
+  <Button 
+    variant="outline" 
+    size="sm" 
+    className="flex-1 min-w-0"
+    onClick={() => handleApplyLeaveClick(booking)}
+  >
+    Apply Holiday
+  </Button>
+)}
+
       <Button 
         variant="destructive" 
         size="sm" 
@@ -547,15 +581,17 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
         <XCircle className="h-4 w-4 mr-2" />
         Cancel Booking
       </Button>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="flex-1 min-w-0" 
-        onClick={() => handleModifyBooking(booking)}
-      >
-        <Edit className="h-4 w-4 mr-2" />
-        Modify Booking
-      </Button>
+     {isModificationAllowed(booking.startDate) && booking.bookingType === 'MONTHLY' && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1 min-w-0" 
+          onClick={() => handleModifyBooking(booking)}
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Modify Booking
+        </Button>
+      )}
     </>
   )}
                       </div>
@@ -688,16 +724,15 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
   booking={selectedBookingForLeave}
   onLeaveSubmit={handleLeaveSubmit}
 />
+<ModifyBookingDialog
+  open={modifyDialogOpen}
+  onClose={() => setModifyDialogOpen(false)}
+  booking={selectedBooking}
+  timeSlots={timeSlots}
+  onSave={handleSaveModifiedBooking}
+/>
 
-<Snackbar
-  open={openSnackbar}
-  autoHideDuration={3000}
-  onClose={() => setOpenSnackbar(false)}
->
-  <Alert severity="success" onClose={() => setOpenSnackbar(false)}>
-    Leave application submitted successfully!
-  </Alert>
-</Snackbar>
+
       </div>
     );
 };
