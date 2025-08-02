@@ -136,7 +136,7 @@ const Booking: React.FC = () => {
   const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
   const { user: auth0User, isAuthenticated } = useAuth0();
   const [customerId, setCustomerId] = useState<number | null>(null);
-
+  const [searchTerm, setSearchTerm] = useState('');
   // const generateTimeSlots = () => {
   //   const slots = [];
   //   for (let i = 6; i <= 20; i++) {
@@ -454,19 +454,64 @@ const handleApplyLeaveClick = (booking: Booking) => {
   setHolidayDialogOpen(true);
 };
 
+const filterBookings = (bookings: Booking[], term: string) => {
+  if (!term) return bookings;
+  
+  return bookings.filter(booking => 
+    getServiceTitle(booking.serviceType).toLowerCase().includes(term.toLowerCase()) ||
+    booking.serviceProviderName.toLowerCase().includes(term.toLowerCase()) ||
+    booking.address.toLowerCase().includes(term.toLowerCase()) ||
+    booking.bookingType.toLowerCase().includes(term.toLowerCase())
+  );
+};
+const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
+  const statusOrder: Record<string, number> = {
+    'ACTIVE': 1,
+    'IN_PROGRESS': 2,
+    'NOT_STARTED': 3,
+    'COMPLETED': 4,
+    'CANCELLED': 5
+  };
 
-const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) => 
-  new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-);
-    return (
+  return [...bookings].sort((a, b) => {
+    const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
+    if (statusComparison !== 0) return statusComparison;
+    return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+  });
+};
+ const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
+  const filteredUpcomingBookings = filterBookings(upcomingBookings, searchTerm);
+const filteredPastBookings = filterBookings(pastBookings, searchTerm); 
+ return (
       <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
         {/* Header */}
-        <div className="bg-primary text-primary-foreground py-8">
-          <div className="container mx-auto px-4">
+     <div className="bg-primary text-primary-foreground py-8">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
             <h1 className="text-3xl font-bold">My Bookings</h1>
             <p className="text-primary-foreground/80 mt-2">Manage your household service appointments</p>
           </div>
+          <div className="relative w-full md:w-64">
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            )}
+          </div>
         </div>
+      </div>
+    </div>
   
         <div className="container mx-auto px-4 py-8">
           {/* Upcoming Bookings */}
@@ -476,7 +521,7 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
               <div className="flex-1">
                 <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
                 <p className="text-sm text-muted-foreground">
-                  {upcomingBookings.length} {upcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+                  {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
                 </p>
               </div>
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
@@ -485,7 +530,7 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
             </div>
             {upcomingBookings.length > 0 ? (
               <div className="grid gap-4">
-                {upcomingBookings.map((booking) => (
+                {filteredUpcomingBookings.map((booking) => (
                   <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
@@ -544,48 +589,47 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
                       
                       <Separator />
                       
-                      <div className="flex gap-2 flex-wrap">
-                    {booking.taskStatus === 'CANCELLED' ? (
-    <Button variant="outline" size="sm" className="flex-1 min-w-0">
+                     <div className="flex gap-2 flex-wrap">
+  {booking.taskStatus === 'CANCELLED' ? (
+    <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
       Book Again
     </Button>
   ) : (
     <>
       {booking.address && (
-        <Button variant="outline" size="sm" className="flex-1 min-w-0">
+        <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
           <Phone className="h-4 w-4 mr-2" />
           Call Provider
         </Button>
       )}
-      <Button variant="outline" size="sm" className="flex-1 min-w-0">
+      <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
         <MessageCircle className="h-4 w-4 mr-2" />
         Message
       </Button>
-         {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
-  <Button 
-    variant="outline" 
-    size="sm" 
-    className="flex-1 min-w-0"
-    onClick={() => handleApplyLeaveClick(booking)}
-  >
-    Apply Holiday
-  </Button>
-)}
-
+      {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1 min-w-0 justify-center"
+          onClick={() => handleApplyLeaveClick(booking)}
+        >
+          Apply Holiday
+        </Button>
+      )}
       <Button 
         variant="destructive" 
         size="sm" 
-        className="flex-1 min-w-0" 
+        className="flex-1 min-w-0 justify-center" 
         onClick={() => handleCancelBooking(booking)}
       >
         <XCircle className="h-4 w-4 mr-2" />
         Cancel Booking
       </Button>
-     {isModificationAllowed(booking.startDate) && booking.bookingType === 'MONTHLY' && (
+      {isModificationAllowed(booking.startDate) && booking.bookingType === 'MONTHLY' && (
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex-1 min-w-0" 
+          className="flex-1 min-w-0 justify-center" 
           onClick={() => handleModifyBooking(booking)}
         >
           <Edit className="h-4 w-4 mr-2" />
@@ -594,7 +638,7 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
       )}
     </>
   )}
-                      </div>
+</div>
                     </CardContent>
                   </Card>
                 ))}
@@ -618,7 +662,7 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
               <div className="flex-1">
                 <h2 className="text-2xl font-semibold text-card-foreground">Past Bookings</h2>
                 <p className="text-sm text-muted-foreground">
-                  {pastBookings.length} {pastBookings.length === 1 ? 'booking' : 'bookings'} in history
+                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
                 </p>
               </div>
               <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
@@ -627,7 +671,7 @@ const upcomingBookings = [...currentBookings, ...futureBookings].sort((a, b) =>
             </div>
             {pastBookings.length > 0 ? (
               <div className="grid gap-4">
-                {pastBookings.map((booking) => (
+                {filteredPastBookings.map((booking) => (
                   <Card key={booking.id} className="shadow-card">
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
