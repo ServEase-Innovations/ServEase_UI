@@ -532,21 +532,30 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
               <div className="grid gap-4">
                 {filteredUpcomingBookings.map((booking) => (
                   <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          {getServiceIcon(booking.serviceType)}
-                          <div>
-                            <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
-                            <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
-                          </div>
-                        </div>
-                       <div className="flex gap-2">
-                         {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking['status'] || booking.taskStatus)}
-                        </div>
-                      </div>
-                    </CardHeader>
+                   <CardHeader className="pb-4">
+  <div className="flex items-start justify-between">
+    <div className="flex items-center gap-3">
+      {getServiceIcon(booking.serviceType)}
+      <div>
+        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
+        <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
+      </div>
+    </div>
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex gap-2">
+        {getBookingTypeBadge(booking.bookingType)}
+        {getStatusBadge(booking.taskStatus)}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Booking Date:{new Date(booking.bookingDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })}
+      </p>
+    </div>
+  </div>
+</CardHeader>
                     
                     <CardContent className="space-y-4">
                       <div className="grid md:grid-cols-2 gap-4">
@@ -737,9 +746,9 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
                             Rate Service
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                          Book Again
-                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
+      Book Again
+    </Button>
                         {booking.taskStatus === 'completed' && (
                           <Button variant="outline" size="sm" className="flex-1 min-w-0">
                             <MessageCircle className="h-4 w-4 mr-2" />
