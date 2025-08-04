@@ -1300,7 +1300,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   return (
     <>
-      <Dialog fullWidth maxWidth="sm" open={true}>
+      <Dialog fullWidth maxWidth="sm" open={true} onClose={() => onBackToLogin(true)}>
         <Box sx={{ padding: 2 }}>
           <Typography variant="h5" gutterBottom className="text-center pb-3">
             Service Provider Registration
@@ -1331,6 +1331,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 variant="contained"
                 color="primary"
                 startIcon={<ArrowBack />}
+                disabled={activeStep === 0}
               >
                 Back
               </Button>

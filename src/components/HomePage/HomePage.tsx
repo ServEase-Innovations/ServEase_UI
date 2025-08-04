@@ -207,17 +207,17 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                     <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <div className="card" onClick={() => handleClick('COOK')}>
                             <div className="card-body">
-                                <img src="../newCook.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
+                                <img src="../CookNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>
                         </div>
                         <div className="card" onClick={() => handleClick('MAID')}>
                             <div className="card-body">
-                                <img src="../maidWomen.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
+                                <img src="../MaidNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>
                         </div>
                         <div className="card"onClick={() => handleClick('NANNY')}>
                             <div className="card-body">
-                                <img src="../newNanny.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
+                                <img src="../NannyNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
                             </div>
                         </div>
                     </div>

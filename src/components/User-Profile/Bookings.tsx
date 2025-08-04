@@ -453,7 +453,16 @@ const handleApplyLeaveClick = (booking: Booking) => {
   setSelectedBookingForLeave(booking);
   setHolidayDialogOpen(true);
 };
-
+const [showAllHistory, setShowAllHistory] = useState(false);
+const getRecentPastBookings = (bookings: Booking[]) => {
+  const twoMonthsAgo = new Date();
+  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+  
+  return bookings.filter(booking => {
+    const bookingDate = new Date(booking.date);
+    return bookingDate >= twoMonthsAgo;
+  });
+};
 const filterBookings = (bookings: Booking[], term: string) => {
   if (!term) return bookings;
   
@@ -464,6 +473,7 @@ const filterBookings = (bookings: Booking[], term: string) => {
     booking.bookingType.toLowerCase().includes(term.toLowerCase())
   );
 };
+
 const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
   const statusOrder: Record<string, number> = {
     'ACTIVE': 1,
@@ -546,13 +556,13 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
         {getBookingTypeBadge(booking.bookingType)}
         {getStatusBadge(booking.taskStatus)}
       </div>
-      <p className="text-xs text-muted-foreground">
-        Booking Date:{new Date(booking.bookingDate).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        })}
-      </p>
+    <p className="text-xs text-muted-foreground pt-2">
+  Booking Date: {new Date(booking.bookingDate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  })}
+</p>
     </div>
   </div>
 </CardHeader>
