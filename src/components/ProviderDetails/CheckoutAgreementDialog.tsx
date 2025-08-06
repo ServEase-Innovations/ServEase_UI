@@ -43,7 +43,7 @@ const CheckoutWithAgreement: React.FC<CheckoutWithAgreementProps> = ({
       maxWidth="sm" 
       fullWidth
     >
-      <DialogTitle>Before You Continue</DialogTitle>
+      <DialogTitle>We kindly ask you to review and agree to the following policies before proceeding:</DialogTitle>
       <DialogContent>
         <Typography gutterBottom>
           Please agree to the following before proceeding with your booking:
@@ -118,29 +118,6 @@ const CheckoutWithAgreement: React.FC<CheckoutWithAgreementProps> = ({
           />
         </Box>
       </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={onProceed}
-          color="primary"
-          variant="contained"
-          disabled={!allAgreed}
-         sx={{
-    '&&.Mui-disabled': {  // Notice the double ampersand for higher specificity
-      backgroundColor: '#f5f5f5',
-      color: '#bdbdbd',
-      border: '1px solid #e0e0e0',
-      cursor: 'not-allowed',
-      pointerEvents: 'auto'
-    }
-  }}
-        >
-          Proceed to Pay
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

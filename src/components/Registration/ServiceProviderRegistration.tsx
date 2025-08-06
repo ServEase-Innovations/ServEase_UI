@@ -42,6 +42,7 @@ import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
 import CustomFileInput from "./CustomFileInput";
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -62,7 +63,6 @@ interface FormData {
   pincode: string;
   AADHAR: string;
   pan: string;
-  agreeToTerms: boolean;
   panImage: File | null; // New field for PAN image upload
   housekeepingRole: string; // Dropdown for Service Type
   description: string; // Text area for business description
@@ -78,6 +78,10 @@ interface FormData {
   profilePic: string;
   timeslot: string;
   referralCode: "";
+   agreeToTerms: boolean;
+  terms: boolean;
+  privacy: boolean;
+  keyFacts: boolean;
 }
 
 // Define the shape of errors to hold string messages
@@ -98,6 +102,9 @@ interface FormErrors {
   AADHAR?: string;
   pan?: string;
   agreeToTerms?: string;
+  terms?: string;
+  privacy?: string;
+  keyFacts?: string;
   housekeepingRole?: string;
   description?: string;
   experience?: string;
@@ -161,7 +168,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     pincode: "",
     AADHAR: "",
     pan: "",
-    agreeToTerms: false,
     panImage: null,
     housekeepingRole: "",
     description: "",
@@ -177,6 +183,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     profilePic: "",
     timeslot: "06:00-20:00",
     referralCode: "",
+    agreeToTerms: false,
+    terms: false,
+    privacy: false,
+    keyFacts: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -469,12 +479,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (activeStep === 4) {
-      if (!formData.agreeToTerms) {
-        tempErrors.agreeToTerms =
-          "You must agree to the Terms of Service and Privacy Policy.";
-      }
-    }
+   if (activeStep === 4) {
+  if (!formData.keyFacts) {
+    tempErrors.keyFacts = "You must agree to the Key Facts Document";
+  }
+  if (!formData.terms) {
+    tempErrors.terms = "You must agree to the Terms and Conditions";
+  }
+  if (!formData.privacy) {
+    tempErrors.privacy = "You must agree to the Privacy Policy";
+  }
+}
 
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -489,14 +504,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
   };
-  const handleChangeCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.type === "checkbox" ? e.target.checked : e.target.value,
-    });
-  };
-
+const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, checked } = event.target;
+  setFormData(prev => ({
+    ...prev,
+    [name]: checked,
+    // If you want to keep agreeToTerms as a master checkbox that requires all others:
+    agreeToTerms: name === 'terms' || name === 'privacy' || name === 'keyFacts' 
+      ? checked && prev.terms && prev.privacy && prev.keyFacts
+      : prev.agreeToTerms
+  }));
+};
   const handleBack = () => {
     if (activeStep === 0) {
       onBackToLogin(true); // Navigate to login page
@@ -1246,30 +1264,98 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       </Grid>
     </Grid>
   );
-      case 4:
-        return (
-          <Grid container spacing={2}>
-            <Typography variant="h5" align="center">
-              All steps completed - You're ready to submit your information!
-            </Typography>
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.agreeToTerms}
-                    onChange={handleChangeCheckbox}
-                    name="agreeToTerms"
-                    required
-                  />
-                }
-                label="I agree to the Terms of Service and Privacy Policy"
+     case 4:
+  return (
+    <Grid container spacing={1}>
+      <Typography variant="h5" align="center" gutterBottom>
+        All steps completed - You're ready to submit your information!
+      </Typography>
+      
+      <Grid item xs={12}>
+        <Typography gutterBottom>
+          Please agree to the following before proceeding with your Registration:
+        </Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.keyFacts}
+                onChange={handleChangeCheckbox}
+                name="keyFacts"
+                required
               />
-              {errors.agreeToTerms && (
-                <Typography color="error">{errors.agreeToTerms}</Typography>
-              )}
-            </Grid>
-          </Grid>
-        );
+            }
+            label={
+              <Typography component="span">
+                I agree to the{' '}
+                <a
+                  href="https://www.serveaso.com/tnc"
+                  style={{ color: '#1d4ed8', textDecoration: 'none' }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Key Facts Document
+                  <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                </a>
+              </Typography>
+            }
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.terms}
+                onChange={handleChangeCheckbox}
+                name="terms"
+                required
+              />
+            }
+            label={
+              <Typography component="span">
+                I agree to the{' '}
+                <a
+                  href="https://www.serveaso.com/tnc"
+                  style={{ color: '#1d4ed8', textDecoration: 'none' }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ServEaso App Terms and Conditions
+                  <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                </a>
+              </Typography>
+            }
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.privacy}
+                onChange={handleChangeCheckbox}
+                name="privacy"
+                required
+              />
+            }
+            label={
+              <Typography component="span">
+                I agree to the{' '}
+                <a
+                  href="https://www.servease.com/privacy"
+                  style={{ color: '#1d4ed8', textDecoration: 'none' }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  ServEaso App Privacy Statement
+                  <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                </a>
+              </Typography>
+            }
+          />
+        </Box>
+      
+      </Grid>
+    </Grid>
+  );
       default:
         return "Unknown step";
     }
@@ -1314,21 +1400,20 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               </Button>
               {activeStep === steps.length - 1 ? (
                 <Tooltip
-                  title={
-                    !formData.agreeToTerms
+                  title={!(formData.terms && formData.privacy && formData.keyFacts)
                       ? "Check terms and conditions to enable Submit"
                       : ""
                   }
                 >
                   <span>
-                    <Button
-                      type="submit" // This will trigger form submission
-                      variant="contained"
-                      color="primary"
-                      disabled={!formData.agreeToTerms}
-                    >
-                      Submit
-                    </Button>
+                  <Button
+  type="submit"
+  variant="contained"
+  color="primary"
+  disabled={!(formData.terms && formData.privacy && formData.keyFacts)}
+>
+  Submit
+</Button>
                   </span>
                 </Tooltip>
               ) : (
