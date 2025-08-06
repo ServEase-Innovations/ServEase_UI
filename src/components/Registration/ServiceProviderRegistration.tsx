@@ -41,6 +41,7 @@ import axios from "axios";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
+import CustomFileInput from "./CustomFileInput";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -197,27 +198,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value, type } = e.target;
-
-    if (type === "file") {
-      const target = e.target as HTMLInputElement;
-      const files = target.files;
-      setFormData((prev) => ({
-        ...prev,
-        documentImage: files ? files[0] : null,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
+ const handleChange = (
+  e: React.ChangeEvent<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >
+) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
 
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -1228,47 +1219,33 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             </Grid>
           </Grid>
         );
-      case 3:
-        return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Aadhaar Number *"
-                name="AADHAR"
-                fullWidth
-                required
-                value={formData.AADHAR || ""}
-                onChange={handleRealTimeValidation}
-                error={!!errors.kyc}
-                helperText={errors.kyc}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Input
-                type="file"
-                inputProps={{ accept: "image/*" }}
-                name="documentImage"
-                onChange={handleChange}
-                required
-              />
-              {formData.documentImage && (
-                <Typography variant="body2">
-                  Selected File: {formData.documentImage.name}
-                </Typography>
-              )}
-              {formData.documentImage && (
-                <Box mt={2}>
-                  <Typography variant="h6">Document Preview:</Typography>
-                  <img
-                    src={URL.createObjectURL(formData.documentImage)}
-                    alt="Document"
-                    width="300"
-                  />
-                </Box>
-              )}
-            </Grid>
-          </Grid>
-        );
+  case 3:
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <TextField
+          placeholder="Aadhaar Number *"
+          name="AADHAR"
+          fullWidth
+          required
+          value={formData.AADHAR || ""}
+          onChange={handleRealTimeValidation}
+          error={!!errors.kyc}
+          helperText={errors.kyc}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <CustomFileInput
+          name="documentImage"
+          accept="image/*"
+          required
+          value={formData.documentImage}
+          onChange={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
+          buttonText="Upload Aadhaar Document"
+        />
+      </Grid>
+    </Grid>
+  );
       case 4:
         return (
           <Grid container spacing={2}>
