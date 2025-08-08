@@ -25,6 +25,7 @@ import NotificationButton from "./components/NotificationButton";
 import HomePage from "./components/HomePage/HomePage";
 import NotificationClient from "./components/NotificationClient/NotificationClient";
 import Dashboard from "./components/ServiceProvider/Dashboard";
+import ProfileScreen from "./components/User-Profile/ProfileScreen";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -141,7 +142,7 @@ if (userRole === "CUSTOMER") {
         return <Dashboard />;
       }
        else if (selection === PROFILE) {
-        return <UserProfile goBack={() => { throw new Error("Function not implemented."); }} />;
+        return <ProfileScreen/>
       } else if (selection === ADMIN) {
         console.log("I am in admin");
         return <Admin />;

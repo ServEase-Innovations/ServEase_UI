@@ -536,7 +536,10 @@ useEffect(() => {
               {dropDownOpen && (
   <div  ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
     <ul className="py-2">
-      <li className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+      <li 
+        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+        onClick={() => handleClick(PROFILE)}  // Changed this line
+      >
         Profile
       </li>
       <li 
