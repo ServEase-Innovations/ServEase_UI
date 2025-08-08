@@ -83,37 +83,50 @@ useEffect(() => {
   };
 }, [dropDownOpen]); // Only re-run if dropDownOpen changes
 
-  useEffect(() => {
-    getLocation();
+useEffect(() => {
+  const run = async () => {
+    // Step 1: Get location first
+    await getLocation();
+
+    // Step 2: Auth checks
     if (!isAuthenticated || isLoading || !user?.email) return;
 
-    const triggerPostLoginAPIs = async () => {
-      try {
-        const token = await getAccessTokenSilently();
-        console.log("Access Token:", token);
-        console.log("User authenticated:", user);
-        const email = user.email ?? "";
+    try {
+      // Step 3: Get token
+      const token = await getAccessTokenSilently();
+      console.log("Access Token:", token);
+      console.log("User authenticated:", user);
 
-        const response = await axios.get(
-          `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(
-            email
-          )}`
-        );
-        console.log("Email check response:", response.data);
-        if (!response.data.user_role) {
-          createUser(user);
-          // user.customerid = 1;
-          // getCustomerPreferences(user.customerid);
-        } else {
-          getCustomerPreferences(Number(response.data.id));
-        }
-      } catch (error) {
-        console.error("Error during post-login API call:", error);
+      const email = user.email ?? "";
+
+      // Step 4: Check email (this must finish before moving on)
+      const response = await axios.get(
+        `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
+      );
+      console.log("Email check response:", response.data);
+
+      // Step 5: Conditional next steps
+      if (!response.data.user_role) {
+        await createUser(user);
+        // await getCustomerPreferences(user.customerid);
+      } else if(response.data.user_role === "SERVICE_PROVIDER") {
+        user.role = "SERVICE_PROVIDER";
+        user.serviceProviderId = response.data.id;
+      } else {
+        await getCustomerPreferences(Number(response.data.id));
       }
-    };
 
-    triggerPostLoginAPIs();
-  }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+      // Step 6: Anything else AFTER both API calls
+      console.log("Post-login steps complete ✅");
+
+    } catch (error) {
+      console.error("Error during post-login API call:", error);
+    }
+  };
+
+  run();
+}, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
