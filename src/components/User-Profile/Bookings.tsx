@@ -192,13 +192,10 @@ useEffect(() => {
     }
   };
 
-  useEffect(() => {
-    if (customerId !== null) {
-      const page = 0; // Default page
-      const size = 100; // Default size
-
-      axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
+useEffect(() => {
+  if (customerId !== null) {
+    axiosInstance
+      .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
         .then((response) => {
           const { past = [], current = [], future = [] } = response.data || {};
           console.log('Past Bookings:', past);
@@ -496,6 +493,7 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
       <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
         {/* Header */}
      <div className="bg-primary text-primary-foreground py-8">
+      {/* <div className="bg-[#455370] text-white py-8"> */}
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
