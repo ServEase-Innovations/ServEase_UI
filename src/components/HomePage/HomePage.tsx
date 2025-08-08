@@ -182,17 +182,17 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     }
   };
 
-   function urlBase64ToUint8Array(base64String: string): Uint8Array {
+ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
 
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; i++) {
-      outputArray[i] = rawData.charCodeAt(i);
+        outputArray[i] = rawData.charCodeAt(i);
     }
-    return outputArray;
-  }
+    return outputArray.buffer;
+}
     return (
         <main className="pt-16">
             {/* Hero Section */}
@@ -202,7 +202,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                         Book trusted household help in minutes
                     </h1>
                     <p className="text-gray-600 text-sm">
-                        ServEaso connects you to trained maids, cooks, and caregivers on demand. safe, affordable and instant.
+                       ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.
                     </p>
                     <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
                         <div className="card" onClick={() => handleClick('COOK')}>

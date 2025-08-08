@@ -467,10 +467,10 @@ const filterBookings = (bookings: Booking[], term: string) => {
   if (!term) return bookings;
   
   return bookings.filter(booking => 
-    getServiceTitle(booking.serviceType).toLowerCase().includes(term.toLowerCase()) ||
-    booking.serviceProviderName.toLowerCase().includes(term.toLowerCase()) ||
-    booking.address.toLowerCase().includes(term.toLowerCase()) ||
-    booking.bookingType.toLowerCase().includes(term.toLowerCase())
+    getServiceTitle(booking?.serviceType).toLowerCase().includes(term?.toLowerCase()) ||
+    booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
+    booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
+    booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
   );
 };
 
