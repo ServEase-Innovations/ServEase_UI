@@ -271,29 +271,9 @@ useEffect(() => {
     customerId: customerId,
     startDate: updatedData.startDate,
     endDate: updatedData.endDate,
-    engagements: selectedBooking.engagements,
     timeslot: updatedData.timeSlot,
-    monthlyAmount: selectedBooking.monthlyAmount,
-    paymentMode: selectedBooking.paymentMode,
-    bookingType: selectedBooking.bookingType,
-    bookingDate: selectedBooking.bookingDate,
-    responsibilities: selectedBooking.responsibilities,
-    serviceType: serviceTypeUpperCase,
-    mealType: selectedBooking.mealType,
-    noOfPersons: selectedBooking.noOfPersons,
-    experience: selectedBooking.experience,
-    childAge: selectedBooking.childAge,
-    customerName: selectedBooking.customerName,
-    address: selectedBooking.address,
-    taskStatus: selectedBooking.taskStatus, // Keep original status
      role :"CUSTOMER",
   };
-
-  // Add service provider info only if needed (same logic as cancel)
-  if (selectedBooking.bookingType !== "ON_DEMAND") {
-    updatePayload.serviceProviderId = selectedBooking.serviceProviderId;
-    updatePayload.serviceProviderName = selectedBooking.serviceProviderName;
-  }
 
   // Remove null/undefined fields
   updatePayload = removeNullFields(updatePayload);
