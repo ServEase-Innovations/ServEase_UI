@@ -472,35 +472,37 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
  return (
       <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
         {/* Header */}
-     <div className="bg-primary text-primary-foreground py-8">
-      {/* <div className="bg-[#455370] text-white py-8"> */}
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">My Bookings</h1>
-            <p className="text-primary-foreground/80 mt-2">Manage your household service appointments</p>
-          </div>
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search bookings..."
-              className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        </div>
+    
+  <div 
+  className="text-primary-foreground py-8" 
+  style={{ background: 'linear-gradient(to right, rgba(23, 43, 77, 0.8), rgba(26, 23, 77, 0.8))' }}
+>
+  <div className="container mx-auto px-4">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 className="text-3xl font-bold text-white">My Bookings</h1>
+        <p className="text-white/80 mt-2">Manage your household service appointments</p>
+      </div>
+      <div className="relative w-full md:w-64">
+        <input
+          type="text"
+          placeholder="Search bookings..."
+          className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        )}
       </div>
     </div>
-  
+  </div>
+</div>
         <div className="container mx-auto px-4 py-8">
           {/* Upcoming Bookings */}
           <section className="mb-8">
