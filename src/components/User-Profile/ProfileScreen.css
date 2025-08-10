@@ -21,8 +21,8 @@
   z-index: 1;
   height: 100%;
   display: flex;
-  justify-content: space-between; /* This pushes edit button to right */
-  align-items: flex-start; /* Align items to top */
+  justify-content: space-between;
+  align-items: flex-start;
   padding: 30px 30px 60px;
   max-width: 1200px;
   margin: 0 auto;
@@ -42,7 +42,6 @@
   object-fit: cover;
 }
 
-/* Keep existing header title styles */
 .header-title {
   color: #fff;
   font-size: 36px;
@@ -57,7 +56,7 @@
 }
 
 .edit-button {
-  background-color: #17cdef;
+  background-color: #11cdef;
   padding: 10px 20px;
   border-radius: 4px;
   color: #fff;
@@ -66,8 +65,8 @@
   cursor: pointer;
   margin-top: 20px;
   box-shadow: 0 4px 6px rgba(17, 205, 239, 0.11);
-  /* Remove align-self: flex-start since we're using flex on parent */
 }
+
 /* Main Content - Form Section */
 .main-content {
   padding: 20px 0;
@@ -158,7 +157,7 @@
 }
 
 .message-button {
-  background-color: var(--secondary-color);
+  background-color: #172b4d;
   box-shadow: 0 4px 6px rgba(23, 43, 77, 0.11);
 }
 
@@ -179,12 +178,12 @@
 .stat-number {
   font-size: 22px;
   font-weight: bold;
-  color: var(--text-color);
+  color: #32325d;
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--text-light);
+  color: #8898aa;
 }
 
 .profile-info {
@@ -198,7 +197,7 @@
 .profile-name {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-color);
+  color: #32325d;
   margin-bottom: 5px;
 }
 
@@ -222,7 +221,7 @@
 
 .divider {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: #e9ecef;
   width: 100%;
   margin: 20px 0;
 }
@@ -235,7 +234,7 @@
 }
 
 .show-more {
-  color: var(--primary-color);
+  color: #5e72e4;
   font-size: 14px;
   background: none;
   border: none;
@@ -246,9 +245,10 @@
 .account-form-container {
   width: 100%;
 }
+
 .form-actions-bottom {
   display: flex;
-  justify-content: center; /* This centers the button horizontally */
+  justify-content: center;
   width: 100%;
   margin-top: 30px;
 }
@@ -257,8 +257,9 @@
   display: flex;
   justify-content: center;
   width: 100%;
-  max-width: 200px; /* Adjust this to control button width */
+  max-width: 200px;
 }
+
 @media (min-width: 992px) {
   .account-form-container {
     width: calc(60% - 10px);
@@ -277,7 +278,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e9ecef;
   background-color: #fff;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
@@ -286,11 +287,11 @@
 .form-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-color);
+  color: #32325d;
 }
 
 .settings-button {
-  background-color: var(--primary-color);
+  background-color: #5e72e4;
   padding: 6px 12px;
   border-radius: 4px;
   color: #fff;
@@ -307,7 +308,7 @@
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-light);
+  color: #8898aa;
   text-transform: uppercase;
   margin-bottom: 15px;
   letter-spacing: 0.5px;
@@ -338,7 +339,7 @@
   font-size: 14px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid var(--input-border);
+  border: 1px solid #cad1d7;
   border-radius: 4px;
   background-color: #fff;
   width: 100%;
@@ -353,16 +354,15 @@
 /* Footer */
 .footer {
   padding: 20px;
-  background-color: var(--footer-bg);
+  background-color: #f7fafc;
   text-align: center;
 }
 
 .footer-text {
-  color: var(--text-light);
+  color: #8898aa;
   font-size: 14px;
 }
 
 .footer-link {
-  color: var(--primary-color);
+  color: #5e72e4;
 }
-

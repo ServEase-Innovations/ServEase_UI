@@ -1117,7 +1117,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
                 <FormHelperText>{errors.diet}</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} >
               <TextField
                 placeholder="Description"
                 name="description"
@@ -1128,7 +1128,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                placeholder="Experience"
+                placeholder="Experience *"
                 name="experience"
                 fullWidth
                 required
@@ -1141,7 +1141,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
                 }
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 placeholder="Referral Code (Optional)"
                 name="referralCode"

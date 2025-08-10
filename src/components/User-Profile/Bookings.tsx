@@ -267,16 +267,13 @@ useEffect(() => {
 
   // Create base payload following the same structure as cancelBooking
   let updatePayload: any = {
-    id: selectedBooking.id,
+    // id: selectedBooking.id,
     customerId: customerId,
     startDate: updatedData.startDate,
     endDate: updatedData.endDate,
     timeslot: updatedData.timeSlot,
      role :"CUSTOMER",
   };
-
-  // Remove null/undefined fields
-  updatePayload = removeNullFields(updatePayload);
 
   try {
     const response = await axiosInstance.put(
@@ -326,11 +323,6 @@ const isModificationAllowed = (startDate: string) => {
   const daysDifference = bookingStartDate.diff(today, 'day');
   return daysDifference >= 2; // Only allow if at least 2 days before start
 }; 
-const removeNullFields = (obj: any) =>
-  Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== null && v !== undefined)
-  );
-
 
 const handleCancelBooking = async (booking: Booking) => {
   const updatedStatus = "CANCELLED";
@@ -338,36 +330,11 @@ const handleCancelBooking = async (booking: Booking) => {
 
   // Create base payload
   let updatePayload: any = {
-    id: booking.id,
+    // id: booking.id,
     customerId: customerId,
-    startDate: booking.startDate,
-    endDate: booking.endDate,
-    engagements: booking.engagements,
-    timeslot: booking.timeSlot,
-    monthlyAmount: booking.monthlyAmount,
-    paymentMode: booking.paymentMode,
-    bookingType: booking.bookingType,
-    bookingDate: booking.bookingDate,
-    responsibilities: booking.responsibilities,
-    serviceType: serviceTypeUpperCase,
-    mealType: booking.mealType,
-    noOfPersons: booking.noOfPersons,
-    experience: booking.experience,
-    childAge: booking.childAge,
-    customerName: booking.customerName,
-    address: booking.address,
     taskStatus: updatedStatus,
     role:"CUSTOMER"
   };
-
-  // Add service provider info only if needed
-  if (booking.bookingType !== "ON_DEMAND") {
-    updatePayload.serviceProviderId = booking.serviceProviderId;
-    updatePayload.serviceProviderName = booking.serviceProviderName;
-  }
-
-  // Remove null/undefined fields
-  updatePayload = removeNullFields(updatePayload);
 
   try {
     
@@ -471,8 +438,7 @@ const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
 const filteredPastBookings = filterBookings(pastBookings, searchTerm); 
  return (
       <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
-        {/* Header */}
-    
+        {/* Header */}  
   <div 
   className="text-primary-foreground py-8" 
   style={{ background: 'linear-gradient(to right, rgba(23, 43, 77, 0.8), rgba(26, 23, 77, 0.8))' }}
@@ -624,7 +590,7 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
         <XCircle className="h-4 w-4 mr-2" />
         Cancel Booking
       </Button>
-      {isModificationAllowed(booking.startDate) && booking.bookingType === 'MONTHLY' && (
+     { booking.bookingType === 'MONTHLY' && (
         <Button 
           variant="outline" 
           size="sm" 
