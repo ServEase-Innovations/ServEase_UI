@@ -26,6 +26,7 @@ import HomePage from "./components/HomePage/HomePage";
 import NotificationClient from "./components/NotificationClient/NotificationClient";
 import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
+import { useAuth0 } from "@auth0/auth0-react";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -36,28 +37,32 @@ function App() {
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
-type UserState = {
-  value?: {
-    role?: string;
-    customerDetails?: any;
-  } | null;
-};
+  const {
+    loginWithRedirect,
+    logout,
+    user,
+    isAuthenticated,
+    isLoading,
+    getAccessTokenSilently,
+  } = useAuth0();
 
 // Extract user data from Redux with correct type
-const user = useSelector((state: RootState) => state.user as UserState);
+// const user = useSelector((state: RootState) => state.user as UserState);
 const [notificationReceived, setNotificationReceived] = useState(false);
 
 // Ensure `value` is not null before accessing `role`
-const userRole = user?.value?.role ?? "No Role";
-console.log("Logged-in user role:", userRole);
+// const userRole = user?.value?.role ?? "No Role";
+// console.log("Logged-in user role:", userRole);
 
-if (userRole === "CUSTOMER") {
-  console.log("User is a Customer");
-} else if (userRole === "SERVICE_PROVIDER") {
-  console.log("User is a Service Provider");
-} else {
-  console.log("User role is unknown");
-}
+// if (userRole === "CUSTOMER") {
+//   console.log("User is a Customer");
+// } else if (userRole === "SERVICE_PROVIDER") {
+//   console.log("User is a Service Provider");
+// } else {
+//   console.log("User role is unknown");
+// }
+
+console.log("User data in App component:", user);
 
   const handleDataFromChild = (e: string) => {
     console.log("Data received from child component:", e);
@@ -89,10 +94,12 @@ if (userRole === "CUSTOMER") {
   });
 
   useEffect(() => {
-    const ws = new WebSocket("wss://utils-ndt3.onrender.com/");
+    console.log("user in useEffect -> ", user);
+    if(user?.role === "SERVICE_PROVIDER") {
+      const ws = new WebSocket("wss://utils-ndt3.onrender.com/");
 
     ws.onopen = () => {
-      const serviceProviderId = user?.value?.customerDetails?.id; // Adjust field as needed
+      const serviceProviderId = user?.serviceProviderId; // Adjust field as needed
       if (serviceProviderId) {
         ws.send(JSON.stringify({ type: "IDENTIFY", id: serviceProviderId }));
       }
@@ -104,7 +111,9 @@ if (userRole === "CUSTOMER") {
     };
 
     return () => ws.close();
-  }, []);
+    }
+    
+  }, [user]);
 
 
   const getPricingData = () => {
