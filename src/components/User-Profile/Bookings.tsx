@@ -14,7 +14,7 @@ import UserHoliday from './UserHoliday';
 import { Alert, Snackbar } from '@mui/material';
 import ModifyBookingDialog from './ModifyBookingDialog';
 import dayjs from 'dayjs';
-
+import { ClipLoader } from 'react-spinners';
 
 
 interface Booking {
@@ -44,18 +44,19 @@ interface Booking {
 }
 
 const getServiceIcon = (type: string) => {
-  const iconClass = "h-5 w-5";
+  const iconClass = "text-2xl"; // Bigger emoji size
   switch (type) {
     case 'maid':
-      return <span className={`{iconClass} text-orange-500`}>🧹</span>;
+      return <span className={`${iconClass} text-orange-500`}>🧹</span>;
     case 'cleaning':
-      return <span className={`{iconClass} text-pink-500`}>🧹</span>;
+      return <span className={`${iconClass} text-pink-500`}>🧹</span>;
     case 'nanny':
-      return <span className={`{iconClass} text-red-500`}>❤️</span>;
+      return <span className={`${iconClass} text-red-500`}>❤️</span>;
     default:
       return <span className={iconClass}>👩‍🍳</span>;
   }
 };
+
 
 const getStatusBadge = (status: string) => {
   console.log("Status:", status);
@@ -227,24 +228,28 @@ const mapBookingData = (data: any[]) => {
       })
     : [];
 };
+const [isLoading, setIsLoading] = useState(true); // Initialize as true
 useEffect(() => {
-  if (customerId !== null) {
+  if (customerId !== null && customerId !== undefined) {
+    setIsLoading(true);
     axiosInstance
       .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-        .then((response) => {
-          const { past = [], current = [], future = [] } = response.data || {};
-          console.log('Past Bookings:', past);
-
-          setPastBookings(mapBookingData(past));
-          console.log('Past :', setPastBookings);
-          setCurrentBookings(mapBookingData(current));
-          setFutureBookings(mapBookingData(future));
-        })
-        .catch((error) => {
-          console.error("Error fetching booking details:", error);
-        });
-    }
-  }, [customerId]);
+      .then((response) => {
+        const { past = [], current = [], future = [] } = response.data || {};
+        setPastBookings(mapBookingData(past));
+        setCurrentBookings(mapBookingData(current));
+        setFutureBookings(mapBookingData(future));
+      })
+      .catch((error) => {
+        console.error("Error fetching booking details:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  } else {
+    setIsLoading(false); // Also set loading to false if no customerId
+  }
+}, [customerId]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -272,7 +277,7 @@ useEffect(() => {
     startDate: updatedData.startDate,
     endDate: updatedData.endDate,
     timeslot: updatedData.timeSlot,
-     role :"CUSTOMER",
+     modifiedBy :"CUSTOMER",
   };
 
   try {
@@ -347,7 +352,7 @@ const handleCancelBooking = async (booking: Booking) => {
     // id: booking.id,
     customerId: customerId,
     taskStatus: updatedStatus,
-    role:"CUSTOMER"
+    modifiedBy:"CUSTOMER"
   };
 
   try {
@@ -484,6 +489,14 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
   </div>
 </div>
         <div className="container mx-auto px-4 py-8">
+          {isLoading && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm">
+    <div className="flex flex-col items-center">
+      <ClipLoader color="#3b82f6" size={50} />
+      <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
+    </div>
+  </div>
+)}
           {/* Upcoming Bookings */}
           <section className="mb-8">
             <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
