@@ -477,11 +477,12 @@ useEffect(() => {
         style={{ height: "10%" }}
       >
         <div className="flex items-center space-x-2" onClick={() => handleClick("")}>
-          <img
-            src="logo.png"
-            alt="ServEase Logo"
-            className="h-16 w-auto max-w-[160]"
-          />
+     <img
+  src="logoFinal.png"
+  alt="ServEase Logo"
+  className="h-20 w-auto max-w-[200px]"
+/>
+
           <span className="text-xl font-semibold text-blue-600">ServEaso</span>
         </div>
         <div className="hidden md:flex items-center gap-4">

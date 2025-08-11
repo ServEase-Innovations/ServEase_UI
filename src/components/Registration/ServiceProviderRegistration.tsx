@@ -744,8 +744,8 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
     switch (step) {
       case 0:
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} >
               <ProfileImageUpload onImageSelect={handleImageSelect} />
             </Grid>
             <Grid item xs={12}>
@@ -924,7 +924,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
       case 1:
         return (
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid item xs={12} sx={{ mt: 2 }}>
               <TextField
                 placeholder="Address *"
                 name="address"
@@ -1150,97 +1150,108 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControl component="fieldset">
-                <FormLabel component="legend">Select Time Slot</FormLabel>
-                <FormGroup>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formData.timeslot === "06:00-20:00"}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              timeslot: "06:00-20:00",
-                            });
-                            setSliderDisabled(true);
-                          } else {
-                            setFormData({ ...formData, timeslot: "" });
-                            setSliderDisabled(false);
-                          }
-                        }}
-                      />
+           <Grid item xs={12}>
+        <FormControl component="fieldset" fullWidth>
+          <FormLabel component="legend" >
+            Select Time Slot
+          </FormLabel>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.timeslot === "06:00-20:00"}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({
+                        ...formData,
+                        timeslot: "06:00-20:00",
+                      });
+                      setSliderDisabled(true);
+                    } else {
+                      setFormData({ ...formData, timeslot: "" });
+                      setSliderDisabled(false);
                     }
-                    label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
-                  />
-                  <div style={{ marginTop: "16px", padding: "0 18px" }}>
-                    <FormLabel component="legend">
-                      Morning (6:00 AM - 12:00 PM)
-                    </FormLabel>
-                    <Slider
-                      value={sliderValueMorning}
-                      onChange={(e, newValue) => {
-                        const selectedRange = newValue as number[];
-                        setSliderValueMorning(selectedRange);
-                        updateFormTimeSlot(selectedRange, sliderValueEvening);
-                      }}
-                      valueLabelDisplay="on"
-                      valueLabelFormat={(value) => formatDisplayTime(value)}
-                      min={6}
-                      max={12}
-                      step={0.5}
-                      marks={[
-                        { value: 6, label: "6:00 AM" },
-                        { value: 8, label: "8:00 AM" },
-                        { value: 10, label: "10:00 AM" },
-                        { value: 12, label: "12:00 PM" },
-                      ]}
-                      disabled={sliderDisabled}
-                      sx={{
-                        color: sliderDisabled ? "grey.500" : "primary.main",
-                      }}
-                      aria-labelledby="morning-slider"
-                    />
-                  </div>
-                  <div style={{ marginTop: "16px", padding: "0 18px" }}>
-                    <FormLabel component="legend">
-                      Evening (12:00 PM - 8:00 PM)
-                    </FormLabel>
-                    <Slider
-                      value={sliderValueEvening}
-                      onChange={(e, newValue) => {
-                        const selectedRange = newValue as number[];
-                        setSliderValueEvening(selectedRange);
-                        updateFormTimeSlot(sliderValueMorning, selectedRange);
-                      }}
-                      valueLabelDisplay="on"
-                      valueLabelFormat={(value) => formatDisplayTime(value)}
-                      min={12}
-                      max={20}
-                      step={0.5}
-                      marks={[
-                        { value: 12, label: "12:00 PM" },
-                        { value: 14, label: "2:00 PM" },
-                        { value: 16, label: "4:00 PM" },
-                        { value: 20, label: "8:00 PM" },
-                      ]}
-                      disabled={sliderDisabled}
-                      sx={{
-                        color: sliderDisabled ? "grey.500" : "primary.main",
-                      }}
-                      aria-labelledby="evening-slider"
-                    />
-                  </div>
-                </FormGroup>
-              </FormControl>
-            </Grid>
-          </Grid>
+                  }}
+                />
+              }
+              label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
+              style={{ width: '100%', marginLeft: 0 }}
+            />
+            
+            {/* Morning Slider */}
+            <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
+              <Typography align="center" gutterBottom>
+                Morning (6:00 AM - 12:00 PM)
+              </Typography>
+              <Slider
+                value={sliderValueMorning}
+                onChange={(e, newValue) => {
+                  const selectedRange = newValue as number[];
+                  setSliderValueMorning(selectedRange);
+                  updateFormTimeSlot(selectedRange, sliderValueEvening);
+                }}
+                valueLabelDisplay="on"
+                valueLabelFormat={(value) => formatDisplayTime(value)}
+                min={6}
+                max={12}
+                step={0.5}
+                marks={[
+                  { value: 6, label: "6:00 AM" },
+                  { value: 8, label: "8:00 AM" },
+                  { value: 10, label: "10:00 AM" },
+                  { value: 12, label: "12:00 PM" },
+                ]}
+                disabled={sliderDisabled}
+                sx={{
+                  color: sliderDisabled ? "grey.500" : "primary.main",
+                  width: '95%',
+                  mx: 'auto',
+                }}
+                aria-labelledby="morning-slider"
+              />
+            </Box>
+            
+            {/* Evening Slider */}
+            <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
+              <Typography align="center" gutterBottom>
+                Evening (12:00 PM - 8:00 PM)
+              </Typography>
+              <Slider
+                value={sliderValueEvening}
+                onChange={(e, newValue) => {
+                  const selectedRange = newValue as number[];
+                  setSliderValueEvening(selectedRange);
+                  updateFormTimeSlot(sliderValueMorning, selectedRange);
+                }}
+                valueLabelDisplay="on"
+                valueLabelFormat={(value) => formatDisplayTime(value)}
+                min={12}
+                max={20}
+                step={0.5}
+                marks={[
+                  { value: 12, label: "12:00 PM" },
+                  { value: 14, label: "2:00 PM" },
+                  { value: 16, label: "4:00 PM" },
+                  { value: 20, label: "8:00 PM" },
+                ]}
+                disabled={sliderDisabled}
+                sx={{
+                  color: sliderDisabled ? "grey.500" : "primary.main",
+                  width: '95%',
+                  mx: 'auto',
+                }}
+                aria-labelledby="evening-slider"
+              />
+            </Box>
+          </FormGroup>
+        </FormControl>
+      </Grid>
+    </Grid>
         );
   case 3:
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid item xs={12} sx={{ mt: 2 }}>
         <TextField
           placeholder="Aadhaar Number *"
           name="AADHAR"
@@ -1267,11 +1278,8 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
      case 4:
   return (
     <Grid container spacing={1}>
-      <Typography variant="h5" align="center" gutterBottom>
-        All steps completed - You're ready to submit your information!
-      </Typography>
       
-      <Grid item xs={12}>
+      <Grid item xs={12} sx={{ mt: 2 }}>
         <Typography gutterBottom>
           Please agree to the following before proceeding with your Registration:
         </Typography>
