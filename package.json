@@ -70,6 +70,7 @@
     "react-router": "^7.1.1",
     "react-router-dom": "^6.28.1",
     "react-scripts": "^5.0.1",
+    "react-spinners": "^0.17.0",
     "react-time-picker": "^7.0.0",
     "react-time-range": "^1.0.2",
     "recharts": "^3.1.0",

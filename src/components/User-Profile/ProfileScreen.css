@@ -1,40 +1,8 @@
 /* ProfileScreen.css */
-:root {
-  --primary-color: #5e72e4;
-  --secondary-color: #172b4d;
-  --accent-color: #11cdef;
-  --text-color: #32325d;
-  --text-light: #8898aa;
-  --border-color: #e9ecef;
-  --input-border: #cad1d7;
-  --background-light: #f8f9fe;
-  --footer-bg: #f7fafc;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  line-height: 1.6;
-  color: var(--text-color);
-  padding-top: 60px; /* Space for fixed header */
-}
-
-/* Main container */
-.container {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - 60px); /* Account for header */
-  background-color: var(--background-light);
-}
 
 /* Header section */
 .header-container {
-  margin-top: 0; 
+  margin-top: 60px;
   height: 120px;
   position: relative;
 }
@@ -53,8 +21,8 @@ body {
   z-index: 1;
   height: 100%;
   display: flex;
-  justify-content: space-between; /* This pushes edit button to right */
-  align-items: flex-start; /* Align items to top */
+  justify-content: space-between;
+  align-items: flex-start;
   padding: 30px 30px 60px;
   max-width: 1200px;
   margin: 0 auto;
@@ -74,7 +42,6 @@ body {
   object-fit: cover;
 }
 
-/* Keep existing header title styles */
 .header-title {
   color: #fff;
   font-size: 36px;
@@ -89,7 +56,7 @@ body {
 }
 
 .edit-button {
-  background-color: var(--accent-color);
+  background-color: #11cdef;
   padding: 10px 20px;
   border-radius: 4px;
   color: #fff;
@@ -98,8 +65,8 @@ body {
   cursor: pointer;
   margin-top: 20px;
   box-shadow: 0 4px 6px rgba(17, 205, 239, 0.11);
-  /* Remove align-self: flex-start since we're using flex on parent */
 }
+
 /* Main Content - Form Section */
 .main-content {
   padding: 20px 0;
@@ -190,7 +157,7 @@ body {
 }
 
 .message-button {
-  background-color: var(--secondary-color);
+  background-color: #172b4d;
   box-shadow: 0 4px 6px rgba(23, 43, 77, 0.11);
 }
 
@@ -211,12 +178,12 @@ body {
 .stat-number {
   font-size: 22px;
   font-weight: bold;
-  color: var(--text-color);
+  color: #32325d;
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--text-light);
+  color: #8898aa;
 }
 
 .profile-info {
@@ -230,7 +197,7 @@ body {
 .profile-name {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-color);
+  color: #32325d;
   margin-bottom: 5px;
 }
 
@@ -254,7 +221,7 @@ body {
 
 .divider {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: #e9ecef;
   width: 100%;
   margin: 20px 0;
 }
@@ -267,7 +234,7 @@ body {
 }
 
 .show-more {
-  color: var(--primary-color);
+  color: #5e72e4;
   font-size: 14px;
   background: none;
   border: none;
@@ -278,9 +245,10 @@ body {
 .account-form-container {
   width: 100%;
 }
+
 .form-actions-bottom {
   display: flex;
-  justify-content: center; /* This centers the button horizontally */
+  justify-content: center;
   width: 100%;
   margin-top: 30px;
 }
@@ -289,8 +257,9 @@ body {
   display: flex;
   justify-content: center;
   width: 100%;
-  max-width: 200px; /* Adjust this to control button width */
+  max-width: 200px;
 }
+
 @media (min-width: 992px) {
   .account-form-container {
     width: calc(60% - 10px);
@@ -309,7 +278,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e9ecef;
   background-color: #fff;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
@@ -318,11 +287,11 @@ body {
 .form-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-color);
+  color: #32325d;
 }
 
 .settings-button {
-  background-color: var(--primary-color);
+  background-color: #5e72e4;
   padding: 6px 12px;
   border-radius: 4px;
   color: #fff;
@@ -339,7 +308,7 @@ body {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-light);
+  color: #8898aa;
   text-transform: uppercase;
   margin-bottom: 15px;
   letter-spacing: 0.5px;
@@ -370,7 +339,7 @@ body {
   font-size: 14px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid var(--input-border);
+  border: 1px solid #cad1d7;
   border-radius: 4px;
   background-color: #fff;
   width: 100%;
@@ -385,35 +354,15 @@ body {
 /* Footer */
 .footer {
   padding: 20px;
-  background-color: var(--footer-bg);
+  background-color: #f7fafc;
   text-align: center;
 }
 
 .footer-text {
-  color: var(--text-light);
+  color: #8898aa;
   font-size: 14px;
 }
 
 .footer-link {
-  color: var(--primary-color);
-}
-
-/* Additional styles for existing header */
-.main-header {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  height: 60px;
-  background: #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  z-index: 1000;
-}
-
-.main-header h1 {
-  color: #333;
-  font-size: 24px;
-  font-weight: bold;
+  color: #5e72e4;
 }
