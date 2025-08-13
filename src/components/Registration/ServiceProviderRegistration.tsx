@@ -1298,7 +1298,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
               <Typography component="span">
                 I agree to the{' '}
                 <a
-                  href="https://www.serveaso.com/tnc"
+                  href="http://localhost:3000/KeyFactsStatement"
                   style={{ color: '#1d4ed8', textDecoration: 'none' }}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1323,7 +1323,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
               <Typography component="span">
                 I agree to the{' '}
                 <a
-                  href="https://www.serveaso.com/tnc"
+                  href="http://localhost:3000/TnC" 
                   style={{ color: '#1d4ed8', textDecoration: 'none' }}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1348,7 +1348,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
               <Typography component="span">
                 I agree to the{' '}
                 <a
-                  href="https://www.servease.com/privacy"
+                  href="http://localhost:3000/Privacy"
                   style={{ color: '#1d4ed8', textDecoration: 'none' }}
                   target="_blank"
                   rel="noopener noreferrer"

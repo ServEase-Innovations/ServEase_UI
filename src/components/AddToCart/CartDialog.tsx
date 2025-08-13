@@ -240,10 +240,10 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
   onChange={handleCheckboxChange('keyFacts')}
   style={{ marginRight: '8px' }}
 />
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/TnC', '_blank')}>
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/KeyFactsStatement', '_blank')}>
         I agree to the ServEaso {' '}
         <a 
-          href="https://www.servease.com/keyfacts" 
+          href="http://localhost:3000/KeyFactsStatement" 
           target="_blank" 
           rel="noopener noreferrer"
           style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
@@ -261,10 +261,10 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
   onChange={handleCheckboxChange('termsConditions')}
   style={{ marginRight: '8px' }}
 />
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/TnC', '_blank')}>
         I agree to the ServEaso {' '}
         <a 
-          href="https://www.servease.com/tnc" 
+          href="http://localhost:3000/TnC" 
           target="_blank" 
           rel="noopener noreferrer"
           style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
@@ -282,10 +282,10 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
   onChange={handleCheckboxChange('privacyPolicy')} 
   style={{ marginRight: '8px' }}
 />
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/Privacy', '_blank')}>
         I agree to the ServEaso {' '}
         <a 
-          href="https://www.servease.com/privacy" 
+          href="http://localhost:3000/Privacy" 
           target="_blank" 
           rel="noopener noreferrer"
           style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
