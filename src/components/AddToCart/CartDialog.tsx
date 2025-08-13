@@ -240,7 +240,7 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
   onChange={handleCheckboxChange('keyFacts')}
   style={{ marginRight: '8px' }}
 />
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }}>
+      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/TnC', '_blank')}>
         I agree to the ServEaso {' '}
         <a 
           href="https://www.servease.com/keyfacts" 

@@ -10,6 +10,7 @@ import Admin from "./components/Admin/Admin";
 import AppleHomeScreen from "./components/test/AppleHomeScreen";
 import StylishLayout from "./components/test/StylishLayout";
 import { Auth0Provider } from '@auth0/auth0-react';
+import TnC from "./TermsAndConditions/TnC";
 
 const domain = "dev-plavkbiy7v55pbg4.us.auth0.com";
 const clientId = "FkZvRgSNTXloPOo2ZVRmt24MbTrfIusi";
@@ -42,7 +43,7 @@ root.render(
           <Route path="/" element={<App />} /> 
           <Route path="/admin" element={<Admin />} />
           <Route path="/test1" element={ <AppleHomeScreen />} />
-          <Route path="/test2" element={ <StylishLayout />} />
+          <Route path="/TnC" element={ <TnC />} />
         </Routes>
       </Router>
     </Provider>
