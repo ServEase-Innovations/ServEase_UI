@@ -38,7 +38,7 @@ import { FaHome } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
 import { FaLocationArrow } from "react-icons/fa";
 import { add } from "../../features/geoLocation/geoLocationSlice";
-
+import { ClipLoader } from 'react-spinners';
 interface ChildComponentProps {
   sendDataToParent: (data: string) => void;
 }
@@ -65,6 +65,7 @@ export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
   const cart = useSelector((state: any) => state.cart?.value);
    const dropdownRef = useRef<HTMLDivElement>(null); 
   const [dropDownOpen, setdropDownOpen] = useState(false);
+  const [loadingLocations, setLoadingLocations] = useState(false);
 useEffect(() => {
   const handleClickOutside = (event: MouseEvent) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -167,6 +168,7 @@ useEffect(() => {
 
   const getCustomerPreferences = async (customerId: number) => {
     try {
+       setLoadingLocations(true);
       const response = await axios.get(`https://utils-ndt3.onrender.com/user-settings/${customerId}`);
       console.log("Response from user settings API:", response.data);
     
@@ -190,15 +192,16 @@ useEffect(() => {
   
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       }
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        createUserPreferences(customerId);  // Ensure customerId is valid
-      } else {
-        console.error("Unexpected error fetching user settings:", error);
-      }
+    }  catch (error: any) {
+    if (error.response?.status === 404) {
+      createUserPreferences(customerId);
+    } else {
+      console.error("Unexpected error fetching user settings:", error);
     }
-    
+  } finally {
+    setLoadingLocations(false); // End loading regardless of success/failure
   }
+}
 
   const createUserPreferences = async (customerId: number) => {
     if (user) {
@@ -335,7 +338,7 @@ useEffect(() => {
       console.log("Selected location:", newValue);
       console.log("user preference ", userPreference);
   
-      const loc = userPreference?.savedLocations?.find(
+      const loc = userPreference[0]?.savedLocations?.find(
         (location: any) => location.name === newValue
       );
   
@@ -499,23 +502,52 @@ useEffect(() => {
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)} // small delay so click on option registers
                 className="bg-transparent outline-none text-sm w-64 px-2 py-1"
               />
-
-              {showDropdown && suggestions.length > 0 && (
-                <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto">
-                  {suggestions.map((suggestion, index) => (
-                    <li
-                      key={index}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        handleChange(suggestion.name);
-                        setShowDropdown(false);
-                      }}
-                    >
-                      {suggestion.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
+{showDropdown && (
+  <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto">
+    {/* Always show these options */}
+    <li
+      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+      onClick={() => {
+        handleChange("Detect Location");
+        setShowDropdown(false);
+      }}
+    >
+      Detect Location
+    </li>
+    <li
+      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+      onClick={() => {
+        handleChange("Add Address");
+        setShowDropdown(false);
+      }}
+    >
+      Add Address
+    </li>
+    
+    {/* Loading state or saved locations */}
+    {loadingLocations ? (
+      <li className="px-4 py-2 text-sm text-gray-500 flex items-center justify-center gap-2">
+        <ClipLoader size={15} color="#6b7280" />
+        Loading your saved locations...
+      </li>
+    ) : (
+      suggestions
+        .filter(s => s.index > 2) // Filter out the first two options
+        .map((suggestion, index) => (
+          <li
+            key={index}
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+            onClick={() => {
+              handleChange(suggestion.name);
+              setShowDropdown(false);
+            }}
+          >
+            {suggestion.name}
+          </li>
+        ))
+    )}
+  </ul>
+)}
             </div>
           </div>
 

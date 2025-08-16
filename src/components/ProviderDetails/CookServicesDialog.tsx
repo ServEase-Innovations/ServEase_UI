@@ -225,7 +225,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   };
 
   // Checkout handler (Razorpay payment)
-  const handleCheckout = async () => {
+ const handleCheckout = async () => {
   try {
     setLoading(true);
     const selectedPackages = Object.entries(packages)
@@ -240,6 +240,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
     
+    // First create the Razorpay order with initial amount
     const response = await axios.post(
       "https://utils-ndt3.onrender.com/create-order",
       { amount: totalAmount * 100 },
@@ -278,19 +279,39 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         order_id: orderId,
         handler: async function (razorpayResponse: any) {
           try {
-            // Save booking
+            // 1. First save the booking
             const bookingResponse = await axiosInstance.post(
               "/api/serviceproviders/engagement/add",
               bookingDetails
             );
 
             if (bookingResponse.status === 201) {
-              // Clear cart after successful payment
+              // 2. Then calculate payment details
+              const calculatePaymentResponse = await axiosInstance.post(
+                "/api/payments/calculate-payment",
+                null, // no body for POST with query params
+                {
+                  params: {
+                    customerId: customerId,
+                    baseAmount: totalAmount,
+                    startDate_P: bookingDetails.startDate,
+                    endDate_P: bookingDetails.endDate,
+                    paymentMode: bookingDetails.paymentMode,
+                    serviceType: bookingDetails.serviceType,
+                    // couponId: couponId // uncomment if you have coupon functionality
+                  }
+                }
+              );
+
+              // You can use the calculated payment details for record keeping or further processing
+              const paymentDetails = calculatePaymentResponse.data;
+
+              // 3. Clear cart after successful payment
               dispatch(removeFromCart({ type: 'meal' }));
               dispatch(removeFromCart({ type: 'maid' }));
               dispatch(removeFromCart({ type: 'nanny' }));
 
-              // Send notification with proper error handling
+              // 4. Send notification with proper error handling
               try {
                 const notificationResponse = await fetch("http://localhost:4000/send-notification", {
                   method: "POST",
