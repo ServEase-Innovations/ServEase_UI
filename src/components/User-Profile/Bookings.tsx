@@ -489,9 +489,14 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
   </div>
 </div>
         <div className="container mx-auto px-4 py-8">
-          {isLoading && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm">
-    <div className="flex flex-col items-center">
+     {isLoading && (
+  <div 
+    className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-white/90 backdrop-blur-sm" 
+    style={{ 
+      top: '75px', // Adjust this to match your header height
+    }}
+  >
+    <div className="flex-1 flex flex-col items-center justify-center w-full">
       <ClipLoader color="#3b82f6" size={50} />
       <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
     </div>

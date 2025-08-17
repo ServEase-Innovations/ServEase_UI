@@ -476,14 +476,15 @@ useEffect(() => {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between"
+        // className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between"
+         className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-4 md:px-15 py-4 flex items-center justify-between"
         style={{ height: "10%" }}
       >
         <div className="flex items-center space-x-2" onClick={() => handleClick("")}>
 <img
   src="Finallogo.png"
   alt="ServEase Logo"
-  className="h-24 w-auto max-w-[240px]"
+  className="h-28 w-auto max-w-[280px]"
 />
 
 
@@ -589,18 +590,22 @@ useEffect(() => {
       >
         Profile
       </li>
-      <li 
-        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-        onClick={() => handleClick(BOOKINGS)}
-      >
-        My Booking
-      </li>
-      <li 
-        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-        onClick={() => handleClick(DASHBOARD)}
-      >
-        Dashboard
-      </li>
+    {user?.role !== "SERVICE_PROVIDER" && (
+    <li
+      className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+      onClick={() => handleClick(BOOKINGS)}
+    >
+      My Booking
+    </li>
+  )}
+     {user?.role === "SERVICE_PROVIDER" && (
+    <li
+      className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
+      onClick={() => handleClick(DASHBOARD)}
+    >
+      Dashboard
+    </li>
+  )}
       <li
         className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
         onClick={() =>
