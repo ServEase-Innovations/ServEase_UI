@@ -1,10 +1,11 @@
-import { Dialog, DialogContent, DialogTitle, Button, Box, Typography, Divider, IconButton } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems, updateCartItem } from '../../features/addToCart/addToSlice';
 import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../../types/cartSlice';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
+import { Button } from '../../components/Button/button';
 import { useState } from 'react';
 interface CartDialogProps {
   open: boolean;
@@ -220,83 +221,157 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
 }} />
 
 <Box sx={{ mt: 2 }}>
-  <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: 500, mb: 1 }}>
-     We kindly ask you to review and agree to the following policies before proceeding:
-  </Typography>
+ 
 
-  <Box component="ul" sx={{
-    pl: 2,
-    listStyle: 'none',
-    '& li': {
-      mb: 1.5,
-      display: 'flex',
-      alignItems: 'center',
-    }
-  }}>
-    <li>
-   <input
-  type="checkbox"
-  checked={termsAccepted.keyFacts}
-  onChange={handleCheckboxChange('keyFacts')}
-  style={{ marginRight: '8px' }}
-/>
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/KeyFactsStatement', '_blank')}>
-        I agree to the ServEaso {' '}
-        <a 
-          href="http://localhost:3000/KeyFactsStatement" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-        >
-          Key Facts Statement
-          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-        </a>
-      </Typography>
-    </li>
-
-    <li>
-       <input
-  type="checkbox" 
-  checked={termsAccepted.termsConditions}
-  onChange={handleCheckboxChange('termsConditions')}
-  style={{ marginRight: '8px' }}
-/>
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/TnC', '_blank')}>
-        I agree to the ServEaso {' '}
-        <a 
-          href="http://localhost:3000/TnC" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-        >
-          Terms and Conditions
-          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-        </a>
-      </Typography>
-    </li>
-
+  <Box
+    component="ul"
+    sx={{
+      pl: 2,
+      listStyle: 'none',
+      '& li': {
+        mb: 1.5,
+        display: 'flex',
+        alignItems: 'center',
+      },
+    }}
+  >
+    {/* Master Checkbox */}
     <li>
       <input
-  type="checkbox"
-  checked={termsAccepted.privacyPolicy}
-  onChange={handleCheckboxChange('privacyPolicy')} 
-  style={{ marginRight: '8px' }}
-/>
-      <Typography variant="body2" component="span" sx={{ color: '#4a5568' }} onClick={() => window.open('http://localhost:3000/Privacy', '_blank')}>
-        I agree to the ServEaso {' '}
-        <a 
-          href="http://localhost:3000/Privacy" 
-          target="_blank" 
+        type="checkbox"
+        checked={
+          termsAccepted.keyFacts &&
+          termsAccepted.termsConditions &&
+          termsAccepted.privacyPolicy
+        }
+        onChange={(e) => {
+          const checked = e.target.checked;
+          setTermsAccepted({
+            keyFacts: checked,
+            termsConditions: checked,
+            privacyPolicy: checked,
+          });
+        }}
+        style={{ marginRight: '8px' }}
+      />
+      <Typography
+    variant="body2"
+    sx={{ color: '#4a5568', fontWeight: 500, mb: 1 }}
+  >
+    We kindly ask you to review and agree to the following policies before
+    proceeding:
+  </Typography>
+    </li>
+
+    {/* Key Facts */}
+    <li>
+      <input
+        type="checkbox"
+        checked={termsAccepted.keyFacts}
+        onChange={handleCheckboxChange('keyFacts')}
+        style={{ marginRight: '8px' }}
+      />
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{ color: '#4a5568' }}
+        onClick={() =>
+          window.open('http://localhost:3000/KeyFactsStatement', '_blank')
+        }
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="http://localhost:3000/KeyFactsStatement"
+          target="_blank"
           rel="noopener noreferrer"
-          style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+        >
+          Key Facts Statement
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
+        </a>
+      </Typography>
+    </li>
+
+    {/* Terms & Conditions */}
+    <li>
+      <input
+        type="checkbox"
+        checked={termsAccepted.termsConditions}
+        onChange={handleCheckboxChange('termsConditions')}
+        style={{ marginRight: '8px' }}
+      />
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{ color: '#4a5568' }}
+        onClick={() => window.open('http://localhost:3000/TnC', '_blank')}
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="http://localhost:3000/TnC"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+        >
+          Terms and Conditions
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
+        </a>
+      </Typography>
+    </li>
+
+    {/* Privacy */}
+    <li>
+      <input
+        type="checkbox"
+        checked={termsAccepted.privacyPolicy}
+        onChange={handleCheckboxChange('privacyPolicy')}
+        style={{ marginRight: '8px' }}
+      />
+      <Typography
+        variant="body2"
+        component="span"
+        sx={{ color: '#4a5568' }}
+        onClick={() => window.open('http://localhost:3000/Privacy', '_blank')}
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="http://localhost:3000/Privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
         >
           Privacy Statement
-          <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
         </a>
       </Typography>
     </li>
   </Box>
 </Box>
+
             </Box>
           </>
         )}
@@ -346,24 +421,24 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
             variant="contained"
             onClick={handleCheckout}
            disabled={allCartItems.length === 0 || !allTermsAccepted}
-            sx={{ 
-              fontWeight: '500',
-              borderRadius: '6px',
-              textTransform: 'none',
-              px: 3,
-              py: 1,
-              fontSize: '0.9rem',
-              backgroundColor: '#4299e1',
-              boxShadow: 'none',
-              '&:hover': { 
-                backgroundColor: '#3182ce',
-                boxShadow: 'none' 
-              },
-              '&:disabled': {
-                backgroundColor: '#e2e8f0',
-                color: '#a0aec0'
-              }
-            }}
+            // sx={{ 
+            //   fontWeight: '500',
+            //   borderRadius: '6px',
+            //   textTransform: 'none',
+            //   px: 3,
+            //   py: 1,
+            //   fontSize: '0.9rem',
+            //   backgroundColor: '#4299e1',
+            //   boxShadow: 'none',
+            //   '&:hover': { 
+            //     backgroundColor: '#3182ce',
+            //     boxShadow: 'none' 
+            //   },
+            //   '&:disabled': {
+            //     backgroundColor: '#e2e8f0',
+            //     color: '#a0aec0'
+            //   }
+            // }}
           >
             Proceed to Checkout (₹{grandTotal.toFixed(2)})
           </Button>
