@@ -132,7 +132,7 @@ console.log("User data in App component:", user);
     } else if (selection) {
       if (selection === DETAILS) {
 
-        return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider} />;
+        return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
       } else if (selection === CONFIRMATION) {
         console.log("selected details -> ", serviceProviderDetails);
         return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;

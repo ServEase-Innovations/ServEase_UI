@@ -75,6 +75,7 @@
     "react-time-range": "^1.0.2",
     "recharts": "^3.1.0",
     "servease_ui": "file:",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.1",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
