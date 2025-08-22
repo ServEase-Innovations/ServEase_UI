@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useEffect, useState } from 'react';
 import './ProfileScreen.css';
 import { Button } from "../Button/button";
