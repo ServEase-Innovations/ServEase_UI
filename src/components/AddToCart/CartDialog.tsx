@@ -42,8 +42,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const maidCartTotal = maidCartItems.reduce((sum, item) => sum + item.price, 0);
   const nannyCartTotal = nannyCartItems.reduce((sum, item) => sum + item.price, 0);
   const totalPrice = mealCartTotal + maidCartTotal + nannyCartTotal;
-  const tax = totalPrice * 0.05;
-  const grandTotal = totalPrice + tax;
+  const tax = totalPrice * 0.18; 
+  const platformFee = totalPrice * 0.06; 
+  const grandTotal = totalPrice + tax + platformFee;
 
   const handleRemoveItem = (id: string, itemType: CartItem['type']) => {
     dispatch(removeFromCart({ id, type: itemType }));
@@ -192,28 +193,32 @@ const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.Cha
             </Box>
 
             {/* Pricing Summary */}
-            <Box sx={{ 
-              backgroundColor: '#ffffff',
-              borderTop: '1px solid #edf2f7',
-              borderBottom: '1px solid #edf2f7',
-              p: 3,
-              boxShadow: '0 -1px 3px rgba(0,0,0,0.04)'
-            }}>
-              <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                <Typography variant="body2" sx={{ color: '#4a5568' }}>Subtotal:</Typography>
-                <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{totalPrice.toFixed(2)}</Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (5%):</Typography>
-                <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{tax.toFixed(2)}</Typography>
-              </Box>
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box display="flex" justifyContent="space-between">
-                <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
-                <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
-              </Box>
+          <Box sx={{ 
+  backgroundColor: '#ffffff',
+  borderTop: '1px solid #edf2f7',
+  borderBottom: '1px solid #edf2f7',
+  p: 3,
+  boxShadow: '0 -1px 3px rgba(0,0,0,0.04)'
+}}>
+  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>Subtotal:</Typography>
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{totalPrice.toFixed(2)}</Typography>
+  </Box>
+  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (18%):</Typography> {/* Updated from 5% to 18% */}
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{tax.toFixed(2)}</Typography>
+  </Box>
+  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}> {/* Added platform fee row */}
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>Platform Fee (6%):</Typography>
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{platformFee.toFixed(2)}</Typography>
+  </Box>
+  
+  <Divider sx={{ my: 2 }} />
+  
+  <Box display="flex" justifyContent="space-between">
+    <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
+    <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
+  </Box>
               <Divider sx={{ 
   my: 2,
   borderColor: '#cbd5e0', // Darker grey color

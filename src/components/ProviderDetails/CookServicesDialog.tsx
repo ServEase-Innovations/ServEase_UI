@@ -236,20 +236,23 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         price: pkg.calculatedPrice,
       }));
 
-    const totalAmount = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
-    
+     // Calculate tax and platform fee (18% tax + 6% platform fee)
+    const tax = baseTotal * 0.18;
+    const platformFee = baseTotal * 0.06;
+    const grandTotal = baseTotal + tax + platformFee;
     // First create the Razorpay order with initial amount
     const response = await axios.post(
       "https://utils-ndt3.onrender.com/create-order",
-      { amount: totalAmount * 100 },
+      { amount: Math.round(grandTotal * 100) },
       { headers: { "Content-Type": "application/json" } }
     );
 
     if (response.status === 200 && response.data.success) {
       const orderId = response.data.orderId;
-      const amount = totalAmount * 100;
+       const amount = Math.round(grandTotal * 100);
       const currency = "INR";
 
       const bookingDetails: BookingDetails = {
@@ -262,7 +265,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         engagements: selectedPackages.map(pkg => `${pkg.mealType} for ${pkg.persons} persons`).join(", "),
         address: currentLocation,
         timeslot: bookingType?.timeRange || "",
-        monthlyAmount: totalAmount,
+        monthlyAmount: baseTotal,
         paymentMode: "UPI",
         bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
         taskStatus: "NOT_STARTED",
@@ -293,7 +296,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                 {
                   params: {
                     customerId: customerId,
-                    baseAmount: totalAmount,
+                    baseAmount: grandTotal,
                     startDate_P: bookingDetails.startDate,
                     endDate_P: bookingDetails.endDate,
                     paymentMode: bookingDetails.paymentMode,

@@ -601,25 +601,28 @@ const handleCheckout = async () => {
     
     // Calculate total from Redux cart items (more reliable than local state)
     const maidCartItems = allCartItems.filter(isMaidCartItem);
-    const totalAmount = maidCartItems.reduce((sum, item) => sum + item.price, 0);
+    const baseTotal = maidCartItems.reduce((sum, item) => sum + item.price, 0);
     
-    if (totalAmount <= 0) {
+    if (baseTotal <= 0) {
       alert("No items selected for checkout");
       return;
     }
-
+ // Calculate tax and platform fee (18% tax + 6% platform fee)
+    const tax = baseTotal * 0.18;
+    const platformFee = baseTotal * 0.06;
+    const grandTotal = baseTotal + tax + platformFee;
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
     
     const response = await axios.post(
       "https://utils-ndt3.onrender.com/create-order",
-      { amount: totalAmount * 100 },
+      { amount: Math.round(grandTotal * 100) },
       { headers: { "Content-Type": "application/json" } }
     );
 
     if (response.status === 200 && response.data.success) {
       const orderId = response.data.orderId;
-      const amount = totalAmount * 100;
+       const amount = Math.round(grandTotal * 100);
       const currency = "INR";
 
       // Generate engagements description from cart items
@@ -650,7 +653,7 @@ const handleCheckout = async () => {
         engagements: engagements,
         address: currentLocation,
         timeslot: bookingType?.timeRange || "",
-        monthlyAmount: totalAmount,
+        monthlyAmount: baseTotal,
         paymentMode: "UPI",
         bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
         taskStatus: "NOT_STARTED",

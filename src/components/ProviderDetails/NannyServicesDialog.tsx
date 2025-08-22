@@ -417,10 +417,15 @@ const handleCheckout = async () => {
       ? Object.entries(babyPackages).filter(([_, pkg]) => pkg.selected)
       : Object.entries(elderlyPackages).filter(([_, pkg]) => pkg.selected);
 
-    const totalAmount = calculateTotal();
-    if (totalAmount === 0) {
+      const baseTotal = calculateTotal();
+    if (baseTotal === 0) {
       throw new Error('Please select at least one service');
     }
+
+    // Calculate tax and platform fee (18% tax + 6% platform fee)
+    const tax = baseTotal * 0.18;
+    const platformFee = baseTotal * 0.06;
+    const grandTotal = baseTotal + tax + platformFee;
 
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
@@ -434,7 +439,7 @@ const handleCheckout = async () => {
       startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
       endDate: bookingType?.endDate || "",
       engagements: getSelectedServicesDescription(),
-      monthlyAmount: totalAmount,
+     monthlyAmount: baseTotal,
       timeslot: bookingType?.timeRange || "",
       paymentMode: "UPI",
       bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
@@ -449,7 +454,7 @@ const handleCheckout = async () => {
       const orderResponse = await axios.post(
         "https://utils-ndt3.onrender.com/create-order",
         { 
-          amount: totalAmount * 100,
+          amount: Math.round(grandTotal * 100),
           currency: "INR",
           receipt: `receipt_${Date.now()}`,
           payment_capture: 1
@@ -468,7 +473,7 @@ const handleCheckout = async () => {
     // 3. Initialize Razorpay payment
     const options = {
       key: "rzp_test_lTdgjtSRlEwreA",
-      amount: totalAmount * 100,
+       amount: Math.round(grandTotal * 100),
       currency: "INR",
       name: "Serveaso",
       description: "Nanny Services Booking",
@@ -494,7 +499,7 @@ const handleCheckout = async () => {
                 {
                   params: {
                     customerId: customerId,
-                    baseAmount: totalAmount,
+                    baseAmount: grandTotal,
                     startDate_P: bookingData.startDate,
                     endDate_P: bookingData.endDate,
                     paymentMode: bookingData.paymentMode,
