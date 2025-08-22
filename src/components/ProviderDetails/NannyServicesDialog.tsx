@@ -406,23 +406,30 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   prepareCartForCheckout();
   setCartDialogOpen(true);
 };
-const customerName = user?.name || "Guest";
-  const customerId = user?.customerid|| "guest-id";
-  const handleCheckout = async () => {
+ 
+const handleCheckout = async () => {
   try {
     setLoading(true);
     setError(null);
+
+    // 1. Prepare booking data
+    const selectedPackages = activeTab === 'baby' 
+      ? Object.entries(babyPackages).filter(([_, pkg]) => pkg.selected)
+      : Object.entries(elderlyPackages).filter(([_, pkg]) => pkg.selected);
 
     const totalAmount = calculateTotal();
     if (totalAmount === 0) {
       throw new Error('Please select at least one service');
     }
 
+    const customerName = user?.name || "Guest";
+    const customerId = user?.customerid || "guest-id";
+
     const bookingData: BookingDetails = {
       serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
       serviceProviderName: providerFullName,
       customerId: customerId,
-      customerName: customerName, 
+      customerName: customerName,
       address: currentLocation || "Durgapur, West Bengal 713205, India",
       startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
       endDate: bookingType?.endDate || "",
@@ -436,134 +443,127 @@ const customerName = user?.name || "Guest";
       responsibilities: []
     };
 
+    // 2. Create Razorpay order
+    let orderId: string;
     try {
-      const orderResponse = await createRazorpayOrder(totalAmount);
-      await handlePaymentSuccess(orderResponse.data.orderId, bookingData);
+      const orderResponse = await axios.post(
+        "https://utils-ndt3.onrender.com/create-order",
+        { 
+          amount: totalAmount * 100,
+          currency: "INR",
+          receipt: `receipt_${Date.now()}`,
+          payment_capture: 1
+        },
+        { 
+          headers: { "Content-Type": "application/json" },
+          timeout: 8000
+        }
+      );
+      orderId = orderResponse.data.orderId;
     } catch (backendError) {
       console.warn("Backend order creation failed, falling back to client-side", backendError);
-      await createClientSideOrder(totalAmount, bookingData);
+      orderId = `fallback_${Date.now()}`;
     }
 
+    // 3. Initialize Razorpay payment
+    const options = {
+      key: "rzp_test_lTdgjtSRlEwreA",
+      amount: totalAmount * 100,
+      currency: "INR",
+      name: "Serveaso",
+      description: "Nanny Services Booking",
+      order_id: orderId,
+      handler: async (razorpayResponse: any) => {
+        try {
+          // 4. Save booking to backend
+          const bookingResponse = await axiosInstance.post(
+            "/api/serviceproviders/engagement/add",
+            {
+              ...bookingData,
+              paymentReference: razorpayResponse.razorpay_order_id || orderId
+            },
+            { headers: { "Content-Type": "application/json" } }
+          );
+
+          if (bookingResponse.status === 201) {
+            // 5. Calculate payment details (if needed)
+            try {
+              await axiosInstance.post(
+                "/api/payments/calculate-payment",
+                null,
+                {
+                  params: {
+                    customerId: customerId,
+                    baseAmount: totalAmount,
+                    startDate_P: bookingData.startDate,
+                    endDate_P: bookingData.endDate,
+                    paymentMode: bookingData.paymentMode,
+                    serviceType: bookingData.serviceType,
+                  }
+                }
+              );
+            } catch (calcError) {
+              console.warn("Payment calculation failed", calcError);
+            }
+
+            // 6. Clear cart
+            dispatch(removeFromCart({ type: 'meal' }));
+            dispatch(removeFromCart({ type: 'maid' }));
+            dispatch(removeFromCart({ type: 'nanny' }));
+
+            // 7. Send notification
+            try {
+              await fetch("http://localhost:4000/send-notification", {
+                method: "POST",
+                body: JSON.stringify({
+                  title: "Hello from ServEaso!",
+                  body: `Your booking for ${bookingData.engagements} has been successfully confirmed!`,
+                  url: "http://localhost:3000",
+                }),
+                headers: { "Content-Type": "application/json" },
+              });
+            } catch (notificationError) {
+              console.error("Error sending notification:", notificationError);
+            }
+
+            // 8. Update UI and close dialogs
+            if (sendDataToParent) sendDataToParent(BOOKINGS);
+            handleClose();
+            setCartDialogOpen(false);
+          }
+        } catch (bookingError) {
+          console.error("Error saving booking:", bookingError);
+          setError("Payment succeeded but booking failed. Please contact support.");
+          handleClose();
+          setCartDialogOpen(false);
+        }
+      },
+      prefill: {
+        name: customerName,
+        email: user?.email || "",
+        contact: user?.mobileNo || "",
+      },
+      theme: {
+        color: "#3399cc",
+      },
+      modal: {
+        ondismiss: () => {
+          setError("Payment closed by user");
+        }
+      }
+    };
+
+    // 9. Open Razorpay payment dialog
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+
   } catch (err: any) {
-    handlePaymentError(err);
+    console.error("Checkout error:", err);
+    setError(err.response?.data?.message || err.message || "Payment failed. Please try again later.");
   } finally {
     setLoading(false);
   }
 };
-  
-
-  const createRazorpayOrder = async (amount: number) => {
-    return await axios.post(
-      "https://utils-ndt3.onrender.com/create-order",
-      { 
-        amount: amount * 100,
-        currency: "INR",
-        receipt: `receipt_${Date.now()}`,
-        payment_capture: 1
-      },
-      { 
-        headers: { "Content-Type": "application/json" },
-        timeout: 8000
-      }
-    );
-  };
-
-  const createClientSideOrder = async (amount: number, bookingData: BookingDetails) => {
-    return new Promise((resolve, reject) => {
-      if (typeof window.Razorpay === "undefined") {
-        throw new Error("Razorpay SDK not loaded");
-      }
-
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount: amount * 100,
-        currency: "INR",
-        name: "Serveaso",
-        description: "Nanny Services Booking",
-        handler: async (response: any) => {
-          try {
-            await handlePaymentSuccess(response.razorpay_order_id, bookingData);
-            resolve(response);
-          } catch (err) {
-            reject(err);
-          }
-        },
-        prefill: {
-          name: customerName || "",
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-        modal: {
-          ondismiss: () => {
-            reject(new Error("Payment closed by user"));
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    });
-  };
-
-  const handlePaymentSuccess = async (orderId: string, bookingData: BookingDetails) => {
-    try {
-      const bookingResponse = await axiosInstance.post(
-        "/api/serviceproviders/engagement/add",
-        {
-          ...bookingData,
-          paymentReference: orderId
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      if (bookingResponse.status === 201) {
-          dispatch(removeFromCart({ type: 'meal' }));
-      dispatch(removeFromCart({ type: 'maid' }));
-      dispatch(removeFromCart({ type: 'nanny' }));
-
-        try {
-          const notifyResponse = await fetch(
-            "http://localhost:4000/send-notification",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                title: "Hello from ServEaso!",
-                body: `Your booking for ${bookingData.engagements} has been successfully confirmed!`,
-                url: "http://localhost:3000",
-              }),
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-
-          if (notifyResponse.ok) {
-            console.log("Notification triggered!");
-          }
-        } catch (error) {
-          console.error("Error sending notification:", error);
-        }
-
-        if (sendDataToParent) sendDataToParent(BOOKINGS);
-        handleClose();
-         setCartDialogOpen(false);
-      }
-    } catch (err) {
-      console.error("Error saving booking:", err);
-      handleClose();
-       setCartDialogOpen(false); // Close cart dialog on error too
-      throw new Error("Payment succeeded but booking failed. Please contact support.");
-    }
-  };
-
-  const handlePaymentError = (err: any) => {
-    console.error("Payment error:", err);
-    const errorMessage = err.response?.data?.message || 
-                        err.message || 
-                        "Payment failed. Please try again later.";
-    setError(errorMessage);
-  };
 
   const getSelectedServicesDescription = () => {
     const selectedPackages = activeTab === 'baby' 

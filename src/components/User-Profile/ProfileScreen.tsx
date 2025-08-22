@@ -1,8 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './ProfileScreen.css';
 import { Button } from "../Button/button";
+import { useAuth0 } from '@auth0/auth0-react';
 
 const ProfileScreen = () => {
+  const { user: auth0User, isAuthenticated } = useAuth0();
+  
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+
+  useEffect(() => {
+    if (isAuthenticated && auth0User) {
+      const name = auth0User.name || null;
+      const email = auth0User.email || '';
+
+      // Extract first and last name from the full name
+      if (name) {
+        const nameParts = name.split(' ');
+        setFirstName(nameParts[0] || '');
+        setLastName(nameParts.slice(1).join(' ') || '');
+      }
+
+      // Get service provider ID from custom claims
+      const id =
+        auth0User.serviceProviderId ||
+        auth0User["https://yourdomain.com/serviceProviderId"] || 
+        auth0User.customerid||
+        null;
+
+      setUserName(name);
+      setUserId(id ? Number(id) : null);
+
+      console.log("User data:", auth0User);
+      console.log("Name:", name);
+      console.log("Email:", email);
+      console.log("ID:", id);
+    }
+  }, [isAuthenticated, auth0User]);
+
   return (
     <div className="container">
       {/* Header with Background Image */}
@@ -11,12 +48,12 @@ const ProfileScreen = () => {
           <div className="header-content">
             <div className="header-profile-section">
               <img
-                src="https://demos.creative-tim.com/argon-dashboard/assets-old/img/theme/team-4.jpg"
+                src={"https://demos.creative-tim.com/argon-dashboard/assets-old/img/theme/team-4.jpg"}
                 className="header-profile-image"
                 alt="Profile"
               />
               <div>
-                <h1 className="header-title">Hello Jesse</h1>
+                <h1 className="header-title">Hello {userName || "User"}</h1>
               </div>
             </div>
             <button className="edit-button">Edit profile</button>
@@ -40,7 +77,7 @@ const ProfileScreen = () => {
                     <label className="input-label">Username</label>
                     <input
                       className="input"
-                      value="lucky.jesse"
+                      value={auth0User?.nickname || userName || "User"}
                       readOnly
                     />
                   </div>
@@ -48,7 +85,7 @@ const ProfileScreen = () => {
                     <label className="input-label">Email address</label>
                     <input
                       className="input"
-                      value="jesse@example.com"
+                      value={auth0User?.email || "No email available"}
                       type="email"
                       readOnly
                     />
@@ -59,7 +96,7 @@ const ProfileScreen = () => {
                     <label className="input-label">First name</label>
                     <input
                       className="input"
-                      value="Lucky"
+                      value={firstName}
                       readOnly
                     />
                   </div>
@@ -67,11 +104,20 @@ const ProfileScreen = () => {
                     <label className="input-label">Last name</label>
                     <input
                       className="input"
-                      value="Jesse"
+                      value={lastName}
+                      readOnly
+                    />
+                  </div>
+                   <div className="form-group">
+                    <label className="input-label">User ID</label>
+                    <input
+                      className="input"
+                      value={auth0User?.serviceProviderId ||auth0User?.customerid|| "N/A"}
                       readOnly
                     />
                   </div>
                 </div>
+            
                 <div className="divider" />
                 
                 <h3 className="section-title">CONTACT INFORMATION</h3>
@@ -130,10 +176,10 @@ const ProfileScreen = () => {
                   </div>
                 </div>
                 <div className="form-actions-bottom">
-  <div className="submit-button-container">
-    <Button className="submit-button">Submit</Button>
-  </div>
-</div>
+                  <div className="submit-button-container">
+                    <Button className="submit-button">Submit</Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

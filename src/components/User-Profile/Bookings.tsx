@@ -41,6 +41,15 @@ interface Booking {
   mealType: string;
   modifiedDate: string;
   responsibilities: string;
+  customerHolidays?: Array<{
+    id: number;
+    customerId: number;
+    applyHolidayDate: string;
+    startDate: string;
+    endDate: string;
+    serviceType: string;
+    active: boolean;
+  }>;
 }
 
 const getServiceIcon = (type: string) => {
@@ -224,6 +233,7 @@ const mapBookingData = (data: any[]) => {
           mealType: item.mealType,
           modifiedDate:item.modifiedDate,
           responsibilities: item.responsibilities,
+          customerHolidays: item.customerHolidays || [],
         };
       })
     : [];
@@ -388,7 +398,7 @@ const handleCancelBooking = async (booking: Booking) => {
   setOpenSnackbar(true);
 };
 
-
+const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
 
 const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
   if (!selectedBookingForLeave || !customerId) {
@@ -396,22 +406,45 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType
   }
 
   try {
+    setIsRefreshing(true);
+    
     await axiosInstance.post(
       '/api/customer/add-customer-holiday',
       {
         customerId: customerId,
         startDate: startDate,
         endDate: endDate,
-       serviceType: serviceType.toUpperCase()
+        serviceType: serviceType.toUpperCase()
       }
     );
+
+    // Add this booking to the vacations list
+    setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
+
+    // Refresh data
+    if (customerId !== null) {
+      await axiosInstance
+        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+        .then((response) => {
+          const { past = [], current = [], future = [] } = response.data || {};
+          setPastBookings(mapBookingData(past));
+          setCurrentBookings(mapBookingData(current));
+          setFutureBookings(mapBookingData(future));
+        });
+    }
+
     setOpenSnackbar(true);
+    setHolidayDialogOpen(false);
   } catch (error) {
     console.error("Error applying leave:", error);
     throw error;
+  } finally {
+    setIsRefreshing(false);
   }
 };
-
+const hasVacation = (bookingId: number) => {
+  return bookingsWithVacation.includes(bookingId);
+};
 const handleApplyLeaveClick = (booking: Booking) => {
   setSelectedBookingForLeave(booking);
   setHolidayDialogOpen(true);
@@ -534,7 +567,7 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
         {getBookingTypeBadge(booking.bookingType)}
         {getStatusBadge(booking.taskStatus)}
       </div>
- <p className="text-xs text-muted-foreground pt-2">
+<p className="text-xs text-muted-foreground pt-2">
   Booking Date:{" "}
   {new Date(booking.bookingDate).toLocaleDateString("en-US", {
     month: "short",
@@ -553,6 +586,29 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
       })}
     </>
   )}
+  {/* Add holiday date display */}
+  {/* {booking.customerHolidays && booking.customerHolidays.length > 0 && (
+    <>
+      <br />
+      Holiday Applied:{" "}
+      {new Date(booking.customerHolidays[0].applyHolidayDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })}
+      <br />
+      Holiday Period:{" "}
+      {new Date(booking.customerHolidays[0].startDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+      })} -{" "}
+      {new Date(booking.customerHolidays[0].endDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })}
+    </>
+  )} */}
 </p>
 
     </div>
@@ -618,14 +674,23 @@ const filteredPastBookings = filterBookings(pastBookings, searchTerm);
         Message
       </Button>
       {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex-1 min-w-0 justify-center"
-          onClick={() => handleApplyLeaveClick(booking)}
-        >
-         Add Vacation 
-        </Button>
+     <Button 
+  variant="outline" 
+  size="sm" 
+  className="flex-1 min-w-0 justify-center"
+  onClick={() => handleApplyLeaveClick(booking)}
+  disabled={
+    // Disable if:
+    // 1. Booking has active holidays
+    (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) ||
+    // 2. Currently refreshing
+    isRefreshing
+  }
+>
+  {booking.customerHolidays && booking.customerHolidays.some(h => h.active)
+    ? "Vacation Added" 
+    : "Add Vacation"}
+</Button>
       )}
       <Button 
         variant="destructive" 
