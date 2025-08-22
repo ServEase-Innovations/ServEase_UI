@@ -1,182 +1,186 @@
-/* eslint-disable */
-import { Search, MessageSquare, Send } from "lucide-react";
-import { Badge } from "src/components/Common/Badge";
-import { Button } from "src/components/Common/button";
-import { Card, CardContent, CardHeader, CardTitle } from "src/components/Common/Card";
-import { Input } from "src/components/Common/input";
+import React, { useEffect, useState, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import { DefaultEventsMap } from "@socket.io/component-emitter";
 
-const chats = [
-  { 
-    id: 1, 
-    customer: "John Smith", 
-    provider: "Clean Masters", 
-    lastMessage: "When can you start the cleaning?", 
-    timestamp: "2 min ago", 
-    status: "Active",
-    unread: 2
-  },
-  { 
-    id: 2, 
-    customer: "Sarah Johnson", 
-    provider: "Fix It Pro", 
-    lastMessage: "Thank you for the quick service!", 
-    timestamp: "1 hour ago", 
-    status: "Resolved",
-    unread: 0
-  },
-  { 
-    id: 3, 
-    customer: "Mike Wilson", 
-    provider: "Garden Experts", 
-    lastMessage: "Can you provide a quote for weekly maintenance?", 
-    timestamp: "3 hours ago", 
-    status: "Active",
-    unread: 1
-  },
-  { 
-    id: 4, 
-    customer: "Emily Davis", 
-    provider: "Electric Solutions", 
-    lastMessage: "The installation is complete", 
-    timestamp: "1 day ago", 
-    status: "Resolved",
-    unread: 0
-  },
-];
+type ChatMessage = {
+  createdAt: string;
+  sessionId: string;
+  senderId: number;
+  senderRole: "User" | "Admin" | "SuperAdmin";
+  senderName: string;
+  message: string;
+  type: "text" | "image" | "file";
+};
 
-const Chats = () => {
+const Chat: React.FC = () => {
+  const userId = 2;
+  const senderRole: "User" | "Admin" = "Admin";
+  const senderName = "RonitMaity";
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [chatList, setChatList] = useState<any[]>([]);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+
+  const socketRef = useRef<Socket<DefaultEventsMap, DefaultEventsMap> | null>(null);
+  const chatStartedRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Connect socket once on mount
+  useEffect(() => {
+    const socket = io("http://localhost:5000", { transports: ["websocket"] });
+    socketRef.current = socket;
+
+    // Join admin room
+    socket.emit("joinAdminRoom", { userName: "RonitMaity", userId: "admin-001" });
+
+    // Update chat list
+    socket.on("updateChatList", (sessions) => {
+      setChatList(sessions);
+    });
+
+    // New chat alert
+    socket.on("newChatAlert", (data) => {
+      if (window.confirm(`📢 New chat from ${data.from}: "${data.preview}"`)) {
+        // Add chat to chat list if not already present
+        setChatList((prev) => {
+          const exists = prev.some((c) => c.sessionId === data.sessionId);
+          if (exists) return prev;
+          return [
+            ...prev,
+            {
+              sessionId: data.sessionId,
+              userName: data.from,
+              lastMessage: data.preview,
+            },
+          ];
+        });
+    
+        // Auto-open the chat
+        openChat(data.sessionId);
+      }
+    });
+
+    // Receive messages for selected session
+    socket.on("receiveMessage", (message: ChatMessage) => {
+      if (message.sessionId === selectedSession) {
+        setMessages((prev) => {
+          const isDuplicate = prev.some(
+            (m) =>
+              m.createdAt === message.createdAt &&
+              m.senderId === message.senderId &&
+              m.message === message.message
+          );
+          return isDuplicate ? prev : [...prev, message];
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [selectedSession]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Open chat & join its session
+  const openChat = React.useCallback((sessionId: string) => {
+    setSelectedSession(sessionId);
+    setMessages([]);
+    
+    // Only start chat if not already in this session
+    if (!chatStartedRef.current) {
+      socketRef.current?.emit("startChat", {
+        sessionId,
+        fromId: userId,
+        fromName: senderName,
+      });
+      chatStartedRef.current = true;
+    }
+  
+    socketRef.current?.emit("joinSession", {
+      sessionId,
+      userName: senderName,
+      userId: "admin-001",
+      role: "admin",
+    });
+  }, []);
+
+  // Send a message
+  const sendMessage = () => {
+    if (!input.trim() || !selectedSession) return;
+  
+    const newMessage: ChatMessage = {
+      sessionId: selectedSession,
+      senderId: userId,
+      senderRole,
+      senderName,
+      message: input.trim(),
+      type: "text",
+      createdAt: new Date().toISOString(),
+    };
+  
+    socketRef.current?.emit("sendMessage", newMessage);
+    setMessages((prev) => [...prev, newMessage]);
+    setInput("");
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Chats</h1>
-          <p className="text-muted-foreground">Monitor customer and provider communications</p>
-        </div>
+    <div style={{ display: "flex", height: "100vh" }}>
+      {/* Left Panel */}
+      <div style={{ width: "300px", borderRight: "1px solid #ccc", overflowY: "auto" }}>
+        {chatList.map((chat) => (
+          <div
+            key={chat.sessionId}
+            onClick={() => openChat(chat.sessionId)}
+            style={{
+              padding: "10px",
+              cursor: "pointer",
+              background: selectedSession === chat.sessionId ? "#f0f0f0" : "white",
+            }}
+          >
+            <b>{chat.userName}</b>
+            <p>{chat.lastMessage}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-foreground">248</div>
-            <p className="text-sm text-muted-foreground">Total Conversations</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-green-600">89</div>
-            <p className="text-sm text-muted-foreground">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-blue-600">15</div>
-            <p className="text-sm text-muted-foreground">Unread Messages</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-orange-600">94%</div>
-            <p className="text-sm text-muted-foreground">Response Rate</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chat List */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>Conversations</span>
-              </CardTitle>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input placeholder="Search chats..." className="pl-10" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-0">
-              {chats.map((chat) => (
-                <div 
-                  key={chat.id} 
-                  className="p-4 border-b border-border hover:bg-accent/50 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-sm">{chat.customer}</span>
-                        <span className="text-xs text-muted-foreground">↔</span>
-                        <span className="text-sm text-muted-foreground">{chat.provider}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {chat.lastMessage}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {chat.timestamp}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <Badge variant={chat.status === "Active" ? "default" : "secondary"} className="text-xs">
-                        {chat.status}
-                      </Badge>
-                      {chat.unread > 0 && (
-                        <div className="bg-primary text-primary-foreground rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                          {chat.unread}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+      {/* Right Panel */}
+      <div style={{ flex: 1, padding: "10px", display: "flex", flexDirection: "column" }}>
+        {selectedSession ? (
+          <>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {messages.map((m, i) => (
+                <p key={i}>
+                  <b>{m.senderName}:</b> {m.message}
+                </p>
               ))}
+              <div ref={messagesEndRef} />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Chat View */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>John Smith ↔ Clean Masters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 h-96 overflow-y-auto mb-4">
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Hi, I need a house cleaning service for this weekend.</p>
-                  <p className="text-xs text-muted-foreground mt-1">John • 10:30 AM</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-primary text-primary-foreground p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Hello! We'd be happy to help. What's the size of your home?</p>
-                  <p className="text-xs opacity-75 mt-1">Clean Masters • 10:35 AM</p>
-                </div>
-              </div>
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">It's a 3-bedroom house, about 1,500 sq ft.</p>
-                  <p className="text-xs text-muted-foreground mt-1">John • 10:36 AM</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-primary text-primary-foreground p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Perfect! When can you start the cleaning?</p>
-                  <p className="text-xs opacity-75 mt-1">Clean Masters • 10:40 AM</p>
-                </div>
-              </div>
+            <div style={{ display: "flex", borderTop: "1px solid #ccc" }}>
+              <input
+                style={{ flex: 1, padding: "10px", border: "none", outline: "none" }}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              />
+              <button
+                style={{ padding: "10px 15px", background: "#4CAF50", color: "white", border: "none" }}
+                onClick={sendMessage}
+              >
+                Send
+              </button>
             </div>
-            <div className="flex space-x-2">
-              <Input placeholder="Type a message..." className="flex-1" />
-              <Button size="icon">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </>
+        ) : (
+          <p>Select a chat to start messaging</p>
+        )}
       </div>
     </div>
   );
 };
 
-export default Chats;
+export default Chat;
