@@ -15,6 +15,8 @@ import { Alert, Snackbar } from '@mui/material';
 import ModifyBookingDialog from './ModifyBookingDialog';
 import dayjs from 'dayjs';
 import { ClipLoader } from 'react-spinners';
+import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
+import ConfirmationDialog from './ConfirmationDialog';
 
 
 interface Booking {
@@ -67,104 +69,121 @@ const getServiceIcon = (type: string) => {
 };
 
 
-const getStatusBadge = (status: string) => {
-  console.log("Status:", status);
-  switch (status) {
-    case 'ACTIVE':
-      return <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-        <AlertCircle className="h-3 w-3 mr-1" />
-        Active
-      </Badge>;
-    case 'COMPLETED':
-      return <Badge variant="secondary" className="bg-accent/10 text-accent-foreground border-accent/20">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Completed
-      </Badge>;
-    case 'CANCELLED':
-      return <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20">
-        <XCircle className="h-3 w-3 mr-1" />
-        Cancelled
-      </Badge>;
-    case 'IN_PROGRESS':
-      return <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground border-secondary">
-        <Clock className="h-3 w-3 mr-1" />
-        In Progress
-      </Badge>;
-      case 'NOT_STARTED':
-        return <Badge variant="secondary" className="bg-secondary/50 text-secondary-foreground border-secondary">
-          <Clock className="h-3 w-3 mr-1" />
-          NOT_STARTED
-        </Badge>;
-    default:
-      return null;
-  }
-};
-const getBookingTypeBadge = (type: string) => {
-  switch (type) {
-    case 'ON_DEMAND':
-      return <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-        On Demand
-      </Badge>;
-    case 'MONTHLY':
-      return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-        Monthly
-      </Badge>;
-    case 'SHORT_TERM':
-      return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-        Short Term
-      </Badge>;
-    default:
-      return <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
-        {type}
-      </Badge>;
-  }
-};
-const getServiceTitle = (type: string) => {
-  switch (type) {
-    case 'cook':
-      return 'Home Cook';
-    case 'maid':
-      return 'Maid Service';
-    case 'nanny':
-      return 'Caregiver Service';
-    default:
-      return 'Home Service';
-  }
-};
-
 const Booking: React.FC = () => {
+   // STATE VARIABLES (grouped by category)
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
-  const [openDialog, setOpenDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [timeSlots, setTimeSlots] = useState<string[]>([]);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
-  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
-  const { user: auth0User, isAuthenticated } = useAuth0();
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
+  const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
+  
+  // Dialog states
+  const [openDialog, setOpenDialog] = useState(false);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // const generateTimeSlots = () => {
-  //   const slots = [];
-  //   for (let i = 6; i <= 20; i++) {
-  //     slots.push(`{i.toString().padStart(2, '0')}:00`);
-  //   }
-  //   return slots;
-  // };
+  const [actionLoading, setActionLoading] = useState(false);
+  
+  // Other states
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
-useEffect(() => {
-  if (isAuthenticated && auth0User) {
-    setCustomerId(auth0User.customerid); // Use this directly
-    console.log("auth0User.customerid:",auth0User.customerid)
-  }
-}, [isAuthenticated, auth0User]);
-  // Fetch available time slots for a service provider
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    open: boolean;
+    type: 'cancel' | 'modify' | 'vacation' | null;
+    booking: Booking | null;
+    message: string;
+    title: string;
+    severity: 'info' | 'warning' | 'error' | 'success';
+  }>({
+    open: false,
+    type: null,
+    booking: null,
+    message: '',
+    title: '',
+    severity: 'info'
+  });
+
+  // AUTH & INITIALIZATION
+  const { user: auth0User, isAuthenticated } = useAuth0();
+
+  useEffect(() => {
+    if (isAuthenticated && auth0User) {
+      setCustomerId(auth0User.customerid);
+      console.log("auth0User.customerid:", auth0User.customerid);
+    }
+  }, [isAuthenticated, auth0User]);
+
+  // DATA FETCHING FUNCTIONS
+  useEffect(() => {
+    if (customerId !== null && customerId !== undefined) {
+      setIsLoading(true);
+      axiosInstance
+        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+        .then((response) => {
+          const { past = [], current = [], future = [] } = response.data || {};
+          setPastBookings(mapBookingData(past));
+          setCurrentBookings(mapBookingData(current));
+          setFutureBookings(mapBookingData(future));
+        })
+        .catch((error) => {
+          console.error("Error fetching booking details:", error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
+    }
+  }, [customerId]);
+
+  // DATA MAPPING & UTILITY FUNCTIONS
+  const mapBookingData = (data: any[]) => {
+    return Array.isArray(data)
+      ? data.map((item) => {
+          return {
+            id: item.id,
+            customerId: item.customerId,
+            serviceProviderId: item.serviceProviderId,
+            name: item.customerName,
+            timeSlot: item.timeslot,
+            date: item.startDate,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            bookingType: item.bookingType,
+            monthlyAmount: item.monthlyAmount,
+            paymentMode: item.paymentMode,
+            address: item.address || 'No address specified',
+            customerName: item.customerName,
+            serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
+            taskStatus: item.taskStatus,
+            engagements: item.engagements,
+            bookingDate: item.bookingDate,
+            serviceType: item.serviceType?.toLowerCase() || 'other',
+            childAge: item.childAge,
+            experience: item.experience,
+            noOfPersons: item.noOfPersons,
+            mealType: item.mealType,
+            modifiedDate: item.modifiedDate,
+            responsibilities: item.responsibilities,
+            customerHolidays: item.customerHolidays || [],
+          };
+        })
+      : [];
+  };
+
   const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
     try {
       const response = await axiosInstance.get(
@@ -179,7 +198,6 @@ useEffect(() => {
       const fullTimeSlots: string[] = Array.from({ length: 15 }, (_, i) =>
         `{(i + 6).toString().padStart(2, "0")}:00`
       );
-      
 
       const processedSlots = engagementData.map(entry => {
         const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
@@ -204,661 +222,674 @@ useEffect(() => {
       return [];
     }
   };
-// Define this function outside your component or at the top of your component
-const mapBookingData = (data: any[]) => {
-  return Array.isArray(data)
-    ? data.map((item) => {
-        return {
-          id: item.id,
-          customerId: item.customerId,
-          serviceProviderId: item.serviceProviderId,
-          name: item.customerName,
-          timeSlot: item.timeslot,
-          date: item.startDate,
-          startDate: item.startDate,
-          endDate: item.endDate,
-          bookingType: item.bookingType,
-          monthlyAmount: item.monthlyAmount,
-          paymentMode: item.paymentMode,
-          address: item.address || 'No address specified',
-          customerName: item.customerName,
-          serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
-          taskStatus: item.taskStatus,
-          engagements: item.engagements,
-          bookingDate: item.bookingDate,
-          serviceType: item.serviceType?.toLowerCase() || 'other',
-          childAge: item.childAge,
-          experience: item.experience,
-          noOfPersons: item.noOfPersons,
-          mealType: item.mealType,
-          modifiedDate:item.modifiedDate,
-          responsibilities: item.responsibilities,
-          customerHolidays: item.customerHolidays || [],
-        };
-      })
-    : [];
-};
-const [isLoading, setIsLoading] = useState(true); // Initialize as true
-useEffect(() => {
-  if (customerId !== null && customerId !== undefined) {
-    setIsLoading(true);
-    axiosInstance
-      .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-      .then((response) => {
-        const { past = [], current = [], future = [] } = response.data || {};
-        setPastBookings(mapBookingData(past));
-        setCurrentBookings(mapBookingData(current));
-        setFutureBookings(mapBookingData(future));
-      })
-      .catch((error) => {
-        console.error("Error fetching booking details:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  } else {
-    setIsLoading(false); // Also set loading to false if no customerId
-  }
-}, [customerId]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setSelectedTab(newValue);
-  };
-  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
-
-
-   const handleModifyBooking = (booking: Booking) => {
-  setSelectedBooking(booking);
-  setModifyDialogOpen(true);
-};
-  const handleSaveModifiedBooking = async (updatedData: {
-  startDate: string;
-  endDate: string;
-  timeSlot: string;
-}) => {
-  if (!selectedBooking) return;
-
-  const serviceTypeUpperCase = selectedBooking.serviceType.toUpperCase();
-
-  // Create base payload following the same structure as cancelBooking
-  let updatePayload: any = {
-    // id: selectedBooking.id,
-    customerId: customerId,
-    startDate: updatedData.startDate,
-    endDate: updatedData.endDate,
-    timeslot: updatedData.timeSlot,
-     modifiedBy :"CUSTOMER",
+  // VALIDATION FUNCTIONS
+  const isModificationAllowed = (startDate: string) => {
+    const today = dayjs();
+    const bookingStartDate = dayjs(startDate);
+    const daysDifference = bookingStartDate.diff(today, 'day');
+    return daysDifference >= 2;
   };
 
-  try {
-      setIsRefreshing(true);
-    const response = await axiosInstance.put(
-      `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
-      updatePayload
-    );
-
-    // Update state with modified booking data
-    setCurrentBookings((prev) =>
-      prev.map((b) =>
-        b.id === selectedBooking.id
-          ? { 
-              ...b, 
-              startDate: updatedData.startDate,
-              endDate: updatedData.endDate,
-              timeSlot: updatedData.timeSlot 
-            }
-          : b
-      )
-    );
-    setFutureBookings((prev) =>
-      prev.map((b) =>
-        b.id === selectedBooking.id
-          ? { 
-              ...b, 
-              startDate: updatedData.startDate,
-              endDate: updatedData.endDate,
-              timeSlot: updatedData.timeSlot 
-            }
-          : b
-      )
-    );
- setModifiedBookings(prev => [...prev, selectedBooking.id]);
-    setModifyDialogOpen(false);
-    setOpenSnackbar(true);
-     // Refresh data
-    if (customerId !== null) {
-      await axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-        .then((response) => {
-          const { past = [], current = [], future = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(current));
-          setFutureBookings(mapBookingData(future));
-        });
-    }
-  } catch (error: any) {
-    console.error("Error updating booking:", error);
-    if (error.response) {
-      console.error("Full error response:", error.response.data);
-    }
-  }
-};
-const isBookingModified = (bookingId: number) => {
-  return modifiedBookings.includes(bookingId);
-};
-const isModificationAllowed = (startDate: string) => {
-  const today = dayjs();
-  const bookingStartDate = dayjs(startDate);
-  const daysDifference = bookingStartDate.diff(today, 'day');
-  return daysDifference >= 2; // Only allow if at least 2 days before start
-}; 
-
-const handleCancelBooking = async (booking: Booking) => {
-  const updatedStatus = "CANCELLED";
-  const serviceTypeUpperCase = booking.serviceType.toUpperCase();
-
-  // Create base payload
-  let updatePayload: any = {
-    // id: booking.id,
-    customerId: customerId,
-    taskStatus: updatedStatus,
-    modifiedBy:"CUSTOMER"
+  const isBookingModified = (bookingId: number) => {
+    return modifiedBookings.includes(bookingId);
   };
 
-  try {
+  const hasVacation = (bookingId: number) => {
+    return bookingsWithVacation.includes(bookingId);
+  };
+
+  // FILTER & SORT FUNCTIONS
+  const filterBookings = (bookings: Booking[], term: string) => {
+    if (!term) return bookings;
     
-    const response = await axiosInstance.put(
-      `/api/serviceproviders/update/engagement/${booking.id}`,
-      updatePayload
+    return bookings.filter(booking => 
+      getServiceTitle(booking?.serviceType).toLowerCase().includes(term?.toLowerCase()) ||
+      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
     );
+  };
 
-   
+  const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
+    const statusOrder: Record<string, number> = {
+      'ACTIVE': 1,
+      'IN_PROGRESS': 2,
+      'NOT_STARTED': 3,
+      'COMPLETED': 4,
+      'CANCELLED': 5
+    };
 
-    setCurrentBookings((prev) =>
-      prev.map((b) =>
-        b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-      )
-    );
-    setFutureBookings((prev) =>
-      prev.map((b) =>
-        b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-      )
-    );
-  } catch (error: any) {
-    console.error("Error updating task status:", error);
-    if (error.response) {
-      console.error("Full error response:", error.response.data);
-    } else if (error.message) {
-      console.error("Error message:", error.message);
-    } else {
-      console.error("Unknown error occurred");
-    }
-  }
+    return [...bookings].sort((a, b) => {
+      const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
+      if (statusComparison !== 0) return statusComparison;
+      return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+    });
+  };
 
-  setOpenSnackbar(true);
-};
-
-const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
-
-const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
-  if (!selectedBookingForLeave || !customerId) {
-    throw new Error("Missing required information for leave application");
-  }
-
-  try {
-    setIsRefreshing(true);
+  const getRecentPastBookings = (bookings: Booking[]) => {
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     
-    await axiosInstance.post(
-      '/api/customer/add-customer-holiday',
-      {
-        customerId: customerId,
-        startDate: startDate,
-        endDate: endDate,
-        serviceType: serviceType.toUpperCase()
+    return bookings.filter(booking => {
+      const bookingDate = new Date(booking.date);
+      return bookingDate >= twoMonthsAgo;
+    });
+  };
+
+  // ACTION HANDLERS - CONFIRMATION DIALOG
+  const showConfirmation = (
+    type: 'cancel' | 'modify' | 'vacation',
+    booking: Booking,
+    title: string,
+    message: string,
+    severity: 'info' | 'warning' | 'error' | 'success' = 'info'
+  ) => {
+    setConfirmationDialog({
+      open: true,
+      type,
+      booking,
+      message,
+      title,
+      severity
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    const { type, booking } = confirmationDialog;
+    if (!booking) return;
+
+    setActionLoading(true);
+
+    try {
+      switch (type) {
+        case 'cancel':
+          await handleCancelBooking(booking);
+          break;
+        case 'modify':
+          setModifyDialogOpen(true);
+          setSelectedBooking(booking);
+          break;
+        case 'vacation':
+          setSelectedBookingForLeave(booking);
+          setHolidayDialogOpen(true);
+          break;
       }
-    );
-
-    // Add this booking to the vacations list
-    setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
-
-    // Refresh data
-    if (customerId !== null) {
-      await axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-        .then((response) => {
-          const { past = [], current = [], future = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(current));
-          setFutureBookings(mapBookingData(future));
-        });
+    } catch (error) {
+      console.error("Error performing action:", error);
+    } finally {
+      setActionLoading(false);
+      setConfirmationDialog(prev => ({ ...prev, open: false }));
     }
+  };
 
-    setOpenSnackbar(true);
-    setHolidayDialogOpen(false);
-  } catch (error) {
-    console.error("Error applying leave:", error);
-    throw error;
-  } finally {
-    setIsRefreshing(false);
-  }
-};
-const hasVacation = (bookingId: number) => {
-  return bookingsWithVacation.includes(bookingId);
-};
-const handleApplyLeaveClick = (booking: Booking) => {
+  // ACTION HANDLERS - BUTTON CLICKS
+  const handleCancelClick = (booking: Booking) => {
+    showConfirmation(
+      'cancel',
+      booking,
+      'Cancel Booking',
+      `Are you sure you want to cancel your ${getServiceTitle(booking.serviceType)} booking? This action cannot be undone.`,
+      'warning'
+    );
+  };
+
+  const handleModifyClick = (booking: Booking) => {
+    if (!isModificationAllowed(booking.startDate)) {
+      showConfirmation(
+        'modify',
+        booking,
+        'Modification Not Recommended',
+        'Modifying this booking less than 2 days before the start date may incur additional charges. Do you want to proceed?',
+        'warning'
+      );
+    } else {
+      setSelectedBooking(booking);
+      setModifyDialogOpen(true);
+    }
+  };
+
+ const handleVacationClick = (booking: Booking) => {
+  // if (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) {
+  //   return;
+  // }
+
+  // Just open the holiday dialog directly
   setSelectedBookingForLeave(booking);
   setHolidayDialogOpen(true);
 };
-const [showAllHistory, setShowAllHistory] = useState(false);
-const getRecentPastBookings = (bookings: Booking[]) => {
-  const twoMonthsAgo = new Date();
-  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-  
-  return bookings.filter(booking => {
-    const bookingDate = new Date(booking.date);
-    return bookingDate >= twoMonthsAgo;
-  });
-};
-const filterBookings = (bookings: Booking[], term: string) => {
-  if (!term) return bookings;
-  
-  return bookings.filter(booking => 
-    getServiceTitle(booking?.serviceType).toLowerCase().includes(term?.toLowerCase()) ||
-    booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
-    booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
-    booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
-  );
-};
 
-const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
-  const statusOrder: Record<string, number> = {
-    'ACTIVE': 1,
-    'IN_PROGRESS': 2,
-    'NOT_STARTED': 3,
-    'COMPLETED': 4,
-    'CANCELLED': 5
+  const handleApplyLeaveClick = (booking: Booking) => {
+    setSelectedBookingForLeave(booking);
+    setHolidayDialogOpen(true);
   };
 
-  return [...bookings].sort((a, b) => {
-    const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
-    if (statusComparison !== 0) return statusComparison;
-    return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
-  });
-};
- const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
-  const filteredUpcomingBookings = filterBookings(upcomingBookings, searchTerm);
-const filteredPastBookings = filterBookings(pastBookings, searchTerm); 
- return (
-      <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
-        {/* Header */}  
-  <div 
-  className="text-primary-foreground py-8" 
-  style={{ background: 'linear-gradient(to right, rgba(23, 43, 77, 0.8), rgba(26, 23, 77, 0.8))' }}
->
-  <div className="container mx-auto px-4">
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div>
-        <h1 className="text-3xl font-bold text-white">My Bookings</h1>
-        <p className="text-white/80 mt-2">Manage your household service appointments</p>
-      </div>
-      <div className="relative w-full md:w-64">
-        <input
-          type="text"
-          placeholder="Search bookings..."
-          className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm('')}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
-          >
-            <XCircle className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-</div>
-        <div className="container mx-auto px-4 py-8">
-     {isLoading && (
-  <div 
-    className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-white/90 backdrop-blur-sm" 
-    style={{ 
-      top: '75px', // Adjust this to match your header height
-    }}
-  >
-    <div className="flex-1 flex flex-col items-center justify-center w-full">
-      <ClipLoader color="#3b82f6" size={50} />
-      <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
-    </div>
-  </div>
-)}
-          {/* Upcoming Bookings */}
-          <section className="mb-8">
-            <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
-              <AlertCircle className="h-6 w-6 text-primary" />
-              <div className="flex-1">
-                <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
-                <p className="text-sm text-muted-foreground">
-                  {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                {upcomingBookings.length}
-              </Badge>
-            </div>
-            {upcomingBookings.length > 0 ? (
-              <div className="grid gap-4">
-                {filteredUpcomingBookings.map((booking) => (
-                  <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
-                   <CardHeader className="pb-4">
-  <div className="flex items-start justify-between">
-    <div className="flex items-center gap-3">
-      {getServiceIcon(booking.serviceType)}
-      <div>
-        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
-        <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
-      </div>
-    </div>
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex gap-2">
-        {getBookingTypeBadge(booking.bookingType)}
-        {getStatusBadge(booking.taskStatus)}
-      </div>
-<p className="text-xs text-muted-foreground pt-2">
-  Booking Date:{" "}
-  {new Date(booking.bookingDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  })}
-  {new Date(booking.modifiedDate).getTime() !==
-    new Date(booking.bookingDate).getTime() && (
-    <>
-      <br />
-      Modified Date:{" "}
-      {new Date(booking.modifiedDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      })}
-    </>
-  )}
-  {/* Add holiday date display */}
-  {/* {booking.customerHolidays && booking.customerHolidays.length > 0 && (
-    <>
-      <br />
-      Holiday Applied:{" "}
-      {new Date(booking.customerHolidays[0].applyHolidayDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      })}
-      <br />
-      Holiday Period:{" "}
-      {new Date(booking.customerHolidays[0].startDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric"
-      })} -{" "}
-      {new Date(booking.customerHolidays[0].endDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      })}
-    </>
-  )} */}
-</p>
+  // ACTION HANDLERS - API CALLS
+  const handleCancelBooking = async (booking: Booking) => {
+    const updatedStatus = "CANCELLED";
+    const serviceTypeUpperCase = booking.serviceType.toUpperCase();
 
-    </div>
-  </div>
-</CardHeader>
-                    
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(booking.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.timeSlot}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.address}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <p className="font-medium">{booking.serviceProviderName}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Separator />
-                      
-                     <div className="flex gap-2 flex-wrap">
-  {booking.taskStatus === 'CANCELLED' ? (
-    <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-      Book Again
-    </Button>
-  ) : (
-    <>
-      {booking.address && (
-        <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-          <Phone className="h-4 w-4 mr-2" />
-          Call Provider
-        </Button>
-      )}
-      <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Message
-      </Button>
-      {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
-     <Button 
-  variant="outline" 
-  size="sm" 
-  className="flex-1 min-w-0 justify-center"
-  onClick={() => handleApplyLeaveClick(booking)}
-  disabled={
-    // Disable if:
-    // 1. Booking has active holidays
-    (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) ||
-    // 2. Currently refreshing
-    isRefreshing
-  }
->
-  {booking.customerHolidays && booking.customerHolidays.some(h => h.active)
-    ? "Vacation Added" 
-    : "Add Vacation"}
-</Button>
-      )}
-      <Button 
-        variant="destructive" 
-        size="sm" 
-        className="flex-1 min-w-0 justify-center" 
-        onClick={() => handleCancelBooking(booking)}
-      >
-        <XCircle className="h-4 w-4 mr-2" />
-        Cancel Booking
-      </Button>
-     {booking.bookingType === 'MONTHLY' && (
-  <Button
-    variant="outline"
-    size="sm"
-    className="flex-1 min-w-0 justify-center"
-    onClick={() => handleModifyBooking(booking)}
-    disabled={
-      new Date(booking.modifiedDate).getTime() !==
-      new Date(booking.bookingDate).getTime()
+    let updatePayload: any = {
+      customerId: customerId,
+      taskStatus: updatedStatus,
+      modifiedBy: "CUSTOMER"
+    };
+
+    try {
+      const response = await axiosInstance.put(
+        `/api/serviceproviders/update/engagement/${booking.id}`,
+        updatePayload
+      );
+
+      setCurrentBookings((prev) =>
+        prev.map((b) =>
+          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+        )
+      );
+      setFutureBookings((prev) =>
+        prev.map((b) =>
+          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+        )
+      );
+    } catch (error: any) {
+      console.error("Error updating task status:", error);
+      if (error.response) {
+        console.error("Full error response:", error.response.data);
+      } else if (error.message) {
+        console.error("Error message:", error.message);
+      } else {
+        console.error("Unknown error occurred");
+      }
     }
-  >
-    <Edit className="h-4 w-4 mr-2" />
-    Modify Booking
-  </Button>
-)}
-    </>
-  )}
-</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="text-center py-8">
-                <CardContent>
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
-                  <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
-                  <Button>Book a Service</Button>
-                </CardContent>
-              </Card>
+
+    setOpenSnackbar(true);
+  };
+
+  const handleSaveModifiedBooking = async (updatedData: {
+    startDate: string;
+    endDate: string;
+    timeSlot: string;
+  }) => {
+    if (!selectedBooking) return;
+
+    let updatePayload: any = {
+      customerId: customerId,
+      startDate: updatedData.startDate,
+      endDate: updatedData.endDate,
+      timeslot: updatedData.timeSlot,
+      modifiedBy: "CUSTOMER",
+    };
+
+    try {
+      setIsRefreshing(true);
+      const response = await axiosInstance.put(
+        `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
+        updatePayload
+      );
+
+      setCurrentBookings((prev) =>
+        prev.map((b) =>
+          b.id === selectedBooking.id
+            ? { 
+                ...b, 
+                startDate: updatedData.startDate,
+                endDate: updatedData.endDate,
+                timeSlot: updatedData.timeSlot 
+              }
+            : b
+        )
+      );
+      setFutureBookings((prev) =>
+        prev.map((b) =>
+          b.id === selectedBooking.id
+            ? { 
+                ...b, 
+                startDate: updatedData.startDate,
+                endDate: updatedData.endDate,
+                timeSlot: updatedData.timeSlot 
+              }
+            : b
+        )
+      );
+      setModifiedBookings(prev => [...prev, selectedBooking.id]);
+      setModifyDialogOpen(false);
+      setOpenSnackbar(true);
+      
+      if (customerId !== null) {
+        await axiosInstance
+          .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+          .then((response) => {
+            const { past = [], current = [], future = [] } = response.data || {};
+            setPastBookings(mapBookingData(past));
+            setCurrentBookings(mapBookingData(current));
+            setFutureBookings(mapBookingData(future));
+          });
+      }
+    } catch (error: any) {
+      console.error("Error updating booking:", error);
+      if (error.response) {
+        console.error("Full error response:", error.response.data);
+      }
+    }
+  };
+
+  const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
+    if (!selectedBookingForLeave || !customerId) {
+      throw new Error("Missing required information for leave application");
+    }
+
+    try {
+      setIsRefreshing(true);
+      
+      await axiosInstance.post(
+        '/api/customer/add-customer-holiday',
+        {
+          customerId: customerId,
+          startDate: startDate,
+          endDate: endDate,
+          serviceType: serviceType.toUpperCase()
+        }
+      );
+
+      setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
+
+      if (customerId !== null) {
+        await axiosInstance
+          .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+          .then((response) => {
+            const { past = [], current = [], future = [] } = response.data || {};
+            setPastBookings(mapBookingData(past));
+            setCurrentBookings(mapBookingData(current));
+            setFutureBookings(mapBookingData(future));
+          });
+      }
+
+      setOpenSnackbar(true);
+      setHolidayDialogOpen(false);
+    } catch (error) {
+      console.error("Error applying leave:", error);
+      throw error;
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // DATA PROCESSING (placed right before return for better readability)
+  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
+  const filteredUpcomingBookings = filterBookings(upcomingBookings, searchTerm);
+  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+
+ return (
+  <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
+    {/* Header */}  
+    <div 
+      className="text-primary-foreground py-8" 
+      style={{ background: 'linear-gradient(to right, rgba(23, 43, 77, 0.8), rgba(26, 23, 77, 0.8))' }}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">My Bookings</h1>
+            <p className="text-white/80 mt-2">Manage your household service appointments</p>
+          </div>
+          <div className="relative w-full md:w-64">
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
             )}
-          </section>
-  
-          {/* Past Bookings */}
-          <section>
-            <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
-              <History className="h-6 w-6 text-muted-foreground" />
-              <div className="flex-1">
-                <h2 className="text-2xl font-semibold text-card-foreground">Past Bookings</h2>
-                <p className="text-sm text-muted-foreground">
-                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
-                </p>
-              </div>
-              <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
-                {pastBookings.length}
-              </Badge>
-            </div>
-            {pastBookings.length > 0 ? (
-              <div className="grid gap-4">
-                {filteredPastBookings.map((booking) => (
-                  <Card key={booking.id} className="shadow-card">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          {getServiceIcon(booking.serviceType)}
-                          <div>
-                            <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
-                            <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
-                          </div>
-                        </div>
-                       <div className="flex gap-2">
-      {getBookingTypeBadge(booking.bookingType)}
-      {getStatusBadge( booking.taskStatus)}
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div className="container mx-auto px-4 py-8">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div 
+          className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-white/90 backdrop-blur-sm" 
+          style={{ top: '75px' }}
+        >
+          <div className="flex-1 flex flex-col items-center justify-center w-full">
+            <ClipLoader color="#3b82f6" size={50} />
+            <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming Bookings Section */}
+      <section className="mb-8">
+        <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
+          <AlertCircle className="h-6 w-6 text-primary" />
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
+            <p className="text-sm text-muted-foreground">
+              {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+            </p>
+          </div>
+          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+            {upcomingBookings.length}
+          </Badge>
+        </div>
+
+        {upcomingBookings.length > 0 ? (
+          <div className="grid gap-4">
+            {filteredUpcomingBookings.map((booking) => (
+              <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {getServiceIcon(booking.serviceType)}
+                      <div>
+                        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
                       </div>
-                    </CardHeader>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex gap-2">
+                        {getBookingTypeBadge(booking.bookingType)}
+                        {getStatusBadge(booking.taskStatus)}
+                      </div>
+                      <p className="text-xs text-muted-foreground pt-2">
+                        Booking Date:{" "}
+                        {new Date(booking.bookingDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric"
+                        })}
+                        {new Date(booking.modifiedDate).getTime() !==
+                          new Date(booking.bookingDate).getTime() && (
+                          <>
+                            <br />
+                            Modified Date:{" "}
+                            {new Date(booking.modifiedDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            })}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{new Date(booking.date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.timeSlot}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.address}</span>
+                      </div>
+                    </div>
                     
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(booking.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.startDate} ({booking.endDate})</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.address}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <p className="font-medium">{booking.serviceProviderName}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
-                          </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="font-medium">{booking.serviceProviderName}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
                         </div>
                       </div>
                       
-                      <Separator />
-                      
-                      <div className="flex gap-2 flex-wrap">
-                        {booking.taskStatus === 'completed' && (
-                          <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                            <Star className="h-4 w-4 mr-2" />
-                            Rate Service
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    {booking.taskStatus === 'CANCELLED' ? (
+                      <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
+                        Book Again
+                      </Button>
+                    ) : (
+                      <>
+                        {booking.address && (
+                          <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
+                            <Phone className="h-4 w-4 mr-2" />
+                            Call Provider
                           </Button>
                         )}
                         <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-      Book Again
-    </Button>
-                        {booking.taskStatus === 'completed' && (
-                          <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Leave Review
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Message
+                        </Button>
+                        {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 min-w-0 justify-center"
+                            onClick={() => handleVacationClick(booking)}
+                            // disabled={
+                            //   (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) ||
+                            //   isRefreshing
+                            // }
+                          >
+                            Add Vacation
+                            {/* {booking.customerHolidays && booking.customerHolidays.some(h => h.active)
+                              ? "Vacation Added" 
+                              : "Add Vacation"} */}
                           </Button>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="text-center py-8">
-                <CardContent>
-                  <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium text-lg mb-2">No Past Bookings</h3>
-                  <p className="text-muted-foreground">Your completed and cancelled bookings will appear here.</p>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="flex-1 min-w-0 justify-center" 
+                          onClick={() => handleCancelClick(booking)} 
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cancel Booking
+                        </Button>
+                        {booking.bookingType === 'MONTHLY' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-0 justify-center"
+                            onClick={() => handleModifyClick(booking)} 
+                            disabled={
+                              new Date(booking.modifiedDate).getTime() !==
+                              new Date(booking.bookingDate).getTime()
+                            }
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Modify Booking
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </section>
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-8">
+            <CardContent>
+              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
+              <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
+              <Button>Book a Service</Button>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      {/* Past Bookings Section */}
+      <section>
+        <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
+          <History className="h-6 w-6 text-muted-foreground" />
+          <div className="flex-1">
+            <h2 className="text-2xl font-semibold text-card-foreground">Past Bookings</h2>
+            <p className="text-sm text-muted-foreground">
+              {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
+            </p>
+          </div>
+          <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+            {pastBookings.length}
+          </Badge>
         </div>
-        <UserHoliday 
-  open={holidayDialogOpen}
-  onClose={() => setHolidayDialogOpen(false)}
-  booking={selectedBookingForLeave}
-  onLeaveSubmit={handleLeaveSubmit}
-/>
-<ModifyBookingDialog
-  open={modifyDialogOpen}
-  onClose={() => setModifyDialogOpen(false)}
-  booking={selectedBooking}
-  timeSlots={timeSlots}
-  onSave={handleSaveModifiedBooking}
-/>
 
+        {pastBookings.length > 0 ? (
+          <div className="grid gap-4">
+            {filteredPastBookings.map((booking) => (
+              <Card key={booking.id} className="shadow-card">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {getServiceIcon(booking.serviceType)}
+                      <div>
+                        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
+                        <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {getBookingTypeBadge(booking.bookingType)}
+                      {getStatusBadge(booking.taskStatus)}
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{new Date(booking.date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.startDate} ({booking.endDate})</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.address}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <p className="font-medium">{booking.serviceProviderName}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    {booking.taskStatus === 'completed' && (
+                      <Button variant="outline" size="sm" className="flex-1 min-w-0">
+                        <Star className="h-4 w-4 mr-2" />
+                        Rate Service
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
+                      Book Again
+                    </Button>
+                    {booking.taskStatus === 'completed' && (
+                      <Button variant="outline" size="sm" className="flex-1 min-w-0">
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Leave Review
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-8">
+            <CardContent>
+              <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-lg mb-2">No Past Bookings</h3>
+              <p className="text-muted-foreground">Your completed and cancelled bookings will appear here.</p>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+    </div>
 
-      </div>
-    );
+    {/* Dialogs */}
+    <UserHoliday 
+      open={holidayDialogOpen}
+      onClose={() => setHolidayDialogOpen(false)}
+      booking={selectedBookingForLeave}
+      onLeaveSubmit={handleLeaveSubmit}
+    />
+    
+    <ModifyBookingDialog
+      open={modifyDialogOpen}
+      onClose={() => setModifyDialogOpen(false)}
+      booking={selectedBooking}
+      timeSlots={timeSlots}
+      onSave={handleSaveModifiedBooking}
+    />
+
+    <ConfirmationDialog
+      open={confirmationDialog.open}
+      onClose={() => setConfirmationDialog(prev => ({ ...prev, open: false }))}
+      onConfirm={handleConfirmAction}
+      title={confirmationDialog.title}
+      message={confirmationDialog.message}
+      confirmText={confirmationDialog.type === 'cancel' ? 'Yes, Cancel' : 'Confirm'}
+      loading={actionLoading}
+      severity={confirmationDialog.severity}
+    />
+
+    {/* Snackbar for notifications */}
+    <Snackbar
+      open={openSnackbar}
+      autoHideDuration={3000}
+      onClose={() => setOpenSnackbar(false)}
+    >
+      <Alert onClose={() => setOpenSnackbar(false)} severity="success">
+        Operation completed successfully!
+      </Alert>
+    </Snackbar>
+  </div>
+);
 };
 
 export default Booking;
