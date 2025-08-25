@@ -23,6 +23,7 @@ import BookingDialog from "../BookingDialog/BookingDialog";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
@@ -49,6 +50,8 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     }>({ open: false, type: null });
 
 
+
+  
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
     };
@@ -193,6 +196,17 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     }
     return outputArray.buffer;
 }
+ // AUTH & INITIALIZATION
+const { user: auth0User, isAuthenticated, loginWithRedirect } = useAuth0();
+const [role, setRole] = useState<string | null>(null);
+
+useEffect(() => {
+  if (isAuthenticated && auth0User) {
+    setRole(auth0User.role);
+    console.log("auth0User.user_role:", auth0User.role);
+  }
+}, [isAuthenticated, auth0User]);
+
     return (
         <main className="pt-16">
             {/* Hero Section */}
@@ -223,7 +237,15 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
                     </div>
                     <div className="flex gap-3 pt-3" style={{justifyContent:'center'}}>
                         <Button variant="outline" className="text-sm px-4 py-2"   onClick={() => setChatbotOpen(true)}>I need help</Button>
-                        <Button variant="outline" className="text-sm px-4 py-2" onClick={handleWorkClick}>I want to work</Button>
+                      {role !== "CUSTOMER" && ( // 👈 condition here
+    <Button
+      variant="outline"
+      className="text-sm px-4 py-2"
+      onClick={handleWorkClick}
+    >
+      I want to work
+    </Button>
+  )}
                     </div>
                 </div>
                 <div className="md:w-1/2 mt-8 md:mt-0">

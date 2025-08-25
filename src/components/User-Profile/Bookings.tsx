@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
-
+import _ from 'lodash';
 import { Button } from '../../components/Button/button';
 import { Badge } from '../../components/Common/Badge/Badge';
 import { Separator } from '../../components/Common/Separator/Separator';
@@ -18,7 +18,16 @@ import { ClipLoader } from 'react-spinners';
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
 import ConfirmationDialog from './ConfirmationDialog';
 
-
+interface CustomerHoliday {
+  id: number;
+  engagementId: number;
+  customerId: number;
+  applyHolidayDate: string;
+  startDate: string;
+  endDate: string;
+  serviceType: string;
+  active: boolean;
+}
 interface Booking {
   id: number;
   name: string;
@@ -43,15 +52,7 @@ interface Booking {
   mealType: string;
   modifiedDate: string;
   responsibilities: string;
-  customerHolidays?: Array<{
-    id: number;
-    customerId: number;
-    applyHolidayDate: string;
-    startDate: string;
-    endDate: string;
-    serviceType: string;
-    active: boolean;
-  }>;
+  customerHolidays?: CustomerHoliday[];
 }
 
 const getServiceIcon = (type: string) => {
@@ -127,27 +128,43 @@ const Booking: React.FC = () => {
   }, [isAuthenticated, auth0User]);
 
   // DATA FETCHING FUNCTIONS
-  useEffect(() => {
-    if (customerId !== null && customerId !== undefined) {
-      setIsLoading(true);
-      axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-        .then((response) => {
-          const { past = [], current = [], future = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(current));
-          setFutureBookings(mapBookingData(future));
-        })
-        .catch((error) => {
-          console.error("Error fetching booking details:", error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
+  
+useEffect(() => {
+  // Set loading to true immediately when component mounts
+  setIsLoading(true);
+  
+  const fetchBookings = async () => {
+    try {
+      if (customerId !== null && customerId !== undefined) {
+        const response = await axiosInstance.get(
+          `api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`
+        );
+        
+        const { past = [], current = [], future = [] } = response.data || {};
+        setPastBookings(mapBookingData(past));
+        setCurrentBookings(mapBookingData(current));
+        setFutureBookings(mapBookingData(future));
+      }
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+    } finally {
       setIsLoading(false);
     }
-  }, [customerId]);
+  };
+
+  // If we already have customerId, fetch immediately
+  if (customerId !== null && customerId !== undefined) {
+    fetchBookings();
+  } 
+  // If customerId is not available yet but we're authenticated, wait for it
+  else if (isAuthenticated) {
+    // Customer ID will be set by the other useEffect, which will trigger this flow
+  }
+  // If not authenticated at all, stop loading
+  else {
+    setIsLoading(false);
+  }
+}, [customerId, isAuthenticated]);
 
   // DATA MAPPING & UTILITY FUNCTIONS
   const mapBookingData = (data: any[]) => {
@@ -183,61 +200,18 @@ const Booking: React.FC = () => {
         })
       : [];
   };
+const hasMatchingHolidayIds = (booking: Booking): boolean => {
+  if (!booking.customerHolidays || booking.customerHolidays.length === 0) {
+    return false;
+  }
+  
+  return _.some(
+    booking.customerHolidays,
+    (holiday) => holiday.engagementId === booking.id
+  );
+};
 
-  const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
-    try {
-      const response = await axiosInstance.get(
-        `/api/serviceproviders/get/engagement/by/serviceProvider/{serviceProviderId}`
-      );
 
-      const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-        id: engagement.id ?? Math.random(),
-        availableTimeSlots: engagement.availableTimeSlots || [],
-      }));
-
-      const fullTimeSlots: string[] = Array.from({ length: 15 }, (_, i) =>
-        `{(i + 6).toString().padStart(2, "0")}:00`
-      );
-
-      const processedSlots = engagementData.map(entry => {
-        const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-        const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-
-        return {
-          id: entry.id,
-          uniqueAvailableTimeSlots,
-          missingTimeSlots,
-        };
-      });
-
-      const uniqueMissingSlots: string[] = Array.from(
-        new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
-      ).sort() as string[];
-
-      setUniqueMissingSlots(uniqueMissingSlots);
-
-      return fullTimeSlots.filter(slot => !uniqueMissingSlots.includes(slot));
-    } catch (error) {
-      console.error("Error fetching engagement data:", error);
-      return [];
-    }
-  };
-
-  // VALIDATION FUNCTIONS
-  const isModificationAllowed = (startDate: string) => {
-    const today = dayjs();
-    const bookingStartDate = dayjs(startDate);
-    const daysDifference = bookingStartDate.diff(today, 'day');
-    return daysDifference >= 2;
-  };
-
-  const isBookingModified = (bookingId: number) => {
-    return modifiedBookings.includes(bookingId);
-  };
-
-  const hasVacation = (bookingId: number) => {
-    return bookingsWithVacation.includes(bookingId);
-  };
 
   // FILTER & SORT FUNCTIONS
   const filterBookings = (bookings: Booking[], term: string) => {
@@ -334,21 +308,10 @@ const Booking: React.FC = () => {
     );
   };
 
-  const handleModifyClick = (booking: Booking) => {
-    if (!isModificationAllowed(booking.startDate)) {
-      showConfirmation(
-        'modify',
-        booking,
-        'Modification Not Recommended',
-        'Modifying this booking less than 2 days before the start date may incur additional charges. Do you want to proceed?',
-        'warning'
-      );
-    } else {
-      setSelectedBooking(booking);
-      setModifyDialogOpen(true);
-    }
-  };
-
+ const handleModifyClick = (booking: Booking) => {
+  setSelectedBooking(booking);
+  setModifyDialogOpen(true);
+};
  const handleVacationClick = (booking: Booking) => {
   // if (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) {
   //   return;
@@ -405,73 +368,64 @@ const Booking: React.FC = () => {
     setOpenSnackbar(true);
   };
 
-  const handleSaveModifiedBooking = async (updatedData: {
-    startDate: string;
-    endDate: string;
-    timeSlot: string;
-  }) => {
-    if (!selectedBooking) return;
+ // Simplify the handleSaveModifiedBooking function:
+const handleSaveModifiedBooking = async (updatedData: {
+  startDate: string;
+  endDate: string;
+  timeSlot: string;
+}) => {
+  if (!selectedBooking) return;
 
-    let updatePayload: any = {
-      customerId: customerId,
-      startDate: updatedData.startDate,
-      endDate: updatedData.endDate,
-      timeslot: updatedData.timeSlot,
-      modifiedBy: "CUSTOMER",
-    };
-
-    try {
-      setIsRefreshing(true);
-      const response = await axiosInstance.put(
-        `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
-        updatePayload
-      );
-
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === selectedBooking.id
-            ? { 
-                ...b, 
-                startDate: updatedData.startDate,
-                endDate: updatedData.endDate,
-                timeSlot: updatedData.timeSlot 
-              }
-            : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === selectedBooking.id
-            ? { 
-                ...b, 
-                startDate: updatedData.startDate,
-                endDate: updatedData.endDate,
-                timeSlot: updatedData.timeSlot 
-              }
-            : b
-        )
-      );
-      setModifiedBookings(prev => [...prev, selectedBooking.id]);
-      setModifyDialogOpen(false);
-      setOpenSnackbar(true);
-      
-      if (customerId !== null) {
-        await axiosInstance
-          .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-          .then((response) => {
-            const { past = [], current = [], future = [] } = response.data || {};
-            setPastBookings(mapBookingData(past));
-            setCurrentBookings(mapBookingData(current));
-            setFutureBookings(mapBookingData(future));
-          });
-      }
-    } catch (error: any) {
-      console.error("Error updating booking:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      }
+  try {
+    setIsRefreshing(true);
+    
+    // Update local state
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === selectedBooking.id
+          ? { 
+              ...b, 
+              startDate: updatedData.startDate,
+              endDate: updatedData.endDate,
+              timeSlot: updatedData.timeSlot 
+            }
+          : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === selectedBooking.id
+          ? { 
+              ...b, 
+              startDate: updatedData.startDate,
+              endDate: updatedData.endDate,
+              timeSlot: updatedData.timeSlot 
+            }
+          : b
+      )
+    );
+    setModifiedBookings(prev => [...prev, selectedBooking.id]);
+    setModifyDialogOpen(false);
+    setOpenSnackbar(true);
+    
+    // Refresh data
+    if (customerId !== null) {
+      await axiosInstance
+        .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+        .then((response) => {
+          const { past = [], current = [], future = [] } = response.data || {};
+          setPastBookings(mapBookingData(past));
+          setCurrentBookings(mapBookingData(current));
+          setFutureBookings(mapBookingData(future));
+        });
     }
-  };
+  } catch (error: any) {
+    console.error("Error updating booking:", error);
+    if (error.response) {
+      console.error("Full error response:", error.response.data);
+    }
+  }
+};
 
   const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
     if (!selectedBookingForLeave || !customerId) {
@@ -484,7 +438,7 @@ const Booking: React.FC = () => {
       await axiosInstance.post(
         '/api/customer/add-customer-holiday',
         {
-          customerId: customerId,
+          engagementId: selectedBookingForLeave.id,
           startDate: startDate,
           endDate: endDate,
           serviceType: serviceType.toUpperCase()
@@ -682,23 +636,17 @@ const Booking: React.FC = () => {
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Message
                         </Button>
-                        {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1 min-w-0 justify-center"
-                            onClick={() => handleVacationClick(booking)}
-                            // disabled={
-                            //   (booking.customerHolidays && booking.customerHolidays.some(h => h.active)) ||
-                            //   isRefreshing
-                            // }
-                          >
-                            Add Vacation
-                            {/* {booking.customerHolidays && booking.customerHolidays.some(h => h.active)
-                              ? "Vacation Added" 
-                              : "Add Vacation"} */}
-                          </Button>
-                        )}
+                       {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
+  <Button 
+    variant="outline" 
+    size="sm" 
+    className="flex-1 min-w-0 justify-center"
+    onClick={() => handleVacationClick(booking)}
+    disabled={hasMatchingHolidayIds(booking) || isRefreshing}
+  >
+    {hasMatchingHolidayIds(booking) ? "Vacation Added" : "Add Vacation"}
+  </Button>
+)}
                         <Button 
                           variant="destructive" 
                           size="sm" 
@@ -714,10 +662,11 @@ const Booking: React.FC = () => {
                             size="sm"
                             className="flex-1 min-w-0 justify-center"
                             onClick={() => handleModifyClick(booking)} 
-                            disabled={
-                              new Date(booking.modifiedDate).getTime() !==
-                              new Date(booking.bookingDate).getTime()
-                            }
+  //                            disabled={
+  //   !isModificationAllowed(booking.startDate, booking.timeSlot) ||
+  //   new Date(booking.modifiedDate).getTime() !==
+  //   new Date(booking.bookingDate).getTime()
+  // }
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Modify Booking
@@ -860,12 +809,13 @@ const Booking: React.FC = () => {
     />
     
     <ModifyBookingDialog
-      open={modifyDialogOpen}
-      onClose={() => setModifyDialogOpen(false)}
-      booking={selectedBooking}
-      timeSlots={timeSlots}
-      onSave={handleSaveModifiedBooking}
-    />
+  open={modifyDialogOpen}
+  onClose={() => setModifyDialogOpen(false)}
+  booking={selectedBooking}
+  timeSlots={timeSlots}
+  onSave={handleSaveModifiedBooking}
+  customerId={customerId}
+/>
 
     <ConfirmationDialog
       open={confirmationDialog.open}

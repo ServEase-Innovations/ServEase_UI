@@ -105,19 +105,22 @@ useEffect(() => {
         `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
       );
       console.log("Email check response:", response.data);
-
+      console.log("User role:", response.data.user_role);
       // Step 5: Conditional next steps
       if (!response.data.user_role) {
         await createUser(user);
         // await getCustomerPreferences(user.customerid);
-      } else if(response.data.user_role === "SERVICE_PROVIDER") {
+      } else if (response.data.user_role === "SERVICE_PROVIDER") {
         user.role = "SERVICE_PROVIDER";
         user.serviceProviderId = response.data.id;
-      } else {
+      } else if (response.data.user_role === "CUSTOMER") {
+        user.role = "CUSTOMER";   
+        user.customerid = response.data.id;
         await getCustomerPreferences(Number(response.data.id));
       }
 
       // Step 6: Anything else AFTER both API calls
+      console.log("Updated user object with role:", user);
       console.log("Post-login steps complete ✅");
 
     } catch (error) {
@@ -127,6 +130,7 @@ useEffect(() => {
 
   run();
 }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+
 
 
   const [userPreference, setUserPreference] = useState<any>([]);
@@ -482,11 +486,10 @@ useEffect(() => {
       >
         <div className="flex items-center space-x-2" onClick={() => handleClick("")}>
 <img
-  src="Finallogo.png"
+  src="ServEasoLogoNew.png"
   alt="ServEase Logo"
-  className="h-28 w-auto max-w-[280px]"
+  className="h-48 w-auto max-w-[340px]"
 />
-
 
           {/* <span className="text-xl font-semibold text-blue-600">ServEaso</span> */}
         </div>
@@ -590,7 +593,7 @@ useEffect(() => {
       >
         Profile
       </li>
-    {user?.role !== "SERVICE_PROVIDER" && (
+    {user?.role === "CUSTOMER" && (
     <li
       className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
       onClick={() => handleClick(BOOKINGS)}
