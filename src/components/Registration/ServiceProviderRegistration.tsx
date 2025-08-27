@@ -43,6 +43,7 @@ import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
 import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { Close as CloseIcon } from "@mui/icons-material";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -1371,8 +1372,20 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <>
-      <Dialog fullWidth maxWidth="sm" open={true} onClose={() => onBackToLogin(true)}>
+      <Dialog fullWidth maxWidth="sm" open={true} >
         <Box sx={{ padding: 2 }}>
+          <IconButton
+          aria-label="close"
+          onClick={() => onBackToLogin(true)}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
           <Typography variant="h5" gutterBottom className="text-center pb-3">
             Service Provider Registration
           </Typography>

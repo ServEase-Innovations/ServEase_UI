@@ -25,6 +25,7 @@ import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
 import { useAuth0 } from "@auth0/auth0-react";
 import Footer from "../Footer/Footer";
+import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
@@ -43,6 +44,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     const [startTime, setStartTime] = useState<Dayjs | null>(null);
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [chatbotOpen, setChatbotOpen] = useState(false);
+    const [isAgentRegistrationOpen, setIsAgentRegistrationOpen] = useState(false);
      const [notificationPermission, setNotificationPermission] = useState<string>(Notification.permission);
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false); // Changed this state name
     const [serviceDialog, setServiceDialog] = useState<{
@@ -282,6 +284,12 @@ useEffect(() => {
           I want to work
         </Button>
       )}
+        <Button 
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+         onClick={() => setIsAgentRegistrationOpen(true)}
+      >
+        Register as Agent
+      </Button>
     </div>
   </div>
 
@@ -449,6 +457,15 @@ useEffect(() => {
                 <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
             </DialogComponent>
             <Chatbot open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
+              {isAgentRegistrationOpen && (
+  <AgentRegistrationForm 
+    onBackToLogin={(shouldClose) => {
+      if (shouldClose) {
+     setIsAgentRegistrationOpen(false);
+      }
+    }} 
+  />
+)}
         </main>
     );
 }
