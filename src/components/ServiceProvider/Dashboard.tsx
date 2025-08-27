@@ -293,7 +293,7 @@ export default function Dashboard() {
 <div
   className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
   style={{
-    background: "linear-gradient(180deg, rgb(160 201 255) 0%, #ffffff 100%)",
+    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
     color: "white",
   }}
 >

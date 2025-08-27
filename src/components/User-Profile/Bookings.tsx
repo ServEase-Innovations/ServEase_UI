@@ -479,7 +479,7 @@ const handleSaveModifiedBooking = async (updatedData: {
     <div
   className="py-12"
   style={{
-    background: "linear-gradient(180deg, rgb(160 201 255) 0%, #ffffff 100%)",
+    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
     color: "rgb(14, 48, 92)",
   }}
 >
