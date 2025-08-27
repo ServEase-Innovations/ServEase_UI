@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, ArrowLeft, ChevronDown } from "lucide-react";
+import { X, Send, ArrowLeft, ChevronDown } from "lucide-react";
 import Draggable from "react-draggable";
 import { Button, Card, CardContent } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,25 +20,19 @@ const customerFaqData = [
 ];
 
 interface ChatbotProps {
-    open: boolean;
-    onClose: () => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
+const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   const user = useSelector((state: any) => state.user?.value);
   const dispatch = useDispatch();
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
   const role = user?.role;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
   const faqData = role === "CUSTOMER" ? [...generalFaqData, ...customerFaqData] : generalFaqData;
 
-  const [opens, setOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { text: `Namaste ! Welcome to ServEase. How can we assist you today?`, sender: "bot" }
+    { text: `Namaste ! Welcome to ServEaso. How can we assist you today?`, sender: "bot" }
   ]);
   const [inputText, setInputText] = useState("");
   const [showAllFaq, setShowAllFaq] = useState(true);
@@ -54,7 +48,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
       { text: faq.question, sender: "user" },
       { text: faq.answer, sender: "bot" }
     ]);
-    // After clicking a question, hide the FAQs (show View All button)
     setShowAllFaq(false);
   };
 
@@ -65,37 +58,50 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
     }
   };
 
+  // Disable dragging for mobile
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
   return (
-    <Draggable>
-      <div className="fixed bottom-24 right-10 z-50 flex flex-col items-end">
+    <Draggable disabled={isMobile}>
+      <div className="fixed bottom-20 right-2 sm:right-10 z-50 flex flex-col items-end w-full sm:w-auto">
         {open && (
-          <Card className="w-[28rem] shadow-2xl border border-gray-300 rounded-xl p-4 bg-white max-h-[75vh] flex flex-col overflow-hidden">
-            <CardContent className="flex flex-col flex-grow overflow-hidden">
-              
+          <Card
+            className="
+              w-[90%] max-w-[320px]   /* mobile: small width */
+              sm:w-[26rem] sm:max-w-none  /* tablet/desktop: bigger width */
+              shadow-2xl border border-gray-300 rounded-xl 
+              p-2 sm:p-4 bg-white 
+              max-h-[70vh] sm:max-h-[75vh] 
+              flex flex-col overflow-hidden
+            "
+          >
+            <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
+
               {/* Header Section */}
-              <div className="flex justify-between items-center border-b pb-2">
+              <div className="flex justify-between items-center border-b px-2 sm:px-4 py-2">
                 {chatOpen && (
-                  <Button onClick={() => setChatOpen(false)} className="mr-2">
-                    <ArrowLeft size={28} />
+                  <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
+                    <ArrowLeft size={22} />
                   </Button>
                 )}
-                <h2 className="text-xl font-bold text-gray-900 flex-grow text-center">
+                <h2 className="text-sm sm:text-lg font-bold text-gray-900 flex-grow text-center">
                   Chat Support
                 </h2>
                 <button
                   onClick={onClose}
                   className="text-gray-500 hover:text-gray-700 focus:outline-none"
                 >
-                  <X size={24} />
+                  <X size={22} />
                 </button>
               </div>
 
-              {/* Messages and FAQ Section */}
-              <div className="flex flex-col flex-grow overflow-y-auto space-y-3 p-2 border rounded-lg bg-gray-50" style={{ maxHeight: "70vh", scrollbarWidth: "thin" }}>
+              {/* Messages + FAQ */}
+              <div className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
+                   style={{ scrollbarWidth: "thin" }}>
                 {messages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-xl text-sm shadow-md max-w-xs transition-opacity duration-300 ease-in-out ${
+                    className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
                       msg.sender === "user"
                         ? "bg-blue-500 text-white self-end rounded-br-none"
                         : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
@@ -107,13 +113,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
 
                 {!chatOpen && (
                   <>
-                    {/* Show either all FAQs or the View All button */}
                     {showAllFaq ? (
                       faqData.map((faq, index) => (
                         <Button
                           key={index}
                           variant="outlined"
-                          className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                          className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
                           onClick={() => handleQuestionClick(faq)}
                         >
                           {faq.question}
@@ -122,17 +127,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
                     ) : (
                       <Button
                         variant="outlined"
-                        className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between"
+                        className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
                         onClick={() => setShowAllFaq(true)}
                       >
                         View All FAQs
-                        <ChevronDown size={16} className="ml-2" />
+                        <ChevronDown size={14} className="ml-2" />
                       </Button>
                     )}
 
                     <Button
                       variant="outlined"
-                      className="w-full text-left px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                      className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
                       onClick={() => setChatOpen(true)}
                     >
                       Chat with Assistant
@@ -142,19 +147,19 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Chat Input Section */}
+              {/* Input */}
               {chatOpen && (
-                <div className="flex items-center border-t p-4 bg-gray-100">
+                <div className="flex items-center border-t p-2 sm:p-3 bg-gray-100">
                   <input
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder="Type your question..."
-                    className="flex-grow p-2 border rounded-lg outline-none"
+                    className="flex-grow p-2 border rounded-lg outline-none text-xs sm:text-sm"
                     onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                   />
-                  <Button onClick={handleSendMessage} className="ml-2 p-2">
-                    <Send size={20} />
+                  <Button onClick={handleSendMessage} className="ml-2 min-w-0 p-2">
+                    <Send size={18} />
                   </Button>
                 </div>
               )}
@@ -162,7 +167,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) =>  {
           </Card>
         )}
       </div>
-     </Draggable>
+    </Draggable>
   );
 };
 

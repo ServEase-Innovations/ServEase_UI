@@ -291,89 +291,97 @@ export default function Dashboard() {
         </div>
       </header>
 <div
-  className="mb-6 p-4 sm:p-6 shadow-sm flex items-center justify-between"
+  className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
   style={{
-      background: "linear-gradient(180deg, rgb(160 201 255) 0%, #ffffff 100%)",
+    background: "linear-gradient(180deg, rgb(160 201 255) 0%, #ffffff 100%)",
     color: "white",
   }}
 >
-  {/* Left Side - Welcome Section */}
-{/* Centered Welcome Section with Blue Text */}
-<div className="flex-1 text-center">
-  <div className="flex justify-center items-center gap-2 mb-1">
-    <Home className="h-4 w-4 sm:h-5 sm:w-5 text-[#004aad]" />
- <h1
-  className="font-bold"
-  style={{ fontSize: "2.5rem", color: "rgb(14, 48, 92)" }}
->
-  Welcome back, {userName || "Guest"}
-</h1>
+  {/* Welcome Section */}
+  <div className="flex-1 text-center min-w-[180px]">
+    <div className="flex justify-center items-center gap-1 md:gap-2 mb-1">
+      <Home className="h-3.5 w-3.5 md:h-5 md:w-5 text-[#004aad]" />
+      <h1 className="font-bold leading-tight">
+        <span
+          className="block md:hidden"
+          style={{ fontSize: "1.2rem", color: "rgb(14, 48, 92)" }}
+        >
+          Welcome back, {userName || "Guest"}
+        </span>
+        <span
+          className="hidden md:block"
+          style={{ fontSize: "2.5rem", color: "rgb(14, 48, 92)" }}
+        >
+          Welcome back, {userName || "Guest"}
+        </span>
+      </h1>
+    </div>
+    <p className="opacity-90 text-[10px] sm:text-sm text-[#004aad]">
+      Here's what's happening with your services today.
+    </p>
   </div>
-  <p className="opacity-90 text-xs sm:text-sm text-[#004aad]">
-    Here's what's happening with your services today.
-  </p>
-</div>
 
-
-
-  {/* Right Side - Stats Section */}
-  <div className="flex gap-2 sm:gap-3 md:gap-4">
+  {/* Stats Section */}
+  <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
     {/* Active Bookings */}
 <div className="flex flex-col items-center">
-  <div className="relative bg-white rounded-full p-1.5 sm:p-2 shadow-md">
-    <Calendar className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-blue-500" />
-    <span className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] sm:text-[10px] h-3.5 w-3.5 sm:h-4 sm:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}>
-  +3
-</span>
+  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+    <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-500" />
+    <span
+      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+      style={{ color: "rgb(14, 48, 92)" }}
+    >
+      +3
+    </span>
   </div>
-  <span 
-  className="text-[9px] sm:text-[10px] mt-1 hidden md:block" 
-  style={{ color: "rgb(14, 48, 92)" }}
->
+  <span
+    className="text-[9px] sm:text-[10px] mt-1"
+    style={{ color: "rgb(14, 48, 92)" }}
+  >
     Bookings
   </span>
 </div>
 
-
-    {/* Average Rating */}
-    <div className="flex flex-col items-center">
-      <div className="relative bg-white rounded-full p-1.5 sm:p-2 shadow-md">
-  <Star className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-yellow-500" />
-        <span className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] sm:text-[10px] h-3.5 w-3.5 sm:h-4 sm:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}>
-  +2%
-</span>
-      </div>
-    <span 
-  className="text-[9px] sm:text-[10px] mt-1 hidden md:block" 
-  style={{ color: "rgb(14, 48, 92)" }}
->
-  Rating
-</span>
-
-    </div>
-
-    {/* Completion Rate */}
-    <div className="flex flex-col items-center">
-      <div className="relative bg-white rounded-full p-1.5 sm:p-2 shadow-md">
-  <TrendingUp className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-green-500" />
-       <span className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] sm:text-[10px] h-3.5 w-3.5 sm:h-4 sm:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}>
-  +2%
-</span>
-      </div>
-       <span 
-  className="text-[9px] sm:text-[10px] mt-1 hidden md:block" 
-  style={{ color: "rgb(14, 48, 92)" }}
->
-        Completion
-      </span>
-    </div>
+{/* Average Rating */}
+<div className="flex flex-col items-center">
+  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+    <Star className="h-3.5 w-3.5 md:h-5 md:w-5 text-yellow-500" />
+    <span
+      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+      style={{ color: "rgb(14, 48, 92)" }}
+    >
+      +2%
+    </span>
   </div>
+  <span
+    className="text-[9px] sm:text-[10px] mt-1"
+    style={{ color: "rgb(14, 48, 92)" }}
+  >
+    Rating
+  </span>
 </div>
 
+{/* Completion Rate */}
+<div className="flex flex-col items-center">
+  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+    <TrendingUp className="h-3.5 w-3.5 md:h-5 md:w-5 text-green-500" />
+    <span
+      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+      style={{ color: "rgb(14, 48, 92)" }}
+    >
+      +2%
+    </span>
+  </div>
+  <span
+    className="text-[9px] sm:text-[10px] mt-1"
+    style={{ color: "rgb(14, 48, 92)" }}
+  >
+    Completion
+  </span>
+</div>
 
+  </div>
+</div>
 
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
