@@ -502,7 +502,6 @@ useEffect(() => {
       src="NewLogoDesing.png"
       alt="ServEase Logo"
       className="hidden lg:block h-48 w-auto max-w-[340px]"
-      //className="hidden h-48 w-auto max-w-[340px]"
     />
   </div>
 
