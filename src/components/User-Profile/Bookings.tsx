@@ -474,38 +474,52 @@ const handleSaveModifiedBooking = async (updatedData: {
   const filteredPastBookings = filterBookings(pastBookings, searchTerm);
 
  return (
-  <div className="min-h-screen bg-background" style={{marginTop: '5%'}}>
+  <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
     {/* Header */}  
-    <div 
-      className="text-primary-foreground py-8" 
-      style={{ background: 'linear-gradient(to right, rgba(23, 43, 77, 0.8), rgba(26, 23, 77, 0.8))' }}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">My Bookings</h1>
-            <p className="text-white/80 mt-2">Manage your household service appointments</p>
-          </div>
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search bookings..."
-              className="w-full px-4 py-2 rounded-lg bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 focus:outline-none focus:ring-2 focus:ring-primary-foreground/50 placeholder:text-primary-foreground/60"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-foreground/60 hover:text-primary-foreground"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        </div>
+    <div
+  className="py-12"
+  style={{
+    background: "linear-gradient(180deg, rgb(160 201 255) 0%, #ffffff 100%)",
+    color: "rgb(14, 48, 92)",
+  }}
+>
+  <div className="container mx-auto px-4">
+    {/* Flex container: left = centered title/subtitle, right = search */}
+    <div className="flex flex-col md:flex-row items-center md:justify-between">
+      
+      {/* Title + Subtitle (center aligned) */}
+      <div className="flex flex-col items-center text-center md:items-center md:text-center w-full">
+        <h1 className="text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
+          My Bookings
+        </h1>
+        <p className="mt-2 opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
+          Manage your household service appointments
+        </p>
+      </div>
+
+      {/* Search Bar (keeps its right-side position) */}
+      <div className="relative w-full md:w-64 mt-4 md:mt-0">
+        <input
+          type="text"
+          placeholder="Search bookings..."
+          className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        )}
       </div>
     </div>
+  </div>
+</div>
+
+
 
     <div className="container mx-auto px-4 py-8">
       {/* Loading Overlay */}
@@ -619,62 +633,88 @@ const handleSaveModifiedBooking = async (updatedData: {
                   
                   <Separator />
                   
-                  <div className="flex gap-2 flex-wrap">
-                    {booking.taskStatus === 'CANCELLED' ? (
-                      <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-                        Book Again
-                      </Button>
-                    ) : (
-                      <>
-                        {booking.address && (
-                          <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-                            <Phone className="h-4 w-4 mr-2" />
-                            Call Provider
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Message
-                        </Button>
-                       {booking.bookingType !== 'ON_DEMAND' && booking.bookingType !== 'SHORT_TERM' && (
-  <Button 
-    variant="outline" 
-    size="sm" 
-    className="flex-1 min-w-0 justify-center"
-    onClick={() => handleVacationClick(booking)}
-    disabled={hasMatchingHolidayIds(booking) || isRefreshing}
-  >
-    {hasMatchingHolidayIds(booking) ? "Vacation Added" : "Add Vacation"}
-  </Button>
-)}
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          className="flex-1 min-w-0 justify-center" 
-                          onClick={() => handleCancelClick(booking)} 
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Cancel Booking
-                        </Button>
-                        {booking.bookingType === 'MONTHLY' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 min-w-0 justify-center"
-                            onClick={() => handleModifyClick(booking)} 
-  //                            disabled={
-  //   !isModificationAllowed(booking.startDate, booking.timeSlot) ||
-  //   new Date(booking.modifiedDate).getTime() !==
-  //   new Date(booking.bookingDate).getTime()
-  // }
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Modify Booking
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
+      <div className="flex flex-wrap gap-2">
+  {booking.taskStatus === "CANCELLED" ? (
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 min-w-0 justify-center text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2"
+    >
+      Book Again
+    </Button>
+  ) : (
+    <>
+      {booking.address && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+        >
+          <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+          Call Provider
+        </Button>
+      )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Message
+      </Button>
+
+      {booking.bookingType !== "ON_DEMAND" &&
+        booking.bookingType !== "SHORT_TERM" && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+            onClick={() => handleVacationClick(booking)}
+            disabled={hasMatchingHolidayIds(booking) || isRefreshing}
+          >
+            {hasMatchingHolidayIds(booking)
+              ? "Vacation Added"
+              : "Add Vacation"}
+          </Button>
+        )}
+
+      <Button
+        variant="destructive"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+        onClick={() => handleCancelClick(booking)}
+      >
+        <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Cancel Booking
+      </Button>
+
+      {booking.bookingType === "MONTHLY" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+          onClick={() => handleModifyClick(booking)}
+        >
+          <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+          Modify Booking
+        </Button>
+      )}
+    </>
+  )}
+</div>
+
+
                 </CardContent>
               </Card>
             ))}
@@ -767,23 +807,44 @@ const handleSaveModifiedBooking = async (updatedData: {
                   
                   <Separator />
                   
-                  <div className="flex gap-2 flex-wrap">
-                    {booking.taskStatus === 'completed' && (
-                      <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                        <Star className="h-4 w-4 mr-2" />
-                        Rate Service
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" className="flex-1 min-w-0 justify-center">
-                      Book Again
-                    </Button>
-                    {booking.taskStatus === 'completed' && (
-                      <Button variant="outline" size="sm" className="flex-1 min-w-0">
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Leave Review
-                      </Button>
-                    )}
-                  </div>
+                 <div className="flex flex-wrap gap-2">
+  {booking.taskStatus === "completed" && (
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 min-w-0 justify-center 
+                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                 w-1/3 sm:w-auto"
+    >
+      <Star className="h-4 w-4 mr-1 sm:mr-2" />
+      Rate Service
+    </Button>
+  )}
+
+  <Button
+    variant="outline"
+    size="sm"
+    className="flex-1 min-w-0 justify-center 
+               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+               w-1/3 sm:w-auto"
+  >
+    Book Again
+  </Button>
+
+  {booking.taskStatus === "completed" && (
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 min-w-0 justify-center 
+                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                 w-1/3 sm:w-auto"
+    >
+      <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+      Leave Review
+    </Button>
+  )}
+</div>
+
                 </CardContent>
               </Card>
             ))}

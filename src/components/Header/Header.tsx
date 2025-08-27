@@ -578,6 +578,7 @@ useEffect(() => {
       <Button
         variant="ghost"
         size="icon"
+        className="bg-white rounded-full shadow"
         onClick={() => loginWithRedirect()}
       >
         <User className="w-5 h-5" />
@@ -614,7 +615,7 @@ useEffect(() => {
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                   onClick={() => handleClick(BOOKINGS)}
                 >
-                  My Booking
+                  My Bookings
                 </li>
               )}
               {user?.role === "SERVICE_PROVIDER" && (
