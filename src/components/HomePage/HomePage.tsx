@@ -24,6 +24,7 @@ import ServiceProviderRegistration from "../Registration/ServiceProviderRegistra
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
 import { useAuth0 } from "@auth0/auth0-react";
+import Footer from "../Footer/Footer";
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
@@ -397,6 +398,8 @@ useEffect(() => {
                     </div>
                 </div>
             </section>
+
+            <Footer/>
 <ServiceDetailsDialog
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}

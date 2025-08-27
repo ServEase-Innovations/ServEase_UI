@@ -339,13 +339,12 @@ useEffect(() => {
     } else if (newValue === "Detect Location") {
       getLocation();
     } else {
-      console.log("Selected location:", newValue);
-      console.log("user preference ", userPreference);
-  
-      const loc = userPreference[0]?.savedLocations?.find(
-        (location: any) => location.name === newValue
-      );
-  
+      console.log("➡️ Selected Location:", newValue);
+      console.log("🗂️ User Preferences:", JSON.stringify(userPreference, null, 2));
+      const loc = userPreference[0]?.savedLocations.find(
+  (location: any) =>
+    location.name?.toLowerCase() === newValue.toLowerCase()
+);
       if (loc?.location?.formatted_address) {
         console.log("Location from user preference: ", loc.location.formatted_address);
         setLocation(loc.location.formatted_address);
@@ -480,158 +479,169 @@ useEffect(() => {
   return (
     <>
 <header
-  className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-15 py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
+  className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
   style={{ height: "10%" }}
 >
-
-        <div className="flex items-center space-x-2" onClick={() => handleClick("")}>
+  {/* Logo Section */}
+  <div className="flex items-center space-x-2 cursor-pointer" onClick={() => handleClick("")}>
+    {/* Mobile logo */}
 <img
   src="NewLogoDesing.png"
   alt="ServEase Logo"
-  className="h-48 w-auto max-w-[340px]"
+  className="h-[7.5rem] w-auto md:hidden"
 />
 
-          {/* <span className="text-xl font-semibold text-blue-600">ServEaso</span> */}
-        </div>
-        <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-100">
-            <MapPin className="w-4 h-4 text-gray-500 mr-2" />
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Location"
-                value={location}
-                onFocus={() => setShowDropdown(true)}
-                onClick={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 150)} // small delay so click on option registers
-                className="bg-transparent outline-none text-sm w-64 px-2 py-1"
-              />
-{showDropdown && (
-  <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto">
-    {/* Always show these options */}
-    <li
-      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-      onClick={() => {
-        handleChange("Detect Location");
-        setShowDropdown(false);
-      }}
-    >
-      Detect Location
-    </li>
-    <li
-      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-      onClick={() => {
-        handleChange("Add Address");
-        setShowDropdown(false);
-      }}
-    >
-      Add Address
-    </li>
-    
-    {/* Loading state or saved locations */}
-    {loadingLocations ? (
-      <li className="px-4 py-2 text-sm text-gray-500 flex items-center justify-center gap-2">
-        <ClipLoader size={15} color="#6b7280" />
-        Loading your saved locations...
-      </li>
-    ) : (
-      suggestions
-        .filter(s => s.index > 2) // Filter out the first two options
-        .map((suggestion, index) => (
-          <li
-            key={index}
-            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-            onClick={() => {
-              handleChange(suggestion.name);
-              setShowDropdown(false);
-            }}
-          >
-            {suggestion.name}
-          </li>
-        ))
-    )}
-  </ul>
-)}
-            </div>
-          </div>
-
-   <Badge badgeContent={totalCartItems} color="primary">
-<Button
-  variant="ghost"
-  size="icon"
-  className="bg-white rounded-full shadow"
-  onClick={handleCartOpen}
->
-  <ShoppingCart className="w-5 h-5" />
-</Button>
-
-</Badge>
-          {!isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={undefined}
-              onClick={() => loginWithRedirect()}
-            >
-              <User className="w-5 h-5" />
-            </Button>
-          ) : (
-            <div className="relative inline-block text-left">
-              <button
-                onClick={() => setdropDownOpen((prev) => !prev)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
-              >
-                <img
-                  src={user?.picture}
-                  alt={user?.name}
-                  className="w-8 h-8 rounded-full"
-                />
-                <span className="font-medium">{user?.name}</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-
-              {dropDownOpen && (
-  <div  ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md z-10">
-    <ul className="py-2">
-      <li 
-        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-        onClick={() => handleClick(PROFILE)}  // Changed this line
-      >
-        Profile
-      </li>
-    {user?.role === "CUSTOMER" && (
-    <li
-      className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-      onClick={() => handleClick(BOOKINGS)}
-    >
-      My Booking
-    </li>
-  )}
-     {user?.role === "SERVICE_PROVIDER" && (
-    <li
-      className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-      onClick={() => handleClick(DASHBOARD)}
-    >
-      Dashboard
-    </li>
-  )}
-      <li
-        className="px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 cursor-pointer"
-        onClick={() =>
-          logout({
-            logoutParams: { returnTo: window.location.origin },
-          })
-        }
-      >
-        Logout
-      </li>
-    </ul>
+    {/* Tablet logo */}
+    <img
+      src="NewLogoDesing.png"
+      alt="ServEase Logo"
+      className="hidden md:block lg:hidden h-16 w-auto max-w-[200px]"
+    />
+    {/* Desktop logo */}
+    <img
+      src="NewLogoDesing.png"
+      alt="ServEase Logo"
+      className="hidden lg:block h-48 w-auto max-w-[340px]"
+      //className="hidden h-48 w-auto max-w-[340px]"
+    />
   </div>
-)}
-            </div>
-          )}
-        </div>
-      </header>
+
+  {/* Right Side Content */}
+  <div className="flex items-center gap-2 md:gap-4">
+    {/* Location Bar */}
+    <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64">
+      <MapPin className="w-4 h-4 text-gray-500 mr-2" />
+      <div className="relative w-full">
+        <input
+          type="text"
+          placeholder="Location"
+          value={location}
+          onFocus={() => setShowDropdown(true)}
+          onClick={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+          className="bg-transparent outline-none text-xs md:text-sm w-full px-1"
+        />
+        {showDropdown && (
+          <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto text-xs md:text-sm">
+            <li
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                handleChange("Detect Location");
+                setShowDropdown(false);
+              }}
+            >
+              Detect Location
+            </li>
+            <li
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                handleChange("Add Address");
+                setShowDropdown(false);
+              }}
+            >
+              Add Address
+            </li>
+            {loadingLocations ? (
+              <li className="px-4 py-2 text-gray-500 flex items-center justify-center gap-2">
+                <ClipLoader size={15} color="#6b7280" />
+                Loading...
+              </li>
+            ) : (
+              suggestions
+                .filter((s) => s.index > 2)
+                .map((suggestion, index) => (
+                  <li
+                    key={index}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      handleChange(suggestion.name);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    {suggestion.name}
+                  </li>
+                ))
+            )}
+          </ul>
+        )}
+      </div>
+    </div>
+
+    {/* Cart */}
+    <Badge badgeContent={totalCartItems} color="primary">
+      <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleCartOpen}>
+        <ShoppingCart className="w-5 h-5" />
+      </Button>
+    </Badge>
+
+    {/* User / Auth */}
+    {!isAuthenticated ? (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => loginWithRedirect()}
+      >
+        <User className="w-5 h-5" />
+      </Button>
+    ) : (
+      <div className="relative inline-block text-left">
+        <button
+          onClick={() => setdropDownOpen((prev) => !prev)}
+          className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+        >
+          <img
+            src={user?.picture}
+            alt={user?.name}
+            className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+          />
+          <span className="font-medium hidden sm:inline">{user?.name}</span>
+          <ChevronDown className="w-4 h-4" />
+        </button>
+
+        {dropDownOpen && (
+          <div
+            ref={dropdownRef}
+            className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
+          >
+            <ul className="py-2 text-sm">
+              <li
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleClick(PROFILE)}
+              >
+                Profile
+              </li>
+              {user?.role === "CUSTOMER" && (
+                <li
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleClick(BOOKINGS)}
+                >
+                  My Booking
+                </li>
+              )}
+              {user?.role === "SERVICE_PROVIDER" && (
+                <li
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleClick(DASHBOARD)}
+                >
+                  Dashboard
+                </li>
+              )}
+              <li
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() =>
+                  logout({ logoutParams: { returnTo: window.location.origin } })
+                }
+              >
+                Logout
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+</header>
+
       <Dialog open={open} onClose={handleClose} >
         <DialogTitle>Set Location</DialogTitle>
         <DialogContent
