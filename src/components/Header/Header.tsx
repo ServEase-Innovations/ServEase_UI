@@ -492,17 +492,16 @@ useEffect(() => {
 />
 
     {/* Tablet logo */}
-    <img
-      src="NewLogoDesing.png"
-      alt="ServEase Logo"
-      className="hidden md:block lg:hidden h-16 w-auto max-w-[200px]"
-    />
+<img
+  src="NewLogoDesing.png"
+  alt="ServEase Logo"
+  className="hidden md:block lg:hidden h-[9rem] w-auto max-w-[200px]"
+/>
     {/* Desktop logo */}
     <img
       src="NewLogoDesing.png"
       alt="ServEase Logo"
       className="hidden lg:block h-48 w-auto max-w-[340px]"
-      //className="hidden h-48 w-auto max-w-[340px]"
     />
   </div>
 
