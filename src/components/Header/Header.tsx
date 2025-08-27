@@ -479,14 +479,14 @@ useEffect(() => {
 
   return (
     <>
-      <header
-        // className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm px-6 md:px-20 py-4 flex items-center justify-between"
-         className="fixed top-0 left-0 right-0 z-50 bg-blue-50  shadow-sm px-4 md:px-15 py-4 flex items-center justify-between"
-        style={{ height: "10%" }}
-      >
+<header
+  className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-15 py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
+  style={{ height: "10%" }}
+>
+
         <div className="flex items-center space-x-2" onClick={() => handleClick("")}>
 <img
-  src="ServEasoLogoNew.png"
+  src="NewLogoDesing.png"
   alt="ServEase Logo"
   className="h-48 w-auto max-w-[340px]"
 />
@@ -556,9 +556,15 @@ useEffect(() => {
           </div>
 
    <Badge badgeContent={totalCartItems} color="primary">
- <Button variant="ghost" size="icon" className={undefined} onClick={handleCartOpen}>
-    <ShoppingCart className="w-5 h-5" />
-  </Button>
+<Button
+  variant="ghost"
+  size="icon"
+  className="bg-white rounded-full shadow"
+  onClick={handleCartOpen}
+>
+  <ShoppingCart className="w-5 h-5" />
+</Button>
+
 </Badge>
           {!isAuthenticated ? (
             <Button

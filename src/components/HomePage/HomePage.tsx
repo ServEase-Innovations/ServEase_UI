@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { Card, CardContent } from "../Card/card";
-import { CalendarIcon, HandIcon, HomeIcon, MapPin, ShoppingCart, User } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight, HandIcon, HomeIcon, MapPin, ShoppingCart, User } from "lucide-react";
 import DialogComponent from "../Common/Dialog/DialogComponent";
 import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -207,56 +207,132 @@ useEffect(() => {
   }
 }, [isAuthenticated, auth0User]);
 
+ // Carousel state
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const images = ['MAID.png', 'NANNY.png', 'COOK.png'];
+
+    // Carousel navigation functions
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
+
+    const prevSlide = () => {
+        setCurrentSlide((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const goToSlide = (index: number) => {
+        setCurrentSlide(index);
+    };
+
+    // Auto-advance carousel
+    useEffect(() => {
+        const interval = setInterval(() => {
+            nextSlide();
+        }, 5000); // Change slide every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [currentSlide]);
+    
     return (
         <main className="pt-16">
             {/* Hero Section */}
-            <section className="bg-white py-8 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between">
-                <div className="md:w-1/2 space-y-4">
-                    <h1 className="text-3xl font-bold leading-tight">
-                        Book trusted household help in minutes
-                    </h1>
-                    <p className="text-gray-600 text-sm">
-                       ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.
-                    </p>
-                    <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
-                        <div className="card" onClick={() => handleClick('COOK')}>
-                            <div className="card-body">
-                                <img src="../CookNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
-                            </div>
-                        </div>
-                        <div className="card" onClick={() => handleClick('MAID')}>
-                            <div className="card-body">
-                                <img src="../MaidNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
-                            </div>
-                        </div>
-                        <div className="card"onClick={() => handleClick('NANNY')}>
-                            <div className="card-body">
-                                <img src="../NannyNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-3 pt-3" style={{justifyContent:'center'}}>
-                        <Button variant="outline" className="text-sm px-4 py-2"   onClick={() => setChatbotOpen(true)}>I need help</Button>
-                      {role !== "CUSTOMER" && ( // 👈 condition here
-    <Button
-      variant="outline"
-      className="text-sm px-4 py-2"
-      onClick={handleWorkClick}
-    >
-      I want to work
-    </Button>
-  )}
-                    </div>
-                </div>
-                <div className="md:w-1/2 mt-8 md:mt-0">
-                    <img
-                        src="maid-hero.png"
-                        alt="Smiling house helper"
-                        className="rounded-xl shadow-md w-full max-w-md mx-auto"
-                        style={{ maxHeight: '280px', objectFit: 'cover' }}
-                    />
-                </div>
-            </section>
+<section className="py-8 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad] text-white">
+
+  <div className="md:w-1/2 space-y-4">
+    <h1 className="text-3xl font-bold leading-tight">
+      Book trusted and trained house-help in minutes
+    </h1>
+    <p className="text-sm opacity-90">
+      ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.
+    </p>
+
+    <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
+      <div className="card cursor-pointer" onClick={() => handleClick('COOK')}>
+        <div className="card-body">
+          <img src="../CookNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
+        </div>
+      </div>
+      <div className="card cursor-pointer" onClick={() => handleClick('MAID')}>
+        <div className="card-body">
+          <img src="../MaidNew.png" alt="Maid" style={{ height: '100px', width: '100px' }} />
+        </div>
+      </div>
+      <div className="card cursor-pointer" onClick={() => handleClick('NANNY')}>
+        <div className="card-body">
+          <img src="../NannyNew.png" alt="Nanny" style={{ height: '100px', width: '100px' }} />
+        </div>
+      </div>
+    </div>
+
+    {/* Buttons */}
+    <div className="flex gap-3 pt-3 justify-center">
+      <Button 
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+        onClick={() => setChatbotOpen(true)}
+      >
+        I need help
+      </Button>
+
+      {role !== "CUSTOMER" && (
+        <Button
+          className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+          onClick={handleWorkClick}
+        >
+          I want to work
+        </Button>
+      )}
+    </div>
+  </div>
+
+  {/* Carousel Section */}
+  <div className="w-full md:w-1/2 mt-8 md:mt-0 flex justify-center">
+    <div className="relative w-full max-w-sm sm:max-w-md md:max-w-sm lg:max-w-md mx-auto">
+      <div className="relative overflow-hidden rounded-xl shadow-md h-48 sm:h-64 md:h-72 lg:h-80">
+        {images.map((img, index) => (
+          <img
+            key={index}
+            src={img}
+            alt={`Service ${index + 1}`}
+            className={`absolute top-0 left-0 w-full h-full object-cover object-top transition-opacity duration-500 ${
+              index === currentSlide ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Navigation buttons */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white text-[#0a2a66] rounded-full p-2 shadow-md hover:bg-gray-200 transition-colors"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+      </button>
+      <button
+        onClick={nextSlide}
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-[#0a2a66] rounded-full p-2 shadow-md hover:bg-gray-200 transition-colors"
+        aria-label="Next slide"
+      >
+        <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+      </button>
+
+      {/* Indicators */}
+      <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center space-x-2">
+        {images.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToSlide(index)}
+            className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
+              index === currentSlide ? "bg-white" : "bg-gray-400"
+            } hover:bg-gray-300 transition-colors`}
+            aria-label={`Go to slide ${index + 1}`}
+          ></button>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
 
             {/* Services Section */}
             <section className="py-10 px-6 md:px-20">
@@ -282,7 +358,7 @@ useEffect(() => {
     type: "babycare",
   },
 ].map((service, index) => (
-  <Card key={index} className="text-center p-5">
+  <Card key={index} className="text-center p-5 transition-all duration-200 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white border border-blue-100">
     <CardContent className="space-y-3">
       <div className="text-4xl">{service.icon}</div>
       <h3 className="text-lg font-semibold">{service.title}</h3>
