@@ -7,6 +7,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
 import axiosInstance from '../../services/axiosInstance';
 import { Button } from "../Button/button";
+
 interface Booking {
   bookingType: string;
   id: number;
@@ -53,7 +54,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [selectedSection, setSelectedSection] = useState<
-    "OPTIONS" | "BOOKING" | "VACATION"
+    "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
   >("OPTIONS");
 
   const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
@@ -65,92 +66,65 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     return date.isBefore(min, "day") || date.isAfter(max, "day");
   };
 
-  // Check if modification is allowed based on time (30 minutes before booking)
-  const isModificationTimeAllowed = (startDate: string, timeSlot: string) => {
-    const today = dayjs();
+  // Extract the actual booked time from the booking
+  const getBookedTime = () => {
+    if (!booking) return dayjs();
     
-    // Parse the time slot (e.g., "04:00 AM")
-    const [time, period] = timeSlot.split(' ');
+    // Parse the time slot from the booking
+    const [time, period] = booking.timeSlot.split(' ');
     const [hoursStr, minutesStr] = time.split(':');
-    
     let hours = parseInt(hoursStr, 10);
     const minutes = parseInt(minutesStr, 10);
     
     // Convert to 24-hour format
-    if (period === 'PM' && hours !== 12) {
-      hours += 12;
-    } else if (period === 'AM' && hours === 12) {
-      hours = 0;
-    }
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
     
-    // Create a dayjs object for the booking datetime
-    const bookingDateTime = dayjs(startDate)
-      .set('hour', hours)
-      .set('minute', minutes)
-      .set('second', 0);
-    
-    // Check if current time is at least 30 minutes before the booking
-    return today.isBefore(bookingDateTime.subtract(30, 'minute'));
+    // Create a dayjs object with the booked time
+    const bookedDate = dayjs(booking.startDate);
+    return bookedDate.set('hour', hours).set('minute', minutes).set('second', 0);
   };
 
-  // Check if booking has already been modified
+  // --- Checks for modification eligibility ---
+  const isModificationTimeAllowed = (startDate: string, timeSlot: string) => {
+    const now = dayjs();
+    const [time, period] = timeSlot.split(' ');
+    const [hoursStr, minutesStr] = time.split(':');
+    let hours = parseInt(hoursStr, 10);
+    const minutes = parseInt(minutesStr, 10);
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    const bookingDateTime = dayjs(startDate).set('hour', hours).set('minute', minutes).set('second', 0);
+    return now.isBefore(bookingDateTime.subtract(30, 'minute'));
+  };
+
   const isBookingAlreadyModified = (booking: Booking | null): boolean => {
     if (!booking) return false;
     return new Date(booking.modifiedDate).getTime() !== new Date(booking.bookingDate).getTime();
   };
 
-  // Get appropriate error message based on the disabled condition
   const getModificationStatusMessage = (booking: Booking | null): string => {
     if (!booking) return "";
-    
-    const timeAllowed = isModificationTimeAllowed(booking.startDate, booking.timeSlot);
-    const alreadyModified = isBookingAlreadyModified(booking);
-    
-    if (alreadyModified) {
-      return "This booking has already been modified and cannot be modified again.";
-    }
-    
-    if (!timeAllowed) {
-      return "Modification is only allowed at least 30 minutes before the scheduled time.";
-    }
-    
+    if (isBookingAlreadyModified(booking)) return "This booking has already been modified and cannot be modified again.";
+    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) return "Modification is only allowed at least 30 minutes before the scheduled time.";
     return "";
   };
 
-  // Check if modification is disabled based on both conditions
   const isModificationDisabled = (booking: Booking | null): boolean => {
     if (!booking) return true;
-    
-    const timeNotAllowed = !isModificationTimeAllowed(booking.startDate, booking.timeSlot);
-    const alreadyModified = isBookingAlreadyModified(booking);
-    
-    return timeNotAllowed || alreadyModified;
-  };
-
-  const handleStartDateChange = (newValue: Dayjs | null) => {
-    setStartDate(newValue);
-
-    if (newValue && booking?.bookingType === "MONTHLY") {
-      setEndDate(newValue.add(1, "month"));
-    } else if (newValue && booking?.bookingType === "SHORT_TERM") {
-      setEndDate(newValue.add(1, "day"));
-    }
+    return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || isBookingAlreadyModified(booking);
   };
 
   const handleSubmit = async () => {
     if (!startDate || !booking) return;
-
-    // Check if modification is disabled based on both conditions
     if (isModificationDisabled(booking)) {
       setError(getModificationStatusMessage(booking));
       return;
     }
-
     setIsLoading(true);
     setError(null);
 
     const timePortion = startDate.format("HH:mm");
-
     let finalEndDate = startDate;
     if (booking.bookingType === "MONTHLY") {
       finalEndDate = startDate.add(1, "month");
@@ -159,32 +133,22 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     }
 
     try {
-      let updatePayload: any = {
+      const updatePayload: any = {
         customerId: customerId,
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: finalEndDate.format("YYYY-MM-DD"),
         timeslot: timePortion,
         modifiedBy: "CUSTOMER",
       };
-
-      const response = await axiosInstance.put(
-        `/api/serviceproviders/update/engagement/${booking.id}`,
-        updatePayload
-      );
-
-      // Call the parent onSave with updated data
+      await axiosInstance.put(`/api/serviceproviders/update/engagement/${booking.id}`, updatePayload);
       onSave({
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: finalEndDate.format("YYYY-MM-DD"),
         timeSlot: timePortion,
       });
-
     } catch (error: any) {
       console.error("Error updating booking:", error);
       setError("Failed to update booking. Please try again.");
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +156,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 
   useEffect(() => {
     if (open && booking) {
-      setStartDate(dayjs(booking.startDate));
+      const bookedTime = getBookedTime();
+      setStartDate(bookedTime);
       setEndDate(dayjs(booking.endDate));
       setError(null);
       setSelectedSection("OPTIONS");
@@ -204,7 +169,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const modificationDisabled = isModificationDisabled(booking);
   const statusMessage = getModificationStatusMessage(booking);
 
-  // Handle backdrop click to close
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).id === "dialog-backdrop") {
       onClose();
@@ -217,154 +181,101 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       onClick={handleBackdropClick}
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
     >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md relative"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside dialog
-      >
-        {/* Header with Close button */}
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md relative" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b flex justify-between items-center">
           <h3 className="text-lg font-semibold">Modify Options</h3>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
+          <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
         </div>
 
-        {/* Error message */}
-        {error && (
-          <div className="p-4 bg-red-50 border-b border-red-200">
-            <p className="text-red-700 text-sm">{error}</p>
-          </div>
-        )}
+        {error && (<div className="p-4 bg-red-50 border-b border-red-200"><p className="text-red-700 text-sm">{error}</p></div>)}
 
-        {/* Section Switcher */}
+        {/* Options */}
         {selectedSection === "OPTIONS" && (
           <div className="p-6 flex flex-col gap-4">
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => setSelectedSection("VACATION")}
-            >
-              Modify Vacation
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => setSelectedSection("BOOKING")}
-              disabled={modificationDisabled}
-            >
-              Modify Booking
-            </Button>
-            {modificationDisabled && (
-              <p className="text-sm text-red-600 text-center">
-                {statusMessage}
-              </p>
+            <Button variant="outlined" fullWidth onClick={() => setSelectedSection("VACATION")}>Modify Vacation</Button>
+
+            {booking.bookingType === "MONTHLY" && (
+              <>
+                <Button variant="contained" fullWidth onClick={() => setSelectedSection("BOOKING_DATE")} disabled={modificationDisabled}>Reschedule Date</Button>
+                <Button variant="contained" fullWidth onClick={() => setSelectedSection("BOOKING_TIME")} disabled={modificationDisabled}>Reschedule Time</Button>
+              </>
             )}
+
+            {modificationDisabled && (<p className="text-sm text-red-600 text-center">{statusMessage}</p>)}
           </div>
         )}
 
-        {/* Modify Booking Section */}
-        {selectedSection === "BOOKING" && (
+        {/* Reschedule Date */}
+        {selectedSection === "BOOKING_DATE" && (
           <>
             <div className="p-4 space-y-4">
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <div>
-                 
-                  <DateTimePicker
-                    label="Select Start Date & Time"
-                    value={startDate}
-                    onChange={handleStartDateChange}
-                    minDate={today}
-                    maxDate={maxDate90Days}
-                    shouldDisableDate={shouldDisableStartDate}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        size: "small",
-                      },
-                    }}
-                    ampm={false}
-                    format="YYYY-MM-DD HH:mm"
-                  />
-                </div>
-
-                {booking.bookingType === "SHORT_TERM" && (
-                  <div>
-                    <Typography variant="subtitle2" sx={{ mt: 2 }}>
-                      New End Date
-                    </Typography>
-                    <DateTimePicker
-                      label="Select End Date"
-                      value={endDate}
-                      onChange={(newValue) => setEndDate(newValue)}
-                      minDate={startDate ? startDate.add(1, "day") : today}
-                      maxDate={startDate ? startDate.add(20, "day") : today}
-                      shouldDisableDate={shouldDisableEndDate}
-                      disabled={!startDate}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          size: "small",
-                        },
-                      }}
-                    />
-                  </div>
-                )}
+                <DateTimePicker
+                  label="Select New Date"
+                  value={startDate}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      const originalTime = dayjs(booking.startDate);
+                      const updated = newValue.set("hour", originalTime.hour()).set("minute", originalTime.minute());
+                      setStartDate(updated);
+                    }
+                  }}
+                  views={['year','month','day']}
+                  minDate={today}
+                  maxDate={maxDate90Days}
+                  shouldDisableDate={shouldDisableStartDate}
+                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                />
               </LocalizationProvider>
             </div>
-
             <div className="p-4 border-t flex justify-between">
-              <button
-                onClick={() => setSelectedSection("OPTIONS")}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={
-                    isLoading ||
-                    !startDate ||
-                    (booking.bookingType === "SHORT_TERM" && !endDate) ||
-                    modificationDisabled
-                  }
-                >
-                  {isLoading ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
+              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
+              <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md">Save Date</button>
             </div>
           </>
         )}
 
-        {/* Modify Vacation Section (Placeholder for now) */}
+        {/* Reschedule Time */}
+        {selectedSection === "BOOKING_TIME" && (
+          <>
+            <div className="p-4 space-y-4">
+              <div className="mb-4">
+                <Typography variant="body2" className="text-gray-600 mb-2">
+                  Current Booked Time: <strong>{booking.timeSlot}</strong>
+                </Typography>
+              </div>
+              
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DateTimePicker
+                  label="Select New Time"
+                  value={startDate}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      const originalDate = dayjs(booking.startDate);
+                      const updated = originalDate.set("hour", newValue.hour()).set("minute", newValue.minute());
+                      setStartDate(updated);
+                    }
+                  }}
+                  views={['hours','minutes']}
+                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                  ampm={true}
+                />
+              </LocalizationProvider>
+            </div>
+            <div className="p-4 border-t flex justify-between">
+              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
+              <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md">Save Time</button>
+            </div>
+          </>
+        )}
+
+        {/* Vacation Section */}
         {selectedSection === "VACATION" && (
           <div className="p-6 space-y-4">
-            <Typography variant="body1">
-              Vacation modification section will go here.
-            </Typography>
-
+            <Typography variant="body1">Vacation modification section will go here.</Typography>
             <div className="p-4 border-t flex justify-between">
-              <button
-                onClick={() => setSelectedSection("OPTIONS")}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Close
-              </button>
+              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
+              <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md">Close</button>
             </div>
           </div>
         )}

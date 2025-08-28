@@ -493,7 +493,7 @@ const handleSaveModifiedBooking = async (updatedData: {
           My Bookings
         </h1>
         <p className="mt-2 opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
-          Manage your household service appointments
+          Manage your househelp service appointments
         </p>
       </div>
 
@@ -632,31 +632,23 @@ const handleSaveModifiedBooking = async (updatedData: {
                   </div>
                   
                   <Separator />
-                  
-      <div className="flex flex-wrap gap-2">
-  {booking.taskStatus === "CANCELLED" ? (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex-1 min-w-0 justify-center text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2"
-    >
-      Book Again
-    </Button>
-  ) : (
+ <div className="flex flex-wrap gap-2">
+  {/* ACTIVE Status */}
+  {booking.taskStatus === "ACTIVE" && (
     <>
-      {booking.address && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 min-w-0 justify-center 
-                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                     w-1/3 sm:w-auto"
-        >
-          <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-          Call Provider
-        </Button>
-      )}
+      {/* Call Provider Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+        Call Provider
+      </Button>
 
+      {/* Message Button - Show for all booking types */}
       <Button
         variant="outline"
         size="sm"
@@ -668,23 +660,7 @@ const handleSaveModifiedBooking = async (updatedData: {
         Message
       </Button>
 
-      {booking.bookingType !== "ON_DEMAND" &&
-        booking.bookingType !== "SHORT_TERM" && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 min-w-0 justify-center 
-                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                       w-1/3 sm:w-auto"
-            onClick={() => handleVacationClick(booking)}
-            disabled={hasMatchingHolidayIds(booking) || isRefreshing}
-          >
-            {hasMatchingHolidayIds(booking)
-              ? "Vacation Added"
-              : "Add Vacation"}
-          </Button>
-        )}
-
+      {/* Cancel Booking Button - Show for all booking types */}
       <Button
         variant="destructive"
         size="sm"
@@ -697,6 +673,7 @@ const handleSaveModifiedBooking = async (updatedData: {
         Cancel Booking
       </Button>
 
+      {/* Modify Booking Button - Show only for MONTHLY bookings */}
       {booking.bookingType === "MONTHLY" && (
         <Button
           variant="outline"
@@ -710,10 +687,215 @@ const handleSaveModifiedBooking = async (updatedData: {
           Modify Booking
         </Button>
       )}
+
+      {/* Add Vacation Button - Show only for MONTHLY bookings */}
+      {booking.bookingType === "MONTHLY" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+          onClick={() => handleVacationClick(booking)}
+          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
+        >
+          {hasMatchingHolidayIds(booking)
+            ? "Vacation Added"
+            : "Add Vacation"}
+        </Button>
+      )}
+    </>
+  )}
+
+  {/* IN_PROGRESS Status */}
+  {booking.taskStatus === "IN_PROGRESS" && (
+    <>
+      {/* Call Provider Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+        Call Provider
+      </Button>
+
+      {/* Message Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Message
+      </Button>
+
+      {/* Cancel Booking Button - Show for all booking types (optional) */}
+      <Button
+        variant="destructive"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+        onClick={() => handleCancelClick(booking)}
+      >
+        <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Cancel Booking
+      </Button>
+
+      {/* Add Vacation Button - Show only for MONTHLY bookings */}
+      {booking.bookingType === "MONTHLY" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+          onClick={() => handleVacationClick(booking)}
+          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
+        >
+          {hasMatchingHolidayIds(booking)
+            ? "Vacation Added"
+            : "Add Vacation"}
+        </Button>
+      )}
+    </>
+  )}
+
+  {/* NOT_STARTED Status */}
+  {booking.taskStatus === "NOT_STARTED" && (
+    <>
+      {/* Call Provider Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+        Call Provider
+      </Button>
+
+      {/* Message Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Message
+      </Button>
+
+      {/* Cancel Booking Button - Show for all booking types */}
+      <Button
+        variant="destructive"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+        onClick={() => handleCancelClick(booking)}
+      >
+        <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Cancel Booking
+      </Button>
+
+      {/* Modify Booking Button - Show only for MONTHLY bookings */}
+      {booking.bookingType === "MONTHLY" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+          onClick={() => handleModifyClick(booking)}
+        >
+          <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+          Modify Booking
+        </Button>
+      )}
+
+      {/* Add Vacation Button - Show only for MONTHLY bookings */}
+      {booking.bookingType === "MONTHLY" && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 min-w-0 justify-center 
+                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                     w-1/3 sm:w-auto"
+          onClick={() => handleVacationClick(booking)}
+          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
+        >
+          {hasMatchingHolidayIds(booking)
+            ? "Vacation Added"
+            : "Add Vacation"}
+        </Button>
+      )}
+    </>
+  )}
+
+  {/* COMPLETED Status */}
+  {booking.taskStatus === "COMPLETED" && (
+    <>
+      {/* Rate Service Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <Star className="h-4 w-4 mr-1 sm:mr-2" />
+        Rate Service
+      </Button>
+
+      {/* Leave Review Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Leave Review
+      </Button>
+
+      {/* Book Again Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        Book Again
+      </Button>
+    </>
+  )}
+
+  {/* CANCELLED Status */}
+  {booking.taskStatus === "CANCELLED" && (
+    <>
+      {/* Book Again Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                   w-1/3 sm:w-auto"
+      >
+        Book Again
+      </Button>
     </>
   )}
 </div>
-
 
                 </CardContent>
               </Card>
@@ -807,44 +989,79 @@ const handleSaveModifiedBooking = async (updatedData: {
                   
                   <Separator />
                   
-                 <div className="flex flex-wrap gap-2">
-  {booking.taskStatus === "completed" && (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex-1 min-w-0 justify-center 
-                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                 w-1/3 sm:w-auto"
-    >
-      <Star className="h-4 w-4 mr-1 sm:mr-2" />
-      Rate Service
-    </Button>
+<div className="flex flex-wrap gap-2">
+  {/* NOT_STARTED Status - Show only Book Again for all booking types */}
+  {booking.taskStatus === "NOT_STARTED" && (
+    <>
+      {/* Book Again Button - Show for all booking types */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                   w-1/3 sm:w-auto"
+      >
+        Book Again
+      </Button>
+    </>
   )}
 
-  <Button
-    variant="outline"
-    size="sm"
-    className="flex-1 min-w-0 justify-center 
-               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-               w-1/3 sm:w-auto"
-  >
-    Book Again
-  </Button>
+  {/* COMPLETED Status - Show for all booking types */}
+  {booking.taskStatus === "COMPLETED" && (
+    <>
+      {/* Rate Service Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                   w-1/3 sm:w-auto"
+      >
+        <Star className="h-4 w-4 mr-1 sm:mr-2" />
+        Rate Service
+      </Button>
 
-  {booking.taskStatus === "completed" && (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex-1 min-w-0 justify-center 
-                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                 w-1/3 sm:w-auto"
-    >
-      <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-      Leave Review
-    </Button>
+      {/* Leave Review Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                   w-1/3 sm:w-auto"
+      >
+        <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Leave Review
+      </Button>
+
+      {/* Book Again Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                   w-1/3 sm:w-auto"
+      >
+        Book Again
+      </Button>
+    </>
+  )}
+
+  {/* CANCELLED Status - Show for all booking types */}
+  {booking.taskStatus === "CANCELLED" && (
+    <>
+      {/* Book Again Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 min-w-0 justify-center 
+                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                   w-1/3 sm:w-auto"
+      >
+        Book Again
+      </Button>
+    </>
   )}
 </div>
-
                 </CardContent>
               </Card>
             ))}
