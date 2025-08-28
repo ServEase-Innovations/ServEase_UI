@@ -66,7 +66,7 @@ const ProfileScreen = () => {
     <button
       className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors w-full md:w-auto text-center"
       style={{
-        backgroundColor: "rgb(14, 48, 92)",
+        backgroundColor: "rgba(21, 82, 162, 1)",
         color: "white",
       }}
     >
