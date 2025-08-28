@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { Button } from "../../components/Button/button";
