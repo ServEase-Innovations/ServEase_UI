@@ -498,7 +498,7 @@ const handleSaveModifiedBooking = async (updatedData: {
 
     {/* Centered Title + Subtitle */}
     <div className="text-center md:text-center mt-6 md:mt-0">
-      <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
+      <h1 className="text-2xl md:text-3xl font-bold mt-6 md:mt-0" style={{ color: "rgb(14, 48, 92)" }}>
         My Bookings
       </h1>
       <p className="mt-1 text-sm md:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
