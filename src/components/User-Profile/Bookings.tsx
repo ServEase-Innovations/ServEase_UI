@@ -18,6 +18,7 @@ import { ClipLoader } from 'react-spinners';
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
 import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
+import WalletDialog from './Wallet';
 
 interface CustomerHoliday {
   id: number;
@@ -91,6 +92,7 @@ const Booking: React.FC = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -527,7 +529,8 @@ const handleSaveModifiedBooking = async (updatedData: {
 
       {/* Wallet Icon */}
       <div className="flex flex-col items-center">
-        <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200">
+        <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
+        onClick={() => setWalletDialogOpen(true)}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
@@ -1144,8 +1147,11 @@ const handleSaveModifiedBooking = async (updatedData: {
 <AddReviewDialog
   open={reviewDialogOpen}
   onClose={() => setReviewDialogOpen(false)}
-  // You can pass the booking data if needed in the review dialog
   booking={selectedReviewBooking}
+/>
+<WalletDialog 
+  open={walletDialogOpen}
+  onClose={() => setWalletDialogOpen(false)}
 />
     {/* Snackbar for notifications */}
     <Snackbar
