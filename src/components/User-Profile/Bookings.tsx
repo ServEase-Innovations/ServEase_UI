@@ -17,6 +17,7 @@ import dayjs from 'dayjs';
 import { ClipLoader } from 'react-spinners';
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
 import ConfirmationDialog from './ConfirmationDialog';
+import AddReviewDialog from './AddReviewDialog';
 
 interface CustomerHoliday {
   id: number;
@@ -88,7 +89,9 @@ const Booking: React.FC = () => {
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
+
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -307,7 +310,10 @@ const hasMatchingHolidayIds = (booking: Booking): boolean => {
       'warning'
     );
   };
-
+const handleLeaveReviewClick = (booking: Booking) => {
+  setSelectedReviewBooking(booking);
+  setReviewDialogOpen(true);
+};
  const handleModifyClick = (booking: Booking) => {
   setSelectedBooking(booking);
   setModifyDialogOpen(true);
@@ -476,33 +482,36 @@ const handleSaveModifiedBooking = async (updatedData: {
  return (
   <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
     {/* Header */}  
-    <div
-  className="py-12"
+<div
+  className="py-8"
   style={{
     background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
     color: "rgb(14, 48, 92)",
   }}
 >
-  <div className="container mx-auto px-4">
-    {/* Flex container: left = centered title/subtitle, right = search */}
-    <div className="flex flex-col md:flex-row items-center md:justify-between">
-      
-      {/* Title + Subtitle (center aligned) */}
-      <div className="flex flex-col items-center text-center md:items-center md:text-center w-full">
-        <h1 className="text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
-          My Bookings
-        </h1>
-        <p className="mt-2 opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
-          Manage your househelp service appointments
-        </p>
-      </div>
+  <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
 
-      {/* Search Bar (keeps its right-side position) */}
-      <div className="relative w-full md:w-64 mt-4 md:mt-0">
+    {/* Left empty on desktop to center title */}
+    <div className="hidden md:block"></div>
+
+    {/* Centered Title + Subtitle */}
+    <div className="text-center md:text-center mt-6 md:mt-0">
+      <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
+        My Bookings
+      </h1>
+      <p className="mt-1 text-sm md:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
+        Manage your househelp service appointments
+      </p>
+    </div>
+
+    {/* Right Side: Search + Wallet */}
+    <div className="flex items-center justify-end w-full md:w-auto gap-2 mt-[-1.5rem] md:mt-0">
+      {/* Search Input */}
+      <div className="relative flex-1 md:flex-none">
         <input
           type="text"
           placeholder="Search bookings..."
-          className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-[14px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+          className="w-full md:w-64 px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -515,9 +524,34 @@ const handleSaveModifiedBooking = async (updatedData: {
           </button>
         )}
       </div>
+
+      {/* Wallet Icon */}
+      <div className="flex flex-col items-center">
+        <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="rgb(14, 48, 92)"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+            />
+          </svg>
+        </button>
+        <span className="mt-1 text-sm" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
+      </div>
     </div>
+
   </div>
 </div>
+
+
+
 
 
 
@@ -862,6 +896,7 @@ const handleSaveModifiedBooking = async (updatedData: {
         className="flex-1 min-w-0 justify-center 
                    text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
                    w-1/3 sm:w-auto"
+      onClick={() => handleLeaveReviewClick(booking)}
       >
         <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
         Leave Review
@@ -1028,6 +1063,7 @@ const handleSaveModifiedBooking = async (updatedData: {
         className="flex-1 min-w-0 justify-center 
                    text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
                    w-1/3 sm:w-auto"
+        onClick={() => handleLeaveReviewClick(booking)}
       >
         <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
         Leave Review
@@ -1105,7 +1141,12 @@ const handleSaveModifiedBooking = async (updatedData: {
       loading={actionLoading}
       severity={confirmationDialog.severity}
     />
-
+<AddReviewDialog
+  open={reviewDialogOpen}
+  onClose={() => setReviewDialogOpen(false)}
+  // You can pass the booking data if needed in the review dialog
+  booking={selectedReviewBooking}
+/>
     {/* Snackbar for notifications */}
     <Snackbar
       open={openSnackbar}

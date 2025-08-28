@@ -5,6 +5,8 @@ import moment from "moment";
 import "./ProviderDetails.css"; 
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { Bookingtype } from "../../types/bookingTypeData";
 import { useDispatch, useSelector } from "react-redux";
 import { add, update } from "../../features/bookingType/bookingTypeSlice";
@@ -56,6 +58,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false); // New state for favorite status
 
   const hasCheckedRef = useRef(false);
 
@@ -100,6 +103,14 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       setMatchedMorningSelection(null);
       dispatch(update({ morningSelection: null }));
     }
+  };
+
+  // Toggle favorite status
+  const toggleFavorite = (event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering expand/collapse
+    setIsFavorite(!isFavorite);
+    // Here you would typically make an API call to save the favorite status
+    console.log("Favorite toggled for provider:", props.serviceproviderId, "New status:", !isFavorite);
   };
 
   const checkMissingTimeSlots = () => {
@@ -288,6 +299,22 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           >
             Book Now
           </Button>
+           {/* Favorite Button */}
+          <IconButton
+            onClick={toggleFavorite}
+            sx={{ 
+              position: 'absolute', 
+              top: 10, 
+              right: 180, 
+              color: isFavorite ? 'red' : 'gray',
+              '&:hover': {
+                color: isFavorite ? 'darkred' : 'darkgray'
+              }
+            }}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+          </IconButton>
 
           <div className={`content ${isExpanded ? "expanded" : ""}`}>
             <div className="essentials">
