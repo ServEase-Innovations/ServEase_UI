@@ -27,7 +27,20 @@ export const DialogContainer = styled.div`
   max-width: 550px;
   width: 100%;
 `;
+export const CareTypeSection = styled.div`
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: #fafafa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+`;
 
+export const CareTypeTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0e305c;
+  margin-bottom: 1rem;
+`;
 // Add this new styled component at the top of your styles file
 export const CloseButton = styled(IconButton)`
   position: absolute;

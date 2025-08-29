@@ -6,7 +6,7 @@ import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../..
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import { Button } from '../../components/Button/button';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -54,17 +54,28 @@ const [termsAccepted, setTermsAccepted] = useState({
   termsConditions: false, 
   privacyPolicy: false
 });
-
+ // Reset checkboxes whenever dialog closes
+  useEffect(() => {
+    if (!open) {
+      setTermsAccepted({
+        keyFacts: false,
+        termsConditions: false,
+        privacyPolicy: false,
+      });
+    }
+  }, [open]); // 👈 runs whenever `open` changes
 // Check if ALL terms are accepted
 const allTermsAccepted = termsAccepted.keyFacts && 
                         termsAccepted.termsConditions && 
                         termsAccepted.privacyPolicy;
-const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.ChangeEvent<HTMLInputElement>) => {
-  setTermsAccepted(prev => ({
-    ...prev,
-    [term]: e.target.checked
-  }));
-};
+const handleCheckboxChange =
+    (term: keyof typeof termsAccepted) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTermsAccepted((prev) => ({
+        ...prev,
+        [term]: e.target.checked,
+      }));
+    };
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{
       sx: {

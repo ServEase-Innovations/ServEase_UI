@@ -321,27 +321,27 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     return descriptions[type]?.[packageType] || '';
   };
 
-  const calculateTotal = () => {
-    let total = 0;
-    if (activeTab === 'baby') {
-      if (babyPackages.day.selected) total += 16000;
-      if (babyPackages.night.selected) total += 20000;
-      if (babyPackages.fullTime.selected) total += 23000;
-    } else {
-      if (elderlyPackages.day.selected) total += 16000;
-      if (elderlyPackages.night.selected) total += 20000;
-      if (elderlyPackages.fullTime.selected) total += 23000;
-    }
-    return total;
-  };
+const calculateTotal = () => {
+  let total = 0;
+  if (babyPackages.day.selected) total += 16000;
+  if (babyPackages.night.selected) total += 20000;
+  if (babyPackages.fullTime.selected) total += 23000;
+
+  if (elderlyPackages.day.selected) total += 16000;
+  if (elderlyPackages.night.selected) total += 20000;
+  if (elderlyPackages.fullTime.selected) total += 23000;
+
+  return total;
+};
+
 
   const getSelectedPackagesCount = () => {
-    if (activeTab === 'baby') {
-      return Object.values(babyPackages).filter(pkg => pkg.selected).length;
-    } else {
-      return Object.values(elderlyPackages).filter(pkg => pkg.selected).length;
-    }
-  };
+  return (
+    Object.values(babyPackages).filter(pkg => pkg.selected).length +
+    Object.values(elderlyPackages).filter(pkg => pkg.selected).length
+  );
+};
+
 
   const handleApplyVoucher = () => {
     // Voucher logic here
@@ -355,57 +355,61 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     return 'MONTHLY';
   };
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
-  const prepareCartForCheckout = () => {
+const prepareCartForCheckout = () => {
   // Clear all existing cart items
   dispatch(removeFromCart({ type: 'meal' }));
   dispatch(removeFromCart({ type: 'maid' }));
   dispatch(removeFromCart({ type: 'nanny' }));
 
-  // Add only the currently selected packages
-  if (activeTab === 'baby') {
-    Object.entries(babyPackages).forEach(([packageType, pkg]) => {
-      if (pkg.selected) {
-        dispatch(addToCart({
-          type: 'nanny',
-          id: `baby_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-          careType: 'baby',
-          packageType: packageType as 'day' | 'night' | 'fullTime',
-          age: pkg.age,
-          price: getPackagePrice('baby', packageType),
-          description: getPackageDescription('baby', packageType),
-          providerId: providerDetails?.serviceproviderId || '',
-          providerName: providerFullName
-        }));
-      }
-    });
-  } else {
-    Object.entries(elderlyPackages).forEach(([packageType, pkg]) => {
-      if (pkg.selected) {
-        dispatch(addToCart({
-          type: 'nanny',
-          id: `elderly_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-          careType: 'elderly',
-          packageType: packageType as 'day' | 'night' | 'fullTime',
-          age: pkg.age,
-          price: getPackagePrice('elderly', packageType),
-          description: getPackageDescription('elderly', packageType),
-          providerId: providerDetails?.serviceproviderId || '',
-          providerName: providerFullName
-        }));
-      }
-    });
-  }
+  // Add baby packages
+  Object.entries(babyPackages).forEach(([packageType, pkg]) => {
+    if (pkg.selected) {
+      dispatch(addToCart({
+        type: 'nanny',
+        id: `baby_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+        careType: 'baby',
+        packageType: packageType as 'day' | 'night' | 'fullTime',
+        age: pkg.age,
+        price: getPackagePrice('baby', packageType),
+        description: getPackageDescription('baby', packageType),
+        providerId: providerDetails?.serviceproviderId || '',
+        providerName: providerFullName
+      }));
+    }
+  });
+
+  // Add elderly packages
+  Object.entries(elderlyPackages).forEach(([packageType, pkg]) => {
+    if (pkg.selected) {
+      dispatch(addToCart({
+        type: 'nanny',
+        id: `elderly_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+        careType: 'elderly',
+        packageType: packageType as 'day' | 'night' | 'fullTime',
+        age: pkg.age,
+        price: getPackagePrice('elderly', packageType),
+        description: getPackageDescription('elderly', packageType),
+        providerId: providerDetails?.serviceproviderId || '',
+        providerName: providerFullName
+      }));
+    }
+  });
 };
-  const handleOpenCartDialog = () => {
-  const selectedCount = getSelectedPackagesCount();
+
+const handleOpenCartDialog = () => {
+  const selectedCount = 
+    Object.values(babyPackages).filter(pkg => pkg.selected).length +
+    Object.values(elderlyPackages).filter(pkg => pkg.selected).length;
+
   if (selectedCount === 0) {
     setError("Please select at least one package");
     return;
   }
-  
+
   prepareCartForCheckout();
   setCartDialogOpen(true);
 };
+
  
 const handleCheckout = async () => {
   try {
@@ -570,15 +574,18 @@ const handleCheckout = async () => {
   }
 };
 
-  const getSelectedServicesDescription = () => {
-    const selectedPackages = activeTab === 'baby' 
-      ? Object.entries(babyPackages).filter(([_, pkg]) => pkg.selected)
-      : Object.entries(elderlyPackages).filter(([_, pkg]) => pkg.selected);
-    
-    return selectedPackages.map(([pkgType, pkg]) => 
-      `${activeTab === 'baby' ? 'Baby' : 'Elderly'} care (${pkgType}) for age ≤${pkg.age}`
-    ).join(', ');
-  };
+const getSelectedServicesDescription = () => {
+  const selectedBaby = Object.entries(babyPackages)
+    .filter(([_, pkg]) => pkg.selected)
+    .map(([pkgType, pkg]) => `Baby care (${pkgType}) for age ≤${pkg.age}`);
+
+  const selectedElderly = Object.entries(elderlyPackages)
+    .filter(([_, pkg]) => pkg.selected)
+    .map(([pkgType, pkg]) => `Elderly care (${pkgType}) for age ≤${pkg.age}`);
+
+  return [...selectedBaby, ...selectedElderly].join(', ');
+};
+
 
   const renderBabyPackage = (packageType: 'day' | 'night' | 'fullTime') => {
     const packageData = babyPackages[packageType];
