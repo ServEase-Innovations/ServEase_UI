@@ -34,7 +34,12 @@ export const CareTypeSection = styled.div`
   background: #fafafa;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 `;
-
+export const AgeInfoText = styled.span`
+  font-size: 12px;
+  color: #666;
+  margin-left: 8px;
+  font-style: italic;
+`;
 export const CareTypeTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;

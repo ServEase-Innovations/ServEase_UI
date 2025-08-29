@@ -53,12 +53,14 @@ import {
   FooterButtons,
   LoginButton,
   CheckoutButton,
-  CloseButton
+  CloseButton,
+  AgeInfoText
 } from './NannyServicesDialog.styles';
 import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from '../Button/button';
 import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
+import { usePricingFilterService } from 'src/utils/PricingFilter';
 interface NannyServicesDialogProps {
   open: boolean;
   handleClose: () => void;
@@ -73,21 +75,22 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   sendDataToParent
 }) => {
   const [activeTab, setActiveTab] = useState<'baby' | 'elderly'>('baby');
-  const [babyPackages, setBabyPackages] = useState({
-    day: { age: 3, selected: false },
-    night: { age: 3, selected: false },
-    fullTime: { age: 3, selected: false }
-  });
-  const [elderlyPackages, setElderlyPackages] = useState({
-    day: { age: 65, selected: false },
-    night: { age: 65, selected: false },
-    fullTime: { age: 65, selected: false }
-  });
+ const [babyPackages, setBabyPackages] = useState({
+  day: { age: 1, selected: false },
+  night: { age: 1, selected: false },
+  fullTime: { age: 1, selected: false }
+});
+
+const [elderlyPackages, setElderlyPackages] = useState({
+  day: { age: 60, selected: false },
+  night: { age: 60, selected: false },
+  fullTime: { age: 60, selected: false }
+});
   const [loginOpen, setLoginOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const users = useSelector((state: any) => state.user?.value);
   const { user,  loginWithRedirect,isAuthenticated } = useAuth0();
@@ -118,6 +121,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     return initialCartItems;
   });
 
+    const updatedCookServices = getFilteredPricing("nanny");
+    console.log("updatedCookServices",updatedCookServices);
   useEffect(() => {
      if (isAuthenticated && user) {
        console.log("User Info:", user);
@@ -126,66 +131,76 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
      }
    }, [isAuthenticated, user]);
 
- useEffect(() => {
-  const updatedCartItems = { ...cartItems };
-  const updatedBabyPackages = { ...babyPackages };
-  const updatedElderlyPackages = { ...elderlyPackages };
-  
-  // Reset all states
-  Object.keys(cartItems).forEach(key => {
-    if (key.startsWith('baby') || key.startsWith('elderly')) {
-      updatedCartItems[key] = false;
-    }
-  });
+useEffect(() => {
+  const nextCartItems: Record<string, boolean> = {
+    babyDay: false,
+    babyNight: false,
+    babyFullTime: false,
+    elderlyDay: false,
+    elderlyNight: false,
+    elderlyFullTime: false
+  };
 
-  Object.keys(updatedBabyPackages).forEach(key => {
-    updatedBabyPackages[key as keyof typeof updatedBabyPackages].selected = false;
-  });
+  const nextBabyPackages = {
+    day: { ...babyPackages.day, selected: false },
+    night: { ...babyPackages.night, selected: false },
+    fullTime: { ...babyPackages.fullTime, selected: false }
+  };
 
-  Object.keys(updatedElderlyPackages).forEach(key => {
-    updatedElderlyPackages[key as keyof typeof updatedElderlyPackages].selected = false;
-  });
+  const nextElderlyPackages = {
+    day: { ...elderlyPackages.day, selected: false },
+    night: { ...elderlyPackages.night, selected: false },
+    fullTime: { ...elderlyPackages.fullTime, selected: false }
+  };
 
-  // Update based on current cart items
   nannyCartItems.forEach(item => {
     const packageKey = `${item.careType}${item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)}`;
-    updatedCartItems[packageKey as keyof typeof updatedCartItems] = true;
+    nextCartItems[packageKey as keyof typeof nextCartItems] = true;
 
     if (item.careType === 'baby') {
-      updatedBabyPackages[item.packageType as keyof typeof updatedBabyPackages].selected = true;
+      nextBabyPackages[item.packageType].selected = true;
     } else {
-      updatedElderlyPackages[item.packageType as keyof typeof updatedElderlyPackages].selected = true;
+      nextElderlyPackages[item.packageType].selected = true;
     }
   });
 
-  setCartItems(updatedCartItems);
-  setBabyPackages(updatedBabyPackages);
-  setElderlyPackages(updatedElderlyPackages);
-}, [nannyCartItems, open]); // Added 'open' to dependencies
+  // update only if different (prevents infinite loop)
+  setCartItems(prev => (
+    JSON.stringify(prev) !== JSON.stringify(nextCartItems) ? nextCartItems : prev
+  ));
+  setBabyPackages(prev => (
+    JSON.stringify(prev) !== JSON.stringify(nextBabyPackages) ? nextBabyPackages : prev
+  ));
+  setElderlyPackages(prev => (
+    JSON.stringify(prev) !== JSON.stringify(nextElderlyPackages) ? nextElderlyPackages : prev
+  ));
+}, [nannyCartItems, open]);
+
+
 
   const handleLogin = () => setLoginOpen(true);
   const handleLoginClose = () => setLoginOpen(false);
   const handleBookingPage = () => setLoginOpen(false);
 
-  const handleBabyAgeChange = (packageType: keyof typeof babyPackages, value: number) => {
-    setBabyPackages(prev => ({
-      ...prev,
-      [packageType]: {
-        ...prev[packageType],
-        age: Math.max(0, prev[packageType].age + value)
-      }
-    }));
-  };
+const handleBabyAgeChange = (packageType: keyof typeof babyPackages, value: number) => {
+  setBabyPackages(prev => ({
+    ...prev,
+    [packageType]: {
+      ...prev[packageType],
+      age: Math.max(1, Math.min(6, prev[packageType].age + value))
+    }
+  }));
+};
 
-  const handleElderlyAgeChange = (packageType: keyof typeof elderlyPackages, value: number) => {
-    setElderlyPackages(prev => ({
-      ...prev,
-      [packageType]: {
-        ...prev[packageType],
-        age: Math.max(0, prev[packageType].age + value)
-      }
-    }));
-  };
+const handleElderlyAgeChange = (packageType: keyof typeof elderlyPackages, value: number) => {
+  setElderlyPackages(prev => ({
+    ...prev,
+    [packageType]: {
+      ...prev[packageType],
+      age: Math.max(60, Math.min(80, prev[packageType].age + value))
+    }
+  }));
+};
 
   const togglePackageSelection = (packageType: string, isBaby: boolean) => {
     if (isBaby) {
@@ -321,27 +336,27 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     return descriptions[type]?.[packageType] || '';
   };
 
-const calculateTotal = () => {
-  let total = 0;
-  if (babyPackages.day.selected) total += 16000;
-  if (babyPackages.night.selected) total += 20000;
-  if (babyPackages.fullTime.selected) total += 23000;
-
-  if (elderlyPackages.day.selected) total += 16000;
-  if (elderlyPackages.night.selected) total += 20000;
-  if (elderlyPackages.fullTime.selected) total += 23000;
-
-  return total;
-};
-
+  const calculateTotal = () => {
+    let total = 0;
+    if (activeTab === 'baby') {
+      if (babyPackages.day.selected) total += 16000;
+      if (babyPackages.night.selected) total += 20000;
+      if (babyPackages.fullTime.selected) total += 23000;
+    } else {
+      if (elderlyPackages.day.selected) total += 16000;
+      if (elderlyPackages.night.selected) total += 20000;
+      if (elderlyPackages.fullTime.selected) total += 23000;
+    }
+    return total;
+  };
 
   const getSelectedPackagesCount = () => {
-  return (
-    Object.values(babyPackages).filter(pkg => pkg.selected).length +
-    Object.values(elderlyPackages).filter(pkg => pkg.selected).length
-  );
-};
-
+    if (activeTab === 'baby') {
+      return Object.values(babyPackages).filter(pkg => pkg.selected).length;
+    } else {
+      return Object.values(elderlyPackages).filter(pkg => pkg.selected).length;
+    }
+  };
 
   const handleApplyVoucher = () => {
     // Voucher logic here
@@ -355,61 +370,57 @@ const calculateTotal = () => {
     return 'MONTHLY';
   };
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
-const prepareCartForCheckout = () => {
+  const prepareCartForCheckout = () => {
   // Clear all existing cart items
   dispatch(removeFromCart({ type: 'meal' }));
   dispatch(removeFromCart({ type: 'maid' }));
   dispatch(removeFromCart({ type: 'nanny' }));
 
-  // Add baby packages
-  Object.entries(babyPackages).forEach(([packageType, pkg]) => {
-    if (pkg.selected) {
-      dispatch(addToCart({
-        type: 'nanny',
-        id: `baby_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-        careType: 'baby',
-        packageType: packageType as 'day' | 'night' | 'fullTime',
-        age: pkg.age,
-        price: getPackagePrice('baby', packageType),
-        description: getPackageDescription('baby', packageType),
-        providerId: providerDetails?.serviceproviderId || '',
-        providerName: providerFullName
-      }));
-    }
-  });
-
-  // Add elderly packages
-  Object.entries(elderlyPackages).forEach(([packageType, pkg]) => {
-    if (pkg.selected) {
-      dispatch(addToCart({
-        type: 'nanny',
-        id: `elderly_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
-        careType: 'elderly',
-        packageType: packageType as 'day' | 'night' | 'fullTime',
-        age: pkg.age,
-        price: getPackagePrice('elderly', packageType),
-        description: getPackageDescription('elderly', packageType),
-        providerId: providerDetails?.serviceproviderId || '',
-        providerName: providerFullName
-      }));
-    }
-  });
+  // Add only the currently selected packages
+  if (activeTab === 'baby') {
+    Object.entries(babyPackages).forEach(([packageType, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'nanny',
+          id: `baby_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+          careType: 'baby',
+          packageType: packageType as 'day' | 'night' | 'fullTime',
+          age: pkg.age,
+          price: getPackagePrice('baby', packageType),
+          description: getPackageDescription('baby', packageType),
+          providerId: providerDetails?.serviceproviderId || '',
+          providerName: providerFullName
+        }));
+      }
+    });
+  } else {
+    Object.entries(elderlyPackages).forEach(([packageType, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'nanny',
+          id: `elderly_${packageType}_${providerDetails?.serviceproviderId || 'default'}`,
+          careType: 'elderly',
+          packageType: packageType as 'day' | 'night' | 'fullTime',
+          age: pkg.age,
+          price: getPackagePrice('elderly', packageType),
+          description: getPackageDescription('elderly', packageType),
+          providerId: providerDetails?.serviceproviderId || '',
+          providerName: providerFullName
+        }));
+      }
+    });
+  }
 };
-
-const handleOpenCartDialog = () => {
-  const selectedCount = 
-    Object.values(babyPackages).filter(pkg => pkg.selected).length +
-    Object.values(elderlyPackages).filter(pkg => pkg.selected).length;
-
+  const handleOpenCartDialog = () => {
+  const selectedCount = getSelectedPackagesCount();
   if (selectedCount === 0) {
     setError("Please select at least one package");
     return;
   }
-
+  
   prepareCartForCheckout();
   setCartDialogOpen(true);
 };
-
  
 const handleCheckout = async () => {
   try {
@@ -574,18 +585,15 @@ const handleCheckout = async () => {
   }
 };
 
-const getSelectedServicesDescription = () => {
-  const selectedBaby = Object.entries(babyPackages)
-    .filter(([_, pkg]) => pkg.selected)
-    .map(([pkgType, pkg]) => `Baby care (${pkgType}) for age ≤${pkg.age}`);
-
-  const selectedElderly = Object.entries(elderlyPackages)
-    .filter(([_, pkg]) => pkg.selected)
-    .map(([pkgType, pkg]) => `Elderly care (${pkgType}) for age ≤${pkg.age}`);
-
-  return [...selectedBaby, ...selectedElderly].join(', ');
-};
-
+  const getSelectedServicesDescription = () => {
+    const selectedPackages = activeTab === 'baby' 
+      ? Object.entries(babyPackages).filter(([_, pkg]) => pkg.selected)
+      : Object.entries(elderlyPackages).filter(([_, pkg]) => pkg.selected);
+    
+    return selectedPackages.map(([pkgType, pkg]) => 
+      `${activeTab === 'baby' ? 'Baby' : 'Elderly'} care (${pkgType}) for age ≤${pkg.age}`
+    ).join(', ');
+  };
 
   const renderBabyPackage = (packageType: 'day' | 'night' | 'fullTime') => {
     const packageData = babyPackages[packageType];
@@ -641,22 +649,27 @@ const getSelectedServicesDescription = () => {
           </PriceContainer>
         </PackageHeader>
         
-        <PersonsControl>
-          <PersonsLabel>Age:</PersonsLabel>
-          <PersonsInput>
-            <DecrementButton 
-              onClick={() => handleBabyAgeChange(packageType, -1)}
-            >
-              -
-            </DecrementButton>
-            <PersonsValue>≤{packageData.age}</PersonsValue>
-            <IncrementButton 
-              onClick={() => handleBabyAgeChange(packageType, 1)}
-            >
-              +
-            </IncrementButton>
-          </PersonsInput>
-        </PersonsControl>
+       <PersonsControl>
+  <PersonsLabel>Age:</PersonsLabel>
+  <PersonsInput>
+    <DecrementButton 
+      onClick={() => handleBabyAgeChange(packageType, -1)}
+      disabled={packageData.age <= 1}
+    >
+      -
+    </DecrementButton>
+    <PersonsValue>{packageData.age}</PersonsValue>
+    <IncrementButton 
+      onClick={() => handleBabyAgeChange(packageType, 1)}
+      disabled={packageData.age >= 6}
+    >
+      +
+    </IncrementButton>
+  </PersonsInput>
+  {packageData.age === 1 && (
+    <AgeInfoText>Age 1 includes babies from 1 to 12 months</AgeInfoText>
+  )}
+</PersonsControl>
         
         <DescriptionList>
           {descriptionItems.map((item, index) => (
@@ -744,22 +757,27 @@ const getSelectedServicesDescription = () => {
           </PriceContainer>
         </PackageHeader>
         
-        <PersonsControl>
-          <PersonsLabel>Age:</PersonsLabel>
-          <PersonsInput>
-            <DecrementButton 
-              onClick={() => handleElderlyAgeChange(packageType, -1)}
-            >
-              -
-            </DecrementButton>
-            <PersonsValue>≤{packageData.age}</PersonsValue>
-            <IncrementButton 
-              onClick={() => handleElderlyAgeChange(packageType, 1)}
-            >
-              +
-            </IncrementButton>
-          </PersonsInput>
-        </PersonsControl>
+       <PersonsControl>
+  <PersonsLabel>Age:</PersonsLabel>
+  <PersonsInput>
+    <DecrementButton 
+      onClick={() => handleElderlyAgeChange(packageType, -1)}
+      disabled={packageData.age <= 60}
+    >
+      -
+    </DecrementButton>
+    <PersonsValue>{packageData.age}</PersonsValue>
+    <IncrementButton 
+      onClick={() => handleElderlyAgeChange(packageType, 1)}
+      disabled={packageData.age >= 80}
+    >
+      +
+    </IncrementButton>
+  </PersonsInput>
+  {packageData.age === 60 && (
+    <AgeInfoText>For seniors aged 60 and above</AgeInfoText>
+  )}
+</PersonsControl>
         
         <DescriptionList>
           {descriptionItems.map((item, index) => (
