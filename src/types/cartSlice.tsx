@@ -35,6 +35,7 @@ export interface NannyCartItem extends BaseCartItem {
   age: number;
   providerId?: string;  // Add this line
   providerName?: string; // Add this if you need it too
+  activeTab: "baby" | "elderly"; 
 }
 
 // Combined Cart Item type
