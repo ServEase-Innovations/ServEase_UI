@@ -49,7 +49,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle className={`flex items-center justify-between ${getSeverityColor()} p-4`}>
+      <DialogTitle className={`flex items-center justify-between ${getSeverityColor()} p-2`}>
         <span className="font-semibold">{title}</span>
         <IconButton
           onClick={onClose}
@@ -62,12 +62,12 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       </DialogTitle>
       
       <DialogContent className="p-6">
-        <Typography variant="body1" className="text-gray-700">
+        <Typography variant="body1" className="text-gray-700 mt-4">
           {message}
         </Typography>
       </DialogContent>
       
-      <DialogActions className="p-4 gap-3">
+      <DialogActions className="p-2 gap-3">
         <Button
           variant="outline"
           onClick={onClose}

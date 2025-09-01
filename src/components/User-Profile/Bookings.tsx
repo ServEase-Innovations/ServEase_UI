@@ -104,7 +104,7 @@ const Booking: React.FC = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
-
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -478,8 +478,26 @@ const handleSaveModifiedBooking = async (updatedData: {
 
   // DATA PROCESSING (placed right before return for better readability)
   const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
-  const filteredUpcomingBookings = filterBookings(upcomingBookings, searchTerm);
+  // const filteredUpcomingBookings = filterBookings(upcomingBookings, searchTerm);
+  // const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+
+   // Filter by status if needed
+  const filteredByStatus = statusFilter === 'ALL' 
+    ? upcomingBookings 
+    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
+  
+  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
   const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+
+  // Define status options for tabs
+  const statusTabs = [
+    { value: 'ALL', label: 'All', count: upcomingBookings.length },
+    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
+    { value: 'ACTIVE', label: 'Active', count: upcomingBookings.filter(b => b.taskStatus === 'ACTIVE').length },
+    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
+    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
+  ];
 
  return (
   <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
@@ -574,24 +592,49 @@ const handleSaveModifiedBooking = async (updatedData: {
       )}
 
       {/* Upcoming Bookings Section */}
-      <section className="mb-8">
-        <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
-          <AlertCircle className="h-6 w-6 text-primary" />
-          <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
-            <p className="text-sm text-muted-foreground">
-              {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
-            </p>
+   <section className="mb-8">
+          <div 
+            className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary"
+            style={{ padding: '0.5rem' }} // Added padding here
+          >
+            <AlertCircle className="h-6 w-6 text-primary" />
+            <div className="flex-1">
+              <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+              </p>
+            </div>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              {upcomingBookings.length}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-            {upcomingBookings.length}
-          </Badge>
-        </div>
 
-        {upcomingBookings.length > 0 ? (
-          <div className="grid gap-4">
-            {filteredUpcomingBookings.map((booking) => (
-              <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
+          {/* Status Tabs */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === tab.value
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {tab.label} 
+                  <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {upcomingBookings.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredUpcomingBookings.map((booking) => (
+                <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -937,20 +980,20 @@ const handleSaveModifiedBooking = async (updatedData: {
 </div>
 
                 </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="text-center py-8">
-            <CardContent>
-              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
-              <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
-              <Button>Book a Service</Button>
-            </CardContent>
-          </Card>
-        )}
-      </section>
+               </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
+                <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
+                <Button>Book a Service</Button>
+              </CardContent>
+            </Card>
+          )}
+        </section>
 
       {/* Past Bookings Section */}
       <section>
