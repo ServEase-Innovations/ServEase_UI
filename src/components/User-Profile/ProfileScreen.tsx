@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axiosInstance from "src/services/axiosInstance";
-
+import { ClipLoader } from "react-spinners";
 
 interface Address {
   id: string;
@@ -51,6 +51,7 @@ const ProfileScreen = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("CUSTOMER");
   const [serviceProviderData, setServiceProviderData] = useState<ServiceProvider | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // User data state
   const [userData, setUserData] = useState<UserData>({
@@ -74,6 +75,7 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     if (isAuthenticated && auth0User) {
+      setIsLoading(true);
       const name = auth0User.name || null;
       const email = auth0User.email || "";
 
@@ -135,6 +137,7 @@ const ProfileScreen = () => {
             isPrimary: false
           }
         ]);
+        setIsLoading(false);
       }
 
       console.log("User data:", auth0User);
@@ -196,6 +199,8 @@ const ProfileScreen = () => {
           isPrimary: true
         }
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -299,9 +304,21 @@ const ProfileScreen = () => {
     setIsEditing(false);
   };
 
-  return (
+  // Loading Screen Component
+  const LoadingScreen = () => (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-md">
+      <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-white shadow-xl">
+        <ClipLoader color="#0E305C" size={60} />
+        <p className="mt-4 text-lg font-semibold text-gray-800">Loading your profile</p>
+        <p className="mt-2 text-sm text-gray-600">Please wait while we fetch your information</p>
+      </div>
+    </div>
+  );
+
+  // Skeleton Loading Component
+  const SkeletonLoader = () => (
     <div className="w-full">
-      {/* Header */}
+      {/* Header Skeleton */}
       <div
         className="relative mt-16"
         style={{
@@ -310,392 +327,494 @@ const ProfileScreen = () => {
         }}
       >
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between h-auto md:h-32 max-w-6xl px-6 mx-auto py-8 gap-4 md:gap-0">
-          
-          {/* Profile Left Section */}
           <div className="flex items-center gap-5">
-            <img
-              src={auth0User?.picture || "https://via.placeholder.com/80"}
-              alt={userName || "User"}
-              className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-md"
-            />
+            <div className="w-20 h-20 rounded-full bg-gray-300 animate-pulse"></div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left" style={{ color: "rgb(14, 48, 92)" }}>
-                Hello, {userName || "User"}
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {userRole === "SERVICE_PROVIDER" ? "Service Provider" : "Customer"}
-              </p>
+              <div className="h-7 w-40 bg-gray-300 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
             </div>
           </div>
-
-          {/* Edit Profile Button - Now properly centered */}
-          <div className="flex items-center justify-center w-full md:w-auto">
-            {isEditing ? (
-              <div className="flex space-x-2">
-                <button
-                  className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors"
-                  style={{
-                    backgroundColor: "#6c757d",
-                    color: "white",
-                  }}
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <Button
-                  className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors flex items-center justify-center"
-                  style={{
-                    backgroundColor: "rgba(21, 82, 162, 1)",
-                    color: "white",
-                  }}
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving...
-                    </>
-                  ) : "Save Changes"}
-                </Button>
-              </div>
-            ) : (
-              <button
-                className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors"
-                style={{
-                  backgroundColor: "rgba(21, 82, 162, 1)",
-                  color: "white",
-                }}
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Profile
-              </button>
-            )}
-          </div>
+          <div className="h-10 w-32 bg-gray-300 rounded animate-pulse"></div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content Skeleton */}
       <div className="flex justify-center w-full py-6">
         <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
-          {/* Form Header */}
+          {/* Form Header Skeleton */}
           <div className="flex justify-between items-center border-b pb-3 mb-6">
-            <h2 className="text-lg font-semibold text-[#32325d]">My account</h2>
+            <div className="h-6 w-32 bg-gray-300 rounded animate-pulse"></div>
           </div>
 
-          {/* User Info Section */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              User Information
-            </h3>
-
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Username
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={auth0User?.nickname || userName || "User"}
-                  readOnly
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Email address
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={auth0User?.email || "No email available"}
-                  readOnly
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  First name
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  name="firstName"
-                  value={userData.firstName}
-                  onChange={handleInputChange}
-                  readOnly={!isEditing}
-                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Last name
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  name="lastName"
-                  value={userData.lastName}
-                  onChange={handleInputChange}
-                  readOnly={!isEditing}
-                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  {userRole === "SERVICE_PROVIDER" ? "Provider ID" : "User ID"}
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={
-                    auth0User?.serviceProviderId ||
-                    auth0User?.customerid ||
-                    "N/A"
-                  }
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="h-px bg-gray-200 my-6" />
-
-          {/* Contact Info Section */}
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            Contact Information
-          </h3>
-
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
-                Contact Number
-              </label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                name="contactNumber"
-                value={userData.contactNumber}
-                onChange={handleInputChange}
-                readOnly={!isEditing}
-                style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                type="tel"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
-                Alternative Contact Number
-              </label>
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                name="altContactNumber"
-                value={userData.altContactNumber}
-                onChange={handleInputChange}
-                readOnly={!isEditing}
-                style={{ 
-                  backgroundColor: isEditing ? 'white' : '#f9fafb',
-                  fontStyle: userData.altContactNumber === "No alternative number" ? 'italic' : 'normal',
-                  color: userData.altContactNumber === "No alternative number" ? '#6b7280' : 'inherit'
-                }}
-                type="tel"
-              />
-            </div>
-          </div>
-
-          {/* Address Section */}
+          {/* User Info Section Skeleton */}
           <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <label className="block text-sm font-semibold text-gray-600">
-                Addresses
-              </label>
-              {isEditing && addresses.length < (userRole === "SERVICE_PROVIDER" ? 1 : 3) && (
-                <button 
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                  onClick={() => setShowAddAddress(!showAddAddress)}
-                >
-                  {showAddAddress ? 'Cancel' : '+ Add New Address'}
-                </button>
-              )}
+            <div className="h-5 w-40 bg-gray-300 rounded animate-pulse mb-4"></div>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
             </div>
 
-            {/* Add New Address Form */}
-            {showAddAddress && isEditing && (
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <h4 className="text-md font-semibold mb-3">Add New Address</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Address Type
-                    </label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={newAddress.type}
-                      onChange={(e) => setNewAddress({...newAddress, type: e.target.value})}
-                    >
-                      {getAvailableAddressTypes().map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center mt-6">
-                    <input
-                      type="checkbox"
-                      id="isPrimary"
-                      checked={newAddress.isPrimary}
-                      onChange={(e) => setNewAddress({...newAddress, isPrimary: e.target.checked})}
-                      className="mr-2"
-                    />
-                    <label htmlFor="isPrimary" className="text-sm text-gray-600">
-                      Set as primary address
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="mb-3">
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Street Address
-                    </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={newAddress.street}
-                    onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
-                    placeholder="Enter street address"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      City
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Country
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={newAddress.country}
-                      onChange={(e) => setNewAddress({...newAddress, country: e.target.value})}
-                      placeholder="Country"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Postal Code
-                    </label>
-                    <input
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={newAddress.postalCode}
-                      onChange={(e) => setNewAddress({...newAddress, postalCode: e.target.value})}
-                      placeholder="Postal code"
-                      type="text"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
-                    onClick={handleAddAddress}
-                  >
-                    Save Address
-                  </button>
-                </div>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
               </div>
-            )}
-
-            {/* Address List */}
-            {addresses.map((address) => (
-              <div key={address.id} className="border border-gray-200 rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <span className="font-semibold">{address.type} Address</span>
-                    {address.isPrimary && (
-                      <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                        Primary
-                      </span>
-                    )}
-                  </div>
-                  {isEditing && (
-                    <div className="flex space-x-2">
-                      {!address.isPrimary && (
-                        <>
-                          <button 
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                            onClick={() => setPrimaryAddress(address.id)}
-                          >
-                            Set Primary
-                          </button>
-                          {userRole !== "SERVICE_PROVIDER" && (
-                            <button 
-                              className="text-red-600 hover:text-red-800 text-sm"
-                              onClick={() => removeAddress(address.id)}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-700">{address.street}</p>
-                <p className="text-gray-700">
-                  {address.city}, {address.country} {address.postalCode}
-                </p>
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
               </div>
-            ))}
-            
-            {userRole === "SERVICE_PROVIDER" && addresses.length === 1 && (
-              <p className="text-sm text-gray-500 mt-2">
-                Service providers can only have one office address.
-              </p>
-            )}
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
           </div>
 
-          {/* Submit Button - Only show when editing */}
-          {isEditing && (
-            <div className="flex justify-center mt-6">
-              <div className="flex space-x-4">
-                <button
-                  className="px-6 py-2 bg-gray-500 text-white rounded-md font-medium"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium flex items-center"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving...
-                    </>
-                  ) : "Save Changes"}
-                </button>
+          <div className="h-px bg-gray-200 my-6"></div>
+
+          {/* Contact Info Section Skeleton */}
+          <div className="mb-6">
+            <div className="h-5 w-40 bg-gray-300 rounded animate-pulse mb-4"></div>
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-32 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-4 w-40 bg-gray-300 rounded animate-pulse mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Address Section Skeleton */}
+          <div className="mb-6">
+            <div className="h-4 w-24 bg-gray-300 rounded animate-pulse mb-4"></div>
+            <div className="border border-gray-200 rounded-lg p-4 mb-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="h-5 w-32 bg-gray-300 rounded animate-pulse"></div>
+              </div>
+              <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="h-5 w-32 bg-gray-300 rounded animate-pulse"></div>
+              </div>
+              <div className="h-4 w-full bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+  );
 
-      {/* Footer */}
-      <div className="bg-gray-100 py-4 text-center text-gray-500 text-sm">
-        © 2025 MyApp. All rights reserved.
-      </div>
+  return (
+    <div className="w-full">
+      {isLoading ? (
+        <SkeletonLoader />
+      ) : (
+        <>
+          {/* Header */}
+          <div
+            className="relative mt-16"
+            style={{
+              background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+              color: "rgb(14, 48, 92)",
+            }}
+          >
+            <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between h-auto md:h-32 max-w-6xl px-6 mx-auto py-8 gap-4 md:gap-0">
+              
+              {/* Profile Left Section */}
+              <div className="flex items-center gap-5">
+                <img
+                  src={auth0User?.picture || "https://via.placeholder.com/80"}
+                  alt={userName || "User"}
+                  className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-md"
+                />
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left" style={{ color: "rgb(14, 48, 92)" }}>
+                    Hello, {userName || "User"}
+                  </h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {userRole === "SERVICE_PROVIDER" ? "Service Provider" : "Customer"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit Profile Button - Now properly centered */}
+              <div className="flex items-center justify-center w-full md:w-auto">
+                {isEditing ? (
+                  <div className="flex space-x-2">
+                    <button
+                      className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors"
+                      style={{
+                        backgroundColor: "#6c757d",
+                        color: "white",
+                      }}
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors flex items-center justify-center"
+                      style={{
+                        backgroundColor: "rgba(21, 82, 162, 1)",
+                        color: "white",
+                      }}
+                      onClick={handleSave}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    className="px-5 py-2 rounded-md font-semibold shadow-md transition-colors"
+                    style={{
+                      backgroundColor: "rgba(21, 82, 162, 1)",
+                      color: "white",
+                    }}
+                    onClick={() => setIsEditing(true)}
+                  >
+                    Edit Profile
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex justify-center w-full py-6">
+            <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+              {/* Form Header */}
+              <div className="flex justify-between items-center border-b pb-3 mb-6">
+                <h2 className="text-lg font-semibold text-[#32325d]">My account</h2>
+              </div>
+
+              {/* User Info Section */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                  User Information
+                </h3>
+
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Username
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                      value={auth0User?.nickname || userName || "User"}
+                      readOnly
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                      value={auth0User?.email || "No email available"}
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      First name
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      name="firstName"
+                      value={userData.firstName}
+                      onChange={handleInputChange}
+                      readOnly={!isEditing}
+                      style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Last name
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      name="lastName"
+                      value={userData.lastName}
+                      onChange={handleInputChange}
+                      readOnly={!isEditing}
+                      style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      {userRole === "SERVICE_PROVIDER" ? "Provider ID" : "User ID"}
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                      value={
+                        auth0User?.serviceProviderId ||
+                        auth0User?.customerid ||
+                        "N/A"
+                      }
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-gray-200 my-6" />
+
+              {/* Contact Info Section */}
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Contact Information
+              </h3>
+
+              <div className="flex flex-wrap gap-4 mb-6">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    Contact Number
+                  </label>
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    name="contactNumber"
+                    value={userData.contactNumber}
+                    onChange={handleInputChange}
+                    readOnly={!isEditing}
+                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                    type="tel"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    Alternative Contact Number
+                  </label>
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    name="altContactNumber"
+                    value={userData.altContactNumber}
+                    onChange={handleInputChange}
+                    readOnly={!isEditing}
+                    style={{ 
+                      backgroundColor: isEditing ? 'white' : '#f9fafb',
+                      fontStyle: userData.altContactNumber === "No alternative number" ? 'italic' : 'normal',
+                      color: userData.altContactNumber === "No alternative number" ? '#6b7280' : 'inherit'
+                    }}
+                    type="tel"
+                  />
+                </div>
+              </div>
+
+              {/* Address Section */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-semibold text-gray-600">
+                    Addresses
+                  </label>
+                  {isEditing && addresses.length < (userRole === "SERVICE_PROVIDER" ? 1 : 3) && (
+                    <button 
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                      onClick={() => setShowAddAddress(!showAddAddress)}
+                    >
+                      {showAddAddress ? 'Cancel' : '+ Add New Address'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Add New Address Form */}
+                {showAddAddress && isEditing && (
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <h4 className="text-md font-semibold mb-3">Add New Address</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">
+                          Address Type
+                        </label>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          value={newAddress.type}
+                          onChange={(e) => setNewAddress({...newAddress, type: e.target.value})}
+                        >
+                          {getAvailableAddressTypes().map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center mt-6">
+                        <input
+                          type="checkbox"
+                          id="isPrimary"
+                          checked={newAddress.isPrimary}
+                          onChange={(e) => setNewAddress({...newAddress, isPrimary: e.target.checked})}
+                          className="mr-2"
+                        />
+                        <label htmlFor="isPrimary" className="text-sm text-gray-600">
+                          Set as primary address
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="block text-sm font-semibold text-gray-600 mb-2">
+                        Street Address
+                        </label>
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        value={newAddress.street}
+                        onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
+                        placeholder="Enter street address"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">
+                          City
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          value={newAddress.city}
+                          onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                          placeholder="City"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">
+                          Country
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          value={newAddress.country}
+                          onChange={(e) => setNewAddress({...newAddress, country: e.target.value})}
+                          placeholder="Country"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">
+                          Postal Code
+                        </label>
+                        <input
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          value={newAddress.postalCode}
+                          onChange={(e) => setNewAddress({...newAddress, postalCode: e.target.value})}
+                          placeholder="Postal code"
+                          type="text"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
+                        onClick={handleAddAddress}
+                      >
+                        Save Address
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Address List */}
+                {addresses.map((address) => (
+                  <div key={address.id} className="border border-gray-200 rounded-lg p-4 mb-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="font-semibold">{address.type} Address</span>
+                        {address.isPrimary && (
+                          <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      {isEditing && (
+                        <div className="flex space-x-2">
+                          {!address.isPrimary && (
+                            <>
+                              <button 
+                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                onClick={() => setPrimaryAddress(address.id)}
+                              >
+                                Set Primary
+                              </button>
+                              {userRole !== "SERVICE_PROVIDER" && (
+                                <button 
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                  onClick={() => removeAddress(address.id)}
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-700">{address.street}</p>
+                    <p className="text-gray-700">
+                      {address.city}, {address.country} {address.postalCode}
+                    </p>
+                  </div>
+                ))}
+                
+              
+              </div>
+
+              {/* Submit Button - Only show when editing */}
+              {isEditing && (
+                <div className="flex justify-center mt-6">
+                  <div className="flex space-x-4">
+                    <button
+                      className="px-6 py-2 bg-gray-500 text-white rounded-md font-medium"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium flex items-center"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-100 py-4 text-center text-gray-500 text-sm">
+            © 2025 MyApp. All rights reserved.
+          </div>
+        </>
+      )}
     </div>
   );
 };

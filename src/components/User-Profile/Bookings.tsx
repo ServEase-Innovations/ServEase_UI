@@ -601,21 +601,21 @@ const handleSaveModifiedBooking = async (updatedData: {
 
       {/* Upcoming Bookings Section */}
    <section className="mb-8">
-          <div 
-            className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary"
-            style={{ padding: '0.5rem' }} // Added padding here
-          >
-            <AlertCircle className="h-6 w-6 text-primary" />
-            <div className="flex-1">
-              <h2 className="text-2xl font-semibold text-card-foreground">Upcoming Bookings</h2>
-              <p className="text-sm text-muted-foreground">
-                {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
-              </p>
-            </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-              {upcomingBookings.length}
-            </Badge>
-          </div>
+         <div 
+  className="flex items-center gap-3 mb-6 p-2 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary"
+>
+  <AlertCircle className="h-6 w-6 text-primary" />
+  <div className="flex-1">
+    <h2 className="text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
+    <p className="text-sm text-muted-foreground">
+      {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+    </p>
+  </div>
+  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+    {upcomingBookings.length}
+  </Badge>
+</div>
+
 
           {/* Status Tabs */}
           <div className="mb-6">
