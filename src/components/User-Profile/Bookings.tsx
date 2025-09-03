@@ -93,7 +93,7 @@ const Booking: React.FC = () => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
-
+  const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -312,6 +312,14 @@ const hasMatchingHolidayIds = (booking: Booking): boolean => {
       'warning'
     );
   };
+const handleReviewSubmitted = (bookingId: number) => {
+  setReviewedBookings(prev => [...prev, bookingId]);
+};
+
+const hasReview = (booking: Booking): boolean => {
+  return reviewedBookings.includes(booking.id);
+};
+
 const handleLeaveReviewClick = (booking: Booking) => {
   setSelectedReviewBooking(booking);
   setReviewDialogOpen(true);
@@ -922,45 +930,47 @@ const handleSaveModifiedBooking = async (updatedData: {
   )}
 
   {/* COMPLETED Status */}
-  {booking.taskStatus === "COMPLETED" && (
-    <>
-      {/* Rate Service Button - Show for all booking types */}
+{booking.taskStatus === "COMPLETED" && (
+  <>
+    {/* Leave Review Button - Show for all booking types */}
+    {hasReview(booking) ? (
       <Button
         variant="outline"
         size="sm"
         className="flex-1 min-w-0 justify-center 
                    text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
                    w-1/3 sm:w-auto"
+        disabled={true}
       >
-        <Star className="h-4 w-4 mr-1 sm:mr-2" />
-        Rate Service
+        <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Review Submitted
       </Button>
-
-      {/* Leave Review Button - Show for all booking types */}
+    ) : (
       <Button
         variant="outline"
         size="sm"
         className="flex-1 min-w-0 justify-center 
                    text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
                    w-1/3 sm:w-auto"
-      onClick={() => handleLeaveReviewClick(booking)}
+        onClick={() => handleLeaveReviewClick(booking)}
       >
         <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
         Leave Review
       </Button>
+    )}
 
-      {/* Book Again Button - Show for all booking types */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="flex-1 min-w-0 justify-center 
-                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                   w-1/3 sm:w-auto"
-      >
-        Book Again
-      </Button>
-    </>
-  )}
+    {/* Book Again Button - Show for all booking types */}
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 min-w-0 justify-center 
+                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                 w-1/3 sm:w-auto"
+    >
+      Book Again
+    </Button>
+  </>
+)}
 
   {/* CANCELLED Status */}
   {booking.taskStatus === "CANCELLED" && (
@@ -1089,21 +1099,22 @@ const handleSaveModifiedBooking = async (updatedData: {
   )}
 
   {/* COMPLETED Status - Show for all booking types */}
-  {booking.taskStatus === "COMPLETED" && (
-    <>
-      {/* Rate Service Button */}
+{booking.taskStatus === "COMPLETED" && (
+  <>
+    {/* Leave Review Button */}
+    {hasReview(booking) ? (
       <Button
         variant="outline"
         size="sm"
         className="flex-1 min-w-0 justify-center 
                    text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
                    w-1/3 sm:w-auto"
+        disabled={true}
       >
-        <Star className="h-4 w-4 mr-1 sm:mr-2" />
-        Rate Service
+        <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+        Review Submitted
       </Button>
-
-      {/* Leave Review Button */}
+    ) : (
       <Button
         variant="outline"
         size="sm"
@@ -1115,19 +1126,20 @@ const handleSaveModifiedBooking = async (updatedData: {
         <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
         Leave Review
       </Button>
+    )}
 
-      {/* Book Again Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="flex-1 min-w-0 justify-center 
-                   text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                   w-1/3 sm:w-auto"
-      >
-        Book Again
-      </Button>
-    </>
-  )}
+    {/* Book Again Button */}
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 min-w-0 justify-center 
+                 text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                 w-1/3 sm:w-auto"
+    >
+      Book Again
+    </Button>
+  </>
+)}
 
   {/* CANCELLED Status - Show for all booking types */}
   {booking.taskStatus === "CANCELLED" && (
@@ -1192,6 +1204,7 @@ const handleSaveModifiedBooking = async (updatedData: {
   open={reviewDialogOpen}
   onClose={() => setReviewDialogOpen(false)}
   booking={selectedReviewBooking}
+  onReviewSubmitted={handleReviewSubmitted}
 />
 <WalletDialog 
   open={walletDialogOpen}
