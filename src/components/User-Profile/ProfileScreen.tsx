@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
+import axiosInstance from "src/services/axiosInstance";
+
 
 interface Address {
   id: string;
@@ -18,6 +20,26 @@ interface UserData {
   lastName: string;
   contactNumber: string;
   altContactNumber: string;
+  role?: string;
+}
+
+// Interface for Service Provider API response
+interface ServiceProvider {
+  serviceproviderId: number;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  mobileNo: number;
+  alternateNo: number | null;
+  emailId: string;
+  gender: string;
+  buildingName: string;
+  locality: string;
+  street: string;
+  pincode: number;
+  currentLocation: string;
+  nearbyLocation: string;
+  // Other fields can be added as needed
 }
 
 const ProfileScreen = () => {
@@ -27,13 +49,15 @@ const ProfileScreen = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [userRole, setUserRole] = useState<string>("CUSTOMER");
+  const [serviceProviderData, setServiceProviderData] = useState<ServiceProvider | null>(null);
   
   // User data state
   const [userData, setUserData] = useState<UserData>({
     firstName: "",
     lastName: "",
-    contactNumber: "+1 (555) 123-4567",
-    altContactNumber: "+1 (555) 987-6543"
+    contactNumber: "",
+    altContactNumber: ""
   });
   
   // Address state
@@ -53,6 +77,14 @@ const ProfileScreen = () => {
       const name = auth0User.name || null;
       const email = auth0User.email || "";
 
+      // Extract role from Auth0 user metadata
+      const role = 
+        auth0User.role || 
+        auth0User["https://yourdomain.com/roles"]?.[0] || 
+        "CUSTOMER";
+      
+      setUserRole(role);
+
       if (name) {
         const nameParts = name.split(" ");
         setUserData(prev => ({
@@ -71,34 +103,109 @@ const ProfileScreen = () => {
       setUserName(name);
       setUserId(id ? Number(id) : null);
 
-      // Mock initial addresses - in a real app, this would come from an API
-      setAddresses([
-        {
-          id: "1",
-          type: "Home",
-          street: "Bld Mihail Kogalniceanu, nr. 8 Bl 1, Sc 1, Ap 09",
-          city: "New York",
-          country: "United States",
-          postalCode: "10001",
-          isPrimary: true
-        },
-        {
-          id: "2",
-          type: "Work",
-          street: "123 Business Ave, Suite 500",
-          city: "New York",
-          country: "United States",
-          postalCode: "10002",
-          isPrimary: false
-        }
-      ]);
+      // Fetch service provider data if user is a service provider
+      if (role === "SERVICE_PROVIDER") {
+        fetchServiceProviderData();
+      } else {
+        // For customers, use hardcoded data (to be replaced with API call later)
+        setUserData(prev => ({
+          ...prev,
+          contactNumber: "+1 (555) 123-4567",
+          altContactNumber: "+1 (555) 987-6543"
+        }));
+        
+        // Customers get home and work addresses
+        setAddresses([
+          {
+            id: "1",
+            type: "Home",
+            street: "Bld Mihail Kogalniceanu, nr. 8 Bl 1, Sc 1, Ap 09",
+            city: "New York",
+            country: "United States",
+            postalCode: "10001",
+            isPrimary: true
+          },
+          {
+            id: "2",
+            type: "Work",
+            street: "123 Business Ave, Suite 500",
+            city: "New York",
+            country: "United States",
+            postalCode: "10002",
+            isPrimary: false
+          }
+        ]);
+      }
 
       console.log("User data:", auth0User);
       console.log("Name:", name);
       console.log("Email:", email);
       console.log("ID:", id);
+      console.log("Role:", role);
     }
   }, [isAuthenticated, auth0User]);
+
+  // Fetch service provider data
+  const fetchServiceProviderData = async () => {
+    try {
+      const serviceProviderId = 
+      auth0User?.serviceProviderId ||
+      auth0User?.["https://yourdomain.com/serviceProviderId"] ||
+      auth0User?.sub?.split("|")[1] 
+      // Hardcoded ID for now - replace with dynamic ID if available
+      const response = await axiosInstance.get(`/api/serviceproviders/get/serviceprovider/${serviceProviderId}`);
+      const data = response.data;
+      setServiceProviderData(data);
+      
+      // Update user data with service provider info
+      setUserData(prev => ({
+        ...prev,
+        contactNumber: data.mobileNo ? `+${data.mobileNo}` : "",
+        altContactNumber: data.alternateNo ? `+${data.alternateNo}` : "No alternative number"
+      }));
+      
+      // Create address from service provider data
+      const serviceProviderAddress: Address = {
+        id: "1",
+        type: "Office",
+        street: `${data.buildingName || ''} ${data.street || ''} ${data.locality || ''}`.trim(),
+        city: data.nearbyLocation || data.currentLocation || "",
+        country: "India", // Assuming India based on pincode format
+        postalCode: data.pincode ? data.pincode.toString() : "",
+        isPrimary: true
+      };
+      
+      setAddresses([serviceProviderAddress]);
+    } catch (error) {
+      console.error("Failed to fetch service provider data:", error);
+      // Fallback to default data if API fails
+      setUserData(prev => ({
+        ...prev,
+        contactNumber: "+1 (555) 123-4567",
+        altContactNumber: "No alternative number"
+      }));
+      
+      setAddresses([
+        {
+          id: "1",
+          type: "Office",
+          street: "123 Business Ave, Suite 500",
+          city: "New York",
+          country: "United States",
+          postalCode: "10002",
+          isPrimary: true
+        }
+      ]);
+    }
+  };
+
+  // Filter address types based on user role
+  const getAvailableAddressTypes = () => {
+    if (userRole === "SERVICE_PROVIDER") {
+      return ["Office"];
+    }
+    return ["Home", "Work", "Other"];
+  };
 
   const handleAddAddress = () => {
     if (newAddress.street && newAddress.city && newAddress.country && newAddress.postalCode) {
@@ -118,7 +225,7 @@ const ProfileScreen = () => {
       
       setAddresses(updatedAddresses);
       setNewAddress({
-        type: "Home",
+        type: userRole === "SERVICE_PROVIDER" ? "Office" : "Home",
         street: "",
         city: "",
         country: "",
@@ -211,9 +318,14 @@ const ProfileScreen = () => {
               alt={userName || "User"}
               className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-md"
             />
-            <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left" style={{ color: "rgb(14, 48, 92)" }}>
-              Hello, {userName || "User"}
-            </h1>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-center md:text-left" style={{ color: "rgb(14, 48, 92)" }}>
+                Hello, {userName || "User"}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {userRole === "SERVICE_PROVIDER" ? "Service Provider" : "Customer"}
+              </p>
+            </div>
           </div>
 
           {/* Edit Profile Button - Now properly centered */}
@@ -333,7 +445,7 @@ const ProfileScreen = () => {
               </div>
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  User ID
+                  {userRole === "SERVICE_PROVIDER" ? "Provider ID" : "User ID"}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
@@ -380,7 +492,11 @@ const ProfileScreen = () => {
                 value={userData.altContactNumber}
                 onChange={handleInputChange}
                 readOnly={!isEditing}
-                style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                style={{ 
+                  backgroundColor: isEditing ? 'white' : '#f9fafb',
+                  fontStyle: userData.altContactNumber === "No alternative number" ? 'italic' : 'normal',
+                  color: userData.altContactNumber === "No alternative number" ? '#6b7280' : 'inherit'
+                }}
                 type="tel"
               />
             </div>
@@ -392,7 +508,7 @@ const ProfileScreen = () => {
               <label className="block text-sm font-semibold text-gray-600">
                 Addresses
               </label>
-              {isEditing && (
+              {isEditing && addresses.length < (userRole === "SERVICE_PROVIDER" ? 1 : 3) && (
                 <button 
                   className="text-sm text-blue-600 hover:text-blue-800"
                   onClick={() => setShowAddAddress(!showAddAddress)}
@@ -416,9 +532,9 @@ const ProfileScreen = () => {
                       value={newAddress.type}
                       onChange={(e) => setNewAddress({...newAddress, type: e.target.value})}
                     >
-                      <option value="Home">Home</option>
-                      <option value="Work">Work</option>
-                      <option value="Other">Other</option>
+                      {getAvailableAddressTypes().map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex items-center mt-6">
@@ -438,7 +554,7 @@ const ProfileScreen = () => {
                 <div className="mb-3">
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
                     Street Address
-                  </label>
+                    </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     value={newAddress.street}
@@ -517,12 +633,14 @@ const ProfileScreen = () => {
                           >
                             Set Primary
                           </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800 text-sm"
-                            onClick={() => removeAddress(address.id)}
-                          >
-                            Remove
-                          </button>
+                          {userRole !== "SERVICE_PROVIDER" && (
+                            <button 
+                              className="text-red-600 hover:text-red-800 text-sm"
+                              onClick={() => removeAddress(address.id)}
+                            >
+                              Remove
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -534,6 +652,12 @@ const ProfileScreen = () => {
                 </p>
               </div>
             ))}
+            
+            {userRole === "SERVICE_PROVIDER" && addresses.length === 1 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Service providers can only have one office address.
+              </p>
+            )}
           </div>
 
           {/* Submit Button - Only show when editing */}
