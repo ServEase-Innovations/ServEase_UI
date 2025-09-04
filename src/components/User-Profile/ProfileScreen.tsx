@@ -4,7 +4,8 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axiosInstance from "src/services/axiosInstance";
 import { ClipLoader } from "react-spinners";
-
+import axios from "axios";
+import { ChevronDown, ChevronUp } from "lucide-react";
 interface Address {
   id: string;
   type: string;
@@ -44,6 +45,7 @@ interface ServiceProvider {
 
 const ProfileScreen = () => {
   const { user: auth0User, isAuthenticated } = useAuth0();
+  const [showAllAddresses, setShowAllAddresses] = useState(false);
 
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
@@ -52,7 +54,14 @@ const ProfileScreen = () => {
   const [userRole, setUserRole] = useState<string>("CUSTOMER");
   const [serviceProviderData, setServiceProviderData] = useState<ServiceProvider | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [expandedAddressIds, setExpandedAddressIds] = useState<string[]>([]);
+
+const toggleAddress = (id: string) => {
+  setExpandedAddressIds((prev) =>
+    prev.includes(id) ? prev.filter((addrId) => addrId !== id) : [...prev, id]
+  );
+};
+
   // User data state
   const [userData, setUserData] = useState<UserData>({
     firstName: "",
@@ -72,6 +81,7 @@ const ProfileScreen = () => {
     postalCode: "",
     isPrimary: false
   });
+
 
   useEffect(() => {
     if (isAuthenticated && auth0User) {
@@ -105,40 +115,15 @@ const ProfileScreen = () => {
       setUserName(name);
       setUserId(id ? Number(id) : null);
 
-      // Fetch service provider data if user is a service provider
-      if (role === "SERVICE_PROVIDER") {
-        fetchServiceProviderData();
-      } else {
-        // For customers, use hardcoded data (to be replaced with API call later)
-        setUserData(prev => ({
-          ...prev,
-          contactNumber: "+1 (555) 123-4567",
-          altContactNumber: "+1 (555) 987-6543"
-        }));
-        
-        // Customers get home and work addresses
-        setAddresses([
-          {
-            id: "1",
-            type: "Home",
-            street: "Bld Mihail Kogalniceanu, nr. 8 Bl 1, Sc 1, Ap 09",
-            city: "New York",
-            country: "United States",
-            postalCode: "10001",
-            isPrimary: true
-          },
-          {
-            id: "2",
-            type: "Work",
-            street: "123 Business Ave, Suite 500",
-            city: "New York",
-            country: "United States",
-            postalCode: "10002",
-            isPrimary: false
-          }
-        ]);
-        setIsLoading(false);
-      }
+      //  Fetch data based on role
+    if (role === "SERVICE_PROVIDER" && id) {
+      fetchServiceProviderData();
+    } else if (role === "CUSTOMER" && id) {
+      fetchCustomerAddresses(id);
+    } else {
+      setIsLoading(false); // fallback if no valid role/id
+    }
+
 
       console.log("User data:", auth0User);
       console.log("Name:", name);
@@ -147,62 +132,90 @@ const ProfileScreen = () => {
       console.log("Role:", role);
     }
   }, [isAuthenticated, auth0User]);
+// Fetch customer addresses
+const fetchCustomerAddresses = async (customerId: number) => {
+  try {
+    const response = await axios.get(
+      `https://utils-ndt3.onrender.com/user-settings/${customerId}`
+    );
 
+    // API gives savedLocations[] inside response.data
+    const data = response.data;
+
+    if (Array.isArray(data) && data.length > 0) {
+      const savedLocations = data[0]?.savedLocations || [];
+
+      const mappedAddresses: Address[] = savedLocations
+        .filter((loc: any) => loc.location?.formatted_address) // only valid
+        .map((loc: any, idx: number) => ({
+          id: idx.toString(),
+          type: loc.name || "Other",
+          street: loc.location.formatted_address,
+          city:
+            loc.location.address_components?.find((c: any) =>
+              c.types.includes("locality")
+            )?.long_name || "",
+          country:
+            loc.location.address_components?.find((c: any) =>
+              c.types.includes("country")
+            )?.long_name || "",
+          postalCode:
+            loc.location.address_components?.find((c: any) =>
+              c.types.includes("postal_code")
+            )?.long_name || "",
+          isPrimary: idx === 0 // mark first as primary
+        }));
+
+      setAddresses(mappedAddresses);
+    }
+  } catch (err) {
+    console.error("Failed to fetch customer addresses:", err);
+  } finally {
+    setIsLoading(false);
+  }
+};
   // Fetch service provider data
   const fetchServiceProviderData = async () => {
-    try {
-      const serviceProviderId = 
+  try {
+    const serviceProviderId = 
       auth0User?.serviceProviderId ||
       auth0User?.["https://yourdomain.com/serviceProviderId"] ||
-      auth0User?.sub?.split("|")[1] 
-      // Hardcoded ID for now - replace with dynamic ID if available
-      const response = await axiosInstance.get(`/api/serviceproviders/get/serviceprovider/${serviceProviderId}`);
-      const data = response.data;
-      setServiceProviderData(data);
-      
-      // Update user data with service provider info
-      setUserData(prev => ({
-        ...prev,
-        contactNumber: data.mobileNo ? `+${data.mobileNo}` : "",
-        altContactNumber: data.alternateNo ? `+${data.alternateNo}` : "No alternative number"
-      }));
-      
-      // Create address from service provider data
-      const serviceProviderAddress: Address = {
-        id: "1",
-        type: "Office",
-        street: `${data.buildingName || ''} ${data.street || ''} ${data.locality || ''}`.trim(),
-        city: data.nearbyLocation || data.currentLocation || "",
-        country: "India", // Assuming India based on pincode format
-        postalCode: data.pincode ? data.pincode.toString() : "",
-        isPrimary: true
-      };
-      
-      setAddresses([serviceProviderAddress]);
-    } catch (error) {
-      console.error("Failed to fetch service provider data:", error);
-      // Fallback to default data if API fails
-      setUserData(prev => ({
-        ...prev,
-        contactNumber: "+1 (555) 123-4567",
-        altContactNumber: "No alternative number"
-      }));
-      
-      setAddresses([
-        {
-          id: "1",
-          type: "Office",
-          street: "123 Business Ave, Suite 500",
-          city: "New York",
-          country: "United States",
-          postalCode: "10002",
-          isPrimary: true
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      auth0User?.sub?.split("|")[1];
+
+    const response = await axiosInstance.get(
+      `/api/serviceproviders/get/serviceprovider/${serviceProviderId}`
+    );
+
+    const data = response.data;
+    setServiceProviderData(data);
+
+    // Update user data
+    setUserData(prev => ({
+      ...prev,
+      contactNumber: data.mobileNo ? `+${data.mobileNo}` : "",
+      altContactNumber: data.alternateNo ? `+${data.alternateNo}` : ""
+    }));
+
+    // Create address
+    const serviceProviderAddress: Address = {
+      id: "1",
+      type: "Office",
+      street: `${data.buildingName || ""} ${data.street || ""} ${data.locality || ""}`.trim(),
+      city: data.nearbyLocation || data.currentLocation || "",
+      country: "India",
+      postalCode: data.pincode ? data.pincode.toString() : "",
+      isPrimary: true,
+    };
+
+    setAddresses([serviceProviderAddress]);
+  } catch (error) {
+    console.error("Failed to fetch service provider data:", error);
+    // Don’t set dummy data → leave as empty
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // Filter address types based on user role
   const getAvailableAddressTypes = () => {
@@ -272,32 +285,49 @@ const ProfileScreen = () => {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, you would make a PUT request to your API
-      // await fetch('/api/user/profile', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     ...userData,
-      //     addresses
-      //   })
-      // });
-      
-      console.log("Data saved:", { ...userData, addresses });
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Failed to save data:", error);
-    } finally {
-      setIsSaving(false);
+  setIsSaving(true);
+
+  try {
+    if (userRole === "SERVICE_PROVIDER" && userId) {
+      // Build request payload for service provider
+      const payload = {
+        serviceproviderId: userId,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        mobileNo: userData.contactNumber?.replace("+", "") || null,
+        alternateNo: userData.altContactNumber?.replace("+", "") || null,
+        buildingName: serviceProviderData?.buildingName || "",
+        street: serviceProviderData?.street || "",
+        locality: serviceProviderData?.locality || "",
+        pincode: serviceProviderData?.pincode || null,
+        currentLocation: serviceProviderData?.currentLocation || "",
+        nearbyLocation: serviceProviderData?.nearbyLocation || "",
+      };
+
+      console.log("Saving service provider data:", payload);
+
+      await axiosInstance.put(
+        `/api/serviceproviders/update/serviceprovider/${userId}`,
+        payload
+      );
+
+      // Fetch updated details
+      await fetchServiceProviderData();
+    } else {
+      // For CUSTOMER or fallback
+      console.log("Saving customer data:", { ...userData, addresses });
+      // TODO: hook with customer update API when available
     }
-  };
+
+    setIsEditing(false);
+  } catch (error) {
+    console.error("Failed to save data:", error);
+    alert("Failed to save changes. Please try again.");
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
   const handleCancel = () => {
     // Reset form data if needed
@@ -582,200 +612,116 @@ const ProfileScreen = () => {
               </div>
 
               <div className="h-px bg-gray-200 my-6" />
+      {/* Contact Info Section */}
+<h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+  Contact Information
+</h3>
 
-              {/* Contact Info Section */}
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                Contact Information
-              </h3>
+<div className="flex flex-wrap gap-4 mb-6">
+  {/* Contact Number */}
+  <div className="flex-1 min-w-[200px]">
+    <label className="block text-sm font-semibold text-gray-600 mb-2">
+      Contact Number
+    </label>
+    <input
+      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+      name="contactNumber"
+      value={userData.contactNumber || ""}
+      onChange={handleInputChange}
+      readOnly={!isEditing}
+      placeholder="No contact number provided"
+      style={{
+        backgroundColor: isEditing ? "white" : "#f9fafb",
+      }}
+      type="tel"
+    />
+  </div>
 
-              <div className="flex flex-wrap gap-4 mb-6">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Contact Number
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    name="contactNumber"
-                    value={userData.contactNumber}
-                    onChange={handleInputChange}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                    type="tel"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Alternative Contact Number
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    name="altContactNumber"
-                    value={userData.altContactNumber}
-                    onChange={handleInputChange}
-                    readOnly={!isEditing}
-                    style={{ 
-                      backgroundColor: isEditing ? 'white' : '#f9fafb',
-                      fontStyle: userData.altContactNumber === "No alternative number" ? 'italic' : 'normal',
-                      color: userData.altContactNumber === "No alternative number" ? '#6b7280' : 'inherit'
-                    }}
-                    type="tel"
-                  />
-                </div>
-              </div>
+  {/* Alternative Contact Number */}
+  <div className="flex-1 min-w-[200px]">
+    <label className="block text-sm font-semibold text-gray-600 mb-2">
+      Alternative Contact Number
+    </label>
+    <input
+      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+      name="altContactNumber"
+      value={userData.altContactNumber || ""}
+      onChange={handleInputChange}
+      readOnly={!isEditing}
+      placeholder="No alternative number"
+      style={{
+        backgroundColor: isEditing ? "white" : "#f9fafb",
+      }}
+      type="tel"
+    />
+  </div>
+</div>
 
-              {/* Address Section */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Addresses
-                  </label>
-                  {isEditing && addresses.length < (userRole === "SERVICE_PROVIDER" ? 1 : 3) && (
-                    <button 
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                      onClick={() => setShowAddAddress(!showAddAddress)}
-                    >
-                      {showAddAddress ? 'Cancel' : '+ Add New Address'}
-                    </button>
-                  )}
-                </div>
+           {/* Address Section */}
+<div className="mb-6">
+  <label className="block text-sm font-semibold text-gray-600 mb-2">
+    Addresses
+  </label>
 
-                {/* Add New Address Form */}
-                {showAddAddress && isEditing && (
-                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                    <h4 className="text-md font-semibold mb-3">Add New Address</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">
-                          Address Type
-                        </label>
-                        <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          value={newAddress.type}
-                          onChange={(e) => setNewAddress({...newAddress, type: e.target.value})}
-                        >
-                          {getAvailableAddressTypes().map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center mt-6">
-                        <input
-                          type="checkbox"
-                          id="isPrimary"
-                          checked={newAddress.isPrimary}
-                          onChange={(e) => setNewAddress({...newAddress, isPrimary: e.target.checked})}
-                          className="mr-2"
-                        />
-                        <label htmlFor="isPrimary" className="text-sm text-gray-600">
-                          Set as primary address
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <label className="block text-sm font-semibold text-gray-600 mb-2">
-                        Street Address
-                        </label>
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                        value={newAddress.street}
-                        onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
-                        placeholder="Enter street address"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">
-                          City
-                        </label>
-                        <input
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          value={newAddress.city}
-                          onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
-                          placeholder="City"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">
-                          Country
-                        </label>
-                        <input
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          value={newAddress.country}
-                          onChange={(e) => setNewAddress({...newAddress, country: e.target.value})}
-                          placeholder="Country"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">
-                          Postal Code
-                        </label>
-                        <input
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                          value={newAddress.postalCode}
-                          onChange={(e) => setNewAddress({...newAddress, postalCode: e.target.value})}
-                          placeholder="Postal code"
-                          type="text"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <button
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
-                        onClick={handleAddAddress}
-                      >
-                        Save Address
-                      </button>
-                    </div>
-                  </div>
+  {addresses.length === 0 ? (
+    <p className="text-gray-500 italic">No addresses saved yet</p>
+  ) : (
+    <div className="space-y-3">
+      {addresses.map((address, idx) => {
+        const isExpanded =
+          idx === 0 || expandedAddressIds.includes(address.id);
+
+        return (
+          <div
+            key={address.id}
+            className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden ${
+              isExpanded ? "p-4" : "p-3"
+            }`}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="font-semibold">{address.type} Address</span>
+                {address.isPrimary && (
+                  <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    Primary
+                  </span>
                 )}
-
-                {/* Address List */}
-                {addresses.map((address) => (
-                  <div key={address.id} className="border border-gray-200 rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <span className="font-semibold">{address.type} Address</span>
-                        {address.isPrimary && (
-                          <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                      {isEditing && (
-                        <div className="flex space-x-2">
-                          {!address.isPrimary && (
-                            <>
-                              <button 
-                                className="text-blue-600 hover:text-blue-800 text-sm"
-                                onClick={() => setPrimaryAddress(address.id)}
-                              >
-                                Set Primary
-                              </button>
-                              {userRole !== "SERVICE_PROVIDER" && (
-                                <button 
-                                  className="text-red-600 hover:text-red-800 text-sm"
-                                  onClick={() => removeAddress(address.id)}
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-gray-700">{address.street}</p>
-                    <p className="text-gray-700">
-                      {address.city}, {address.country} {address.postalCode}
-                    </p>
-                  </div>
-                ))}
-                
-              
               </div>
+
+              {idx !== 0 && (
+                <button
+                  onClick={() => toggleAddress(address.id)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Body (only show when expanded) */}
+            {isExpanded && (
+              <div className="mt-2 text-sm text-gray-700 space-y-1">
+                <p>{address.street}</p>
+                <p>
+                  {(address.city || "No city")},{" "}
+                  {(address.country || "No country")}{" "}
+                  {address.postalCode || ""}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+
 
               {/* Submit Button - Only show when editing */}
               {isEditing && (
