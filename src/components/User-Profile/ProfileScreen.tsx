@@ -83,19 +83,25 @@ const toggleAddress = (id: string) => {
   });
 
 
-  useEffect(() => {
-    if (isAuthenticated && auth0User) {
-      setIsLoading(true);
-      const name = auth0User.name || null;
-      const email = auth0User.email || "";
+useEffect(() => {
+  const initializeProfile = async () => {
+    setIsLoading(true); // Show skeleton immediately
 
-      // Extract role from Auth0 user metadata
-      const role = 
-        auth0User.role || 
-        auth0User["https://yourdomain.com/roles"]?.[0] || 
+    if (isAuthenticated && auth0User) {
+      const name = auth0User.name || null;
+      const role =
+        auth0User.role ||
+        auth0User["https://yourdomain.com/roles"]?.[0] ||
         "CUSTOMER";
-      
       setUserRole(role);
+
+      const id =
+        auth0User.serviceProviderId ||
+        auth0User["https://yourdomain.com/serviceProviderId"] ||
+        auth0User.customerid ||
+        null;
+      setUserName(name);
+      setUserId(id ? Number(id) : null);
 
       if (name) {
         const nameParts = name.split(" ");
@@ -106,32 +112,25 @@ const toggleAddress = (id: string) => {
         }));
       }
 
-      const id =
-        auth0User.serviceProviderId ||
-        auth0User["https://yourdomain.com/serviceProviderId"] ||
-        auth0User.customerid ||
-        null;
-
-      setUserName(name);
-      setUserId(id ? Number(id) : null);
-
-      //  Fetch data based on role
-    if (role === "SERVICE_PROVIDER" && id) {
-      fetchServiceProviderData();
-    } else if (role === "CUSTOMER" && id) {
-      fetchCustomerAddresses(id);
+      try {
+        if (role === "SERVICE_PROVIDER" && id) {
+          await fetchServiceProviderData(); // await ensures loading shows
+        } else if (role === "CUSTOMER" && id) {
+          await fetchCustomerAddresses(Number(id)); // await here too
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false); // hide skeleton only after API finishes
+      }
     } else {
-      setIsLoading(false); // fallback if no valid role/id
+      setIsLoading(false); // fallback if not authenticated
     }
+  };
 
+  initializeProfile();
+}, [isAuthenticated, auth0User]);
 
-      console.log("User data:", auth0User);
-      console.log("Name:", name);
-      console.log("Email:", email);
-      console.log("ID:", id);
-      console.log("Role:", role);
-    }
-  }, [isAuthenticated, auth0User]);
 // Fetch customer addresses
 const fetchCustomerAddresses = async (customerId: number) => {
   try {

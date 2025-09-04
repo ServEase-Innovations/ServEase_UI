@@ -249,23 +249,66 @@ useEffect(() => {
       ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.
     </p>
 
-    <div className="space-y" style={{ display: 'flex', justifyContent: 'space-around' }}>
-      <div className="card cursor-pointer" onClick={() => handleClick('COOK')}>
-        <div className="card-body">
-          <img src="../CookNew.png" alt="Cook" style={{ height: '100px', width: '100px' }} />
-        </div>
-      </div>
-      <div className="card cursor-pointer" onClick={() => handleClick('MAID')}>
-        <div className="card-body">
-          <img src="../MaidNew.png" alt="Maid" style={{ height: '100px', width: '100px' }} />
-        </div>
-      </div>
-      <div className="card cursor-pointer" onClick={() => handleClick('NANNY')}>
-        <div className="card-body">
-          <img src="../NannyNew.png" alt="Nanny" style={{ height: '100px', width: '100px' }} />
-        </div>
-      </div>
+   <div style={{ display: "flex", justifyContent: "space-around", gap: "20px" }}>
+  {/* Cook */}
+<div
+  className="flex flex-col items-center cursor-pointer"
+  onClick={() => handleClick("COOK")}
+>
+  <div className="card p-0"> {/* no padding */}
+    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
+      <img
+        src="../CookNew.png"
+        alt="Cook"
+        className="transition-transform duration-300 hover:scale-110"
+        style={{ height: "121px", width: "121px" }} // bigger default size
+      />
     </div>
+  </div>
+  <p className="mt-2 text-sm font-semibold text-white">Home Cook</p>
+</div>
+
+
+{/* Maid */}
+<div
+  className="flex flex-col items-center cursor-pointer"
+  onClick={() => handleClick("MAID")}
+>
+  <div className="card p-0"> {/* no padding */}
+    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
+      <img
+        src="../MaidNew.png"
+        alt="Maid"
+        className="transition-transform duration-300 hover:scale-110"
+        style={{ height: "121px", width: "121px" }} // 110px * 1.1 = 121px
+      />
+    </div>
+  </div>
+  <p className="mt-2 text-sm font-semibold text-white">Cleaning Help</p>
+</div>
+
+
+  {/* Nanny */}
+<div
+  className="flex flex-col items-center cursor-pointer"
+  onClick={() => handleClick("NANNY")}
+>
+  <div className="card p-0"> {/* no padding */}
+    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
+      <img
+        src="../NannyNew.png"
+        alt="Nanny"
+        className="transition-transform duration-300 hover:scale-110"
+        style={{ height: "121px", width: "121px" }} // 110px * 1.1 = 121px
+      />
+    </div>
+  </div>
+  <p className="mt-2 text-sm font-semibold text-white">Caregiver</p>
+</div>
+
+</div>
+
+
 
     {/* Buttons */}
     <div className="flex gap-3 pt-3 justify-center">
