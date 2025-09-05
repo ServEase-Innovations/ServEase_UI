@@ -4,32 +4,32 @@ interface AboutPageProps {
   onBack: () => void;
 }
 
-const teamMembers = [
-  {
-    name: "David Kivitz",
-    role: "CEO",
-    img: "https://via.placeholder.com/100",
-    desc: "As head of the company, my job is to ensure everyone",
-  },
-  {
-    name: "Antony Radbod",
-    role: "CFO",
-    img: "https://via.placeholder.com/100",
-    desc: "As head of the company, my job is to ensure everyone",
-  },
-  {
-    name: "Justin Vuong",
-    role: "CIO",
-    img: "https://via.placeholder.com/100",
-    desc: "As head of the company, my job is to ensure everyone",
-  },
-  {
-    name: "Jim Bates",
-    role: "Director of Credit & Risk",
-    img: "https://via.placeholder.com/100",
-    desc: "As head of the company, my job is to ensure everyone",
-  },
-];
+// const teamMembers = [
+//   {
+//     name: "David Kivitz",
+//     role: "CEO",
+//     img: "https://via.placeholder.com/100",
+//     desc: "As head of the company, my job is to ensure everyone",
+//   },
+//   {
+//     name: "Antony Radbod",
+//     role: "CFO",
+//     img: "https://via.placeholder.com/100",
+//     desc: "As head of the company, my job is to ensure everyone",
+//   },
+//   {
+//     name: "Justin Vuong",
+//     role: "CIO",
+//     img: "https://via.placeholder.com/100",
+//     desc: "As head of the company, my job is to ensure everyone",
+//   },
+//   {
+//     name: "Jim Bates",
+//     role: "Director of Credit & Risk",
+//     img: "https://via.placeholder.com/100",
+//     desc: "As head of the company, my job is to ensure everyone",
+//   },
+// ];
 
 const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
   return (
@@ -127,7 +127,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
         </div>
       </section>
 
-      {/* Team Section */}
+      {/* Team Section
       <section className="py-16 px-8 text-center">
         <h2 className="text-3xl font-bold mb-10">Meet Our Team</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
@@ -158,7 +158,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
     </div>
   );
 };
