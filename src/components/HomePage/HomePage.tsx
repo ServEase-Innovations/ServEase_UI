@@ -32,9 +32,10 @@ interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
     bookingType: (data: string) => void;
       onAboutClick: () => void;
+      onPrivacyPolicyClick: () => void;
 }
 
-const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick }) => {
+const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick, onPrivacyPolicyClick }) => {
     const dispatch = useDispatch();
     const [open, setOpen] = useState(false);
     const [selectedType, setSelectedtype] = useState('');
@@ -306,6 +307,14 @@ useEffect(() => {
   </div>
   <p className="mt-2 text-sm font-semibold text-white">Caregiver</p>
 </div>
+    <div className="text-center mt-8">
+        <button 
+          onClick={onPrivacyPolicyClick}
+          className="text-blue-600 hover:text-blue-800 underline"
+        >
+          View Privacy Policy
+        </button>
+      </div>   
 
 </div>
 
@@ -451,7 +460,9 @@ useEffect(() => {
                 </div>
             </section>
 
-            <Footer onAboutClick={onAboutClick}/>
+            <Footer onAboutClick={onAboutClick} onPrivacyPolicyClick={function (): void {
+          throw new Error("Function not implemented.");
+        } }/>
 <ServiceDetailsDialog
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}

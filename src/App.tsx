@@ -28,7 +28,7 @@ import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
 import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
-// import AboutPage from "./components/AboutPage/AboutPage"; // Import the AboutPage component
+import PrivacyPolicy from "./components/PrivacyPolicy/PrivacyPolicy";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -37,6 +37,7 @@ function App() {
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
   const [showAboutPage, setShowAboutPage] = useState(false); // State for About page
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false); // State for Privacy Policy page
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
@@ -87,6 +88,10 @@ function App() {
   const handleBackToHome = () => {
     setShowAboutPage(false);
   };
+  // Handler for Privacy Policy click
+  const handlePrivacyPolicyClick = () => {
+    setShowPrivacyPolicy(true);
+  };
 
   useEffect(() => {
     getPricingData();
@@ -124,11 +129,16 @@ function App() {
   // Determine if footer should be shown
   const shouldShowFooter = () => {
     // Don't show footer on these pages
-    const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
-    return !noFooterPages.includes(selection as string) && !showAboutPage;
+     const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
+    return !noFooterPages.includes(selection as string) && !showAboutPage && !showPrivacyPolicy;
   };
 
   const renderContent = () => {
+    // If Privacy Policy page is shown, render it
+    if (showPrivacyPolicy) {
+      return <PrivacyPolicy onBack={handleBackToHome} />;
+    }
+
     // If About page is shown, render it
     if (showAboutPage) {
       return <AboutPage onBack={handleBackToHome} />;
@@ -136,8 +146,8 @@ function App() {
     
     if (!selection) {
       return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType} 
-        onAboutClick={handleAboutClick}/>
+        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType} onAboutClick={handleAboutClick} 
+        onPrivacyPolicyClick={handlePrivacyPolicyClick}/>
       </ServiceProviderContext.Provider>;
     } else if (selection) {
       if (selection === DETAILS) {
@@ -169,10 +179,10 @@ function App() {
   };
   
 
-  return (
+   return (
     <div className="bg-gray-50 text-gray-800">
-      {/* Don't show header on About page */}
-      {!showAboutPage && <Header sendDataToParent={handleDataFromChild}/>}
+      {/* Don't show header on About page or Privacy Policy page */}
+      {!showAboutPage && !showPrivacyPolicy && <Header sendDataToParent={handleDataFromChild}/>}
       
       {notificationReceived && <NotificationClient />}
       
@@ -180,8 +190,13 @@ function App() {
         {renderContent()}
       </div>
       
-      {/* Conditionally render footer */}
-      {/* {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} />} */}
+      {/* Conditionally render footer with both props */}
+      {shouldShowFooter() && (
+        <Footer 
+          onAboutClick={handleAboutClick} 
+          onPrivacyPolicyClick={handlePrivacyPolicyClick} 
+        />
+      )}
     </div>
   );
 }

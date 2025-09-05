@@ -3,6 +3,7 @@ import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaFacebook } from "react
 
 interface FooterProps {
   onAboutClick: () => void;
+   onPrivacyPolicyClick: () => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onAboutClick }) => {
