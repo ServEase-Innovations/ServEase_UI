@@ -83,9 +83,9 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-app-rewired start",
-    "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-app-rewired build",
-    "test": "set NODE_OPTIONS=--openssl-legacy-provider && react-app-rewired test",
+    "start": "react-app-rewired start",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider && react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "lint": "eslint . || true"
   },
@@ -96,20 +96,21 @@
     ]
   },
   "browserslist": {
-  "production": [
-    ">0.2%",
-    "not dead",
-    "not op_mini all",
-    "iOS >= 11",
-    "Safari >= 11"
-  ],
-  "development": [
-    "last 1 chrome version",
-    "last 1 firefox version",
-    "last 1 safari version"
-  ]
-},
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all",
+      "iOS >= 11",
+      "Safari >= 11"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
     "@types/react-easy-crop": "^1.16.0",
     "@types/react-places-autocomplete": "^7.2.14",
     "autoprefixer": "^10.4.20",
