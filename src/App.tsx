@@ -17,7 +17,7 @@ import { ADMIN, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PRO
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux"; // Import useSelector
+import { useDispatch, useSelector } from "react-redux";
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
@@ -27,6 +27,8 @@ import NotificationClient from "./components/NotificationClient/NotificationClie
 import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
 import { useAuth0 } from "@auth0/auth0-react";
+import AboutPage from "./components/AboutUs/AboutUs";
+// import AboutPage from "./components/AboutPage/AboutPage"; // Import the AboutPage component
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -34,6 +36,7 @@ function App() {
   const [checkoutData, setCheckoutData] = useState<any>();
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
+  const [showAboutPage, setShowAboutPage] = useState(false); // State for About page
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
@@ -46,23 +49,9 @@ function App() {
     getAccessTokenSilently,
   } = useAuth0();
 
-// Extract user data from Redux with correct type
-// const user = useSelector((state: RootState) => state.user as UserState);
-const [notificationReceived, setNotificationReceived] = useState(false);
+  const [notificationReceived, setNotificationReceived] = useState(false);
 
-// Ensure `value` is not null before accessing `role`
-// const userRole = user?.value?.role ?? "No Role";
-// console.log("Logged-in user role:", userRole);
-
-// if (userRole === "CUSTOMER") {
-//   console.log("User is a Customer");
-// } else if (userRole === "SERVICE_PROVIDER") {
-//   console.log("User is a Service Provider");
-// } else {
-//   console.log("User role is unknown");
-// }
-
-console.log("User data in App component:", user);
+  console.log("User data in App component:", user);
 
   const handleDataFromChild = (e: string) => {
     console.log("Data received from child component:", e);
@@ -87,6 +76,16 @@ console.log("User data in App component:", user);
   const handleSelectedProvider = (e: any) => {
     console.log(e);
     setServiceProvidersData(e);
+  };
+
+  // Handler for About page click
+  const handleAboutClick = () => {
+    setShowAboutPage(true);
+  };
+
+  // Handler for returning from About page
+  const handleBackToHome = () => {
+    setShowAboutPage(false);
   };
 
   useEffect(() => {
@@ -115,7 +114,6 @@ console.log("User data in App component:", user);
     
   }, [user]);
 
-
   const getPricingData = () => {
     axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
       console.log(response.data);
@@ -123,15 +121,26 @@ console.log("User data in App component:", user);
     }).catch(function (error) { console.log(error) });
   };
 
+  // Determine if footer should be shown
+  const shouldShowFooter = () => {
+    // Don't show footer on these pages
+    const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
+    return !noFooterPages.includes(selection as string) && !showAboutPage;
+  };
+
   const renderContent = () => {
+    // If About page is shown, render it
+    if (showAboutPage) {
+      return <AboutPage onBack={handleBackToHome} />;
+    }
     
     if (!selection) {
       return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType}/>
+        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType} 
+        onAboutClick={handleAboutClick}/>
       </ServiceProviderContext.Provider>;
     } else if (selection) {
       if (selection === DETAILS) {
-
         return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
       } else if (selection === CONFIRMATION) {
         console.log("selected details -> ", serviceProviderDetails);
@@ -161,13 +170,18 @@ console.log("User data in App component:", user);
   
 
   return (
-    
     <div className="bg-gray-50 text-gray-800">
-      <Header sendDataToParent={handleDataFromChild}/>
+      {/* Don't show header on About page */}
+      {!showAboutPage && <Header sendDataToParent={handleDataFromChild}/>}
+      
       {notificationReceived && <NotificationClient />}
+      
       <div className="bg-gray-50 text-gray-800">
-      {renderContent()}
+        {renderContent()}
       </div>
+      
+      {/* Conditionally render footer */}
+      {/* {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} />} */}
     </div>
   );
 }

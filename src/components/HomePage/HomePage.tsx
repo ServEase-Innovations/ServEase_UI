@@ -31,9 +31,10 @@ const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ
 interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
     bookingType: (data: string) => void;
+      onAboutClick: () => void;
 }
 
-const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType }) => {
+const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick }) => {
     const dispatch = useDispatch();
     const [open, setOpen] = useState(false);
     const [selectedType, setSelectedtype] = useState('');
@@ -450,7 +451,7 @@ useEffect(() => {
                 </div>
             </section>
 
-            <Footer/>
+            <Footer onAboutClick={onAboutClick}/>
 <ServiceDetailsDialog
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}
