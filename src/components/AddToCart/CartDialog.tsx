@@ -437,24 +437,6 @@ const handleCheckboxChange =
             variant="contained"
             onClick={handleCheckout}
            disabled={allCartItems.length === 0 || !allTermsAccepted}
-            // sx={{ 
-            //   fontWeight: '500',
-            //   borderRadius: '6px',
-            //   textTransform: 'none',
-            //   px: 3,
-            //   py: 1,
-            //   fontSize: '0.9rem',
-            //   backgroundColor: '#4299e1',
-            //   boxShadow: 'none',
-            //   '&:hover': { 
-            //     backgroundColor: '#3182ce',
-            //     boxShadow: 'none' 
-            //   },
-            //   '&:disabled': {
-            //     backgroundColor: '#e2e8f0',
-            //     color: '#a0aec0'
-            //   }
-            // }}
           >
             Proceed to Checkout (₹{grandTotal.toFixed(2)})
           </Button>

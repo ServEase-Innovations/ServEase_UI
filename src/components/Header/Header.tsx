@@ -22,7 +22,6 @@ import { selectCartItemCount } from "../../features/addToCart/addToSlice";
 import {
   ADMIN,
   BOOKINGS,
-  CHECKOUT,
   DASHBOARD,
   LOGIN,
   PROFILE,
@@ -331,7 +330,11 @@ useEffect(() => {
     }
   };
 
- 
+ const handleCheckout = () => {
+console.log("Checkout");
+ handleCartClose();
+};
+
 
   const handleChange = (newValue: any) => {
     if (newValue === "Add Address") {
@@ -448,11 +451,7 @@ useEffect(() => {
       console.error("Error updating user settings:", error);
     }
   };
-  
-  
-  const handleProceedToCheckout = () => {
-    sendDataToParent(CHECKOUT);
-  };
+
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -707,14 +706,11 @@ useEffect(() => {
           </Button>
         </DialogActions>
       </Dialog>
-       <CartDialog 
-        open={cartOpen} 
-        handleClose={handleCartClose}
-        handleCheckout={() => {
-          handleCartClose();
-          sendDataToParent(CHECKOUT); // Only navigate on checkout button click
-        }}
-      />
+     <CartDialog 
+  open={cartOpen} 
+  handleClose={handleCartClose}
+  handleCheckout={handleCheckout}
+/>
     </>
   );
 };
