@@ -96,17 +96,19 @@
     ]
   },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
+  "production": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all",
+    "iOS >= 11",
+    "Safari >= 11"
+  ],
+  "development": [
+    "last 1 chrome version",
+    "last 1 firefox version",
+    "last 1 safari version"
+  ]
+},
   "devDependencies": {
     "@types/react-easy-crop": "^1.16.0",
     "@types/react-places-autocomplete": "^7.2.14",
