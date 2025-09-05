@@ -26,11 +26,11 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick }) => {
           </p>
 
           <div className="flex space-x-3 mt-3 text-gray-600">
-            <a href="#!"><FaTwitter size={18} /></a>
-            <a href="#!"><FaInstagram size={18} /></a>
-            <a href="#!"><FaLinkedin size={18} /></a>
-            <a href="#!"><FaYoutube size={18} /></a>
-            <a href="#!"><FaFacebook size={18} /></a>
+            <a href=" https://x.com/ServEaso "><FaTwitter size={18} /></a>
+            <a href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn"><FaInstagram size={18} /></a>
+            <a href="https://www.linkedin.com/in/serveaso-media-7b7719381/"><FaLinkedin size={18} /></a>
+            <a href="https://www.youtube.com/@ServEaso"><FaYoutube size={18} /></a>
+            <a href="https://www.facebook.com/profile.php?id=61572701168852"><FaFacebook size={18} /></a>
           </div>
         </div>
 
