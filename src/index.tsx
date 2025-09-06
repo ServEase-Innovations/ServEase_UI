@@ -34,6 +34,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+if (typeof Notification === "undefined") {
+  window.Notification = class {
+    static permission: NotificationPermission = "denied";
+    static requestPermission(): Promise<NotificationPermission> {
+      console.warn("Tried to request Notification permission, but it's not supported on iOS.");
+      return Promise.resolve("denied");
+    }
+    constructor(title: string, options?: NotificationOptions) {
+      console.warn(`Tried to create Notification with title "${title}", but it's not supported on iOS.`);
+    }
+  } as any;
+}
+
+
 root.render(
   <Auth0Provider
     domain={domain}

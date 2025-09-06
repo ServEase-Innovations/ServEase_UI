@@ -279,112 +279,102 @@ const handleCheckboxChange =
   </Typography>
     </li>
 
-    {/* Key Facts */}
-    <li>
-      <input
-        type="checkbox"
-        checked={termsAccepted.keyFacts}
-        onChange={handleCheckboxChange('keyFacts')}
-        style={{ marginRight: '8px' }}
-      />
-      <Typography
-        variant="body2"
-        component="span"
-        sx={{ color: '#4a5568' }}
-        onClick={() =>
-          window.open('http://localhost:3000/KeyFactsStatement', '_blank')
-        }
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="http://localhost:3000/KeyFactsStatement"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-        >
-          Key Facts Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    </li>
+   {/* Key Facts */}
+<li>
+  <input
+    type="checkbox"
+    checked={termsAccepted.keyFacts}
+    onChange={handleCheckboxChange('keyFacts')}
+    style={{ marginRight: '8px' }}
+  />
+  <Typography
+    variant="body2"
+    component="span"
+    sx={{ color: '#4a5568' }}
+    onClick={() => window.open('/KeyFactsStatement', '_blank')}
+  >
+    I agree to the ServEaso{' '}
+    <a
+      href="/KeyFactsStatement"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: '#3182ce',
+        textDecoration: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      Key Facts Statement
+      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+    </a>
+  </Typography>
+</li>
 
-    {/* Terms & Conditions */}
-    <li>
-      <input
-        type="checkbox"
-        checked={termsAccepted.termsConditions}
-        onChange={handleCheckboxChange('termsConditions')}
-        style={{ marginRight: '8px' }}
-      />
-      <Typography
-        variant="body2"
-        component="span"
-        sx={{ color: '#4a5568' }}
-        onClick={() => window.open('http://localhost:3000/TnC', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="http://localhost:3000/TnC"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-        >
-          Terms and Conditions
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    </li>
+{/* Terms & Conditions */}
+<li>
+  <input
+    type="checkbox"
+    checked={termsAccepted.termsConditions}
+    onChange={handleCheckboxChange('termsConditions')}
+    style={{ marginRight: '8px' }}
+  />
+  <Typography
+    variant="body2"
+    component="span"
+    sx={{ color: '#4a5568' }}
+    onClick={() => window.open('/TnC', '_blank')}
+  >
+    I agree to the ServEaso{' '}
+    <a
+      href="/TnC"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: '#3182ce',
+        textDecoration: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      Terms and Conditions
+      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+    </a>
+  </Typography>
+</li>
 
-    {/* Privacy */}
-    <li>
-      <input
-        type="checkbox"
-        checked={termsAccepted.privacyPolicy}
-        onChange={handleCheckboxChange('privacyPolicy')}
-        style={{ marginRight: '8px' }}
-      />
-      <Typography
-        variant="body2"
-        component="span"
-        sx={{ color: '#4a5568' }}
-        onClick={() => window.open('http://localhost:3000/Privacy', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="http://localhost:3000/Privacy"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-        >
-          Privacy Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    </li>
+{/* Privacy */}
+<li>
+  <input
+    type="checkbox"
+    checked={termsAccepted.privacyPolicy}
+    onChange={handleCheckboxChange('privacyPolicy')}
+    style={{ marginRight: '8px' }}
+  />
+  <Typography
+    variant="body2"
+    component="span"
+    sx={{ color: '#4a5568' }}
+    onClick={() => window.open('/Privacy', '_blank')}
+  >
+    I agree to the ServEaso{' '}
+    <a
+      href="/Privacy"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: '#3182ce',
+        textDecoration: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      Privacy Statement
+      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+    </a>
+  </Typography>
+</li>
+
   </Box>
 </Box>
 
@@ -430,31 +420,13 @@ const handleCheckboxChange =
               }
             }}
           >
-            Continue Booking
+            Modify Booking
           </Button>
           
           <Button
             variant="contained"
             onClick={handleCheckout}
            disabled={allCartItems.length === 0 || !allTermsAccepted}
-            // sx={{ 
-            //   fontWeight: '500',
-            //   borderRadius: '6px',
-            //   textTransform: 'none',
-            //   px: 3,
-            //   py: 1,
-            //   fontSize: '0.9rem',
-            //   backgroundColor: '#4299e1',
-            //   boxShadow: 'none',
-            //   '&:hover': { 
-            //     backgroundColor: '#3182ce',
-            //     boxShadow: 'none' 
-            //   },
-            //   '&:disabled': {
-            //     backgroundColor: '#e2e8f0',
-            //     color: '#a0aec0'
-            //   }
-            // }}
           >
             Proceed to Checkout (₹{grandTotal.toFixed(2)})
           </Button>
@@ -473,95 +445,95 @@ interface CartItemCardProps {
 const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
   const dispatch = useDispatch();
 
-  const handleIncrement = (field: string) => {
-    if (isMealCartItem(item)) {
-      dispatch(updateCartItem({
-        id: item.id,
-        type: 'meal',
-        updates: { persons: (item.persons || 1) + 1 }
-      }));
-    } else if (isMaidCartItem(item)) {
-      const details = item.details || {};
-      if (field === 'persons') {
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'maid',
-          updates: { details: { ...details, persons: (details.persons || 1) + 1 } }
-        }));
-      } else if (field === 'houseSize') {
-        const currentSize = parseHouseSize(details.houseSize);
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'maid',
-          updates: { 
-            details: { 
-              ...details, 
-              houseSize: formatHouseSize(currentSize + 1) 
-            } 
-          }
-        }));
-      } else if (field === 'bathrooms') {
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'maid',
-          updates: { details: { ...details, bathrooms: (details.bathrooms || 1) + 1 } }
-        }));
-      }
-    } else if (isNannyCartItem(item)) {
-      dispatch(updateCartItem({
-        id: item.id,
-        type: 'nanny',
-        updates: { age: (item.age || 1) + 1 }
-      }));
-    }
-  };
+  // const handleIncrement = (field: string) => {
+  //   if (isMealCartItem(item)) {
+  //     dispatch(updateCartItem({
+  //       id: item.id,
+  //       type: 'meal',
+  //       updates: { persons: (item.persons || 1) + 1 }
+  //     }));
+  //   } else if (isMaidCartItem(item)) {
+  //     const details = item.details || {};
+  //     if (field === 'persons') {
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'maid',
+  //         updates: { details: { ...details, persons: (details.persons || 1) + 1 } }
+  //       }));
+  //     } else if (field === 'houseSize') {
+  //       const currentSize = parseHouseSize(details.houseSize);
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'maid',
+  //         updates: { 
+  //           details: { 
+  //             ...details, 
+  //             houseSize: formatHouseSize(currentSize + 1) 
+  //           } 
+  //         }
+  //       }));
+  //     } else if (field === 'bathrooms') {
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'maid',
+  //         updates: { details: { ...details, bathrooms: (details.bathrooms || 1) + 1 } }
+  //       }));
+  //     }
+  //   } else if (isNannyCartItem(item)) {
+  //     dispatch(updateCartItem({
+  //       id: item.id,
+  //       type: 'nanny',
+  //       updates: { age: (item.age || 1) + 1 }
+  //     }));
+  //   }
+  // };
 
-  const handleDecrement = (field: string) => {
-    if (isMealCartItem(item)) {
-      if (item.persons > 1) {
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'meal',
-          updates: { persons: item.persons - 1 }
-        }));
-      }
-    } else if (isMaidCartItem(item)) {
-      const details = item.details || {};
-      if (field === 'persons' && (details.persons || 0) > 1) {
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'maid',
-          updates: { details: { ...details, persons: (details.persons || 1) - 1 } }
-        }));
-      } else if (field === 'houseSize' && details.houseSize) {
-        const currentSize = parseHouseSize(details.houseSize);
-        if (currentSize > 1) {
-          dispatch(updateCartItem({
-            id: item.id,
-            type: 'maid',
-            updates: { 
-              details: { 
-                ...details, 
-                houseSize: formatHouseSize(currentSize - 1) 
-              } 
-            }
-          }));
-        }
-      } else if (field === 'bathrooms' && (details.bathrooms || 0) > 1) {
-        dispatch(updateCartItem({
-          id: item.id,
-          type: 'maid',
-          updates: { details: { ...details, bathrooms: (details.bathrooms || 1) - 1 } }
-        }));
-      }
-    } else if (isNannyCartItem(item) && item.age > 1) {
-      dispatch(updateCartItem({
-        id: item.id,
-        type: 'nanny',
-        updates: { age: item.age - 1 }
-      }));
-    }
-  };
+  // const handleDecrement = (field: string) => {
+  //   if (isMealCartItem(item)) {
+  //     if (item.persons > 1) {
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'meal',
+  //         updates: { persons: item.persons - 1 }
+  //       }));
+  //     }
+  //   } else if (isMaidCartItem(item)) {
+  //     const details = item.details || {};
+  //     if (field === 'persons' && (details.persons || 0) > 1) {
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'maid',
+  //         updates: { details: { ...details, persons: (details.persons || 1) - 1 } }
+  //       }));
+  //     } else if (field === 'houseSize' && details.houseSize) {
+  //       const currentSize = parseHouseSize(details.houseSize);
+  //       if (currentSize > 1) {
+  //         dispatch(updateCartItem({
+  //           id: item.id,
+  //           type: 'maid',
+  //           updates: { 
+  //             details: { 
+  //               ...details, 
+  //               houseSize: formatHouseSize(currentSize - 1) 
+  //             } 
+  //           }
+  //         }));
+  //       }
+  //     } else if (field === 'bathrooms' && (details.bathrooms || 0) > 1) {
+  //       dispatch(updateCartItem({
+  //         id: item.id,
+  //         type: 'maid',
+  //         updates: { details: { ...details, bathrooms: (details.bathrooms || 1) - 1 } }
+  //       }));
+  //     }
+  //   } else if (isNannyCartItem(item) && item.age > 1) {
+  //     dispatch(updateCartItem({
+  //       id: item.id,
+  //       type: 'nanny',
+  //       updates: { age: item.age - 1 }
+  //     }));
+  //   }
+  // };
 
   const getNumericValue = (field: string): number => {
     if (isMealCartItem(item) && field === 'persons') {
@@ -585,8 +557,8 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
         <span style={{ marginRight: '15px', color: '#2d3436', fontSize: '0.875rem' }}>{label}:</span>
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px' }}>
-          <button 
-            onClick={() => handleDecrement(field)}
+          {/* <button 
+            // onClick={() => handleDecrement(field)}
             style={{
               padding: '5px 10px',
               backgroundColor: '#f5f5f5',
@@ -598,11 +570,11 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
             }}
           >
             -
-          </button>
+          </button> */}
           <span style={{ padding: '5px 15px', minWidth: '20px', textAlign: 'center', fontSize: '0.875rem' }}>
             {displayValue}
           </span>
-          <button 
+          {/* <button 
             onClick={() => handleIncrement(field)}
             style={{
               padding: '5px 10px',
@@ -615,7 +587,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
             }}
           >
             +
-          </button>
+          </button> */}
         </div>
       </div>
     );
