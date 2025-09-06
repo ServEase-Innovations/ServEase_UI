@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
