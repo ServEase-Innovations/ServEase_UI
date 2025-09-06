@@ -27,6 +27,7 @@ import NotificationClient from "./components/NotificationClient/NotificationClie
 import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
 import { useAuth0 } from "@auth0/auth0-react";
+import AboutPage from "./components/AboutUs/AboutUs";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -88,7 +89,15 @@ console.log("User data in App component:", user);
     console.log(e);
     setServiceProvidersData(e);
   };
+  
+  const handleAboutClick = () => {
+    setShowAboutPage(true);
+  };
 
+  const handleBackToHome = () => {
+    setShowAboutPage(false);
+  };  
+  const [showAboutPage, setShowAboutPage] = useState(false);
   useEffect(() => {
     getPricingData();
   });
@@ -122,12 +131,25 @@ console.log("User data in App component:", user);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });
   };
-
+    // Determine if footer should be shown
+  const shouldShowFooter = () => {
+    // Don't show footer on these pages
+    const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
+    return !noFooterPages.includes(selection as string) && !showAboutPage;
+  };
   const renderContent = () => {
+      // If About page is shown, render it
+    if (showAboutPage) {
+      return <AboutPage onBack={handleBackToHome} />;
+    }
     
     if (!selection) {
       return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage sendDataToParent={handleDataFromChild} bookingType={handleSelectedBookingType}/>
+        <HomePage 
+                sendDataToParent={handleDataFromChild} 
+                bookingType={handleSelectedBookingType}
+                onAboutClick={handleAboutClick} // Add this line
+            />
       </ServiceProviderContext.Provider>;
     } else if (selection) {
       if (selection === DETAILS) {
@@ -161,15 +183,19 @@ console.log("User data in App component:", user);
   
 
   return (
+  <div className="bg-gray-50 text-gray-800">
+    {/* Don't show header on About page */}
+    {!showAboutPage && <Header sendDataToParent={handleDataFromChild} />}
+    
+    {notificationReceived && <NotificationClient />}
     
     <div className="bg-gray-50 text-gray-800">
-      <Header sendDataToParent={handleDataFromChild}/>
-      {notificationReceived && <NotificationClient />}
-      <div className="bg-gray-50 text-gray-800">
       {renderContent()}
-      </div>
     </div>
-  );
+    
+    {/* Conditionally render footer - pass onAboutClick prop */}
+    {/* {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} />} */}
+  </div>
+);
 }
-
 export default App;

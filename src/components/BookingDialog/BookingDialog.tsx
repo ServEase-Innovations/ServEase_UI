@@ -183,14 +183,14 @@ const shouldDisableEndDate = (date: Dayjs) => {
       ampm
       value={startTime}   // keep this controlled with Dayjs
       onChange={(newValue) => updateStartDate(newValue)}
-      minDateTime={dayjs().add(30, "minute")}   // ⏰ minimum is 30 minutes from now
+      minDateTime={dayjs().add(30, "minute")}   //minimum is 30 minutes from now
       maxDate={maxDate21Days}
       shouldDisableDate={shouldDisableDate}
       slotProps={{
         textField: { fullWidth: true },
         actionBar: { actions: ["accept"] }, // only OK inside picker
         popper: {
-          placement: "top-start",   // 👈 this makes it open upwards
+          placement: "top-start",   //this makes it open upwards
         },
       }}
       viewRenderers={{ month: undefined }}
@@ -271,7 +271,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
           disablePast={false}
           slotProps={{
             popper: {
-              placement: "top-start",  // 👈 forces picker to open above the input
+              placement: "top-start",  //forces picker to open above the input
             },
           }}
         />

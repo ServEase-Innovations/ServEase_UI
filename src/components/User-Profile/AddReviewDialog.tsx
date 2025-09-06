@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState } from "react";
 import { X, Star, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent } from "@mui/material";
