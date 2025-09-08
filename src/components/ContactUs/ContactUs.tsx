@@ -1,24 +1,36 @@
 import React from "react";
 import { Mail, Phone, MapPin, CheckCircle, X } from "lucide-react";
-import { Link } from "react-router-dom";
 
-const ContactUs = () => {
+export interface ContactUsProps {
+  onBack?: () => void;
+  onContactClick?: () => void;
+}
+
+const ContactUs = ({ onBack, onContactClick }: ContactUsProps) => {
+  // Safe close handler
+  const handleClose = () => {
+    if (onBack) onBack();
+    else if (onContactClick) onContactClick();
+    else console.log("No handler provided"); // safe fallback
+  };
+
   return (
     <section
-      className="py-12 sm:py-16 relative"
+      className="py-10 sm:py-14 relative"
       style={{ backgroundColor: "#d6f0ff" }}
     >
-      {/* Cross button (top-right corner, responsive) */}
-      <Link
-        to="/"
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-700 hover:text-gray-900 transition"
+      {/* Close button */}
+      <button
+        onClick={handleClose}
+        aria-label="Close contact form"
+        className="absolute top-3 right-3 sm:top-5 sm:right-5 text-gray-700 hover:text-gray-900 transition"
       >
         <X className="w-6 h-6 sm:w-7 sm:h-7" />
-      </Link>
+      </button>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* Heading */}
-        <div className="text-center mb-10 sm:mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <h5 className="text-xs sm:text-sm font-semibold uppercase text-gray-500 tracking-widest">
             Contact Us
           </h5>
@@ -26,13 +38,12 @@ const ContactUs = () => {
             Get in touch with us
           </h2>
           <p className="mt-3 sm:mt-4 text-gray-600 max-w-2xl mx-auto text-sm sm:text-base">
-            Fill out the form below or schedule a meeting with us at your
-            convenience.
+            Fill out the form below or schedule a meeting at your convenience.
           </p>
         </div>
 
         {/* Grid layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
           {/* Left: Form */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm">
             <form className="space-y-4">
@@ -46,6 +57,7 @@ const ContactUs = () => {
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-800 outline-none text-sm sm:text-base"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Email
@@ -56,6 +68,7 @@ const ContactUs = () => {
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-800 outline-none text-sm sm:text-base"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Message
@@ -82,19 +95,19 @@ const ContactUs = () => {
               </button>
             </form>
 
-            {/* Contact info bottom */}
+            {/* Contact info */}
             <div className="mt-6 sm:mt-8 text-center">
               <p className="text-gray-700 font-medium text-sm sm:text-base">
-                You can also Contact Us via
+                You can also contact us via
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mt-4 text-xs sm:text-sm">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center sm:justify-start space-x-2">
                   <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
-                  <span>contact.serveaso@gmail.com</span>
+                  <span>support@serveaso.com</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center sm:justify-start space-x-2">
                   <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
-                  <span>+91 7648999213</span>
+                  <span>080-123456789</span>
                 </div>
               </div>
             </div>
@@ -112,22 +125,27 @@ const ContactUs = () => {
                 "Reduce the onboarding time and improve sales",
                 "Balance user needs with your business goal",
               ].map((item, index) => (
-                <li key={index} className="flex items-start space-x-2 sm:space-x-3">
+                <li
+                  key={index}
+                  className="flex items-start space-x-2 sm:space-x-3"
+                >
                   <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 mt-0.5 sm:mt-1" />
-                  <span className="text-gray-700 text-sm sm:text-base">{item}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">
+                    {item}
+                  </span>
                 </li>
               ))}
             </ul>
 
             {/* Locations */}
             <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs sm:text-sm text-gray-600">
-              <div>
+              {/* <div>
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 mb-1 sm:mb-2" />
                 <p className="font-semibold">USA</p>
                 <p>280 W, 17th street</p>
                 <p>4th floor, Flat no: 407</p>
                 <p>New York NY, 10018</p>
-              </div>
+              </div> */}
               <div>
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 mb-1 sm:mb-2" />
                 <p className="font-semibold">India</p>
@@ -139,10 +157,10 @@ const ContactUs = () => {
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="mt-12 sm:mt-16 text-center text-gray-600 text-xs sm:text-sm border-t pt-4 sm:pt-6">
+        {/* Copyright 
+        <div className="mt-10 sm:mt-14 text-center text-gray-600 text-xs sm:text-sm border-t pt-4 sm:pt-6">
           ©2025 <span className="font-semibold">ServEaso</span>. All rights reserved.
-        </div>
+        </div> */}
       </div>
     </section>
   );

@@ -3,9 +3,10 @@ import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaFacebook } from "react
 
 interface FooterProps {
   onAboutClick: () => void;
+  onContactClick: () => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onAboutClick }) => {
+const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
   return (
     <>
       <footer className="border-t border-gray-200" style={{ backgroundColor: "#d6f0ff" }}>
@@ -71,14 +72,12 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick }) => {
                 </li>
                 <li><a href="#!" className="hover:text-gray-900">Careers</a></li>
                 <li>
-                  <a
-                    href="http://localhost:3000/Contact"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-900"
-                  >
-                    Contact
-                  </a>
+                   <button 
+                    onClick={onContactClick} 
+                    className="hover:text-gray-900 text-left"
+                    >
+                    ContactUs
+                    </button>
                 </li>
                 <li><a href="#!" className="hover:text-gray-900">Partners</a></li>
                 <li><a href="#!" className="hover:text-gray-900">Pricing</a></li>

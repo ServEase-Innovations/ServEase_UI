@@ -6,7 +6,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { Header } from "./components/Header/Header";
 import { Landingpage } from "./components/Landing_Page/Landingpage";
 import { DetailsView } from "./components/DetailsView/DetailsView";
-import Footer from "./components/Footer/Footer";
 import Admin from "./components/Admin/Admin";
 import Login from "./components/Login/Login";
 import Confirmationpage from "./components/ServiceProvidersDetails/Confirmationpage";
@@ -28,6 +27,9 @@ import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
 import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
+import ContactUs from "./components/ContactUs/ContactUs";
+import Footer from "./components/Footer/Footer";
+
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -35,6 +37,8 @@ function App() {
   const [checkoutData, setCheckoutData] = useState<any>();
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
+    const [showAboutPage, setShowAboutPage] = useState(false);
+    const [showContactUs, setShowContactUs] = useState(false);
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
@@ -50,7 +54,6 @@ function App() {
 // Extract user data from Redux with correct type
 // const user = useSelector((state: RootState) => state.user as UserState);
 const [notificationReceived, setNotificationReceived] = useState(false);
-
 // Ensure `value` is not null before accessing `role`
 // const userRole = user?.value?.role ?? "No Role";
 // console.log("Logged-in user role:", userRole);
@@ -90,14 +93,24 @@ console.log("User data in App component:", user);
     setServiceProvidersData(e);
   };
   
-  const handleAboutClick = () => {
+ const handleAboutClick = () => {
     setShowAboutPage(true);
+    setShowContactUs(false); // Ensure ContactUs is hidden
+    setSelection(undefined); // Clear any other selection
+  };
+
+  const handleContactClick = () => {
+    setShowContactUs(true);
+    setShowAboutPage(false); // Ensure About page is hidden
+    setSelection(undefined); // Clear any other selection
   };
 
   const handleBackToHome = () => {
     setShowAboutPage(false);
-  };  
-  const [showAboutPage, setShowAboutPage] = useState(false);
+    setShowContactUs(false); // Reset ContactUs state
+    setSelection(undefined); // Reset selection
+  };
+
   useEffect(() => {
     getPricingData();
   });
@@ -133,23 +146,31 @@ console.log("User data in App component:", user);
   };
     // Determine if footer should be shown
   const shouldShowFooter = () => {
-    // Don't show footer on these pages
-    const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
-    return !noFooterPages.includes(selection as string) && !showAboutPage;
-  };
+  const noFooterPages = [
+    LOGIN,  ADMIN, DASHBOARD,
+    PROFILE,BOOKINGS, DETAILS, CONFIRMATION, CHECKOUT,
+  ];
+  return !noFooterPages.includes(selection as string) && !showAboutPage && !showContactUs;
+};
   const renderContent = () => {
       // If About page is shown, render it
     if (showAboutPage) {
       return <AboutPage onBack={handleBackToHome} />;
     }
+      // If ContactUs is shown, render it
+    if (showContactUs) {
+  return <ContactUs onBack={handleBackToHome} />;
+}
+
     
     if (!selection) {
       return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage 
-                sendDataToParent={handleDataFromChild} 
-                bookingType={handleSelectedBookingType}
-                onAboutClick={handleAboutClick} // Add this line
-            />
+        <HomePage
+  sendDataToParent={handleDataFromChild}
+  bookingType={handleSelectedBookingType}
+  onAboutClick={handleAboutClick}
+  onContactClick={handleContactClick}
+/>
       </ServiceProviderContext.Provider>;
     } else if (selection) {
       if (selection === DETAILS) {
@@ -182,7 +203,7 @@ console.log("User data in App component:", user);
   };
   
 
-  return (
+return (
   <div className="bg-gray-50 text-gray-800">
     {/* Don't show header on About page */}
     {!showAboutPage && <Header sendDataToParent={handleDataFromChild} />}
@@ -192,9 +213,9 @@ console.log("User data in App component:", user);
     <div className="bg-gray-50 text-gray-800">
       {renderContent()}
     </div>
-    
-    {/* Conditionally render footer - pass onAboutClick prop */}
-    {/* {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} />} */}
+
+    {/* If you want a footer on all pages except About, uncomment and keep only this one */}
+    {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} onContactClick={handleContactClick} />}
   </div>
 );
 }

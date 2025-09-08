@@ -13,7 +13,7 @@ import {
     Button,
     Box,
 } from "@mui/material";
-import { LocalizationProvider, DateTimePicker, DesktopDateTimePicker, DatePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider, DateTimePicker, DesktopDateTimePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 
@@ -156,7 +156,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
     },
   }}
 >
-            <DialogTitle>Select your Booking</DialogTitle>
+            <DialogTitle>Select your Booking Option</DialogTitle>
             <DialogContent>
                 <FormControl component="fieldset" sx={{ mb: 2 }}>
                     <FormLabel component="legend" sx={{ color: "primary.main", fontWeight: 500 }}>
@@ -174,141 +174,128 @@ const shouldDisableEndDate = (date: Dayjs) => {
                     </RadioGroup>
                 </FormControl>
                 
- <LocalizationProvider dateAdapter={AdapterDayjs}>  
+<LocalizationProvider dateAdapter={AdapterDayjs}>
 
- {selectedOption === "Date" && (
-    <DemoContainer components={["DatePicker"]}>
-    <DesktopDateTimePicker
-  label="Select Start Date"
-  ampm
-  value={startTime}
-  onChange={(newValue) => updateStartDate(newValue)}
-  minDateTime={dayjs().add(30, "minute")}
-  maxDate={maxDate21Days}
-  shouldDisableDate={shouldDisableDate}
-  format={
-    startTime && startTime.hour() !== 0 && startTime.minute() !== 0
-      ? "MM/DD/YYYY hh:mm A"   // show date + time if time chosen
-      : "MM/DD/YYYY"           // otherwise only date
-  }
-  slotProps={{
-    textField: {
-      fullWidth: true,
-      placeholder: "MM/DD/YYYY", // cleaner placeholder
-    },
-    actionBar: { actions: ["accept"] },
-    popper: { placement: "top-start" },
-  }}
-  viewRenderers={{ month: undefined }}
-/>
-
+  {/* --- Date Option --- */}
+  {selectedOption === "Date" && (
+    <DemoContainer components={["DesktopDateTimePicker"]}>
+      <DesktopDateTimePicker
+        label="Select Start Date"
+        ampm
+        value={startTime}   // keep this controlled with Dayjs
+        onChange={(newValue) => updateStartDate(newValue)}
+        minDateTime={dayjs().add(30, "minute")}   // minimum is 30 minutes from now
+        maxDate={maxDate21Days}
+        shouldDisableDate={shouldDisableDate}
+        format={startTime ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
+        slotProps={{
+          textField: {
+            fullWidth: true,
+            placeholder: "MM/DD/YYYY",
+          },
+          actionBar: { actions: ["accept"] },
+          popper: { placement: "top-start" }, // open upwards
+        }}
+        viewRenderers={{ month: undefined }}
+      />
     </DemoContainer>
   )}
 
+  {/* --- Short Term Option --- */}
+  {selectedOption === "Short term" && (
+    <Box display="flex" gap={3} displayPrint={"flex"} flexDirection="column">
+      <Box>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DemoContainer components={['DateTimePicker']}>
+            <DateTimePicker
+              label="Select Start Date"
+              onChange={(newValue) => updateStartDate(newValue)}
+              minDate={today}
+              maxDate={maxDate90Days}
+              shouldDisableDate={shouldDisableStartDate}
+              format={startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  placeholder: "MM/DD/YYYY",
+                },
+              }}
+            />
+          </DemoContainer>
+        </LocalizationProvider>
+      </Box>
 
-                    {selectedOption === "Short term" && (
-                        <Box display="flex" gap={3} displayPrint={"flex"} flexDirection="column">
-                            <Box>
-                                <LocalizationProvider dateAdapter={AdapterDayjs}>
-  <DemoContainer components={['DateTimePicker']}>
-    <DateTimePicker
-      label="Select Start Date"
-      onChange={(newValue) => updateStartDate(newValue)}
-      minDate={today}
-      maxDate={maxDate90Days}
-      shouldDisableDate={shouldDisableStartDate}
-      format={
-        startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"
-      }
-      slotProps={{
-        textField: {
-          fullWidth: true,
-          placeholder: "MM/DD/YYYY", 
-        },
-      }}
-    />
-  </DemoContainer>
+      <Box>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DemoContainer components={['DateTimePicker']}>
+            <DateTimePicker
+              label="Select End Date"
+              onChange={(newValue) => updateEndDate(newValue)}
+              shouldDisableDate={shouldDisableEndDate}
+              shouldDisableMonth={(month) => {
+                if (!startDate) return true;
+                const start = dayjs(startDate);
+                const max = start.add(20, "day");
+                return month.isBefore(start, "month") || month.isAfter(max, "month");
+              }}
+              minDate={startDate ? dayjs(startDate).add(1, "day") : today}
+              maxDate={startDate ? dayjs(startDate).add(20, "day") : today}
+              format={endDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  placeholder: "MM/DD/YYYY",
+                },
+              }}
+            />
+          </DemoContainer>
+        </LocalizationProvider>
+      </Box>
+    </Box>
+  )}
+
+  {/* --- Monthly Option --- */}
+  {selectedOption === "Monthly" && (
+    <>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DemoContainer components={['DateTimePicker']}>
+          <DateTimePicker
+            label="Select Start Date"
+            onChange={(newValue) => {
+              if (!newValue) return;
+
+              const hour = newValue.hour();
+              // Allowed booking window: 5 AM <= hour < 22 (10 PM)
+              if (hour < 5 || hour >= 22) {
+                alert(
+                  "ServEaso provides services from 5:00 AM to 10:00 PM, please select the correct time slot"
+                );
+                return; // Do NOT update state if invalid
+              }
+
+              updateStartDate(newValue);
+            }}
+            minDate={today}
+            maxDate={maxDate90Days}
+            shouldDisableDate={shouldDisableDate}
+            disableFuture={false}
+            disablePast={false}
+            format={startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                placeholder: "MM/DD/YYYY",
+              },
+              popper: { placement: "top-start" }, // open above input
+            }}
+          />
+        </DemoContainer>
+      </LocalizationProvider>
+    </>
+  )}
+
 </LocalizationProvider>
 
-                            </Box>
-                            <Box>
-                     <LocalizationProvider dateAdapter={AdapterDayjs}>
-  <DemoContainer components={['DateTimePicker']}>
-    <DateTimePicker
-      label="Select End Date"
-      onChange={(newValue) => updateEndDate(newValue)}
-      shouldDisableDate={shouldDisableEndDate}
-      shouldDisableMonth={(month) => {
-        if (!startDate) return true;
-        const start = dayjs(startDate);
-        const max = start.add(20, 'day');
-        return month.isBefore(start, 'month') || month.isAfter(max, 'month');
-      }}
-      minDate={startDate ? dayjs(startDate).add(1, 'day') : today}
-      maxDate={startDate ? dayjs(startDate).add(20, 'day') : today}
-      format={
-        endDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"
-      }
-      slotProps={{
-        textField: {
-          fullWidth: true,
-          placeholder: "MM/DD/YYYY",
-        },
-      }}
-    />
-  </DemoContainer>
-</LocalizationProvider>
-
-         </Box>
-        </Box>
-    )}
-
-
-{selectedOption === "Monthly" && (
-  <>
-   <LocalizationProvider dateAdapter={AdapterDayjs}>
-  <DemoContainer components={['DateTimePicker']}>
-    <DateTimePicker
-      label="Select Start Date"
-      onChange={(newValue) => {
-        if (!newValue) return;
-
-        const hour = newValue.hour();
-
-        // Allowed window: 5 AM <= hour < 10 PM
-        if (hour < 5 || hour >= 22) {
-          alert(
-            "ServEaso provides services between 5:00AM and 10:00PM, kindly select correct time slot"
-          );
-        } else {
-          updateStartDate(newValue);
-        }
-      }}
-      minDate={today}
-      maxDate={maxDate90Days}
-      shouldDisableDate={shouldDisableDate}
-      disableFuture={false}
-      disablePast={false}
-      format={
-        startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"
-      }
-      slotProps={{
-        textField: {
-          fullWidth: true,
-          placeholder: "MM/DD/YYYY",
-        },
-        popper: {
-          placement: "top-start", // forces picker to open above input
-        },
-      }}
-    />
-  </DemoContainer>
-</LocalizationProvider>
-
-  </>
-)}
-
-                </LocalizationProvider>
             </DialogContent>
 
           <DialogActions style={{ paddingRight: '20px' }}>
