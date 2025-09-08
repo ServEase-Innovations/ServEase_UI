@@ -709,7 +709,7 @@ console.log("Checkout");
      <CartDialog 
   open={cartOpen} 
   handleClose={handleCartClose}
-  handleCheckout={handleCheckout}
+
 />
     </>
   );

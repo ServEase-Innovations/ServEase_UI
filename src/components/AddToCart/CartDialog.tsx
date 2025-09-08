@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton, Checkbox, FormControlLabel } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems, updateCartItem } from '../../features/addToCart/addToSlice';
@@ -8,10 +8,13 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import { Button } from '../../components/Button/button';
 import { useEffect, useState } from 'react';
+
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
-  handleCheckout?: () => void;
+  handleCookCheckout?: () => void;
+  handleMaidCheckout?: () => void;
+  handleNannyCheckout?: () => void;
 }
 
 // Utility functions for houseSize handling
@@ -28,7 +31,9 @@ const formatHouseSize = (size: number): string => {
 export const CartDialog: React.FC<CartDialogProps> = ({ 
   open, 
   handleClose, 
-  handleCheckout,
+  handleCookCheckout,
+  handleMaidCheckout,
+  handleNannyCheckout
 }) => {
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
@@ -39,9 +44,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
   
   // Calculate totals
-  const mealCartTotal = mealCartItems.reduce((sum, item) => sum + item.price, 0);
-  const maidCartTotal = maidCartItems.reduce((sum, item) => sum + item.price, 0);
-  const nannyCartTotal = nannyCartItems.reduce((sum, item) => sum + item.price, 0);
+  const mealCartTotal = mealCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const maidCartTotal = maidCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  const nannyCartTotal = nannyCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalPrice = mealCartTotal + maidCartTotal + nannyCartTotal;
   const tax = totalPrice * 0.18; 
   const platformFee = totalPrice * 0.06; 
@@ -50,12 +55,14 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const handleRemoveItem = (id: string, itemType: CartItem['type']) => {
     dispatch(removeFromCart({ id, type: itemType }));
   };
-const [termsAccepted, setTermsAccepted] = useState({
-  keyFacts: false,
-  termsConditions: false, 
-  privacyPolicy: false
-});
- // Reset checkboxes whenever dialog closes
+
+  const [termsAccepted, setTermsAccepted] = useState({
+    keyFacts: false,
+    termsConditions: false, 
+    privacyPolicy: false
+  });
+
+  // Reset checkboxes whenever dialog closes
   useEffect(() => {
     if (!open) {
       setTermsAccepted({
@@ -64,19 +71,41 @@ const [termsAccepted, setTermsAccepted] = useState({
         privacyPolicy: false,
       });
     }
-  }, [open]); // 👈 runs whenever `open` changes
-// Check if ALL terms are accepted
-const allTermsAccepted = termsAccepted.keyFacts && 
-                        termsAccepted.termsConditions && 
-                        termsAccepted.privacyPolicy;
-const handleCheckboxChange =
-    (term: keyof typeof termsAccepted) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setTermsAccepted((prev) => ({
-        ...prev,
-        [term]: e.target.checked,
-      }));
-    };
+  }, [open]);
+
+  // Check if ALL terms are accepted
+  const allTermsAccepted = termsAccepted.keyFacts && 
+                          termsAccepted.termsConditions && 
+                          termsAccepted.privacyPolicy;
+
+  const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTermsAccepted((prev) => ({
+      ...prev,
+      [term]: e.target.checked,
+    }));
+  };
+
+  // Determine which checkout handler to use based on cart contents
+  const handleCheckout = () => {
+    if (mealCartItems.length > 0 && handleCookCheckout) {
+      handleCookCheckout();
+    } else if (maidCartItems.length > 0 && handleMaidCheckout) {
+      handleMaidCheckout();
+    } else if (nannyCartItems.length > 0 && handleNannyCheckout) {
+      handleNannyCheckout();
+    } else {
+      console.error("No checkout handler available for cart items");
+    }
+  };
+
+  // Check if checkout is available for current cart items
+  const isCheckoutAvailable = () => {
+    if (mealCartItems.length > 0 && !handleCookCheckout) return false;
+    if (maidCartItems.length > 0 && !handleMaidCheckout) return false;
+    if (nannyCartItems.length > 0 && !handleNannyCheckout) return false;
+    return true;
+  };
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{
       sx: {
@@ -96,7 +125,7 @@ const handleCheckboxChange =
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  position: 'relative' // Add this for proper positioning
+  position: 'relative'
 }}>
   Your Order Summary
   <IconButton
@@ -217,10 +246,10 @@ const handleCheckboxChange =
     <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{totalPrice.toFixed(2)}</Typography>
   </Box>
   <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-    <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (18%):</Typography> {/* Updated from 5% to 18% */}
+    <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (18%):</Typography>
     <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{tax.toFixed(2)}</Typography>
   </Box>
-  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}> {/* Added platform fee row */}
+  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
     <Typography variant="body2" sx={{ color: '#4a5568' }}>Platform Fee (6%):</Typography>
     <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{platformFee.toFixed(2)}</Typography>
   </Box>
@@ -233,13 +262,11 @@ const handleCheckboxChange =
   </Box>
               <Divider sx={{ 
   my: 2,
-  borderColor: '#cbd5e0', // Darker grey color
-  borderWidth: '1px' // Slightly thicker
+  borderColor: '#cbd5e0',
+  borderWidth: '1px'
 }} />
 
 <Box sx={{ mt: 2 }}>
- 
-
   <Box
     component="ul"
     sx={{
@@ -427,7 +454,7 @@ const handleCheckboxChange =
           <Button
             variant="contained"
             onClick={handleCheckout}
-           disabled={allCartItems.length === 0 || !allTermsAccepted}
+            disabled={allCartItems.length === 0 || !allTermsAccepted || !isCheckoutAvailable()}
           >
             Proceed to Checkout (₹{grandTotal.toFixed(2)})
           </Button>
@@ -444,156 +471,6 @@ interface CartItemCardProps {
 }
 
 const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
-  const dispatch = useDispatch();
-
-  // const handleIncrement = (field: string) => {
-  //   if (isMealCartItem(item)) {
-  //     dispatch(updateCartItem({
-  //       id: item.id,
-  //       type: 'meal',
-  //       updates: { persons: (item.persons || 1) + 1 }
-  //     }));
-  //   } else if (isMaidCartItem(item)) {
-  //     const details = item.details || {};
-  //     if (field === 'persons') {
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'maid',
-  //         updates: { details: { ...details, persons: (details.persons || 1) + 1 } }
-  //       }));
-  //     } else if (field === 'houseSize') {
-  //       const currentSize = parseHouseSize(details.houseSize);
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'maid',
-  //         updates: { 
-  //           details: { 
-  //             ...details, 
-  //             houseSize: formatHouseSize(currentSize + 1) 
-  //           } 
-  //         }
-  //       }));
-  //     } else if (field === 'bathrooms') {
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'maid',
-  //         updates: { details: { ...details, bathrooms: (details.bathrooms || 1) + 1 } }
-  //       }));
-  //     }
-  //   } else if (isNannyCartItem(item)) {
-  //     dispatch(updateCartItem({
-  //       id: item.id,
-  //       type: 'nanny',
-  //       updates: { age: (item.age || 1) + 1 }
-  //     }));
-  //   }
-  // };
-
-  // const handleDecrement = (field: string) => {
-  //   if (isMealCartItem(item)) {
-  //     if (item.persons > 1) {
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'meal',
-  //         updates: { persons: item.persons - 1 }
-  //       }));
-  //     }
-  //   } else if (isMaidCartItem(item)) {
-  //     const details = item.details || {};
-  //     if (field === 'persons' && (details.persons || 0) > 1) {
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'maid',
-  //         updates: { details: { ...details, persons: (details.persons || 1) - 1 } }
-  //       }));
-  //     } else if (field === 'houseSize' && details.houseSize) {
-  //       const currentSize = parseHouseSize(details.houseSize);
-  //       if (currentSize > 1) {
-  //         dispatch(updateCartItem({
-  //           id: item.id,
-  //           type: 'maid',
-  //           updates: { 
-  //             details: { 
-  //               ...details, 
-  //               houseSize: formatHouseSize(currentSize - 1) 
-  //             } 
-  //           }
-  //         }));
-  //       }
-  //     } else if (field === 'bathrooms' && (details.bathrooms || 0) > 1) {
-  //       dispatch(updateCartItem({
-  //         id: item.id,
-  //         type: 'maid',
-  //         updates: { details: { ...details, bathrooms: (details.bathrooms || 1) - 1 } }
-  //       }));
-  //     }
-  //   } else if (isNannyCartItem(item) && item.age > 1) {
-  //     dispatch(updateCartItem({
-  //       id: item.id,
-  //       type: 'nanny',
-  //       updates: { age: item.age - 1 }
-  //     }));
-  //   }
-  // };
-
-  const getNumericValue = (field: string): number => {
-    if (isMealCartItem(item) && field === 'persons') {
-      return item.persons || 1;
-    } else if (isMaidCartItem(item)) {
-      const details = item.details || {};
-      if (field === 'persons') return details.persons || 1;
-      if (field === 'houseSize') return parseHouseSize(details.houseSize);
-      if (field === 'bathrooms') return details.bathrooms || 1;
-    } else if (isNannyCartItem(item) && field === 'age') {
-      return item.age || 1;
-    }
-    return 1;
-  };
-
-  const renderCounter = (field: string, label: string) => {
-    const value = getNumericValue(field);
-    const displayValue = field === 'houseSize' ? formatHouseSize(value) : value;
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
-        <span style={{ marginRight: '15px', color: '#2d3436', fontSize: '0.875rem' }}>{label}:</span>
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px' }}>
-          {/* <button 
-            // onClick={() => handleDecrement(field)}
-            style={{
-              padding: '5px 10px',
-              backgroundColor: '#f5f5f5',
-              border: 'none',
-              borderRight: '1px solid #dfe6e9',
-              borderRadius: '20px 0 0 20px',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            -
-          </button> */}
-          <span style={{ padding: '5px 15px', minWidth: '20px', textAlign: 'center', fontSize: '0.875rem' }}>
-            {displayValue}
-          </span>
-          {/* <button 
-            onClick={() => handleIncrement(field)}
-            style={{
-              padding: '5px 10px',
-              backgroundColor: '#f5f5f5',
-              border: 'none',
-              borderLeft: '1px solid #dfe6e9',
-              borderRadius: '0 20px 20px 0',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            +
-          </button> */}
-        </div>
-      </div>
-    );
-  };
-
   const getItemType = () => {
     if (isNannyCartItem(item)) {
       return 'Nanny Service';
@@ -653,19 +530,6 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
         </Typography>
       </Box>
       
-      {/* Add counters based on item type */}
-      {isMealCartItem(item) && renderCounter('persons', 'Persons')}
-      
-      {isMaidCartItem(item) && (
-        <>
-          {item.details?.persons !== undefined && renderCounter('persons', 'Persons')}
-          {item.details?.houseSize !== undefined && renderCounter('houseSize', 'House Size')}
-          {item.details?.bathrooms !== undefined && renderCounter('bathrooms', 'Bathrooms')}
-        </>
-      )}
-      
-      {isNannyCartItem(item) && renderCounter('age', 'Age')}
-      
       <Typography variant="body2" sx={{ 
         mt: 1.5, 
         mb: 1, 
@@ -712,4 +576,4 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       
     </Box>
   );
-};
+}; 

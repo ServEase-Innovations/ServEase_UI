@@ -1041,7 +1041,11 @@ const getAddOnPrice = (addOnName: string): number => {
         </StyledDialogContent>
       </StyledDialog>
 
-      <CartDialog open={cartDialogOpen} handleClose={() => setCartDialogOpen(false)} handleCheckout={handleCheckout} />
+      <CartDialog
+  open={cartDialogOpen}
+  handleClose={() => setCartDialogOpen(false)}
+  handleMaidCheckout={handleCheckout}
+/>
     </>
   );
 };

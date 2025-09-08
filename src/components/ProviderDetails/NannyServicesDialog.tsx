@@ -778,11 +778,11 @@ const careType = pkg.category.toLowerCase().includes("baby")
       </StyledDialog>
       
       {/* CartDialog */}
-      <CartDialog
-        open={cartDialogOpen}
-        handleClose={handleCloseCartDialog}
-        handleCheckout={handleCheckout}
-      />
+     <CartDialog
+  open={cartDialogOpen}
+  handleClose={() => setCartDialogOpen(false)}
+  handleNannyCheckout={handleCheckout}
+/>
       
       <Snackbar
         open={!!error}
