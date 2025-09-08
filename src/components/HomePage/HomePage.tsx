@@ -32,6 +32,7 @@ interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
     bookingType: (data: string) => void;
       onAboutClick: () => void;
+      onContactClick: () => void;
 }
 
 const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick }) => {
@@ -237,6 +238,10 @@ useEffect(() => {
         return () => clearInterval(interval);
     }, [currentSlide]);
     
+  function onContactClick(): void {
+    throw new Error("Function not implemented.");
+  }
+
     return (
         <main className="pt-16">
             {/* Hero Section */}
@@ -450,8 +455,6 @@ useEffect(() => {
                     </div>
                 </div>
             </section>
-
-            <Footer onAboutClick={onAboutClick}/>
 <ServiceDetailsDialog
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}
