@@ -139,13 +139,13 @@ const ContactUs = ({ onBack, onContactClick }: ContactUsProps) => {
 
             {/* Locations */}
             <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs sm:text-sm text-gray-600">
-              <div>
+              {/* <div>
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 mb-1 sm:mb-2" />
                 <p className="font-semibold">USA</p>
                 <p>280 W, 17th street</p>
                 <p>4th floor, Flat no: 407</p>
                 <p>New York NY, 10018</p>
-              </div>
+              </div> */}
               <div>
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 mb-1 sm:mb-2" />
                 <p className="font-semibold">India</p>

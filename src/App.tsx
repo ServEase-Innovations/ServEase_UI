@@ -146,10 +146,12 @@ console.log("User data in App component:", user);
   };
     // Determine if footer should be shown
   const shouldShowFooter = () => {
-    // Don't show footer on these pages
-    const noFooterPages = [LOGIN, ADMIN, DASHBOARD, PROFILE, BOOKINGS];
-    return !noFooterPages.includes(selection as string) && !showAboutPage && !showContactUs;
-  };
+  const noFooterPages = [
+    LOGIN,  ADMIN, DASHBOARD,
+    PROFILE,BOOKINGS, DETAILS, CONFIRMATION, CHECKOUT,
+  ];
+  return !noFooterPages.includes(selection as string) && !showAboutPage && !showContactUs;
+};
   const renderContent = () => {
       // If About page is shown, render it
     if (showAboutPage) {
