@@ -300,7 +300,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
             Book Now
           </Button>
            {/* Favorite Button */}
-          <IconButton
+          {/* <IconButton
             onClick={toggleFavorite}
             sx={{ 
               position: 'absolute', 
@@ -314,7 +314,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-          </IconButton>
+          </IconButton> */}
 
           <div className={`content ${isExpanded ? "expanded" : ""}`}>
             <div className="essentials">
