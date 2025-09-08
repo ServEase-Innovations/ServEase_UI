@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 interface CartDialogProps {
   open: boolean;
   handleClose: () => void;
-  handleCheckout: () => void;
+  handleCheckout?: () => void;
 }
 
 // Utility functions for houseSize handling
