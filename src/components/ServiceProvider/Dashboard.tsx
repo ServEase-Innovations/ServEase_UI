@@ -29,6 +29,7 @@ import axiosInstance from "../../services/axiosInstance";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
+import Switch from "@mui/material/Switch/Switch";
  
 // Types for API response
 interface CustomerHoliday {
@@ -160,7 +161,7 @@ const paymentHistory = [
   }
 ];
 
-
+  
 
 // Function to format API booking data for the BookingCard component
 const formatBookingForCard = (booking: Booking) => {
@@ -260,7 +261,13 @@ export default function Dashboard() {
 
   // Get the most recent bookings for display (limit to 3)
   const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
+const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
 
+  const handleToggle = (id: string, value: boolean) => {
+    setTaskStatus((prev) => ({ ...prev, [id]: value }))
+    //  update backend API call here
+    // updateTaskStatus(id, value ? "STARTED" : "STOPPED")
+  }
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -397,79 +404,95 @@ export default function Dashboard() {
            {/* Recent Booking (only 1) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <div className="lg:col-span-2">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
-              {!loading && latestBooking.length > 0 && (
-                <Badge variant="secondary" className="bg-primary/10 text-primary">
-                  Latest
-                </Badge>
-              )}
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center items-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Failed to load bookings. Please try again.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => window.location.reload()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : latestBooking.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No upcoming bookings found.</p>
-                </div>
-              ) : (
-                latestBooking.map((booking) => (
-                  <div key={booking.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold">{booking.clientName}</h3>
-                        <p className="text-sm text-muted-foreground">{booking.service}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        {getBookingTypeBadge(booking.bookingData.bookingType)}
-                        {getStatusBadge(booking.bookingData.taskStatus)}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <p className="text-sm font-medium">Date & Time</p>
-                        <p className="text-sm">{booking.date} at {booking.time}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Amount</p>
-                        <p className="text-sm font-semibold">{booking.amount}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <p className="text-sm font-medium">Address</p>
-                      <p className="text-sm">{booking.location}</p>
-                    </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => handleContactClient(booking)}
-                    >
-                      Contact Client
-                    </Button>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
+          {!loading && latestBooking.length > 0 && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary">
+              Latest
+            </Badge>
+          )}
+        </CardHeader>
+
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Failed to load bookings. Please try again.</p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : latestBooking.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No upcoming bookings found.</p>
+            </div>
+          ) : (
+            latestBooking.map((booking) => (
+              <div key={booking.id} className="border rounded-lg p-4 mb-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold">{booking.clientName}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {booking.service}
+                    </p>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="flex gap-2">
+                    {getBookingTypeBadge(booking.bookingData.bookingType)}
+                    {getStatusBadge(booking.bookingData.taskStatus)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <p className="text-sm font-medium">Date & Time</p>
+                    <p className="text-sm">
+                      {booking.date} at {booking.time}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Amount</p>
+                    <p className="text-sm font-semibold">{booking.amount}</p>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm">{booking.location}</p>
+                </div>
+
+                {/* Toggle Switch Section */}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium">
+                    {taskStatus[booking.id] ? "Task Started" : "Task Stopped"}
+                  </p>
+                 <Switch
+  checked={taskStatus[booking.id] || false}
+  onChange={(e) => handleToggle(booking.id, e.target.checked)}
+/>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => handleContactClient(booking)}
+                >
+                  Contact Client
+                </Button>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
 
           {/* Quick Actions */}
           <div>
