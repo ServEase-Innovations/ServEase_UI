@@ -156,7 +156,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
     },
   }}
 >
-            <DialogTitle>Select your Booking</DialogTitle>
+            <DialogTitle>Select your Booking Option</DialogTitle>
             <DialogContent>
                 <FormControl component="fieldset" sx={{ mb: 2 }}>
                     <FormLabel component="legend" sx={{ color: "primary.main", fontWeight: 500 }}>
@@ -249,20 +249,22 @@ const shouldDisableEndDate = (date: Dayjs) => {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DemoContainer components={['DateTimePicker']}>
         <DateTimePicker
-          label="Select Start Date "
+          label="Select Start Date"
           onChange={(newValue) => {
             if (!newValue) return;
 
             const hour = newValue.hour();
 
-            // Allowed window: 5 AM <= hour < 22 (10 PM)
+            // Allowed booking window: 5 AM <= hour < 22 (10 PM)
             if (hour < 5 || hour >= 22) {
               alert(
-                "ServEaso provides services between 5:00AM and 10:00PM, kindly select correct time slot"
+                "ServEaso provides services from 5:00 AM to 10:00 PM, please select the correct time slot"
               );
-            } else {
-              updateStartDate(newValue);
+              return; // Do NOT update state if invalid
             }
+
+            // Only update if valid
+            updateStartDate(newValue);
           }}
           minDate={today}
           maxDate={maxDate90Days}
@@ -271,7 +273,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
           disablePast={false}
           slotProps={{
             popper: {
-              placement: "top-start",  //forces picker to open above the input
+              placement: "top-start", // forces picker to open above the input
             },
           }}
         />
@@ -279,6 +281,7 @@ const shouldDisableEndDate = (date: Dayjs) => {
     </LocalizationProvider>
   </>
 )}
+
 
                 </LocalizationProvider>
             </DialogContent>
