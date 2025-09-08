@@ -1,12 +1,12 @@
 /* eslint-disable */
 import React, { useState, useRef, useEffect } from "react";
-import { X, Send, ArrowLeft, ChevronDown } from "lucide-react";
+import { X, Send, ArrowLeft, ChevronDown, MessageCircle, Phone, Mail } from "lucide-react";
 import Draggable from "react-draggable";
 import { Button, Card, CardContent } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 
 const generalFaqData = [
-  { question: "What services do you offer?", answer: "We offer services for Cooks, Maids, and Nannies." },
+  { question: "What services do you offer?", answer: "We offer services for HomeCook, Cleanning Help, and Caregiver." },
   { question: "How do I book a service?", answer: "You can book a service by selecting a provider and scheduling a time." },
   { question: "Are the service providers verified?", answer: "Yes, all our service providers go through a verification process." },
   { question: "Can I cancel a booking?", answer: "Yes, you can cancel a booking from your profile under 'My Bookings'." },
@@ -95,57 +95,89 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                 </button>
               </div>
 
-              {/* Messages + FAQ */}
-              <div className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
-                   style={{ scrollbarWidth: "thin" }}>
-                {messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
-                      msg.sender === "user"
-                        ? "bg-blue-500 text-white self-end rounded-br-none"
-                        : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
 
-                {!chatOpen && (
-                  <>
-                    {showAllFaq ? (
-                      faqData.map((faq, index) => (
-                        <Button
-                          key={index}
-                          variant="outlined"
-                          className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
-                          onClick={() => handleQuestionClick(faq)}
-                        >
-                          {faq.question}
-                        </Button>
-                      ))
-                    ) : (
-                      <Button
-                        variant="outlined"
-                        className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
-                        onClick={() => setShowAllFaq(true)}
-                      >
-                        View All FAQs
-                        <ChevronDown size={14} className="ml-2" />
-                      </Button>
-                    )}
+{/* Messages + FAQ + Contact */}
+<div
+  className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
+  style={{ scrollbarWidth: "thin" }}
+>
+  {messages.map((msg, index) => (
+    <div
+      key={index}
+      className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
+        msg.sender === "user"
+          ? "bg-blue-500 text-white self-end rounded-br-none"
+          : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
+      }`}
+    >
+      {msg.text}
+    </div>
+  ))}
 
-                    <Button
-                      variant="outlined"
-                      className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
-                      onClick={() => setChatOpen(true)}
-                    >
-                      Chat with Assistant
-                    </Button>
-                  </>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+  {!chatOpen && (
+    <>
+      {/* FAQs */}
+      {showAllFaq ? (
+        faqData.map((faq, index) => (
+          <Button
+            key={index}
+            variant="outlined"
+            className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
+            onClick={() => handleQuestionClick(faq)}
+          >
+            {faq.question}
+          </Button>
+        ))
+      ) : (
+        <Button
+          variant="outlined"
+          className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
+          onClick={() => setShowAllFaq(true)}
+        >
+          View All FAQs
+          <ChevronDown size={14} className="ml-2" />
+        </Button>
+      )}
+
+     {/* Divider */}
+<div className="border-t border-gray-300 my-2"></div>
+
+{/* Email Support */}
+<div
+  className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
+  onClick={() => window.open("mailto:support@serveaso.com")}
+>
+  <Mail size={18} className="text-blue-600" />
+  <span className="text-xs sm:text-sm text-gray-700 font-medium">
+    support@serveaso.com
+  </span>
+</div>
+
+{/* Call Support */}
+<div
+  className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
+  onClick={() => window.open("tel:080123456789")}
+>
+  <Phone size={18} className="text-green-600" />
+  <span className="text-xs sm:text-sm text-gray-700 font-medium">
+    080-123456789
+  </span>
+</div>
+
+
+      {/* Chat with Assistant */}
+      <Button
+        variant="contained"
+        className="w-full text-left px-2 py-2 sm:px-4 sm:py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 normal-case text-xs sm:text-sm flex items-center justify-center"
+        onClick={() => setChatOpen(true)}
+      >
+        <MessageCircle size={16} className="mr-2" />
+        Chat with Assistant
+      </Button>
+    </>
+  )}
+  <div ref={messagesEndRef} />
+</div>
 
               {/* Input */}
               {chatOpen && (

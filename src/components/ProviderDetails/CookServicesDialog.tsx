@@ -524,11 +524,11 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         </StyledDialogContent>
       </StyledDialog>
 
-      <CartDialog
-        open={cartDialogOpen}
-        handleClose={() => setCartDialogOpen(false)}
-        handleCheckout={handleCheckout}
-      />
+  <CartDialog
+  open={cartDialogOpen}
+  handleClose={() => setCartDialogOpen(false)}
+  handleCookCheckout={handleCheckout}
+/>
     </>
   );
 };

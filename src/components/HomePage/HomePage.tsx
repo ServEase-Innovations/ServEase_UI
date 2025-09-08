@@ -330,7 +330,7 @@ useEffect(() => {
           className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
           onClick={handleWorkClick}
         >
-          I want to work
+         Register as Provider
         </Button>
       )}
         <Button 
