@@ -19,6 +19,7 @@ import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/
 import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
+import axios from 'axios';
 
 interface CustomerHoliday {
   id: number;
@@ -141,14 +142,14 @@ useEffect(() => {
   const fetchBookings = async () => {
     try {
       if (customerId !== null && customerId !== undefined) {
-        const response = await axiosInstance.get(
-          `api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`
+        const response = await axios.get(
+          `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
         );
         
-        const { past = [], current = [], future = [] } = response.data || {};
+        const { past = [], ongoing = [], upcoming = [] } = response.data || {};
         setPastBookings(mapBookingData(past));
-        setCurrentBookings(mapBookingData(current));
-        setFutureBookings(mapBookingData(future));
+        setCurrentBookings(mapBookingData(ongoing));
+        setFutureBookings(mapBookingData(upcoming));
       }
     } catch (error) {
       console.error("Error fetching booking details:", error);
@@ -176,29 +177,31 @@ useEffect(() => {
     return Array.isArray(data)
       ? data.map((item) => {
           return {
-            id: item.id,
+            id: item.engagement_id,
             customerId: item.customerId,
             serviceProviderId: item.serviceProviderId,
             name: item.customerName,
-            timeSlot: item.timeslot,
-            date: item.startDate,
-            startDate: item.startDate,
-            endDate: item.endDate,
-            bookingType: item.bookingType,
+            timeSlot: item.start_time,
+            date: item.start_date,
+            startDate: item.start_date,
+            endDate: item.end_date,
+            bookingType: item.booking_type,
             monthlyAmount: item.monthlyAmount,
             paymentMode: item.paymentMode,
             address: item.address || 'No address specified',
             customerName: item.customerName,
             serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
-            taskStatus: item.taskStatus,
+            taskStatus: item.task_status,
             engagements: item.engagements,
-            bookingDate: item.bookingDate,
+            bookingDate: item.created_at,
             serviceType: item.serviceType?.toLowerCase() || 'other',
             childAge: item.childAge,
             experience: item.experience,
             noOfPersons: item.noOfPersons,
             mealType: item.mealType,
-            modifiedDate: item.modifiedDate,
+            modifiedDate: Array.isArray(item.modifications) && item.modifications.length > 0
+  ? item.modifications[item.modifications.length - 1]?.created_at
+  : item.created_at,
             responsibilities: item.responsibilities,
             customerHolidays: item.customerHolidays || [],
           };
@@ -451,13 +454,13 @@ const handleSaveModifiedBooking = async (updatedData: {
     try {
       setIsRefreshing(true);
       
-      await axiosInstance.post(
-        '/api/customer/add-customer-holiday',
+      await axios.post(
+        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves`,
         {
-          engagementId: selectedBookingForLeave.id,
-          startDate: startDate,
-          endDate: endDate,
-          serviceType: serviceType.toUpperCase()
+          engagement_id: selectedBookingForLeave.id,
+          leave_start_date: startDate,
+          leave_end_date: endDate,
+          leave_type : 'VACATION',
         }
       );
 
@@ -465,7 +468,7 @@ const handleSaveModifiedBooking = async (updatedData: {
 
       if (customerId !== null) {
         await axiosInstance
-          .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
+          .get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
           .then((response) => {
             const { past = [], current = [], future = [] } = response.data || {};
             setPastBookings(mapBookingData(past));

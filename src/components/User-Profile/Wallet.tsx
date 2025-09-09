@@ -1,7 +1,10 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { Button } from "../../components/Button/button";
+import { useAuth0 } from "@auth0/auth0-react";
+import axios from "axios";
+import { set } from "lodash";
 
 interface WalletDialogProps {
   open: boolean;
@@ -10,6 +13,28 @@ interface WalletDialogProps {
 
 const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState("transactions");
+
+  const { user: auth0User, isAuthenticated } = useAuth0();
+
+  interface Wallet {
+    balance: number;
+    transactions: { transaction_id: number; transaction_type: string; amount: number; description: string; created_at: string; status: string }[];
+    rewards: number;
+  }
+  
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+
+
+  useEffect(() => {
+    if(!isAuthenticated && !auth0User) return;
+    console.log("Fetching wallet for user:", auth0User);
+    if(auth0User?.customerid){
+      axios.get(`https://payments-j5id.onrender.com/api/wallets/${auth0User?.customerid}`).then((response) => {
+        console.log(response.data);
+        setWallet(response.data);
+      }).catch((error) => {})
+    }
+  }, [isAuthenticated]);
 
   // Dummy wallet data
   const walletData = {
@@ -41,7 +66,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         {/* Balance Card */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-xl shadow-lg mb-5">
           <p className="text-blue-100 text-sm">Current Balance</p>
-          <p className="text-3xl font-bold my-2">₹{walletData.balance}</p>
+          <p className="text-3xl font-bold my-2">₹{wallet ? wallet.balance : 0}</p>
           <div className="flex gap-3 mt-4">
             <button className="flex-1 bg-white text-blue-600 font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors">
               ➕ Add Money
@@ -75,17 +100,17 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
           <div>
             <h3 className="font-semibold text-gray-800 mb-4">Recent Transactions</h3>
             <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-              {walletData.transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center">
-                  <div className={`flex items-center justify-center h-10 w-10 rounded-full ${transaction.type === "credit" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
-                    {transaction.type === "credit" ? "✔" : "✖"}
+              {wallet?.transactions.map((transaction) => (
+                <div key={transaction.transaction_id} className="flex items-center">
+                  <div className={`flex items-center justify-center h-10 w-10 rounded-full ${transaction.transaction_type === "credit" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
+                    {transaction.transaction_type === "credit" ? "x" : "✔"}
                   </div>
                   <div className="ml-4 flex-1">
                     <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-xs text-gray-500">{transaction.date} • {transaction.status}</p>
+                    <p className="text-xs text-gray-500">{transaction.created_at} • {transaction.status}</p>
                   </div>
-                  <div className={`font-semibold ${transaction.type === "credit" ? "text-green-600" : "text-red-600"}`}>
-                    {transaction.type === "credit" ? "+" : "-"}₹{transaction.amount}
+                  <div className={`font-semibold ${transaction.transaction_type === "credit" ? "text-green-600" : "text-red-600"}`}>
+                    {transaction.transaction_type === "credit" ? "-" : "+"}₹{transaction.amount}
                   </div>
                 </div>
               ))}

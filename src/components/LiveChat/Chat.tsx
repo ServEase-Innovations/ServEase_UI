@@ -34,7 +34,7 @@ const Chat: React.FC<ChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:5000", { transports: ["websocket"] });
+    const socket = io("https://payments-j5id.onrender.com", { transports: ["websocket"] });
     socketRef.current = socket;
   
     socket.emit("joinSession", { userName: "test", userId: "admin-001", sessionId });

@@ -29,7 +29,7 @@ const Chat: React.FC = () => {
 
   // Connect socket once on mount
   useEffect(() => {
-    const socket = io("http://localhost:5000", { transports: ["websocket"] });
+    const socket = io("https://payments-j5id.onrender.com", { transports: ["websocket"] });
     socketRef.current = socket;
 
     // Join admin room

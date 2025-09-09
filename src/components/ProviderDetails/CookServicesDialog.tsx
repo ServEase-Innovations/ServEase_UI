@@ -19,6 +19,7 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
 
 
 interface CookServicesDialogProps {
@@ -225,151 +226,102 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   };
 
   // Checkout handler (Razorpay payment)
- const handleCheckout = async () => {
-  try {
+  const handleCheckout = async () => {
+    try {
     setLoading(true);
     const selectedPackages = Object.entries(packages)
-      .filter(([_, pkg]) => pkg.selected)
-      .map(([name, pkg]) => ({
-        mealType: name.toUpperCase(),
-        persons: pkg.persons,
-        price: pkg.calculatedPrice,
-      }));
-
+    .filter(([_, pkg]) => pkg.selected)
+    .map(([name, pkg]) => ({
+    mealType: name.toUpperCase(),
+    persons: pkg.persons,
+    price: pkg.calculatedPrice,
+    }));
+    
     const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
-     // Calculate tax and platform fee (18% tax + 6% platform fee)
+    // Calculate tax and platform fee (18% tax + 6% platform fee)
     const tax = baseTotal * 0.18;
     const platformFee = baseTotal * 0.06;
     const grandTotal = baseTotal + tax + platformFee;
     // First create the Razorpay order with initial amount
-    const response = await axios.post(
-      "https://utils-ndt3.onrender.com/create-order",
-      { amount: Math.round(grandTotal * 100) },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    if (response.status === 200 && response.data.success) {
-      const orderId = response.data.orderId;
-       const amount = Math.round(grandTotal * 100);
-      const currency = "INR";
-
-      const bookingDetails: BookingDetails = {
-        serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-        serviceProviderName: providerFullName,
-        customerId: customerId,
-        customerName: customerName,
-        startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        endDate: bookingType?.endDate || "",
-        engagements: selectedPackages.map(pkg => `${pkg.mealType} for ${pkg.persons} persons`).join(", "),
-        address: currentLocation,
-        timeslot: bookingType?.timeRange || "",
-        monthlyAmount: baseTotal,
-        paymentMode: "UPI",
-        bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
-        taskStatus: "NOT_STARTED",
-        serviceType: "COOK",
-        responsibilities: [],
-      };
-
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount,
-        currency,
-        name: "Serveaso",
-        description: "Meal Package Booking",
-        order_id: orderId,
-        handler: async function (razorpayResponse: any) {
-          try {
-            // 1. First save the booking
-            const bookingResponse = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              bookingDetails
-            );
-
-            if (bookingResponse.status === 201) {
-              // 2. Then calculate payment details
-              const calculatePaymentResponse = await axiosInstance.post(
-                "/api/payments/calculate-payment",
-                null, // no body for POST with query params
-                {
-                  params: {
-                    customerId: customerId,
-                    baseAmount: grandTotal,
-                    startDate_P: bookingDetails.startDate,
-                    endDate_P: bookingDetails.endDate,
-                    paymentMode: bookingDetails.paymentMode,
-                    serviceType: bookingDetails.serviceType,
-                    // couponId: couponId // uncomment if you have coupon functionality
-                  }
-                }
-              );
-
-              // You can use the calculated payment details for record keeping or further processing
-              const paymentDetails = calculatePaymentResponse.data;
-
-              // 3. Clear cart after successful payment
-              dispatch(removeFromCart({ type: 'meal' }));
-              dispatch(removeFromCart({ type: 'maid' }));
-              dispatch(removeFromCart({ type: 'nanny' }));
-
-              // 4. Send notification with proper error handling
-              try {
-                const notificationResponse = await fetch("http://localhost:4000/send-notification", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    title: "Booking Confirmed",
-                    message: `Your booking for ${bookingDetails.engagements} has been confirmed!`,
-                    userId: customerId,
-                    redirectUrl: "http://localhost:3000/bookings",
-                  }),
-                });
-
-                if (!notificationResponse.ok) {
-                  throw new Error('Notification failed');
-                }
-              } catch (notificationError) {
-                console.error("Notification error:", notificationError);
-                // Continue even if notification fails
-              }
-
-              if (sendDataToParent) {
-                sendDataToParent(BOOKINGS);
-              }
-              
-              handleClose();
-              setCartDialogOpen(false);
-            }
-          } catch (error) {
-            console.error("Error in payment handler:", error);
-            handleClose();
-            setCartDialogOpen(false);
-          }
-        },
-        prefill: {
-          name: customerName,
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+    
+    console.log("Initiating payment for amount:", grandTotal);
+    
+    const bookingDetails: BookingDetails = {
+    
+    serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+    
+    customerId: customerId,
+    
+    startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
+    
+    endDate: bookingType?.endDate || "",
+    
+    start_time: bookingType?.endDate || "",
+    
+    end_date: bookingType?.endDate || "",
+    
+    responsibilities: [],
+    
+    address: currentLocation,
+    
+    timeslot: bookingType?.timeRange || "",
+    
+    monthlyAmount: baseTotal,
+    
+    paymentMode: "UPI",
+    
+    booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+    
+    taskStatus: "NOT_STARTED",
+    
+    service_type: "COOK",
+    
+    base_amount: baseTotal,
+    };
+    
+    try {
+    const payload: BookingPayload = {
+    customerid: customerId,
+    serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+    start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+    end_date: bookingType?.endDate || "",
+    responsibilities: { tasks: ["cooking"] },
+    booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+    taskStatus: "NOT_STARTED",
+    service_type: "COOK",
+    base_amount: baseTotal,
+    payment_mode: "razorpay",
+    start_time : "12:00"
+    };
+    
+    const result = await BookingService.bookAndPay(payload);
+    console.log("Final result:", result);
+    // setStatus("Booking & Payment Successful ✅");
+    if (sendDataToParent) {
+    sendDataToParent(BOOKINGS);
     }
-  } catch (error) {
+    handleClose();
+    setCartDialogOpen(false);
+    } catch (err: any) {
+    console.error(err);
+    }
+    finally {
+    setLoading(false);
+    }
+    
+    
+    
+    
+    
+    } catch (error) {
     console.error("Checkout error:", error);
     alert("Failed to initiate payment. Please try again.");
-  } finally {
+    } finally {
     setLoading(false);
-  }
-};
+    }
+    };
 
   const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
     if (!bookingPreference) return 'MONTHLY';
