@@ -177,29 +177,50 @@ const shouldDisableEndDate = (date: Dayjs) => {
 <LocalizationProvider dateAdapter={AdapterDayjs}>
 
   {/* --- Date Option --- */}
-  {selectedOption === "Date" && (
-    <DemoContainer components={["DesktopDateTimePicker"]}>
-      <DesktopDateTimePicker
-        label="Select Start Date"
-        ampm
-        value={startTime}   // keep this controlled with Dayjs
-        onChange={(newValue) => updateStartDate(newValue)}
-        minDateTime={dayjs().add(30, "minute")}   // minimum is 30 minutes from now
-        maxDate={maxDate21Days}
-        shouldDisableDate={shouldDisableDate}
-        format={startTime ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
-        slotProps={{
-          textField: {
-            fullWidth: true,
-            placeholder: "MM/DD/YYYY",
-          },
-          actionBar: { actions: ["accept"] },
-          popper: { placement: "top-start" }, // open upwards
-        }}
-        viewRenderers={{ month: undefined }}
-      />
-    </DemoContainer>
-  )}
+
+ {selectedOption === "Date" && (
+  <DemoContainer components={["DesktopDateTimePicker"]}>
+    <DesktopDateTimePicker
+      label="Select Start Date"
+      ampm
+      value={startTime}   // controlled with Dayjs
+      onChange={(newValue) => {
+        if (!newValue) return;
+
+        const hour = newValue.hour();
+
+        // Rule 2: Block between 10:00 PM – 5:00 AM
+        if (hour < 5 || hour >= 22) {
+          return; // prevent setting invalid time
+        }
+
+        updateStartDate(newValue);
+      }}
+      minDateTime={dayjs().add(30, "minute")}   // Rule 1
+      maxDate={maxDate21Days}
+      shouldDisableDate={shouldDisableDate}
+      shouldDisableTime={(timeValue, viewType) => {
+        if (viewType === "hours") {
+          const hour = timeValue.hour();
+          // Block 10 PM – 5 AM
+          return hour < 5 || hour >= 22;
+        }
+        return false;
+      }}
+      format={startTime ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
+      slotProps={{
+        textField: {
+          fullWidth: true,
+          placeholder: "MM/DD/YYYY",
+        },
+        actionBar: { actions: ["accept"] },
+        popper: { placement: "top-start" }, // open upwards
+      }}
+      viewRenderers={{ month: undefined }}
+    />
+  </DemoContainer>
+)}
+
 
   {/* --- Short Term Option --- */}
   {selectedOption === "Short term" && (
