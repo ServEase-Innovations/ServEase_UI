@@ -30,6 +30,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
 import Switch from "@mui/material/Switch/Switch";
+import { ReviewsDialog } from "./ReviewsDialog";
  
 // Types for API response
 interface CustomerHoliday {
@@ -192,7 +193,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user: auth0User, isAuthenticated } = useAuth0();
-  
+  const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
  const [userName, setUserName] = useState<string | null>(null);
   const [serviceProviderId, setServiceProviderId] = useState<number | null>(null);
 
@@ -523,10 +524,14 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                   <Clock className="h-4 w-4 mr-2" />
                   Update Availability
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Star className="h-4 w-4 mr-2" />
-                  View Reviews
-                </Button>
+               <Button 
+  className="w-full justify-start" 
+  variant="outline"
+  onClick={() => setReviewsDialogOpen(true)}
+>
+  <Star className="h-4 w-4 mr-2" />
+  View Reviews
+</Button>
               </CardContent>
             </Card>
 
@@ -560,6 +565,11 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
           <PerformanceChart />
           <PaymentHistory payments={paymentHistory} />
         </div>
+        <ReviewsDialog
+  open={reviewsDialogOpen}
+  onOpenChange={setReviewsDialogOpen}
+  serviceProviderId={serviceProviderId}
+/>
       </main>
     </div>
   );
