@@ -277,6 +277,11 @@ useEffect(() => {
   const [cartOpen, setCartOpen] = useState(false); 
   const [OpenSaveOptionForSave , setOpenSaveOptionForSave] = useState(false);
   const [showInput, setShowInput] = useState(false);
+   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+
+  // Ref to close dropdown when clicked outside
+  const serviceDropdownRef = useRef<HTMLDivElement>(null);
   const handleCartOpen = () => setCartOpen(true);
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
@@ -506,6 +511,33 @@ console.log("Checkout");
 
   {/* Right Side Content */}
   <div className="flex items-center gap-2 md:gap-4">
+      {/* Service Dropdown */}
+  <div className="relative">
+    <button
+      onClick={() => setServiceDropdownOpen((prev) => !prev)}
+      className="flex items-center gap-1 md:gap-2 px-3 py-2 bg-white border rounded-xl shadow hover:bg-gray-100 text-sm"
+    >
+      {selectedService || "Our Services"}
+      <ChevronDown className="w-4 h-4" />
+    </button>
+
+    {serviceDropdownOpen && (
+      <ul className="absolute left-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-50">
+        {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
+          <li
+            key={idx}
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              setSelectedService(service);
+              setServiceDropdownOpen(false);
+            }}
+          >
+            {service}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
     {/* Location Bar */}
     <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64">
       <MapPin className="w-4 h-4 text-gray-500 mr-2" />
@@ -566,11 +598,11 @@ console.log("Checkout");
     </div>
 
     {/* Cart */}
-    <Badge badgeContent={totalCartItems} color="primary">
+    {/* <Badge badgeContent={totalCartItems} color="primary">
       <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleCartOpen}>
         <ShoppingCart className="w-5 h-5" />
       </Button>
-    </Badge>
+    </Badge> */}
 
     {/* User / Auth */}
     {!isAuthenticated ? (
@@ -706,11 +738,11 @@ console.log("Checkout");
           </Button>
         </DialogActions>
       </Dialog>
-     <CartDialog 
+     {/* <CartDialog 
   open={cartOpen} 
   handleClose={handleCartClose}
 
-/>
+/> */}
     </>
   );
 };

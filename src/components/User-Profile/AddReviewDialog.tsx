@@ -54,6 +54,7 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
     try {
       const payload = {
         customerId: auth0User.customerid,
+        customerName: auth0User.customerName,
         serviceProviderId: booking.serviceProviderId,
         rating: rating,
         comment: review.trim() || "No comment provided"
