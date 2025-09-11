@@ -7,21 +7,18 @@ import { Star, User, Calendar, MessageSquare, X } from "lucide-react";
 import { Badge } from "../../components/Common/Badge";
 import { useToast } from "../hooks/use-toast";
 import axiosInstance from "../../services/axiosInstance";
-import { ClipLoader } from "react-spinners";
 import { Dialog, DialogContent, DialogTitle } from "@mui/material";
 import { DialogHeader } from "../ProviderDetails/MaidServiceDialog.styles";
 
 interface Review {
   id: number;
   customerId: number;
-  customerName: string;
-  customerImage?: string;
+  customerName: string | null;
   serviceProviderId: number;
-  bookingId: number;
   rating: number;
   comment: string;
-  createdAt: string;
-  serviceType: string;
+  commentedOn: string;
+  serviceType?: string;
   response?: string;
   respondedAt?: string;
 }
@@ -31,6 +28,80 @@ interface ReviewsDialogProps {
   onOpenChange: (open: boolean) => void;
   serviceProviderId: number | null;
 }
+
+// SkeletonLoader Component
+const SkeletonLoader = () => {
+  return (
+    <div className="space-y-6">
+      {/* Rating Summary Skeleton */}
+      <div className="bg-blue-50 rounded-lg p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="h-12 w-16 bg-gray-300 rounded-md mx-auto mb-2 animate-pulse"></div>
+            <div className="flex justify-center mt-2 gap-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-4 w-4 bg-gray-300 rounded-sm animate-pulse"></div>
+              ))}
+            </div>
+            <div className="h-4 w-32 bg-gray-300 rounded mx-auto mt-2 animate-pulse"></div>
+          </div>
+          
+          <div className="text-center">
+            <div className="h-12 w-16 bg-gray-300 rounded-md mx-auto mb-2 animate-pulse"></div>
+            <div className="h-4 w-32 bg-gray-300 rounded mx-auto mt-2 animate-pulse"></div>
+          </div>
+          
+          <div className="space-y-2">
+            {[5, 4, 3, 2, 1].map((stars) => (
+              <div key={stars} className="flex items-center gap-2">
+                <span className="text-sm font-medium w-4 bg-gray-300 h-4 rounded animate-pulse"></span>
+                <div className="h-4 w-4 bg-gray-300 rounded-sm animate-pulse"></div>
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div className="bg-gray-300 h-2 rounded-full animate-pulse" style={{ width: `${Math.random() * 70 + 10}%` }}></div>
+                </div>
+                <span className="text-xs w-8 bg-gray-300 h-4 rounded animate-pulse"></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Review Items Skeleton */}
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="border rounded-lg p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-300 rounded-full animate-pulse"></div>
+              <div>
+                <div className="h-5 w-32 bg-gray-300 rounded mb-2 animate-pulse"></div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-4 w-4 bg-gray-300 rounded-sm animate-pulse"></div>
+                    ))}
+                  </div>
+                  <div className="h-5 w-16 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            <div className="h-4 w-24 bg-gray-300 rounded animate-pulse"></div>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+            <div className="h-4 w-4/5 bg-gray-300 rounded animate-pulse"></div>
+            <div className="h-4 w-3/5 bg-gray-300 rounded animate-pulse"></div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 border">
+            <div className="h-4 w-32 bg-gray-300 rounded mb-2 animate-pulse"></div>
+            <div className="h-4 w-full bg-gray-300 rounded animate-pulse"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: ReviewsDialogProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -49,17 +120,45 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      // Replace with your actual API endpoint
       const response = await axiosInstance.get(
-        `/api/serviceproviders/reviews/${serviceProviderId}`
+        `/api/customer/get-feedback-by-service-provider/${serviceProviderId}`
       );
       
       if (response.status === 200) {
-        const data = response.data;
-        setReviews(data.reviews || []);
-        setAverageRating(data.averageRating || 0);
-        setTotalReviews(data.totalReviews || 0);
-        setRatingDistribution(data.ratingDistribution || [0, 0, 0, 0, 0]);
+        const reviewsData: Review[] = response.data;
+        
+        // Process the API response
+        const processedReviews = reviewsData.map(review => ({
+          ...review,
+          customerName: review.customerName || "Test User",
+          createdAt: review.commentedOn,
+          serviceType: review.serviceType || "Service",
+          bookingId: review.id
+        }));
+
+        // Sort reviews by date in descending order (newest first)
+        const sortedReviews = processedReviews.sort((a, b) => {
+          return new Date(b.commentedOn).getTime() - new Date(a.commentedOn).getTime();
+        });
+
+        setReviews(sortedReviews);
+        
+        // Calculate average rating
+        const totalRating = sortedReviews.reduce((sum, review) => sum + review.rating, 0);
+        const avgRating = sortedReviews.length > 0 ? totalRating / sortedReviews.length : 0;
+        setAverageRating(avgRating);
+        
+        // Set total reviews
+        setTotalReviews(sortedReviews.length);
+        
+        // Calculate rating distribution (1-5 stars)
+        const distribution = [0, 0, 0, 0, 0]; // [1-star, 2-star, 3-star, 4-star, 5-star]
+        sortedReviews.forEach(review => {
+          if (review.rating >= 1 && review.rating <= 5) {
+            distribution[review.rating - 1]++;
+          }
+        });
+        setRatingDistribution(distribution);
       }
     } catch (error) {
       console.error("Failed to fetch reviews:", error);
@@ -69,49 +168,11 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
         variant: "destructive",
       });
       
-      // Mock data for demonstration
-      const mockReviews: Review[] = [
-        {
-          id: 1,
-          customerId: 101,
-          customerName: "Priya Sharma",
-          rating: 5,
-          comment: "Excellent service! Maya was very professional and thorough in her cleaning. Would definitely hire again.",
-          createdAt: "2024-12-20T10:30:00Z",
-          serviceType: "Home Cleaning",
-          serviceProviderId: serviceProviderId || 0,
-          bookingId: 1001
-        },
-        {
-          id: 2,
-          customerId: 102,
-          customerName: "Rajesh Kumar",
-          rating: 4,
-          comment: "Good service, arrived on time. Could improve on attention to corners.",
-          createdAt: "2024-12-18T14:20:00Z",
-          serviceType: "Deep Cleaning",
-          serviceProviderId: serviceProviderId || 0,
-          bookingId: 1002,
-          response: "Thank you for your feedback. We'll ensure better corner cleaning in future services.",
-          respondedAt: "2024-12-19T09:15:00Z"
-        },
-        {
-          id: 3,
-          customerId: 103,
-          customerName: "Anita Patel",
-          rating: 5,
-          comment: "Outstanding work! The kitchen was spotless. Very satisfied with the service.",
-          createdAt: "2024-12-15T16:45:00Z",
-          serviceType: "Kitchen Cleaning",
-          serviceProviderId: serviceProviderId || 0,
-          bookingId: 1003
-        }
-      ];
-      
-      setReviews(mockReviews);
-      setAverageRating(4.7);
-      setTotalReviews(3);
-      setRatingDistribution([0, 0, 0, 1, 2]);
+      // Fallback to empty state instead of mock data
+      setReviews([]);
+      setAverageRating(0);
+      setTotalReviews(0);
+      setRatingDistribution([0, 0, 0, 0, 0]);
     } finally {
       setLoading(false);
     }
@@ -136,23 +197,34 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
     });
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+    <Dialog 
+      open={open} 
+      onClose={handleClose}
+    >
+       <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
             Customer Reviews
           </DialogTitle>
-        
+          <p className="text-sm text-gray-600">
             Feedback from your clients helps you improve your services
-         
+          </p>
+          <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 z-10 rounded-full p-1 hover:bg-gray-100 transition-colors"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5 text-gray-500" />
+        </button>
         </DialogHeader>
-
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto relative">
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <ClipLoader color="#0E305C" size={40} />
-          </div>
+          <SkeletonLoader />
         ) : (
           <>
             {/* Rating Summary */}
@@ -180,7 +252,7 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
                         <div
                           className="bg-yellow-400 h-2 rounded-full"
                           style={{
-                            width: `${(ratingDistribution[5 - stars] / Math.max(1, totalReviews)) * 100}%`
+                            width: `${totalReviews > 0 ? (ratingDistribution[5 - stars] / totalReviews) * 100 : 0}%`
                           }}
                         />
                       </div>
@@ -223,7 +295,7 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
                       </div>
                       <div className="text-sm text-gray-500 flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {formatDate(review.createdAt)}
+                        {formatDate(review.commentedOn)}
                       </div>
                     </div>
 
@@ -250,7 +322,7 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
         )}
 
         <div className="flex justify-end pt-4 border-t">
-          <Button onClick={() => onOpenChange(false)} variant="outline">
+          <Button onClick={handleClose} variant="outline">
             Close
           </Button>
         </div>
