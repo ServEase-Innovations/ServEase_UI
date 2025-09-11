@@ -206,10 +206,32 @@ const { user: auth0User, isAuthenticated, loginWithRedirect } = useAuth0();
 const [role, setRole] = useState<string | null>(null);
 
 useEffect(() => {
-  if (isAuthenticated && auth0User) {
-    setRole(auth0User.role);
-    console.log("auth0User.user_role:", auth0User.role);
-  }
+  const initializeUser = async () => {
+    if (isAuthenticated && auth0User) {
+      // Extract role from multiple possible locations
+      const userRole =
+        auth0User.role ||
+        auth0User["https://yourdomain.com/roles"]?.[0] ||
+        auth0User["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        "CUSTOMER";
+      
+      setRole(userRole);
+      console.log("User role:", userRole);
+      
+      // If you need to extract user ID as well (similar to ProfileScreen)
+      const id =
+        auth0User.serviceProviderId ||
+        auth0User["https://yourdomain.com/serviceProviderId"] ||
+        auth0User.customerid ||
+        null;
+      
+      console.log("User ID:", id);
+    } else {
+  
+    }
+  };
+
+  initializeUser();
 }, [isAuthenticated, auth0User]);
 
  // Carousel state
@@ -317,29 +339,37 @@ useEffect(() => {
 
 
     {/* Buttons */}
-    <div className="flex gap-3 pt-3 justify-center">
+<div className="flex gap-3 pt-3 justify-center">
+  <Button 
+    className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+    onClick={() => setChatbotOpen(true)}
+  >
+    I need help
+  </Button>
+
+  {/* Show registration buttons only for unauthenticated users */}
+  {!isAuthenticated && (
+    <>
       <Button 
         className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
-        onClick={() => setChatbotOpen(true)}
       >
-        I need help
+        Register as User
       </Button>
-
-      {role !== "CUSTOMER" && (
-        <Button
-          className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
-          onClick={handleWorkClick}
-        >
-         Register as Provider
-        </Button>
-      )}
-        <Button 
+      <Button
         className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
-         onClick={() => setIsAgentRegistrationOpen(true)}
+        onClick={handleWorkClick}
+      >
+        Register as Provider
+      </Button>
+      <Button 
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+        onClick={() => setIsAgentRegistrationOpen(true)}
       >
         Register as Agent
       </Button>
-    </div>
+    </>
+  )}
+</div>
   </div>
 
   {/* Carousel Section */}
