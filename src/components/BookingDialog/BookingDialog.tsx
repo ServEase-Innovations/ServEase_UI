@@ -178,31 +178,23 @@ const shouldDisableEndDate = (date: Dayjs) => {
 
   {/* --- Date Option --- */}
 
- {selectedOption === "Date" && (
+{selectedOption === "Date" && (
   <DemoContainer components={["DesktopDateTimePicker"]}>
     <DesktopDateTimePicker
       label="Select Start Date"
       ampm
-      value={startTime}   // controlled with Dayjs
+      value={startTime} // controlled with Dayjs
       onChange={(newValue) => {
         if (!newValue) return;
-
-        const hour = newValue.hour();
-
-        // Rule 2: Block between 10:00 PM – 5:00 AM
-        if (hour < 5 || hour >= 22) {
-          return; // prevent setting invalid time
-        }
-
         updateStartDate(newValue);
       }}
-      minDateTime={dayjs().add(30, "minute")}   // Rule 1
+      minDateTime={dayjs().add(30, "minute")} // Rule 1: Minimum 30 mins
       maxDate={maxDate21Days}
       shouldDisableDate={shouldDisableDate}
       shouldDisableTime={(timeValue, viewType) => {
         if (viewType === "hours") {
           const hour = timeValue.hour();
-          // Block 10 PM – 5 AM
+          // Rule 2: Disable 9:59 PM – 4:59 AM
           return hour < 5 || hour >= 22;
         }
         return false;
@@ -323,8 +315,13 @@ const shouldDisableEndDate = (date: Dayjs) => {
     <Button onClick={onClose} variant="outlined">Cancel</Button>
     <Button 
         onClick={onSave} 
-        variant="outlined"
-        disabled={isConfirmDisabled()}
+        variant="contained"
+         disabled={
+    !startTime ||
+    startTime.isBefore(dayjs().add(30, "minute")) || // fails Rule 1
+    startTime.hour() < 5 ||
+    startTime.hour() >= 22 // fails Rule 2
+  }
     >
         Confirm
     </Button>
