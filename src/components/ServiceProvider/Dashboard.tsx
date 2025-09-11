@@ -31,6 +31,7 @@ import { AllBookingsDialog } from "./AllBookingsDialog";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
 import Switch from "@mui/material/Switch/Switch";
 import { ReviewsDialog } from "./ReviewsDialog";
+import axios, { AxiosResponse } from "axios";
  
 // Types for API response
 interface CustomerHoliday {
@@ -90,42 +91,37 @@ interface BookingHistoryResponse {
   past: Booking[];
 }
 
+export interface ProviderPayoutResponse {
+  success: boolean;
+  serviceproviderid: string;
+  month: string | null;
+  summary: PayoutSummary;
+  payouts: Payout[];
+}
+
+export interface PayoutSummary {
+  total_earned: number;
+  total_withdrawn: number;
+  available_to_withdraw: number;
+  security_deposit_paid: boolean;
+  security_deposit_amount: number;
+}
+
+export interface Payout {
+  payout_id: string;
+  engagement_id: string;
+  gross_amount: number;
+  provider_fee: number;
+  tds_amount: number;
+  net_amount: number;
+  payout_mode: string | null;
+  status: string; // Could also make this an enum if you want: "INITIATED" | "SUCCESS" | "FAILED"
+  created_at: string; // ISO datetime string
+}
+
+
 // Mock data for metrics and payments (you might want to fetch these from APIs too)
-const metrics = [
-  {
-    title: "Total Earnings",
-    value: "₹24,580",
-    change: "+12.5%",
-    changeType: "positive" as const,
-    icon: IndianRupee,
-    description: "This month"
-  },
- 
-  {
-    title: "Security Deposit",
-    value: "₹2,500",
-    change: "Held",
-    changeType: "neutral" as const,
-    icon: Shield,
-    description: "For active bookings"
-  },
-  {
-    title: "Service Fee",
-    value: "₹1,230",
-    change: "-10%",
-    changeType: "negative" as const,
-    icon: CreditCard,
-    description: "Service charges"
-  },
-  {
-    title: "Actual Payout",
-    value: "₹20,850",
-    change: "+10.2%",
-    changeType: "positive" as const,
-    icon: Wallet,
-    description: "After deductions"
-  }
-];
+
 
 const paymentHistory = [
   {
@@ -196,6 +192,44 @@ export default function Dashboard() {
   const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
  const [userName, setUserName] = useState<string | null>(null);
   const [serviceProviderId, setServiceProviderId] = useState<number | null>(null);
+  const [payout , setPayout] = useState<ProviderPayoutResponse | null>(null);
+
+  const metrics = [
+    {
+      title: "Total Earnings",
+      value: `₹${payout?.summary?.total_earned?.toLocaleString("en-IN") || 0}`,
+      change: "+12.5%", // You can calculate change dynamically if needed
+      changeType: "positive" as const,
+      icon: IndianRupee,
+      description: "This month"
+    },
+    {
+      title: "Security Deposit",
+      value: `₹${payout?.summary?.security_deposit_amount?.toLocaleString("en-IN") || 0}`,
+      change: payout?.summary?.security_deposit_paid ? "Paid" : "Not Paid",
+      changeType: payout?.summary?.security_deposit_paid ? ("neutral" as const) : ("negative" as const),
+      icon: Shield,
+      description: "For active bookings"
+    },
+    {
+      title: "Service Fee",
+      value: `₹${(
+        (payout?.summary?.total_earned || 0) - (payout?.summary?.available_to_withdraw || 0)
+      ).toLocaleString("en-IN")}`,
+      change: "-10%", // Or compute actual %
+      changeType: "negative" as const,
+      icon: CreditCard,
+      description: "Service charges"
+    },
+    {
+      title: "Actual Payout",
+      value: `₹${payout?.summary?.available_to_withdraw?.toLocaleString("en-IN") || 0}`,
+      change: "+10.2%", // Or calculate vs previous month
+      changeType: "positive" as const,
+      icon: Wallet,
+      description: "After deductions"
+    }
+  ];
 
   // ✅ Extract name and serviceProviderId from Auth0 user
   useEffect(() => {
@@ -223,6 +257,12 @@ export default function Dashboard() {
     const fetchBookingHistory = async () => {
       try {
         setLoading(true);
+        const payoutResponse : AxiosResponse<ProviderPayoutResponse> = await axios.get(
+          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=2025-09&detailed=true`
+        );
+
+        console.log("Payout Response:", payoutResponse.data);
+        setPayout(payoutResponse.data);
         const response = await axiosInstance.get(
           `/api/serviceproviders/get-sp-booking-history-by-serviceprovider?serviceProviderId=${serviceProviderId}`
         );
