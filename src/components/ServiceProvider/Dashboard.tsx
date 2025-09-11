@@ -264,7 +264,7 @@ export default function Dashboard() {
         console.log("Payout Response:", payoutResponse.data);
         setPayout(payoutResponse.data);
         const response = await axiosInstance.get(
-          `/api/serviceproviders/get-sp-booking-history-by-serviceprovider?serviceProviderId=${serviceProviderId}`
+          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=2025-09`
         );
         if (response.status !== 200) {
           throw new Error(`HTTP error! status: ${response.status}`);
