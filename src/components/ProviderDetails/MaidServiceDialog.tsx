@@ -68,6 +68,7 @@ import {
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -675,114 +676,75 @@ const getAddOnPrice = (addOnName: string): number => {
     setCartDialogOpen(true);
   };
 
-  const handleCheckout = async () => {
-    try {
-      setLoading(true);
-      const maidCartItemsNow = allCartItems.filter(isMaidCartItem);
-      const baseTotal = maidCartItemsNow.reduce((sum, item) => sum + (item.price || 0), 0);
-      if (baseTotal <= 0) {
-        alert('No items selected for checkout');
-        return;
-      }
-      const tax = baseTotal * 0.18;
-      const platformFee = baseTotal * 0.06;
-      const grandTotal = baseTotal + tax + platformFee;
-      const customerName = (user as any)?.name || 'Guest';
-      const customerId = (user as any)?.customerid || 'guest-id';
+const handleCheckout = async () => {
+  try {
+    setLoading(true);
 
-      const response = await axios.post(
-        'https://utils-ndt3.onrender.com/create-order',
-        { amount: Math.round(grandTotal * 100) },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+    // Get only maid cart items
+    const selectedServices = allCartItems.filter(isMaidCartItem);
 
-      if (response.status === 200 && (response.data as any).success) {
-        const orderId = (response.data as any).orderId;
-        const amount = Math.round(grandTotal * 100);
-        const currency = 'INR';
-
-        const engagements = maidCartItemsNow.map(item => {
-          if (isMaidCartItem(item)) {
-            if (item.serviceType === 'package') {
-              if (item.name === 'utensilCleaning') return `Utensil cleaning for ${item.details?.persons || 1} persons`;
-              if (item.name === 'sweepingMopping') return `Sweeping & mopping for ${item.details?.houseSize || '2BHK'}`;
-              if (item.name === 'bathroomCleaning') return `Bathroom cleaning for ${item.details?.bathrooms || 2} bathrooms`;
-            } else if (item.serviceType === 'addon') {
-              return item.name.split(/(?=[A-Z])/).join(' ');
-            }
-          }
-          return item.name;
-        }).join(', ');
-
-        const bookingDetails: BookingDetails = {
-          ...bookingDetailsTemplate,
-          serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-          serviceProviderName: providerFullName,
-          customerId: customerId as any,
-          customerName: customerName as any,
-          startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-          endDate: bookingType?.endDate || '',
-          engagements,
-          address: currentLocation,
-          timeslot: bookingType?.timeRange || '',
-          monthlyAmount: baseTotal,
-          bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
-        } as BookingDetails;
-
-        const options = {
-          key: 'rzp_test_lTdgjtSRlEwreA',
-          amount,
-          currency,
-          name: 'Serveaso',
-          description: 'Maid Service Booking',
-          order_id: orderId,
-          handler: async function () {
-            try {
-              const bookingResponse = await axiosInstance.post(
-                '/api/serviceproviders/engagement/add',
-                bookingDetails
-              );
-
-              if (bookingResponse.status === 201) {
-                dispatch(removeFromCart({ type: 'meal' }));
-                dispatch(removeFromCart({ type: 'maid' }));
-                dispatch(removeFromCart({ type: 'nanny' }));
-                await fetch('http://localhost:4000/send-notification', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    title: 'Hello from ServEaso!',
-                    body: `Your maid service booking has been confirmed!`,
-                    url: 'http://localhost:3000',
-                  }),
-                });
-                if (sendDataToParent) sendDataToParent(BOOKINGS);
-                handleClose();
-                setCartDialogOpen(false);
-              }
-            } catch (error) {
-              console.error('Error in payment handler:', error);
-              handleClose();
-              setCartDialogOpen(false);
-            }
-          },
-          prefill: {
-            name: customerName,
-            email: (user as any)?.email || '',
-            contact: (user as any)?.mobileNo || '',
-          },
-          theme: { color: '#3399cc' },
-        } as any;
-
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to initiate payment. Please try again.');
-    } finally {
-      setLoading(false);
+    const baseTotal = selectedServices.reduce((sum, item) => sum + (item.price || 0), 0);
+    if (baseTotal <= 0) {
+      alert("No items selected for checkout");
+      return;
     }
-  };
+
+    const customerId = user?.customerid || "guest-id";
+
+    // --- Separate packages and add-ons ---
+    const packages = selectedServices.filter(item => item.serviceType === "package");
+    const addOns = selectedServices.filter(item => item.serviceType === "addon");
+
+    // --- Build responsibilities ---
+    const responsibilities = {
+      tasks: packages.map(item => {
+        if (item.name === "utensilCleaning") {
+          return { taskType: "Utensil Cleaning", persons: item.details?.persons || 1 };
+        }
+        if (item.name === "sweepingMopping") {
+          return { taskType: "Sweeping & Mopping", houseSize: item.details?.houseSize || "2BHK" };
+        }
+        if (item.name === "bathroomCleaning") {
+          return { taskType: "Bathroom Cleaning", bathrooms: item.details?.bathrooms || 1 };
+        }
+        return { taskType: item.name };
+      }),
+      add_ons: addOns.map(item => ({ taskType: item.name })) // <-- add-ons separately
+    };
+
+    // --- Prepare payload ---
+    const payload: BookingPayload = {
+      customerid: customerId,
+      serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+      start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      end_date: bookingType?.endDate || "",
+      start_time: bookingType?.timeRange || "",
+      responsibilities, // <-- now includes add_ons separately
+      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+      taskStatus: "NOT_STARTED",
+      service_type: "MAID",
+      base_amount: baseTotal,
+      payment_mode: "razorpay",
+    };
+
+    console.log("Final Maid Payload:", payload);
+
+    const result = await BookingService.bookAndPay(payload);
+
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    handleClose();
+    setCartDialogOpen(false);
+
+  } catch (error) {
+    console.error("Checkout error:", error);
+    alert("Failed to initiate payment. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>
@@ -801,10 +763,10 @@ const getAddOnPrice = (addOnName: string): number => {
               </CloseButton>
             </DialogHeader>
 
-            <TabsContainer>
+            {/* <TabsContainer>
               <TabButton active={activeTab === 'regular'} onClick={() => handleTabChange('regular')}>Regular Services</TabButton>
               <TabButton active={activeTab === 'premium'} onClick={() => handleTabChange('premium')}>Premium Services</TabButton>
-            </TabsContainer>
+            </TabsContainer> */}
 
             <PackagesContainer>
               {/* Utensil Cleaning */}

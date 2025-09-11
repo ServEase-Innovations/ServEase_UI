@@ -15,7 +15,7 @@ interface Booking {
   startDate: string;
   endDate: string;
   timeSlot: string;
-  serviceType: string;
+  service_type: string;
   customerId?: number;
   modifiedDate: string;
   bookingDate: string;

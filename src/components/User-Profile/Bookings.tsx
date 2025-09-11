@@ -21,15 +21,24 @@ import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 
-interface CustomerHoliday {
-  id: number;
-  engagementId: number;
-  customerId: number;
-  applyHolidayDate: string;
-  startDate: string;
-  endDate: string;
-  serviceType: string;
-  active: boolean;
+
+interface Task {
+  taskType: string;
+  [key: string]: any;
+}
+// interface Task {
+//   taskType?: string;
+//   persons?: number;
+//   houseSize?: string;
+//   bathrooms?: number;
+//   age?: number;
+//   careType?: string;
+//   packageType?: string;
+//   // Add any other fields your tasks/add-ons might have
+// }
+interface Responsibilities {
+  tasks: Task[];
+    add_ons?: Task[];
 }
 interface Booking {
   id: number;
@@ -47,14 +56,14 @@ interface Booking {
   serviceProviderName: string;
   taskStatus: string;
   bookingDate: string;
-  engagements: string;
-  serviceType: string;
+  
+  service_type: string;
   childAge: string;
   experience: string;
   noOfPersons: string;
   mealType: string;
   modifiedDate: string;
-  responsibilities: string;
+responsibilities: Responsibilities;
  hasVacation?: boolean; // ✅ Add this
   vacationDetails?: { // ✅ Add this
     leave_type?: string;
@@ -205,7 +214,7 @@ useEffect(() => {
           taskStatus: item.task_status,
           engagements: item.engagements,
           bookingDate: item.created_at,
-          serviceType: item.serviceType?.toLowerCase() || 'other',
+          service_type: item.service_type?.toLowerCase() || 'other',
           childAge: item.childAge,
           experience: item.experience,
           noOfPersons: item.noOfPersons,
@@ -233,7 +242,7 @@ const hasVacation = (booking: Booking): boolean => {
     if (!term) return bookings;
     
     return bookings.filter(booking => 
-      getServiceTitle(booking?.serviceType).toLowerCase().includes(term?.toLowerCase()) ||
+      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
       booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
       booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
       booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
@@ -318,7 +327,7 @@ const hasVacation = (booking: Booking): boolean => {
       'cancel',
       booking,
       'Cancel Booking',
-      `Are you sure you want to cancel your ${getServiceTitle(booking.serviceType)} booking? This action cannot be undone.`,
+      `Are you sure you want to cancel your ${getServiceTitle(booking.service_type)} booking? This action cannot be undone.`,
       'warning'
     );
   };
@@ -462,7 +471,7 @@ const handleSaveModifiedBooking = async (updatedData: {
   }
 };
 
-const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
+const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
   if (!selectedBookingForLeave || !customerId) {
     throw new Error("Missing required information for leave application");
   }
@@ -666,9 +675,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      {getServiceIcon(booking.serviceType)}
+                      {getServiceIcon(booking.service_type)}
                       <div>
-                        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
+                        <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
                         <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
                       </div>
                     </div>
@@ -733,7 +742,39 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType
                           <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
                         </div>
                       </div>
-                      
+                     {/* Responsibilities Section */}
+<div className="mt-2">
+  <p className="font-medium text-sm mb-1">Responsibilities:</p>
+  <div className="flex flex-wrap gap-2">
+    {[
+      ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
+      ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
+    ].map((item: any, index: number) => {
+      const { task, isAddon } = item;
+
+      // If task is an object, build label
+      const taskLabel =
+        typeof task === "object" && task !== null
+          ? Object.entries(task)
+              .filter(([key]) => key !== "taskType")
+              .map(([key, value]) => `${value} ${key}`)
+              .join(", ")
+          : "";
+
+      // Display taskType if object, else task itself
+      const taskName = typeof task === "object" ? task.taskType : task;
+
+      return (
+        <Badge key={index} variant="outline" className="text-xs">
+          {isAddon ? "Add-ons - " : ""}
+          {taskName} {taskLabel && `- ${taskLabel}`}
+        </Badge>
+      );
+    })}
+  </div>
+</div>
+
+
                       <div className="text-right">
                         <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
                       </div>
@@ -1047,9 +1088,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      {getServiceIcon(booking.serviceType)}
+                      {getServiceIcon(booking.service_type)}
                       <div>
-                        <CardTitle className="text-lg">{getServiceTitle(booking.serviceType)}</CardTitle>
+                        <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
                         <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
                       </div>
                     </div>

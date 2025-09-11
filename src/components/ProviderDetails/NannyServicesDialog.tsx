@@ -57,6 +57,7 @@ import axios from 'axios';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -431,138 +432,74 @@ const careType = pkg.category.toLowerCase().includes("baby")
       })
       .join(', ');
   };
+const handleCheckout = async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-  const handleCheckout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    // 1. Filter selected packages
+    const selectedPackages = Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([key, pkg]) => ({
+        key,
+        age: pkg.age,
+        price: pkg.calculatedPrice,
+        category: pkg.category,
+        packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+      }));
 
-      // 1. Prepare booking data
-      const selectedPackages = Object.entries(packages)
-        .filter(([_, pkg]) => pkg.selected)
-        .map(([name, pkg]) => ({
-          nannyType: name.toUpperCase(),
-          age: pkg.age,
-          price: pkg.calculatedPrice,
-        }));
-
-      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-      if (baseTotal === 0) {
-        throw new Error('Please select at least one service');
-      }
-
-      // Calculate tax and platform fee (18% tax + 6% platform fee)
-      const tax = baseTotal * 0.18;
-      const platformFee = baseTotal * 0.06;
-      const grandTotal = baseTotal + tax + platformFee;
-
-      const customerName = user?.name || "Guest";
-      const customerId = user?.customerid || "guest-id";
-
-      const bookingData = {
-        serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-        serviceProviderName: providerFullName,
-        customerId: customerId,
-        customerName: customerName,
-        address: currentLocation || "Durgapur, West Bengal 713205, India",
-        startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        endDate: bookingType?.endDate || "",
-        engagements: getSelectedServicesDescription(),
-        monthlyAmount: baseTotal,
-        timeslot: bookingType?.timeRange || "",
-        paymentMode: "UPI",
-        bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
-        taskStatus: "NOT_STARTED",
-        serviceType: "NANNY",
-        responsibilities: []
-      };
-
-      // 2. Create Razorpay order
-      let orderId: string;
-      try {
-        const orderResponse = await axios.post(
-          "https://utils-ndt3.onrender.com/create-order",
-          { 
-            amount: Math.round(grandTotal * 100),
-            currency: "INR",
-            receipt: `receipt_${Date.now()}`,
-            payment_capture: 1
-          },
-          { 
-            headers: { "Content-Type": "application/json" },
-            timeout: 8000
-          }
-        );
-        orderId = orderResponse.data.orderId;
-      } catch (backendError) {
-        console.warn("Backend order creation failed, falling back to client-side", backendError);
-        orderId = `fallback_${Date.now()}`;
-      }
-
-      // 3. Initialize Razorpay payment
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA", // Replace with your actual key
-        amount: Math.round(grandTotal * 100),
-        currency: "INR",
-        name: "Serveaso",
-        description: "Nanny Services Booking",
-        order_id: orderId,
-        handler: async (razorpayResponse: any) => {
-          try {
-            // 4. Save booking to backend
-            const bookingResponse = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              {
-                ...bookingData,
-                paymentReference: razorpayResponse.razorpay_order_id || orderId
-              },
-              { headers: { "Content-Type": "application/json" } }
-            );
-
-            if (bookingResponse.status === 201) {
-              // 5. Clear cart
-              dispatch(removeFromCart({ type: 'meal' }));
-              dispatch(removeFromCart({ type: 'maid' }));
-              dispatch(removeFromCart({ type: 'nanny' }));
-
-              // 6. Update UI and close dialogs
-              handleClose();
-              setCartDialogOpen(false);
-              alert("Booking confirmed! 🎉");
-            }
-          } catch (bookingError) {
-            // console.error("Error saving booking:", bookingError);
-            setError("Payment succeeded but booking failed. Please contact support.");
-            handleClose();
-            setCartDialogOpen(false);
-          }
-        },
-        prefill: {
-          name: customerName,
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-        modal: {
-          ondismiss: () => {
-            setError("Payment closed by user");
-          }
-        }
-      };
-
-      // 7. Open Razorpay payment dialog
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-
-    } catch (err: any) {
-      console.error("Checkout error:", err);
-      setError(err.response?.data?.message || err.message || "Payment failed. Please try again later.");
-    } finally {
-      setLoading(false);
+    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+    if (baseTotal === 0) {
+      throw new Error('Please select at least one service');
     }
-  };
+
+    const customerId = user?.customerid || "guest-id";
+
+    // 2. Build responsibilities array with readable taskType
+    const responsibilities = selectedPackages.map(pkg => {
+      return {
+        taskType: `${pkg.category} care - ${pkg.packageType} service`,
+        age: pkg.age,
+        careType: activeTab, // 'baby' or 'elderly'
+      };
+    });
+
+    // 3. Construct payload
+    const payload: BookingPayload = {
+      customerid: customerId,
+      serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+      start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+      end_date: bookingType?.endDate || "",
+      start_time: bookingType?.timeRange || '',
+      responsibilities: { tasks: responsibilities },
+      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+      taskStatus: "NOT_STARTED",
+      service_type: "NANNY",
+      base_amount: baseTotal,
+      payment_mode: "razorpay",
+    };
+
+    console.log("Final Nanny Payload:", payload);
+
+    // 4. Send booking request
+    const result = await BookingService.bookAndPay(payload);
+
+    // 5. Clear carts & close dialogs
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
+
+    handleClose();
+    setCartDialogOpen(false);
+    alert("Booking confirmed! 🎉");
+
+  } catch (err: any) {
+    console.error("Checkout error:", err);
+    setError(err.response?.data?.message || err.message || "Payment failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
  const calculateTotal = () => {
   return Object.entries(packages)

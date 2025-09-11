@@ -21,7 +21,7 @@ import { getServiceTitle } from '../Common/Booking/BookingUtils';
 
 interface Booking {
   id: number;
-  serviceType: string;
+  service_type: string;
   startDate: string;
   endDate: string;
   bookingType: string;
@@ -31,7 +31,7 @@ interface UserHolidayProps {
   open: boolean;
   onClose: () => void;
   booking: Booking | null;
-  onLeaveSubmit: (startDate: string, endDate: string, serviceType: string) => Promise<void>;
+  onLeaveSubmit: (startDate: string, endDate: string, service_type: string) => Promise<void>;
 }
 
 const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLeaveSubmit }) => {
@@ -60,7 +60,7 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
   }, [booking]);
 
   const handleSubmit = async () => {
-    if (!leaveStartDate || !leaveEndDate || !booking?.serviceType) return;
+    if (!leaveStartDate || !leaveEndDate || !booking?.service_type) return;
 
     if (leaveStartDate.isBefore(minDate) || leaveEndDate.isAfter(maxDate)) {
       alert('Holiday dates must be within your booked period');
@@ -78,14 +78,14 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
   };
 
   const handleConfirmSubmit = async () => {
-    if (!leaveStartDate || !leaveEndDate || !booking?.serviceType) return;
+    if (!leaveStartDate || !leaveEndDate || !booking?.service_type) return;
 
     setIsSubmitting(true);
     try {
       await onLeaveSubmit(
         leaveStartDate.format('YYYY-MM-DD'),
         leaveEndDate.format('YYYY-MM-DD'),
-        booking.serviceType
+        booking.service_type
       );
       setSnackbarOpen(true);
       setShowConfirmation(false);
@@ -152,7 +152,7 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
             {booking && (
               <div className="text-sm text-muted-foreground">
                 <p>Your booked period: {dayjs(booking.startDate).format('DD/MM/YYYY')} to {dayjs(booking.endDate).format('DD/MM/YYYY')}</p>
-                <p>Service Type: {booking.serviceType}</p>
+                <p>Service Type: {booking.service_type}</p>
                 <p>Booking Type: {booking.bookingType}</p>
               </div>
             )}
@@ -178,7 +178,7 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleConfirmSubmit}
         title="Confirm Vacation Application"
-        message={`Are you sure you want to apply for vacation from ${leaveStartDate?.format('MMMM DD, YYYY')} to ${leaveEndDate?.format('MMMM DD, YYYY')} for your ${getServiceTitle(booking?.serviceType || '')} service?`}
+        message={`Are you sure you want to apply for vacation from ${leaveStartDate?.format('MMMM DD, YYYY')} to ${leaveEndDate?.format('MMMM DD, YYYY')} for your ${getServiceTitle(booking?.service_type || '')} service?`}
         confirmText="Yes, Apply"
         cancelText="Cancel"
         loading={isSubmitting}

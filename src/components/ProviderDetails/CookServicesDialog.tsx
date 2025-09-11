@@ -229,17 +229,25 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const handleCheckout = async () => {
     try {
     setLoading(true);
-    const selectedPackages = Object.entries(packages)
-    .filter(([_, pkg]) => pkg.selected)
-    .map(([name, pkg]) => ({
-    mealType: name.toUpperCase(),
-    persons: pkg.persons,
-    price: pkg.calculatedPrice,
-    }));
+      const selectedPackages = Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([name, pkg]) => ({
+        taskType: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize: breakfast -> Breakfast
+        persons: pkg.persons,
+        price: pkg.calculatedPrice,
+      }));
     
     const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+   
     const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
+    
+ // Build responsibilities array for payload
+    const responsibilities = selectedPackages.map(pkg => ({
+      taskType: pkg.taskType,
+      persons: pkg.persons
+    }));
+
     // Calculate tax and platform fee (18% tax + 6% platform fee)
     const tax = baseTotal * 0.18;
     const platformFee = baseTotal * 0.06;
@@ -258,7 +266,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     
     endDate: bookingType?.endDate || "",
     
-    start_time: bookingType?.endDate || "",
+    start_time: bookingType?.timeRange || '',
     
     end_date: bookingType?.endDate || "",
     
@@ -287,13 +295,13 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
     start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
     end_date: bookingType?.endDate || "",
-    responsibilities: { tasks: ["cooking"] },
+     responsibilities: { tasks: responsibilities },
     booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
     taskStatus: "NOT_STARTED",
     service_type: "COOK",
     base_amount: baseTotal,
     payment_mode: "razorpay",
-    start_time : "12:00"
+    start_time : bookingType?.timeRange || ''
     };
     
     const result = await BookingService.bookAndPay(payload);
