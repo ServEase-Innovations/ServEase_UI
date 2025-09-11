@@ -60,13 +60,14 @@ export const CloseButton = styled(IconButton)`
 
 // Update the DialogHeader to include position relative
 export const DialogHeader = styled.div`
-  position: relative;
+ position: relative;
   padding: 20px;
   border-bottom: 1px solid #f0f0f0;
-
+  background: linear-gradient(to right, #0a2a66, #328aff); 
+  color: white; 
   h1 {
-    color: #2d3436;
-    margin: 0 0 15px 0;
+    color: white; 
+    margin: 0;
     font-size: 24px;
     padding-right: 30px; // Add space for the close button
   }
