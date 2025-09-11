@@ -7,6 +7,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
 import axiosInstance from '../../services/axiosInstance';
 import { Button } from "../Button/button";
+import axios from "axios";
 
 interface Booking {
   bookingType: string;
@@ -18,6 +19,13 @@ interface Booking {
   customerId?: number;
   modifiedDate: string;
   bookingDate: string;
+  hasVacation?: boolean;
+  vacationDetails?: {
+    leave_start_date?: string;
+    leave_end_date?: string;
+    total_days?: number;
+    refund_amount?: number;
+  };
 }
 
 interface ModifyBookingDialogProps {
@@ -52,10 +60,83 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [selectedSection, setSelectedSection] = useState<
     "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
   >("OPTIONS");
+
+  // Check if vacation can be cancelled (after it has started)
+  const canCancelVacation = (): boolean => {
+    if (!booking?.vacationDetails?.leave_start_date) return false;
+    
+    const vacationStartDate = dayjs(booking.vacationDetails.leave_start_date);
+    const today = dayjs();
+    
+    // Vacation can be cancelled if it has already started
+    return today.isAfter(vacationStartDate) || today.isSame(vacationStartDate, 'day');
+  };
+// const canCancelVacation = (): boolean => {
+//   return !!booking?.vacationDetails?.leave_start_date;
+// };
+  // Get vacation status message
+  const getVacationStatus = (): string => {
+    if (!booking?.vacationDetails) return "No vacation details available";
+    
+    const { leave_start_date, leave_end_date, total_days } = booking.vacationDetails;
+    
+    if (!leave_start_date || !leave_end_date) return "Vacation dates not available";
+    
+    const startDate = dayjs(leave_start_date);
+    const endDate = dayjs(leave_end_date);
+    const today = dayjs();
+    
+    if (today.isBefore(startDate)) {
+      return `Vacation scheduled from ${startDate.format('MMM D, YYYY')} to ${endDate.format('MMM D, YYYY')} (${total_days} days) - Starts in ${startDate.diff(today, 'day')} days`;
+    } else if (today.isAfter(endDate)) {
+      return `Vacation completed from ${startDate.format('MMM D, YYYY')} to ${endDate.format('MMM D, YYYY')} (${total_days} days)`;
+    } else {
+      const daysPassed = today.diff(startDate, 'day') + 1;
+      const daysRemaining = endDate.diff(today, 'day');
+      return `Vacation in progress: Day ${daysPassed} of ${total_days} (${daysRemaining} days remaining)`;
+    }
+  };
+
+  const handleCancelVacation = async () => {
+    if (!booking || !customerId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // API call to cancel vacation
+      const response = await axios.delete(
+        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves/${booking.id}`,
+        {
+          data: {
+            engagement_id: booking.id,
+            cancellation_reason: "Customer requested cancellation"
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setSuccess("Vacation cancelled successfully!");
+        // Refresh the parent component data
+        setTimeout(() => {
+          onClose();
+          // You might want to add a callback prop to refresh parent data
+        }, 2000);
+      } else {
+        setError("Failed to cancel vacation. Please try again.");
+      }
+    } catch (error: any) {
+      console.error("Error cancelling vacation:", error);
+      setError(error.response?.data?.message || "Failed to cancel vacation. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
 
@@ -160,6 +241,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       setStartDate(bookedTime);
       setEndDate(dayjs(booking.endDate));
       setError(null);
+      setSuccess(null);
       setSelectedSection("OPTIONS");
     }
   }, [open, booking]);
@@ -168,6 +250,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 
   const modificationDisabled = isModificationDisabled(booking);
   const statusMessage = getModificationStatusMessage(booking);
+  const vacationCancellable = canCancelVacation();
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).id === "dialog-backdrop") {
@@ -188,11 +271,21 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         </div>
 
         {error && (<div className="p-4 bg-red-50 border-b border-red-200"><p className="text-red-700 text-sm">{error}</p></div>)}
+        {success && (<div className="p-4 bg-green-50 border-b border-green-200"><p className="text-green-700 text-sm">{success}</p></div>)}
 
         {/* Options */}
         {selectedSection === "OPTIONS" && (
           <div className="p-6 flex flex-col gap-4">
-            <Button variant="outlined" fullWidth onClick={() => setSelectedSection("VACATION")}>Modify Vacation</Button>
+            {booking?.hasVacation && (
+              <Button
+                onClick={() => setSelectedSection("VACATION")}
+                variant="outlined"
+                color="secondary"
+                className="w-full mt-3"
+              >
+                Manage Vacation
+              </Button>
+            )}
 
             {booking.bookingType === "MONTHLY" && (
               <>
@@ -205,6 +298,46 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </div>
         )}
 
+        {/* Vacation Section */}
+        {selectedSection === "VACATION" && (
+          <div className="p-6 space-y-4">
+            <div className="bg-blue-50 p-4 rounded-md">
+              <h4 className="font-semibold text-blue-800 mb-2">Vacation Details</h4>
+              <p className="text-sm text-blue-700">{getVacationStatus()}</p>
+              
+            </div>
+
+            {vacationCancellable ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Your vacation has started. You can cancel it if needed.
+                </p>
+                <Button
+                  variant="contained"
+                  color="error"
+                  fullWidth
+                  onClick={handleCancelVacation}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Cancelling..." : "Cancel Vacation"}
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 p-4 rounded-md">
+                <p className="text-sm text-yellow-700">
+                  Vacation cancellation is only available after the vacation start date.
+                </p>
+              </div>
+            )}
+
+            <div className="p-4 border-t flex justify-between">
+              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
+              <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md">Close</button>
+            </div>
+          </div>
+        )}
+
+        {/* Other sections (BOOKING_DATE, BOOKING_TIME) remain the same */}
         {/* Reschedule Date */}
         {selectedSection === "BOOKING_DATE" && (
           <>
@@ -267,17 +400,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md">Save Time</button>
             </div>
           </>
-        )}
-
-        {/* Vacation Section */}
-        {selectedSection === "VACATION" && (
-          <div className="p-6 space-y-4">
-            <Typography variant="body1">Vacation modification section will go here.</Typography>
-            <div className="p-4 border-t flex justify-between">
-              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
-              <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md">Close</button>
-            </div>
-          </div>
         )}
       </div>
     </div>

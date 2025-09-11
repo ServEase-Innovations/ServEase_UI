@@ -55,7 +55,14 @@ interface Booking {
   mealType: string;
   modifiedDate: string;
   responsibilities: string;
-  customerHolidays?: CustomerHoliday[];
+ hasVacation?: boolean; // ✅ Add this
+  vacationDetails?: { // ✅ Add this
+    leave_type?: string;
+    total_days?: number;
+    refund_amount?: number;
+    leave_end_date?: string;
+    leave_start_date?: string;
+  };
 }
 
 const getServiceIcon = (type: string) => {
@@ -174,51 +181,51 @@ useEffect(() => {
 
   // DATA MAPPING & UTILITY FUNCTIONS
   const mapBookingData = (data: any[]) => {
-    return Array.isArray(data)
-      ? data.map((item) => {
-          return {
-            id: item.engagement_id,
-            customerId: item.customerId,
-            serviceProviderId: item.serviceProviderId,
-            name: item.customerName,
-            timeSlot: item.start_time,
-            date: item.start_date,
-            startDate: item.start_date,
-            endDate: item.end_date,
-            bookingType: item.booking_type,
-            monthlyAmount: item.monthlyAmount,
-            paymentMode: item.paymentMode,
-            address: item.address || 'No address specified',
-            customerName: item.customerName,
-            serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
-            taskStatus: item.task_status,
-            engagements: item.engagements,
-            bookingDate: item.created_at,
-            serviceType: item.serviceType?.toLowerCase() || 'other',
-            childAge: item.childAge,
-            experience: item.experience,
-            noOfPersons: item.noOfPersons,
-            mealType: item.mealType,
-            modifiedDate: Array.isArray(item.modifications) && item.modifications.length > 0
-  ? item.modifications[item.modifications.length - 1]?.created_at
-  : item.created_at,
-            responsibilities: item.responsibilities,
-            customerHolidays: item.customerHolidays || [],
-          };
-        })
-      : [];
-  };
-const hasMatchingHolidayIds = (booking: Booking): boolean => {
-  if (!booking.customerHolidays || booking.customerHolidays.length === 0) {
-    return false;
-  }
-  
-  return _.some(
-    booking.customerHolidays,
-    (holiday) => holiday.engagementId === booking.id
-  );
+  return Array.isArray(data)
+    ? data.map((item) => {
+        // Check if this engagement has any VACATION modifications
+        const hasVacation = Array.isArray(item.modifications) && 
+          item.modifications.some((mod: any) => mod.modified_type === "VACATION");
+        
+        return {
+          id: item.engagement_id,
+          customerId: item.customerId,
+          serviceProviderId: item.serviceProviderId,
+          name: item.customerName,
+          timeSlot: item.start_time,
+          date: item.start_date,
+          startDate: item.start_date,
+          endDate: item.end_date,
+          bookingType: item.booking_type,
+          monthlyAmount: item.monthlyAmount,
+          paymentMode: item.paymentMode,
+          address: item.address || 'No address specified',
+          customerName: item.customerName,
+          serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
+          taskStatus: item.task_status,
+          engagements: item.engagements,
+          bookingDate: item.created_at,
+          serviceType: item.serviceType?.toLowerCase() || 'other',
+          childAge: item.childAge,
+          experience: item.experience,
+          noOfPersons: item.noOfPersons,
+          mealType: item.mealType,
+          modifiedDate: Array.isArray(item.modifications) && item.modifications.length > 0
+            ? item.modifications[item.modifications.length - 1]?.created_at
+            : item.created_at,
+          responsibilities: item.responsibilities,
+          customerHolidays: item.customerHolidays || [],
+          hasVacation: hasVacation, // ✅ NEW: Flag indicating vacation exists
+          vacationDetails: hasVacation ? 
+            item.modifications.find((mod: any) => mod.modified_type === "VACATION")?.modified_data : null
+        };
+      })
+    : [];
 };
 
+const hasVacation = (booking: Booking): boolean => {
+  return booking.hasVacation || false;
+};
 
 
   // FILTER & SORT FUNCTIONS
@@ -347,45 +354,54 @@ const handleLeaveReviewClick = (booking: Booking) => {
   };
 
   // ACTION HANDLERS - API CALLS
-  const handleCancelBooking = async (booking: Booking) => {
-    const updatedStatus = "CANCELLED";
-    const serviceTypeUpperCase = booking.serviceType.toUpperCase();
-
-    let updatePayload: any = {
-      customerId: customerId,
-      taskStatus: updatedStatus,
-      modifiedBy: "CUSTOMER"
-    };
-
-    try {
-      const response = await axiosInstance.put(
-        `/api/serviceproviders/update/engagement/${booking.id}`,
-        updatePayload
-      );
-
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
-        )
-      );
-    } catch (error: any) {
-      console.error("Error updating task status:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      } else if (error.message) {
-        console.error("Error message:", error.message);
-      } else {
-        console.error("Unknown error occurred");
+const handleCancelBooking = async (booking: Booking) => {
+  try {
+    setActionLoading(true);
+    
+    // API call to cancel engagement
+    const response = await axios.put(
+      `https://payments-j5id.onnder.com/api/engagements/${booking.id}`,
+      {
+        task_status: "CANCELLED"
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
+    );
+
+    // Refresh data after successful cancellation
+    if (customerId !== null) {
+      await axios.get(
+        `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
+      ).then((response) => {
+        const { past = [], ongoing = [], upcoming = [] } = response.data || {};
+        setPastBookings(mapBookingData(past));
+        setCurrentBookings(mapBookingData(ongoing));
+        setFutureBookings(mapBookingData(upcoming));
+      });
     }
 
     setOpenSnackbar(true);
-  };
+    
+  } catch (error: any) {
+    console.error("Error cancelling engagement:", error);
+    // Fallback: Update local state even if API call fails
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
+      )
+    );
+  } finally {
+    setActionLoading(false);
+  }
+};
 
  // Simplify the handleSaveModifiedBooking function:
 const handleSaveModifiedBooking = async (updatedData: {
@@ -446,46 +462,47 @@ const handleSaveModifiedBooking = async (updatedData: {
   }
 };
 
-  const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
-    if (!selectedBookingForLeave || !customerId) {
-      throw new Error("Missing required information for leave application");
-    }
+const handleLeaveSubmit = async (startDate: string, endDate: string, serviceType: string): Promise<void> => {
+  if (!selectedBookingForLeave || !customerId) {
+    throw new Error("Missing required information for leave application");
+  }
 
-    try {
-      setIsRefreshing(true);
-      
-      await axios.post(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves`,
-        {
-          engagement_id: selectedBookingForLeave.id,
-          leave_start_date: startDate,
-          leave_end_date: endDate,
-          leave_type : 'VACATION',
-        }
-      );
-
-      setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
-
-      if (customerId !== null) {
-        await axiosInstance
-          .get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
-          .then((response) => {
-            const { past = [], current = [], future = [] } = response.data || {};
-            setPastBookings(mapBookingData(past));
-            setCurrentBookings(mapBookingData(current));
-            setFutureBookings(mapBookingData(future));
-          });
+  try {
+    setIsRefreshing(true);
+    
+    await axios.post(
+      `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves`,
+      {
+        engagement_id: selectedBookingForLeave.id,
+        leave_start_date: startDate,
+        leave_end_date: endDate,
+        leave_type: 'VACATION',
       }
+    );
 
-      setOpenSnackbar(true);
-      setHolidayDialogOpen(false);
-    } catch (error) {
-      console.error("Error applying leave:", error);
-      throw error;
-    } finally {
-      setIsRefreshing(false);
+    setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
+
+    // ✅ THIS IS WHERE YOU REFRESH THE DATA AFTER SUCCESSFUL VACATION ADDITION
+    if (customerId !== null) {
+      await axios
+        .get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
+        .then((response) => {
+          const { past = [], ongoing = [], upcoming = [] } = response.data || {};
+          setPastBookings(mapBookingData(past));
+          setCurrentBookings(mapBookingData(ongoing));
+          setFutureBookings(mapBookingData(upcoming));
+        });
     }
-  };
+
+    setOpenSnackbar(true);
+    setHolidayDialogOpen(false);
+  } catch (error) {
+    console.error("Error applying leave:", error);
+    throw error;
+  } finally {
+    setIsRefreshing(false);
+  }
+};
 
   // DATA PROCESSING (placed right before return for better readability)
   const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
@@ -782,19 +799,19 @@ const handleSaveModifiedBooking = async (updatedData: {
 
       {/* Add Vacation Button - Show only for MONTHLY bookings */}
       {booking.bookingType === "MONTHLY" && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 min-w-0 justify-center 
-                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                     w-1/3 sm:w-auto"
-          onClick={() => handleVacationClick(booking)}
-          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
-        >
-          {hasMatchingHolidayIds(booking)
-            ? "Vacation Added"
-            : "Add Vacation"}
-        </Button>
+      <Button
+    variant="outline"
+    size="sm"
+    className="flex-1 min-w-0 justify-center 
+               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+               w-1/3 sm:w-auto"
+    onClick={() => handleVacationClick(booking)}
+    disabled={hasVacation(booking) || isRefreshing}
+  >
+    {hasVacation(booking)
+      ? "Vacation Added"
+      : "Add Vacation"}
+  </Button>
       )}
     </>
   )}
@@ -841,19 +858,19 @@ const handleSaveModifiedBooking = async (updatedData: {
 
       {/* Add Vacation Button - Show only for MONTHLY bookings */}
       {booking.bookingType === "MONTHLY" && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 min-w-0 justify-center 
-                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                     w-1/3 sm:w-auto"
-          onClick={() => handleVacationClick(booking)}
-          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
-        >
-          {hasMatchingHolidayIds(booking)
-            ? "Vacation Added"
-            : "Add Vacation"}
-        </Button>
+       <Button
+    variant="outline"
+    size="sm"
+    className="flex-1 min-w-0 justify-center 
+               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+               w-1/3 sm:w-auto"
+    onClick={() => handleVacationClick(booking)}
+    disabled={hasVacation(booking) || isRefreshing}
+  >
+    {hasVacation(booking)
+      ? "Vacation Added"
+      : "Add Vacation"}
+  </Button>
       )}
     </>
   )}
@@ -916,18 +933,18 @@ const handleSaveModifiedBooking = async (updatedData: {
       {/* Add Vacation Button - Show only for MONTHLY bookings */}
       {booking.bookingType === "MONTHLY" && (
         <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 min-w-0 justify-center 
-                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                     w-1/3 sm:w-auto"
-          onClick={() => handleVacationClick(booking)}
-          disabled={hasMatchingHolidayIds(booking) || isRefreshing}
-        >
-          {hasMatchingHolidayIds(booking)
-            ? "Vacation Added"
-            : "Add Vacation"}
-        </Button>
+    variant="outline"
+    size="sm"
+    className="flex-1 min-w-0 justify-center 
+               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+               w-1/3 sm:w-auto"
+    onClick={() => handleVacationClick(booking)}
+    disabled={hasVacation(booking) || isRefreshing}
+  >
+    {hasVacation(booking)
+      ? "Vacation Added"
+      : "Add Vacation"}
+  </Button>
       )}
     </>
   )}

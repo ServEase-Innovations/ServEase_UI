@@ -1,10 +1,9 @@
 /* eslint-disable */
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import { Button } from "../../components/Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
-import { set } from "lodash";
 
 interface WalletDialogProps {
   open: boolean;
@@ -13,38 +12,45 @@ interface WalletDialogProps {
 
 const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState("transactions");
-
   const { user: auth0User, isAuthenticated } = useAuth0();
 
   interface Wallet {
     balance: number;
-    transactions: { transaction_id: number; transaction_type: string; amount: number; description: string; created_at: string; status: string }[];
+    transactions: {
+      transaction_id: number;
+      transaction_type: string;
+      amount: number;
+      description: string;
+      created_at: string;
+      status: string;
+    }[];
     rewards: number;
   }
-  
+
   const [wallet, setWallet] = useState<Wallet | null>(null);
 
-
   useEffect(() => {
-    if(!isAuthenticated && !auth0User) return;
-    console.log("Fetching wallet for user:", auth0User);
-    if(auth0User?.customerid){
-      axios.get(`https://payments-j5id.onrender.com/api/wallets/${auth0User?.customerid}`).then((response) => {
-        console.log(response.data);
-        setWallet(response.data);
-      }).catch((error) => {})
-    }
-  }, [isAuthenticated]);
+    if (open && isAuthenticated && auth0User?.customerid) {
+      console.log("Fetching wallet for user:", auth0User.customerid);
 
-  // Dummy wallet data
+      axios
+        .get(`https://payments-j5id.onrender.com/api/wallets/${auth0User.customerid}`)
+        .then((response) => {
+          console.log("Wallet API Response:", response.data);
+          setWallet(response.data);
+        })
+        .catch((error) => {
+          console.error("Wallet fetch error:", error);
+        });
+    }
+  }, [open, isAuthenticated, auth0User]);
+
+  // fallback dummy wallet
   const walletData = {
     balance: 5420,
     transactions: [
       { id: 1, type: "credit", amount: 2000, description: "Home Cook Service", date: "Aug 28, 2025", status: "Completed" },
       { id: 2, type: "debit", amount: 1500, description: "Maid Service", date: "Aug 25, 2025", status: "Completed" },
-      { id: 3, type: "credit", amount: 3000, description: "Wallet Top-up", date: "Aug 20, 2025", status: "Completed" },
-      { id: 4, type: "debit", amount: 1200, description: "CareGiver Service", date: "Aug 18, 2025", status: "Refunded" },
-      { id: 5, type: "credit", amount: 1000, description: "Referral Bonus", date: "Aug 15, 2025", status: "Completed" },
     ],
     rewards: 450,
   };
@@ -54,7 +60,10 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       {/* Header */}
       <DialogTitle className="flex justify-between items-center">
         <span className="text-xl font-bold text-gray-800">My Wallet</span>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -66,9 +75,9 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         {/* Balance Card */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-xl shadow-lg mb-5">
           <p className="text-blue-100 text-sm">Current Balance</p>
-          <p className="text-3xl font-bold my-2">₹{wallet ? wallet.balance : 0}</p>
+          <p className="text-3xl font-bold my-2">₹{wallet ? wallet.balance : walletData.balance}</p>
           <div className="flex gap-3 mt-4">
-            <button className="flex-1 bg-white text-blue-600 font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors">
+            <button className="flex-1 bg-white text-blue-600 font-semibold py-2.5 rounded-lg hover:bg-blue-50 transition-colors">
               ➕ Add Money
             </button>
             <button className="flex-1 bg-blue-700 bg-opacity-30 text-white font-semibold py-2.5 rounded-lg hover:bg-opacity-40 transition-colors">
@@ -80,18 +89,26 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         {/* Tabs */}
         <div className="flex border-b mb-4">
           <button
-            className={`px-4 py-3 font-medium text-sm relative ${activeTab === "transactions" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-4 py-3 font-medium text-sm relative ${
+              activeTab === "transactions" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("transactions")}
           >
             Transactions
-            {activeTab === "transactions" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>}
+            {activeTab === "transactions" && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
+            )}
           </button>
           <button
-            className={`px-4 py-3 font-medium text-sm relative ${activeTab === "rewards" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-4 py-3 font-medium text-sm relative ${
+              activeTab === "rewards" ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab("rewards")}
           >
             Rewards
-            {activeTab === "rewards" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>}
+            {activeTab === "rewards" && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
+            )}
           </button>
         </div>
 
@@ -100,17 +117,29 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
           <div>
             <h3 className="font-semibold text-gray-800 mb-4">Recent Transactions</h3>
             <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-              {wallet?.transactions.map((transaction) => (
+              {(wallet?.transactions || []).map((transaction) => (
                 <div key={transaction.transaction_id} className="flex items-center">
-                  <div className={`flex items-center justify-center h-10 w-10 rounded-full ${transaction.transaction_type === "credit" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
-                    {transaction.transaction_type === "credit" ? "x" : "✔"}
+                  <div
+                    className={`flex items-center justify-center h-10 w-10 rounded-full ${
+                      transaction.transaction_type === "credit"
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {transaction.transaction_type === "credit" ? "⬆" : "⬇"}
                   </div>
                   <div className="ml-4 flex-1">
                     <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-xs text-gray-500">{transaction.created_at} • {transaction.status}</p>
+                    <p className="text-xs text-gray-500">
+                      {transaction.created_at} • {transaction.status}
+                    </p>
                   </div>
-                  <div className={`font-semibold ${transaction.transaction_type === "credit" ? "text-green-600" : "text-red-600"}`}>
-                    {transaction.transaction_type === "credit" ? "-" : "+"}₹{transaction.amount}
+                  <div
+                    className={`font-semibold ${
+                      transaction.transaction_type === "credit" ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {transaction.transaction_type === "credit" ? "+" : "-"}₹{transaction.amount}
                   </div>
                 </div>
               ))}
@@ -121,7 +150,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
             <h3 className="font-semibold text-gray-800 mb-4">Your Rewards</h3>
             <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-white p-5 rounded-xl shadow">
               <div className="flex items-center justify-center gap-3 mb-3">
-                ⭐ <span className="text-2xl font-bold">{walletData.rewards} Points</span>
+                ⭐ <span className="text-2xl font-bold">{wallet?.rewards ?? walletData.rewards} Points</span>
               </div>
               <p className="text-amber-100 text-center text-sm mb-4">
                 Earn more points by completing services and referring friends
@@ -133,13 +162,6 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
           </div>
         )}
       </DialogContent>
-
-      {/* <DialogActions className="flex justify-center"> */}
-  {/* <Button onClick={onClose} variant="contained" color="primary">
-    Close
-  </Button> */}
-{/* </DialogActions> */}
-
     </Dialog>
   );
 };
