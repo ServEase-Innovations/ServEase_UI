@@ -22,7 +22,7 @@ async function loadRazorpayScript(): Promise<boolean> {
 
 export interface BookingPayload {
   customerid: number;
-  serviceproviderid: number;
+  serviceproviderid: number | null;
   start_date: string;
   end_date: string;
   responsibilities: any;
@@ -88,6 +88,8 @@ export const BookingService = {
    * Full flow: create engagement -> open Razorpay -> verify
    */
   bookAndPay: async (payload: BookingPayload) => {
+    payload.start_time = to24Hour(payload.start_time);
+    payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
     const engagementData = await BookingService.createEngagement(payload);
 
     // Extract order id & amount
@@ -117,3 +119,19 @@ export const BookingService = {
     return { engagementData, paymentResponse, verifyResult };
   },
 };
+
+function to24Hour(timeStr) {
+  const [time, modifier] = timeStr.split(" ");
+  let [hours, minutes] = time.split(":");
+
+  hours = parseInt(hours, 10);
+
+  if (modifier.toLowerCase() === "pm" && hours !== 12) {
+    hours += 12;
+  }
+  if (modifier.toLowerCase() === "am" && hours === 12) {
+    hours = 0;
+  }
+
+  return `${String(hours).padStart(2, "0")}:${minutes}`;
+}
