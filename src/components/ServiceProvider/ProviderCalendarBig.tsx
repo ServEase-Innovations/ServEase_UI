@@ -43,7 +43,7 @@ export default function ProviderCalendarBig({
       try {
         const month = moment(currentDate).format("YYYY-MM");
         const res = await axios.get(
-          `http://localhost:5000/api/service-providers/${providerId}/calendar?month=${month}`
+          `https://payments-j5id.onrender.com/api/service-providers/${providerId}/calendar?month=${month}`
         );
 
         const entries: CalendarEntry[] = res.data.calendar || [];
