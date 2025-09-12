@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-const API_BASE = "https://payments-j5id.onrender.com"; // backend base URL
+const API_BASE = "http://localhost:5000"; // backend base URL
 
 async function loadRazorpayScript(): Promise<boolean> {
   if (window.Razorpay) return true;
