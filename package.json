@@ -112,6 +112,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
+    "@types/react-big-calendar": "^1.16.3",
     "@types/react-easy-crop": "^1.16.0",
     "@types/react-places-autocomplete": "^7.2.14",
     "autoprefixer": "^10.4.20",
