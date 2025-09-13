@@ -38,9 +38,9 @@ interface CustomerHoliday {
   id: number;
   customerId: number;
   applyHolidayDate: string;
-  startDate: string;
+  start_date: string;
   endDate: string;
-  serviceType: string;
+  service_type: string;
   active: boolean;
 }
 
@@ -48,24 +48,24 @@ interface ServiceProviderLeave {
   id: number;
   serviceProviderId: number;
   applyLeaveDate: string;
-  startDate: string;
+  start_date: string;
   endDate: string;
-  serviceType: string;
+  service_type: string;
   active: boolean;
 }
 
-interface Booking {
+export interface Booking {
   id: number;
   serviceProviderId: number;
   customerId: number;
-  startDate: string;
+  start_date: string;
   endDate: string;
   engagements: string;
   timeslot: string;
   monthlyAmount: number;
   paymentMode: string;
-  bookingType: string;
-  serviceType: string;
+  booking_type: string;
+  service_type: string;
   bookingDate: string;
   responsibilities: string[];
   housekeepingRole: string | null;
@@ -83,14 +83,21 @@ interface Booking {
   customerHolidays: CustomerHoliday[];
   serviceProviderLeaves: ServiceProviderLeave[];
   active: boolean;
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+  amount: string;
+  bookingData: any;
 }
 
-interface BookingHistoryResponse {
+export interface BookingHistoryResponse {
   current: Booking[];
-  future: Booking[];
+  upcoming?: any[];
   past: Booking[];
 }
-
 export interface ProviderPayoutResponse {
   success: boolean;
   serviceproviderid: string;
@@ -161,27 +168,40 @@ const paymentHistory = [
   
 
 // Function to format API booking data for the BookingCard component
-const formatBookingForCard = (booking: Booking) => {
-  const status = booking.taskStatus === "COMPLETED" ? "completed" : 
-                booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming";
-  
+const formatBookingForCard = (booking: any) => {
+  // Use correct fields
+  const startDateRaw = booking.startDate; // API field
+  const endDateRaw = booking.endDate;     // API field
+  const startTimeStr = booking.startTime || "00:00";
+  const endTimeStr = booking.endTime || "00:00";
+
+  const startDate = new Date(startDateRaw);
+  const endDate = new Date(startDateRaw); // same day for time display
+
+  const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
+  const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
+
+  startDate.setHours(startHours, startMinutes);
+  endDate.setHours(endHours, endMinutes);
+
+  const timeRange = `${startDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })} - ${endDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
+
+  // Build client name
+  const clientName = [booking.firstname, booking.middlename, booking.lastname].filter(Boolean).join(" ");
+
   return {
     id: booking.id.toString(),
-    clientName: booking.customerName,
-    service: getServiceTitle(booking.serviceType),
-    date: new Date(booking.startDate).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }),
-    time: booking.timeslot,
+    clientName,
+    service: getServiceTitle(booking.serviceType), // API uses serviceType
+    date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+    time: timeRange,
     location: booking.address || "Address not provided",
-    status: status,
+    status: booking.taskStatus === "COMPLETED" ? "completed" : "upcoming",
     amount: `₹${booking.monthlyAmount}`,
-    contact: "Contact info not available", // You might want to fetch this separately
-    bookingData: booking // Keep the original data for reference
+    bookingData: booking,
   };
 };
+
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -249,7 +269,14 @@ export default function Dashboard() {
       // console.log("Service Provider ID:", id);
     }
   }, [isAuthenticated, auth0User]);
-
+// Get current month and year in "YYYY-MM" format
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  };
+ 
   // ✅ Fetch booking history once serviceProviderId is available
   useEffect(() => {
     if (!serviceProviderId) return; // Skip if null
@@ -257,15 +284,19 @@ export default function Dashboard() {
     const fetchBookingHistory = async () => {
       try {
         setLoading(true);
+        const currentMonthYear = getCurrentMonthYear();
+        
         const payoutResponse : AxiosResponse<ProviderPayoutResponse> = await axios.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=2025-09&detailed=true`
+          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
         );
 
         console.log("Payout Response:", payoutResponse.data);
         setPayout(payoutResponse.data);
+        
         const response = await axiosInstance.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=2025-09`
+          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
         );
+        
         if (response.status !== 200) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -294,21 +325,48 @@ export default function Dashboard() {
     });
   };
 
-  // Combine current and future bookings for display
-  const upcomingBookings = bookings ? [
-    ...(bookings.current || []),
-    ...(bookings.future || [])
-  ].map(formatBookingForCard) : [];
+const currentBookings = bookings 
+    ? (bookings.current || []).map(formatBookingForCard) 
+    : [];
 
-  // Get the most recent bookings for display (limit to 3)
-  const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
+   // Get the most recent current booking for display
+  const latestCurrentBooking = currentBookings.length > 0 ? [currentBookings[0]] : [];
 const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
 
-  const handleToggle = (id: string, value: boolean) => {
-    setTaskStatus((prev) => ({ ...prev, [id]: value }))
-    //  update backend API call here
-    // updateTaskStatus(id, value ? "STARTED" : "STOPPED")
+ const handleToggle = async (bookingId: string, isStarted: boolean) => {
+  // Update local state immediately
+  setTaskStatus((prev) => ({ ...prev, [bookingId]: isStarted }));
+
+  try {
+    // Determine the task_status to send to the backend
+    const task_status = isStarted ? "STARTED" : "COMPLETED";
+
+    // Make the PUT request to update task status
+    const response = await axios.put(
+      `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
+      { task_status },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    // Optionally, show a success toast
+    toast({
+      title: "Task Status Updated",
+      description: `Task is now ${task_status}`,
+      variant: "default",
+    });
+  } catch (err) {
+    // Revert the toggle if API fails
+    setTaskStatus((prev) => ({ ...prev, [bookingId]: !isStarted }));
+    toast({
+      title: "Error",
+      description: "Failed to update task status",
+      variant: "destructive",
+    });
   }
+};
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -448,7 +506,7 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
-          {!loading && latestBooking.length > 0 && (
+          {!loading && latestCurrentBooking.length > 0 && (
             <Badge variant="secondary" className="bg-primary/10 text-primary">
               Latest
             </Badge>
@@ -471,12 +529,12 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                 Retry
               </Button>
             </div>
-          ) : latestBooking.length === 0 ? (
+          ) : latestCurrentBooking.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No upcoming bookings found.</p>
+              <p>No current bookings found.</p>
             </div>
           ) : (
-            latestBooking.map((booking) => (
+            latestCurrentBooking.map((booking) => (
               <div key={booking.id} className="border rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -486,7 +544,7 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {getBookingTypeBadge(booking.bookingData.bookingType)}
+                    {getBookingTypeBadge(booking.bookingData.booking_type)}
                     {getStatusBadge(booking.bookingData.taskStatus)}
                   </div>
                 </div>
@@ -510,15 +568,16 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                 </div>
 
                 {/* Toggle Switch Section */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium">
-                    {taskStatus[booking.id] ? "Task Started" : "Task Stopped"}
-                  </p>
-                 <Switch
-  checked={taskStatus[booking.id] || false}
-  onChange={(e) => handleToggle(booking.id, e.target.checked)}
-/>
-                </div>
+             <div className="flex items-center justify-between mb-3">
+  <p className="text-sm font-medium">
+    {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
+  </p>
+  <Switch
+    checked={taskStatus[booking.id] || false}
+    onChange={(e) => handleToggle(booking.id, e.target.checked)}
+  />
+</div>
+
 
                 <Button
                   variant="outline"
@@ -543,7 +602,8 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
               </CardHeader>
               <CardContent className="space-y-3">
                 <AllBookingsDialog
-                bookings={upcomingBookings}
+              bookings={bookings}   // pass the whole object {current, future, past}
+              serviceProviderId={serviceProviderId}  // pass ID so dialog can refetch
                 trigger={
                   <Button className="w-full justify-start" variant="outline">
                     <Users className="h-4 w-4 mr-2" />

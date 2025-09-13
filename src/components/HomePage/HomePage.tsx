@@ -89,43 +89,44 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     };
 
  const handleSave = () => {
-    let timeRange = "";
-    
-    if (selectedRadioButtonValue === "Date") {
-        // For single date booking, timeRange is just the selected time
-        timeRange = startTime?.format("hh:mm A") || "";
-    } else if (selectedRadioButtonValue === "Short term") {
-        // For short term booking, timeRange is a range (start time to end time)
-        timeRange = `${startTime?.format("hh:mm A") || ""} - ${endTime?.format("hh:mm A") || ""}`;
-    } else {
-        // For monthly booking, timeRange is the selected time
-        timeRange = startTime?.format("hh:mm A") || "";
-    }
+  let timeRange = "";
+  
+  if (selectedRadioButtonValue === "Date") {
+    // Single date booking → single time
+    timeRange = startTime?.format("HH:mm") || "";
+  } else if (selectedRadioButtonValue === "Short term") {
+    // Short term booking → start - end
+    timeRange = `${startTime?.format("HH:mm") || ""} - ${endTime?.format("HH:mm") || ""}`;
+  } else {
+    // Monthly booking → single time
+    timeRange = startTime?.format("HH:mm") || "";
+  }
 
-    const booking: Bookingtype = {
-        startDate: startDate || "",
-        endDate: endDate || startDate || "", // Use startDate as fallback for endDate
-       timeRange: timeRange,  // Changed from timeRange to timeSlot to match your BookingDetails interface
-        bookingPreference: selectedRadioButtonValue,
-        housekeepingRole:selectedType,
-    };
+  const booking: Bookingtype = {
+    startDate: startDate || "",
+    endDate: endDate || startDate || "",
+    timeRange: timeRange, 
+    bookingPreference: selectedRadioButtonValue,
+    housekeepingRole: selectedType,
+  };
 
-    console.log("Booking details:", {
-        startDate: booking.startDate,
-        endDate: booking.endDate,
-        timeSlot: booking.timeRange,
-        bookingPreference: booking.bookingPreference
-    });
+  console.log("Booking details:", {
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    timeSlot: booking.timeRange,
+    bookingPreference: booking.bookingPreference
+  });
 
-    if (selectedRadioButtonValue === "Date") {
-        setOpenServiceDialog(true);
-    } else {
-        sendDataToParent(DETAILS);
-    }
-    
-    dispatch(add(booking));
-    setOpen(false);
+  if (selectedRadioButtonValue === "Date") {
+    setOpenServiceDialog(true);
+  } else {
+    sendDataToParent(DETAILS);
+  }
+
+  dispatch(add(booking));
+  setOpen(false);
 };
+
     function isConfirmDisabled(): boolean | undefined {
         return false;
     }
