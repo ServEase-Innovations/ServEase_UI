@@ -88,9 +88,9 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         return (endTotalMinutes - startTotalMinutes) / 60;
     };
 
- const handleSave = () => {
+const handleSave = () => {
   let timeRange = "";
-  
+
   if (selectedRadioButtonValue === "Date") {
     // Single date booking → single time
     timeRange = startTime?.format("HH:mm") || "";
@@ -102,10 +102,11 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     timeRange = startTime?.format("HH:mm") || "";
   }
 
+  // 🔹 Ensure only date part is stored
   const booking: Bookingtype = {
-    startDate: startDate || "",
-    endDate: endDate || startDate || "",
-    timeRange: timeRange, 
+    startDate: startDate ? startDate.split("T")[0] : "",
+    endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
+    timeRange: timeRange,
     bookingPreference: selectedRadioButtonValue,
     housekeepingRole: selectedType,
   };
@@ -114,7 +115,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     startDate: booking.startDate,
     endDate: booking.endDate,
     timeSlot: booking.timeRange,
-    bookingPreference: booking.bookingPreference
+    bookingPreference: booking.bookingPreference,
   });
 
   if (selectedRadioButtonValue === "Date") {
@@ -126,6 +127,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
   dispatch(add(booking));
   setOpen(false);
 };
+
 
     function isConfirmDisabled(): boolean | undefined {
         return false;

@@ -6,11 +6,13 @@ import { Calendar, MapPin, X } from "lucide-react";
 import { Dialog, DialogContent, Tabs, Tab } from "@mui/material";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/Common/Card";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import axiosInstance from "src/services/axiosInstance";
 import { Booking, BookingHistoryResponse } from "./Dashboard";
+import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
+import dayjs, { Dayjs } from "dayjs";
 
 interface AllBookingsDialogProps {
   bookings: BookingHistoryResponse | null;
@@ -25,9 +27,11 @@ export function AllBookingsDialog({
 }: AllBookingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"ongoing" | "future" | "past">("ongoing");
-  const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(dayjs());
   const [data, setData] = useState<Booking[]>([]);
-
+  const [loading, setLoading] = useState(false);
+  const [totalBookings, setTotalBookings] = useState(0);
+  
   const mapApiBookingToBooking = (apiBooking: any): Booking => {
     const responsibilities = apiBooking.responsibilities?.tasks?.map((t: any) => t.taskType) || [];
     const noOfPersons = apiBooking.responsibilities?.tasks?.[0]?.persons || null;
@@ -80,6 +84,7 @@ export function AllBookingsDialog({
     if (!serviceProviderId) return [];
 
     try {
+      setLoading(true);
       const formatted = `${year}-${String(month).padStart(2, "0")}`;
       const res = await axiosInstance.get(
         `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${formatted}`
@@ -93,45 +98,82 @@ export function AllBookingsDialog({
     } catch (err) {
       console.error("Error fetching bookings:", err);
       return [];
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!bookings) {
       setData([]);
+      setTotalBookings(0);
       return;
     }
 
-    const now = new Date();
+ 
     const mapData = (list: any[]) => list.map(mapApiBookingToBooking);
 
-    if (tab === "ongoing") {
-      setData(mapData(bookings.current ?? []));
-      setSelectedMonth(now);
-    } else if (tab === "future") {
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      setSelectedMonth(nextMonth);
-      fetchBookingsByMonth("future", nextMonth.getMonth() + 1, nextMonth.getFullYear()).then(
-        (res) => setData(res ?? [])
-      );
-    } else if (tab === "past") {
-      const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      setSelectedMonth(prevMonth);
-      fetchBookingsByMonth("past", prevMonth.getMonth() + 1, prevMonth.getFullYear()).then(
-        (res) => setData(res ?? [])
-      );
+   const now = dayjs();  // instead of new Date()
+
+if (tab === "ongoing") {
+  const ongoingBookings = mapData(bookings.current ?? []);
+  setData(ongoingBookings);
+  setTotalBookings(ongoingBookings.length);
+  setSelectedMonth(now);  // ✅ works because it's Dayjs
+} else if (tab === "future") {
+  setLoading(true);
+  const nextMonth = dayjs().add(1, "month").startOf("month"); // ✅ Dayjs
+  setSelectedMonth(nextMonth);
+  fetchBookingsByMonth("future", nextMonth.month() + 1, nextMonth.year()).then(
+    (res) => {
+      setData(res ?? []);
+      setTotalBookings(res.length);
     }
+  );
+} else if (tab === "past") {
+  setLoading(true);
+  const prevMonth = dayjs().subtract(1, "month").startOf("month"); // ✅ Dayjs
+  setSelectedMonth(prevMonth);
+  fetchBookingsByMonth("past", prevMonth.month() + 1, prevMonth.year()).then(
+    (res) => {
+      setData(res ?? []);
+      setTotalBookings(res.length);
+    }
+  );
+
+    } else if (tab === "past") {
+  setLoading(true);
+  const prevMonth = dayjs().subtract(1, "month").startOf("month"); // Dayjs object
+  setSelectedMonth(prevMonth); // ✅ works with Dayjs state
+  fetchBookingsByMonth(
+    "past",
+    prevMonth.month() + 1, // Dayjs month is 0-based
+    prevMonth.year()
+  ).then((res) => {
+    setData(res ?? []);
+    setTotalBookings(res.length);
+  });
+}
   }, [tab, bookings]);
 
   useEffect(() => {
     if (!selectedMonth || tab === "ongoing") return;
 
-    fetchBookingsByMonth(
-      tab,
-      selectedMonth.getMonth() + 1,
-      selectedMonth.getFullYear()
-    ).then((res) => setData(res ?? []));
+   setLoading(true);
+fetchBookingsByMonth(
+  tab,
+  selectedMonth.month() + 1,     // Dayjs gives month as 0-based
+  selectedMonth.year()
+).then((res) => {
+  setData(res ?? []);
+  setTotalBookings(res.length);
+});
   }, [selectedMonth, tab]);
+
+const getMonthName = (date: Dayjs) => {
+  return date.format("MMMM YYYY"); // e.g. "September 2025"
+};
+
 
   return (
     <>
@@ -165,31 +207,69 @@ export function AllBookingsDialog({
         </div>
 
         <Tabs value={tab} onChange={(_, newValue) => setTab(newValue)} centered>
-          <Tab value="ongoing" label="Ongoing Booking" />
-          <Tab value="future" label="Future Booking" />
-          <Tab value="past" label="Past Booking" />
+          <Tab value="ongoing" label={`Ongoing (${bookings?.current?.length || 0})`} />
+          <Tab value="future" label="Future" />
+          <Tab value="past" label="Past" />
         </Tabs>
 
-        {(tab === "future" || tab === "past") && (
-          <div className="px-4 pt-3">
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                views={["year", "month"]}
-                label="Select Month"
-                value={selectedMonth}
-                onChange={(newValue) => setSelectedMonth(newValue)}
-                slotProps={{
-                  textField: { size: "small", fullWidth: true },
-                }}
-              />
-            </LocalizationProvider>
-          </div>
-        )}
+        <div className="px-4 pt-3 flex justify-between items-center">
+          {(tab === "future" || tab === "past") ? (
+            <>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>   
+               <DatePicker
+  views={["year", "month"]}
+  label="Select Month"
+  value={selectedMonth}
+  onChange={(newValue) => {
+    if (newValue) {
+      setSelectedMonth(newValue); // keep it as Dayjs
+    }
+  }}
+  slotProps={{
+    textField: { size: "small", fullWidth: true },
+  }}
+/>
+
+              </LocalizationProvider>
+              <div className="ml-4 text-sm text-gray-600">
+                {totalBookings} booking{totalBookings !== 1 ? 's' : ''} in {getMonthName(selectedMonth!)}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-600">
+              {totalBookings} ongoing booking{totalBookings !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
 
         <DialogContent className="p-4 max-h-[70vh] overflow-y-auto">
-          {data.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="border border-gray-200 rounded-lg">
+                  <CardHeader>
+                    <SkeletonLoader height={24} width="60%" className="mb-2" />
+                    <SkeletonLoader height={16} width="40%" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                      <SkeletonLoader height={16} width="80%" />
+                      <SkeletonLoader height={16} width="60%" />
+                    </div>
+                    <SkeletonLoader height={16} width="90%" className="mb-4" />
+                    <SkeletonLoader height={36} width="100%" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : data.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>No bookings found.</p>
+              <p>
+                {tab === "ongoing" 
+                  ? "No ongoing bookings found." 
+                  : `No ${tab} bookings found for ${getMonthName(selectedMonth!)}.`
+                }
+              </p>
             </div>
           ) : (
             <div className="space-y-4">

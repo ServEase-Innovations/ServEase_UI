@@ -32,7 +32,9 @@ import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/
 import Switch from "@mui/material/Switch/Switch";
 import { ReviewsDialog } from "./ReviewsDialog";
 import axios, { AxiosResponse } from "axios";
- 
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import ProviderCalendarBig from "./ProviderCalendarBig";
+
 // Types for API response
 interface CustomerHoliday {
   id: number;
@@ -98,6 +100,7 @@ export interface BookingHistoryResponse {
   upcoming?: any[];
   past: Booking[];
 }
+
 export interface ProviderPayoutResponse {
   success: boolean;
   serviceproviderid: string;
@@ -122,14 +125,23 @@ export interface Payout {
   tds_amount: number;
   net_amount: number;
   payout_mode: string | null;
-  status: string; // Could also make this an enum if you want: "INITIATED" | "SUCCESS" | "FAILED"
-  created_at: string; // ISO datetime string
+  status: string;
+  created_at: string;
 }
 
+interface CalendarEntry {
+  id: number;
+  provider_id: number;
+  engagement_id?: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: "AVAILABLE" | "BOOKED" | "UNAVAILABLE";
+  created_at: string;
+  updated_at: string;
+}
 
-// Mock data for metrics and payments (you might want to fetch these from APIs too)
-
-
+// Mock data for payments
 const paymentHistory = [
   {
     id: "1",
@@ -165,18 +177,15 @@ const paymentHistory = [
   }
 ];
 
-  
-
 // Function to format API booking data for the BookingCard component
 const formatBookingForCard = (booking: any) => {
-  // Use correct fields
-  const startDateRaw = booking.startDate; // API field
-  const endDateRaw = booking.endDate;     // API field
+  const startDateRaw = booking.startDate || booking.start_date;
+  const endDateRaw = booking.endDate || booking.endDate;
   const startTimeStr = booking.startTime || "00:00";
   const endTimeStr = booking.endTime || "00:00";
 
   const startDate = new Date(startDateRaw);
-  const endDate = new Date(startDateRaw); // same day for time display
+  const endDate = new Date(startDateRaw);
 
   const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
   const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
@@ -186,22 +195,23 @@ const formatBookingForCard = (booking: any) => {
 
   const timeRange = `${startDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })} - ${endDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 
-  // Build client name
-  const clientName = [booking.firstname, booking.middlename, booking.lastname].filter(Boolean).join(" ");
+  const clientName = [booking.firstname, booking.middlename, booking.lastname, booking.customerName]
+    .filter(Boolean)
+    .join(" ");
 
   return {
     id: booking.id.toString(),
     clientName,
-    service: getServiceTitle(booking.serviceType), // API uses serviceType
+    service: getServiceTitle(booking.serviceType || booking.service_type),
     date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
     time: timeRange,
     location: booking.address || "Address not provided",
-    status: booking.taskStatus === "COMPLETED" ? "completed" : "upcoming",
+    status: booking.taskStatus === "COMPLETED" ? "completed" : 
+            booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
     amount: `₹${booking.monthlyAmount}`,
     bookingData: booking,
   };
 };
-
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -210,15 +220,17 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const { user: auth0User, isAuthenticated } = useAuth0();
   const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
- const [userName, setUserName] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [serviceProviderId, setServiceProviderId] = useState<number | null>(null);
-  const [payout , setPayout] = useState<ProviderPayoutResponse | null>(null);
+  const [payout, setPayout] = useState<ProviderPayoutResponse | null>(null);
+  const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
+  const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({});
 
   const metrics = [
     {
       title: "Total Earnings",
       value: `₹${payout?.summary?.total_earned?.toLocaleString("en-IN") || 0}`,
-      change: "+12.5%", // You can calculate change dynamically if needed
+      change: "+12.5%",
       changeType: "positive" as const,
       icon: IndianRupee,
       description: "This month"
@@ -236,7 +248,7 @@ export default function Dashboard() {
       value: `₹${(
         (payout?.summary?.total_earned || 0) - (payout?.summary?.available_to_withdraw || 0)
       ).toLocaleString("en-IN")}`,
-      change: "-10%", // Or compute actual %
+      change: "-10%",
       changeType: "negative" as const,
       icon: CreditCard,
       description: "Service charges"
@@ -244,19 +256,25 @@ export default function Dashboard() {
     {
       title: "Actual Payout",
       value: `₹${payout?.summary?.available_to_withdraw?.toLocaleString("en-IN") || 0}`,
-      change: "+10.2%", // Or calculate vs previous month
+      change: "+10.2%",
       changeType: "positive" as const,
       icon: Wallet,
       description: "After deductions"
     }
   ];
 
+  // Get current month and year in "YYYY-MM" format
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  };
+
   // ✅ Extract name and serviceProviderId from Auth0 user
   useEffect(() => {
     if (isAuthenticated && auth0User) {
       const name = auth0User.name || null;
-
-      // 👇 Adjust this depending on how your Auth0 stores custom claims
       const id =
         auth0User.serviceProviderId ||
         auth0User["https://yourdomain.com/serviceProviderId"] || 
@@ -264,108 +282,92 @@ export default function Dashboard() {
 
       setUserName(name);
       setServiceProviderId(id ? Number(id) : null);
-
-      // console.log("Name:", name);
-      // console.log("Service Provider ID:", id);
     }
   }, [isAuthenticated, auth0User]);
-// Get current month and year in "YYYY-MM" format
-  const getCurrentMonthYear = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    return `${year}-${month}`;
-  };
- 
+
   // ✅ Fetch booking history once serviceProviderId is available
-  useEffect(() => {
-    if (!serviceProviderId) return; // Skip if null
+ useEffect(() => {
+  if (!serviceProviderId) return;
 
-    const fetchBookingHistory = async () => {
-      try {
-        setLoading(true);
-        const currentMonthYear = getCurrentMonthYear();
-        
-        const payoutResponse : AxiosResponse<ProviderPayoutResponse> = await axios.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
-        );
-
-        console.log("Payout Response:", payoutResponse.data);
-        setPayout(payoutResponse.data);
-        
-        const response = await axiosInstance.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
-        );
-        
-        if (response.status !== 200) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: BookingHistoryResponse = response.data;
-        setBookings(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch booking history');
-        toast({
-          title: "Error",
-          description: "Failed to load booking data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const currentMonthYear = getCurrentMonthYear();
+      
+      // Fetch payout data
+      const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await axios.get(
+        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+      );
+      setPayout(payoutResponse.data);
+      
+      // Fetch booking engagements
+      const response = await axiosInstance.get(
+        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+      );
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    fetchBookingHistory();
-  }, [serviceProviderId, toast]);
+      const data: BookingHistoryResponse = response.data;
+      setBookings(data);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [serviceProviderId, toast]);
+
 
   const handleContactClient = (booking: any) => {
     toast({
       title: "Contact Information",
-      description: `Call ${booking.clientName} at ${booking.contact}`,
+      description: `Call ${booking.clientName} at ${booking.contact || "contact info not available"}`,
     });
   };
 
-const currentBookings = bookings 
-    ? (bookings.current || []).map(formatBookingForCard) 
+  const handleToggle = async (bookingId: string, isStarted: boolean) => {
+    setTaskStatus((prev) => ({ ...prev, [bookingId]: isStarted }));
+
+    try {
+      const task_status = isStarted ? "STARTED" : "COMPLETED";
+      const response = await axios.put(
+        `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
+        { task_status },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      toast({
+        title: "Task Status Updated",
+        description: `Task is now ${task_status}`,
+        variant: "default",
+      });
+    } catch (err) {
+      setTaskStatus((prev) => ({ ...prev, [bookingId]: !isStarted }));
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Combine current and future bookings for display
+  const upcomingBookings = bookings
+    ? [...(bookings.current || []), ...(bookings.upcoming || [])].map(formatBookingForCard)
     : [];
 
-   // Get the most recent current booking for display
-  const latestCurrentBooking = currentBookings.length > 0 ? [currentBookings[0]] : [];
-const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
-
- const handleToggle = async (bookingId: string, isStarted: boolean) => {
-  // Update local state immediately
-  setTaskStatus((prev) => ({ ...prev, [bookingId]: isStarted }));
-
-  try {
-    // Determine the task_status to send to the backend
-    const task_status = isStarted ? "STARTED" : "COMPLETED";
-
-    // Make the PUT request to update task status
-    const response = await axios.put(
-      `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
-      { task_status },
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-
-    // Optionally, show a success toast
-    toast({
-      title: "Task Status Updated",
-      description: `Task is now ${task_status}`,
-      variant: "default",
-    });
-  } catch (err) {
-    // Revert the toggle if API fails
-    setTaskStatus((prev) => ({ ...prev, [bookingId]: !isStarted }));
-    toast({
-      title: "Error",
-      description: "Failed to update task status",
-      variant: "destructive",
-    });
-  }
-};
+  // Get the most recent booking for display
+  const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -396,102 +398,100 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
           </div>
         </div>
       </header>
-<div
-  className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
-  style={{
-    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
-    color: "white",
-  }}
->
-  {/* Welcome Section */}
-  <div className="flex-1 text-center min-w-[180px]">
-    <div className="flex justify-center items-center gap-1 md:gap-2 mb-1">
-      <Home className="h-3.5 w-3.5 md:h-5 md:w-5 text-[#004aad]" />
-      <h1 className="font-bold leading-tight">
-        <span
-          className="block md:hidden"
-          style={{ fontSize: "1.2rem", color: "rgb(14, 48, 92)" }}
-        >
-          Welcome back, {userName || "Guest"}
-        </span>
-        <span
-          className="hidden md:block"
-          style={{ fontSize: "2.5rem", color: "rgb(14, 48, 92)" }}
-        >
-          Welcome back, {userName || "Guest"}
-        </span>
-      </h1>
-    </div>
-    <p className="opacity-90 text-[10px] sm:text-sm text-[#004aad]">
-      Here's what's happening with your services today.
-    </p>
-  </div>
 
-  {/* Stats Section */}
-  <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
-    {/* Active Bookings */}
-<div className="flex flex-col items-center">
-  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-    <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-500" />
-    <span
-      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      +3
-    </span>
-  </div>
-  <span
-    className="text-[9px] sm:text-[10px] mt-1"
-    style={{ color: "rgb(14, 48, 92)" }}
-  >
-    Bookings
-  </span>
-</div>
+      <div
+        className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
+        style={{
+          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+          color: "white",
+        }}
+      >
+        {/* Welcome Section */}
+        <div className="flex-1 text-center min-w-[180px]">
+          <div className="flex justify-center items-center gap-1 md:gap-2 mb-1">
+            <Home className="h-3.5 w-3.5 md:h-5 md:w-5 text-[#004aad]" />
+            <h1 className="font-bold leading-tight">
+              <span
+                className="block md:hidden"
+                style={{ fontSize: "1.2rem", color: "rgb(14, 48, 92)" }}
+              >
+                Welcome back, {userName || "Guest"}
+              </span>
+              <span
+                className="hidden md:block"
+                style={{ fontSize: "2.5rem", color: "rgb(14, 48, 92)" }}
+              >
+                Welcome back, {userName || "Guest"}
+              </span>
+            </h1>
+          </div>
+          <p className="opacity-90 text-[10px] sm:text-sm text-[#004aad]">
+            Here's what's happening with your services today.
+          </p>
+        </div>
 
-{/* Average Rating */}
-<div className="flex flex-col items-center">
-  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-    <Star className="h-3.5 w-3.5 md:h-5 md:w-5 text-yellow-500" />
-    <span
-      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      +2%
-    </span>
-  </div>
-  <span
-    className="text-[9px] sm:text-[10px] mt-1"
-    style={{ color: "rgb(14, 48, 92)" }}
-  >
-    Rating
-  </span>
-</div>
+        {/* Stats Section */}
+        <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
+          {/* Active Bookings */}
+          <div className="flex flex-col items-center">
+            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+              <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-500" />
+              <span
+                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+                style={{ color: "rgb(14, 48, 92)" }}
+              >
+                +3
+              </span>
+            </div>
+            <span
+              className="text-[9px] sm:text-[10px] mt-1"
+              style={{ color: "rgb(14, 48, 92)" }}
+            >
+              Bookings
+            </span>
+          </div>
 
-{/* Completion Rate */}
-<div className="flex flex-col items-center">
-  <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-    <TrendingUp className="h-3.5 w-3.5 md:h-5 md:w-5 text-green-500" />
-    <span
-      className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      +2%
-    </span>
-  </div>
-  <span
-    className="text-[9px] sm:text-[10px] mt-1"
-    style={{ color: "rgb(14, 48, 92)" }}
-  >
-    Completion
-  </span>
-</div>
+          {/* Average Rating */}
+          <div className="flex flex-col items-center">
+            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+              <Star className="h-3.5 w-3.5 md:h-5 md:w-5 text-yellow-500" />
+              <span
+                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+                style={{ color: "rgb(14, 48, 92)" }}
+              >
+                +2%
+              </span>
+            </div>
+            <span
+              className="text-[9px] sm:text-[10px] mt-1"
+              style={{ color: "rgb(14, 48, 92)" }}
+            >
+              Rating
+            </span>
+          </div>
 
-  </div>
-</div>
-
+          {/* Completion Rate */}
+          <div className="flex flex-col items-center">
+            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
+              <TrendingUp className="h-3.5 w-3.5 md:h-5 md:w-5 text-green-500" />
+              <span
+                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
+                style={{ color: "rgb(14, 48, 92)" }}
+              >
+                +2%
+              </span>
+            </div>
+            <span
+              className="text-[9px] sm:text-[10px] mt-1"
+              style={{ color: "rgb(14, 48, 92)" }}
+            >
+              Completion
+            </span>
+          </div>
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {metrics.map((metric, index) => (
@@ -500,99 +500,95 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
         </div>
 
         {/* Main Content Grid */}
-           {/* Recent Booking (only 1) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2">
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
-          {!loading && latestCurrentBooking.length > 0 && (
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              Latest
-            </Badge>
-          )}
-        </CardHeader>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
+                {!loading && latestBooking.length > 0 && (
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    Latest
+                  </Badge>
+                )}
+              </CardHeader>
 
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Failed to load bookings. Please try again.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => window.location.reload()}
-              >
-                Retry
-              </Button>
-            </div>
-          ) : latestCurrentBooking.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No current bookings found.</p>
-            </div>
-          ) : (
-            latestCurrentBooking.map((booking) => (
-              <div key={booking.id} className="border rounded-lg p-4 mb-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold">{booking.clientName}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {booking.service}
-                    </p>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                  <div className="flex gap-2">
-                    {getBookingTypeBadge(booking.bookingData.booking_type)}
-                    {getStatusBadge(booking.bookingData.taskStatus)}
+                ) : error ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Failed to load bookings. Please try again.</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => window.location.reload()}
+                    >
+                      Retry
+                    </Button>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <p className="text-sm font-medium">Date & Time</p>
-                    <p className="text-sm">
-                      {booking.date} at {booking.time}
-                    </p>
+                ) : latestBooking.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No upcoming bookings found.</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Amount</p>
-                    <p className="text-sm font-semibold">{booking.amount}</p>
-                  </div>
-                </div>
+                ) : (
+                  latestBooking.map((booking) => (
+                    <div key={booking.id} className="border rounded-lg p-4 mb-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold">{booking.clientName}</h3>
+                          <p className="text-sm text-muted-foreground">{booking.service}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
+                          {getStatusBadge(booking.bookingData.taskStatus)}
+                        </div>
+                      </div>
 
-                <div className="mb-3">
-                  <p className="text-sm font-medium">Address</p>
-                  <p className="text-sm">{booking.location}</p>
-                </div>
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <p className="text-sm font-medium">Date & Time</p>
+                          <p className="text-sm">
+                            {booking.date} at {booking.time}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Amount</p>
+                          <p className="text-sm font-semibold">{booking.amount}</p>
+                        </div>
+                      </div>
 
-                {/* Toggle Switch Section */}
-             <div className="flex items-center justify-between mb-3">
-  <p className="text-sm font-medium">
-    {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
-  </p>
-  <Switch
-    checked={taskStatus[booking.id] || false}
-    onChange={(e) => handleToggle(booking.id, e.target.checked)}
-  />
-</div>
+                      <div className="mb-3">
+                        <p className="text-sm font-medium">Address</p>
+                        <p className="text-sm">{booking.location}</p>
+                      </div>
 
+                      {/* Toggle Switch Section */}
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium">
+                          {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
+                        </p>
+                        <Switch
+                          checked={taskStatus[booking.id] || false}
+                          onChange={(e) => handleToggle(booking.id, e.target.checked)}
+                        />
+                      </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => handleContactClient(booking)}
-                >
-                  Contact Client
-                </Button>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleContactClient(booking)}
+                      >
+                        Contact Client
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Quick Actions */}
           <div>
@@ -601,7 +597,7 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                 <CardTitle className="text-xl font-semibold">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <AllBookingsDialog
+               <AllBookingsDialog
               bookings={bookings}   // pass the whole object {current, future, past}
               serviceProviderId={serviceProviderId}  // pass ID so dialog can refetch
                 trigger={
@@ -624,14 +620,14 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
                   <Clock className="h-4 w-4 mr-2" />
                   Update Availability
                 </Button>
-               <Button 
-  className="w-full justify-start" 
-  variant="outline"
-  onClick={() => setReviewsDialogOpen(true)}
->
-  <Star className="h-4 w-4 mr-2" />
-  View Reviews
-</Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => setReviewsDialogOpen(true)}
+                >
+                  <Star className="h-4 w-4 mr-2" />
+                  View Reviews
+                </Button>
               </CardContent>
             </Card>
 
@@ -662,14 +658,16 @@ const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({})
 
         {/* Charts and Payment History */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PerformanceChart />
+          {serviceProviderId !== null && (
+            <ProviderCalendarBig providerId={serviceProviderId} />
+          )}
           <PaymentHistory payments={paymentHistory} />
         </div>
         <ReviewsDialog
-  open={reviewsDialogOpen}
-  onOpenChange={setReviewsDialogOpen}
-  serviceProviderId={serviceProviderId}
-/>
+          open={reviewsDialogOpen}
+          onOpenChange={setReviewsDialogOpen}
+          serviceProviderId={serviceProviderId}
+        />
       </main>
     </div>
   );

@@ -127,69 +127,70 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
  
   
-  const performSearch = async () => {
-    // const housekeepingRole = selected?.toUpperCase()||"NANNY";
-  
-    const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
-      new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("Geolocation is not supported by this browser."));
-        } else {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              resolve({
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              });
-            },
-            (error) => reject(error)
-          );
-        }
-      });
-  
-    try {
-      setLoading(true); // ✅ Start loading
-  
-      let latitude = 0;
-      let longitude = 0;
-  
-      if (!location) {
-        ({ latitude, longitude } = await getCoordinates());
+ const performSearch = async () => {
+  const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser."));
       } else {
-        const latLng = location.location.geometry.location;
-        console.log("Location from Redux:", JSON.stringify(latLng));
-        latitude = latLng?.lat;
-        longitude = latLng?.lng;
-        console.log("Latitude:", latitude);
-        console.log("Longitude:", longitude);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          (error) => reject(error)
+        );
       }
-    const queryParams = new URLSearchParams({
-      startDate: bookingType?.startDate || '2025-04-01', // Fallback to hardcoded if not available
-      endDate: bookingType?.endDate || '2025-04-30',    // Fallback to hardcoded if not available
-      timeslot: bookingType?.timeRange || '16:37-16:37', // Fallback to hardcoded if not available
-      housekeepingRole:bookingType?.housekeepingRole||"COOK", // Fallback to hardcoded if not available
-      latitude: latitude.toString(),
-      longitude: longitude.toString()
     });
-     const response = await axiosInstance.get(
+
+  try {
+    setLoading(true);
+
+    let latitude = 0;
+    let longitude = 0;
+
+    if (!location) {
+      ({ latitude, longitude } = await getCoordinates());
+    } else {
+      const latLng = location.location.geometry.location;
+      latitude = latLng?.lat;
+      longitude = latLng?.lng;
+    }
+
+    // ✅ Ensure only "YYYY-MM-DD" is sent
+    const formatDateOnly = (dateString?: string) => {
+      if (!dateString) return "";
+      return dateString.split("T")[0]; // Keep only the date part
+    };
+
+    const queryParams = new URLSearchParams({
+      startDate: formatDateOnly(bookingType?.startDate) || "2025-04-01",
+      endDate: formatDateOnly(bookingType?.endDate) || "2025-04-30",
+      timeslot: bookingType?.timeRange || "16:37-16:37",
+      housekeepingRole: bookingType?.housekeepingRole || "COOK",
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+    });
+
+    const response = await axiosInstance.get(
       `/api/serviceproviders/search?${queryParams.toString()}`
     );
 
-      console.log("Response:", response.data);
-  
-      if (response.data.length === 0) {
-        setServiceProviderData([]);
-      } else {
-        setServiceProviderData(response.data);
-      }
-    } catch (error: any) {
-      console.error("Geolocation or API error:", error.message || error);
+    if (response.data.length === 0) {
       setServiceProviderData([]);
-    } finally {
-      setLoading(false); // ✅ Always stop loading
+    } else {
+      setServiceProviderData(response.data);
     }
-  };
-  
+  } catch (error: any) {
+    console.error("Geolocation or API error:", error.message || error);
+    setServiceProviderData([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
   
 
   // performSearch();
