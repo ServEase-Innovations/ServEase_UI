@@ -88,7 +88,7 @@ export const BookingService = {
    * Full flow: create engagement -> open Razorpay -> verify
    */
   bookAndPay: async (payload: BookingPayload) => {
-    payload.start_time = to24Hour(payload.start_time);
+    payload.start_time = payload.start_time;
     payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
     const engagementData = await BookingService.createEngagement(payload);
 
@@ -120,18 +120,18 @@ export const BookingService = {
   },
 };
 
-function to24Hour(timeStr) {
-  const [time, modifier] = timeStr.split(" ");
-  let [hours, minutes] = time.split(":");
+// function to24Hour(timeStr) {
+//   const [time, modifier] = timeStr.split(" ");
+//   let [hours, minutes] = time.split(":");
 
-  hours = parseInt(hours, 10);
+//   hours = parseInt(hours, 10);
 
-  if (modifier.toLowerCase() === "pm" && hours !== 12) {
-    hours += 12;
-  }
-  if (modifier.toLowerCase() === "am" && hours === 12) {
-    hours = 0;
-  }
+//   if (modifier.toLowerCase() === "pm" && hours !== 12) {
+//     hours += 12;
+//   }
+//   if (modifier.toLowerCase() === "am" && hours === 12) {
+//     hours = 0;
+//   }
 
-  return `${String(hours).padStart(2, "0")}:${minutes}`;
-}
+//   return `${String(hours).padStart(2, "0")}:${minutes}`;
+// }

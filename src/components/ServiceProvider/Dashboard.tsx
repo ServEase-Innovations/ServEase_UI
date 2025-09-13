@@ -5,12 +5,7 @@ import { BookingCard } from "./BookingCard";
 import { PaymentHistory } from "./PaymentHistory";
 import { PerformanceChart } from "./PerformanceChart";
 import { Button } from "../../components/Button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/Common/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/Common/Card";
 import { Badge } from "../../components/Common/Badge";
 import { useToast } from "../hooks/use-toast";
 import {
@@ -28,16 +23,12 @@ import {
   XCircle,
   Shield,
   CreditCard,
-  Wallet,
+  Wallet
 } from "lucide-react";
 import axiosInstance from "../../services/axiosInstance";
-import { useAuth0 } from "@auth0/auth0-react";
+import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
-import {
-  getBookingTypeBadge,
-  getServiceTitle,
-  getStatusBadge,
-} from "../Common/Booking/BookingUtils";
+import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
 import Switch from "@mui/material/Switch/Switch";
 import { ReviewsDialog } from "./ReviewsDialog";
 import axios, { AxiosResponse } from "axios";
@@ -49,9 +40,9 @@ interface CustomerHoliday {
   id: number;
   customerId: number;
   applyHolidayDate: string;
-  startDate: string;
+  start_date: string;
   endDate: string;
-  serviceType: string;
+  service_type: string;
   active: boolean;
 }
 
@@ -59,24 +50,24 @@ interface ServiceProviderLeave {
   id: number;
   serviceProviderId: number;
   applyLeaveDate: string;
-  startDate: string;
+  start_date: string;
   endDate: string;
-  serviceType: string;
+  service_type: string;
   active: boolean;
 }
 
-interface Booking {
+export interface Booking {
   id: number;
   serviceProviderId: number;
   customerId: number;
-  startDate: string;
+  start_date: string;
   endDate: string;
   engagements: string;
   timeslot: string;
   monthlyAmount: number;
   paymentMode: string;
-  bookingType: string;
-  serviceType: string;
+  booking_type: string;
+  service_type: string;
   bookingDate: string;
   responsibilities: string[];
   housekeepingRole: string | null;
@@ -94,11 +85,19 @@ interface Booking {
   customerHolidays: CustomerHoliday[];
   serviceProviderLeaves: ServiceProviderLeave[];
   active: boolean;
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+  amount: string;
+  bookingData: any;
 }
 
-interface BookingHistoryResponse {
+export interface BookingHistoryResponse {
   current: Booking[];
-  future: Booking[];
+  upcoming?: any[];
   past: Booking[];
 }
 
@@ -126,8 +125,8 @@ export interface Payout {
   tds_amount: number;
   net_amount: number;
   payout_mode: string | null;
-  status: string; // Could also make this an enum if you want: "INITIATED" | "SUCCESS" | "FAILED"
-  created_at: string; // ISO datetime string
+  status: string;
+  created_at: string;
 }
 
 interface CalendarEntry {
@@ -142,17 +141,7 @@ interface CalendarEntry {
   updated_at: string;
 }
 
-interface Event {
-  id: number;
-  title: string;
-  start: Date;
-  end: Date;
-  status: string;
-  engagement_id?: number;
-}
-
-// Mock data for metrics and payments (you might want to fetch these from APIs too)
-
+// Mock data for payments
 const paymentHistory = [
   {
     id: "1",
@@ -160,7 +149,7 @@ const paymentHistory = [
     description: "Cleaning Service - Priya S.",
     amount: "₹800",
     status: "completed" as const,
-    type: "earning" as const,
+    type: "earning" as const
   },
   {
     id: "2",
@@ -168,7 +157,7 @@ const paymentHistory = [
     description: "Cooking Service - Rajesh K.",
     amount: "₹1,200",
     status: "completed" as const,
-    type: "earning" as const,
+    type: "earning" as const
   },
   {
     id: "3",
@@ -176,7 +165,7 @@ const paymentHistory = [
     description: "Withdrawal to Bank",
     amount: "₹5,000",
     status: "completed" as const,
-    type: "withdrawal" as const,
+    type: "withdrawal" as const
   },
   {
     id: "4",
@@ -184,34 +173,43 @@ const paymentHistory = [
     description: "Care Service - Anita P.",
     amount: "₹1,500",
     status: "pending" as const,
-    type: "earning" as const,
-  },
+    type: "earning" as const
+  }
 ];
 
 // Function to format API booking data for the BookingCard component
-const formatBookingForCard = (booking: Booking) => {
-  const status =
-    booking.taskStatus === "COMPLETED"
-      ? "completed"
-      : booking.taskStatus === "IN_PROGRESS"
-      ? "in-progress"
-      : "upcoming";
+const formatBookingForCard = (booking: any) => {
+  const startDateRaw = booking.startDate || booking.start_date;
+  const endDateRaw = booking.endDate || booking.endDate;
+  const startTimeStr = booking.startTime || "00:00";
+  const endTimeStr = booking.endTime || "00:00";
+
+  const startDate = new Date(startDateRaw);
+  const endDate = new Date(startDateRaw);
+
+  const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
+  const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
+
+  startDate.setHours(startHours, startMinutes);
+  endDate.setHours(endHours, endMinutes);
+
+  const timeRange = `${startDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })} - ${endDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
+
+  const clientName = [booking.firstname, booking.middlename, booking.lastname, booking.customerName]
+    .filter(Boolean)
+    .join(" ");
 
   return {
     id: booking.id.toString(),
-    clientName: booking.customerName,
-    service: getServiceTitle(booking.serviceType),
-    date: new Date(booking.startDate).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }),
-    time: booking.timeslot,
+    clientName,
+    service: getServiceTitle(booking.serviceType || booking.service_type),
+    date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+    time: timeRange,
     location: booking.address || "Address not provided",
-    status: status,
+    status: booking.taskStatus === "COMPLETED" ? "completed" : 
+            booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
     amount: `₹${booking.monthlyAmount}`,
-    contact: "Contact info not available", // You might want to fetch this separately
-    bookingData: booking, // Keep the original data for reference
+    bookingData: booking,
   };
 };
 
@@ -223,154 +221,154 @@ export default function Dashboard() {
   const { user: auth0User, isAuthenticated } = useAuth0();
   const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [serviceProviderId, setServiceProviderId] = useState<number | null>(
-    null
-  );
+  const [serviceProviderId, setServiceProviderId] = useState<number | null>(null);
   const [payout, setPayout] = useState<ProviderPayoutResponse | null>(null);
+  const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
+  const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({});
 
   const metrics = [
     {
       title: "Total Earnings",
       value: `₹${payout?.summary?.total_earned?.toLocaleString("en-IN") || 0}`,
-      change: "+12.5%", // You can calculate change dynamically if needed
+      change: "+12.5%",
       changeType: "positive" as const,
       icon: IndianRupee,
-      description: "This month",
+      description: "This month"
     },
     {
       title: "Security Deposit",
-      value: `₹${
-        payout?.summary?.security_deposit_amount?.toLocaleString("en-IN") || 0
-      }`,
+      value: `₹${payout?.summary?.security_deposit_amount?.toLocaleString("en-IN") || 0}`,
       change: payout?.summary?.security_deposit_paid ? "Paid" : "Not Paid",
-      changeType: payout?.summary?.security_deposit_paid
-        ? ("neutral" as const)
-        : ("negative" as const),
+      changeType: payout?.summary?.security_deposit_paid ? ("neutral" as const) : ("negative" as const),
       icon: Shield,
-      description: "For active bookings",
+      description: "For active bookings"
     },
     {
       title: "Service Fee",
       value: `₹${(
-        (payout?.summary?.total_earned || 0) -
-        (payout?.summary?.available_to_withdraw || 0)
+        (payout?.summary?.total_earned || 0) - (payout?.summary?.available_to_withdraw || 0)
       ).toLocaleString("en-IN")}`,
-      change: "-10%", // Or compute actual %
+      change: "-10%",
       changeType: "negative" as const,
       icon: CreditCard,
-      description: "Service charges",
+      description: "Service charges"
     },
     {
       title: "Actual Payout",
-      value: `₹${
-        payout?.summary?.available_to_withdraw?.toLocaleString("en-IN") || 0
-      }`,
-      change: "+10.2%", // Or calculate vs previous month
+      value: `₹${payout?.summary?.available_to_withdraw?.toLocaleString("en-IN") || 0}`,
+      change: "+10.2%",
       changeType: "positive" as const,
       icon: Wallet,
-      description: "After deductions",
-    },
+      description: "After deductions"
+    }
   ];
+
+  // Get current month and year in "YYYY-MM" format
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  };
 
   // ✅ Extract name and serviceProviderId from Auth0 user
   useEffect(() => {
     if (isAuthenticated && auth0User) {
       const name = auth0User.name || null;
-
-      // 👇 Adjust this depending on how your Auth0 stores custom claims
       const id =
         auth0User.serviceProviderId ||
-        auth0User["https://yourdomain.com/serviceProviderId"] ||
+        auth0User["https://yourdomain.com/serviceProviderId"] || 
         null;
 
       setUserName(name);
       setServiceProviderId(id ? Number(id) : null);
-
-      // console.log("Name:", name);
-      // console.log("Service Provider ID:", id);
     }
   }, [isAuthenticated, auth0User]);
 
   // ✅ Fetch booking history once serviceProviderId is available
-  useEffect(() => {
-    if (!serviceProviderId) return; // Skip if null
+ useEffect(() => {
+  if (!serviceProviderId) return;
 
-    const fetchBookingHistory = async () => {
-      try {
-        setLoading(true);
-        const payoutResponse: AxiosResponse<ProviderPayoutResponse> =
-          await axios.get(
-            `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=2025-09&detailed=true`
-          );
-
-        console.log("Payout Response:", payoutResponse.data);
-        setPayout(payoutResponse.data);
-        const response = await axios.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=2025-09`
-        );
-        if (response.status !== 200) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data: BookingHistoryResponse = response.data;
-        setBookings(data);
-
-        const fetchCalendar = async () => {
-          try {
-            const res = await axios.get(
-              `http://localhost:5000/api/service-providers/${serviceProviderId}/calendar?month=2025-09`
-            );
-            setCalendar(res.data.calendar || []);
-          } catch (err: any) {
-            setError("Failed to load calendar");
-          } finally {
-            setLoading(false);
-          }
-        };
-
-        fetchCalendar();
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch booking history"
-        );
-        toast({
-          title: "Error",
-          description: "Failed to load booking data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const currentMonthYear = getCurrentMonthYear();
+      
+      // Fetch payout data
+      const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await axios.get(
+        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+      );
+      setPayout(payoutResponse.data);
+      
+      // Fetch booking engagements
+      const response = await axiosInstance.get(
+        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+      );
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    fetchBookingHistory();
-  }, [serviceProviderId, toast]);
+      const data: BookingHistoryResponse = response.data;
+      setBookings(data);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [serviceProviderId, toast]);
+
 
   const handleContactClient = (booking: any) => {
     toast({
       title: "Contact Information",
-      description: `Call ${booking.clientName} at ${booking.contact}`,
+      description: `Call ${booking.clientName} at ${booking.contact || "contact info not available"}`,
     });
+  };
+
+  const handleToggle = async (bookingId: string, isStarted: boolean) => {
+    setTaskStatus((prev) => ({ ...prev, [bookingId]: isStarted }));
+
+    try {
+      const task_status = isStarted ? "STARTED" : "COMPLETED";
+      const response = await axios.put(
+        `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
+        { task_status },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      toast({
+        title: "Task Status Updated",
+        description: `Task is now ${task_status}`,
+        variant: "default",
+      });
+    } catch (err) {
+      setTaskStatus((prev) => ({ ...prev, [bookingId]: !isStarted }));
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    }
   };
 
   // Combine current and future bookings for display
   const upcomingBookings = bookings
-    ? [...(bookings.current || []), ...(bookings.future || [])].map(
-        formatBookingForCard
-      )
+    ? [...(bookings.current || []), ...(bookings.upcoming || [])].map(formatBookingForCard)
     : [];
 
-  // Get the most recent bookings for display (limit to 3)
-  const latestBooking =
-    upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
-  const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({});
+  // Get the most recent booking for display
+  const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
 
-  const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
-
-  const handleToggle = (id: string, value: boolean) => {
-    setTaskStatus((prev) => ({ ...prev, [id]: value }));
-    //  update backend API call here
-    // updateTaskStatus(id, value ? "STARTED" : "STOPPED")
-  };
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -380,9 +378,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Home className="h-8 w-8 text-primary" />
-                <span className="text-xl font-bold text-foreground">
-                  ServEase Provider
-                </span>
+                <span className="text-xl font-bold text-foreground">ServEase Provider</span>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -392,25 +388,21 @@ export default function Dashboard() {
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="font-semibold text-foreground">Maya Patel</p>
-                  <p className="text-sm text-muted-foreground">
-                    Cleaning Specialist
-                  </p>
+                  <p className="text-sm text-muted-foreground">Cleaning Specialist</p>
                 </div>
                 <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-primary-foreground font-semibold">
-                    MP
-                  </span>
+                  <span className="text-primary-foreground font-semibold">MP</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </header>
+
       <div
         className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
         style={{
-          background:
-            "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
           color: "white",
         }}
       >
@@ -508,19 +500,13 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content Grid */}
-        {/* Recent Booking (only 1) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl font-semibold">
-                  Recent Booking
-                </CardTitle>
+                <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
                 {!loading && latestBooking.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-primary/10 text-primary"
-                  >
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
                     Latest
                   </Badge>
                 )}
@@ -548,21 +534,14 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   latestBooking.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="border rounded-lg p-4 mb-4"
-                    >
+                    <div key={booking.id} className="border rounded-lg p-4 mb-4">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold">
-                            {booking.clientName}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {booking.service}
-                          </p>
+                          <h3 className="font-semibold">{booking.clientName}</h3>
+                          <p className="text-sm text-muted-foreground">{booking.service}</p>
                         </div>
                         <div className="flex gap-2">
-                          {getBookingTypeBadge(booking.bookingData.bookingType)}
+                          {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
                           {getStatusBadge(booking.bookingData.taskStatus)}
                         </div>
                       </div>
@@ -576,9 +555,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="text-sm font-medium">Amount</p>
-                          <p className="text-sm font-semibold">
-                            {booking.amount}
-                          </p>
+                          <p className="text-sm font-semibold">{booking.amount}</p>
                         </div>
                       </div>
 
@@ -590,15 +567,11 @@ export default function Dashboard() {
                       {/* Toggle Switch Section */}
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium">
-                          {taskStatus[booking.id]
-                            ? "Task Started"
-                            : "Task Stopped"}
+                          {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
                         </p>
                         <Switch
                           checked={taskStatus[booking.id] || false}
-                          onChange={(e) =>
-                            handleToggle(booking.id, e.target.checked)
-                          }
+                          onChange={(e) => handleToggle(booking.id, e.target.checked)}
                         />
                       </div>
 
@@ -621,20 +594,19 @@ export default function Dashboard() {
           <div>
             <Card className="border-0 shadow-sm mb-6">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold">
-                  Quick Actions
-                </CardTitle>
+                <CardTitle className="text-xl font-semibold">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <AllBookingsDialog
-                  bookings={upcomingBookings}
-                  trigger={
-                    <Button className="w-full justify-start" variant="outline">
-                      <Users className="h-4 w-4 mr-2" />
-                      View All Bookings
-                    </Button>
-                  }
-                />
+               <AllBookingsDialog
+              bookings={bookings}   // pass the whole object {current, future, past}
+              serviceProviderId={serviceProviderId}  // pass ID so dialog can refetch
+                trigger={
+                  <Button className="w-full justify-start" variant="outline">
+                    <Users className="h-4 w-4 mr-2" />
+                    View All Bookings
+                  </Button>
+                }
+              />
                 <Button className="w-full justify-start" variant="outline">
                   <IndianRupee className="h-4 w-4 mr-2" />
                   Request Withdrawal
@@ -656,6 +628,29 @@ export default function Dashboard() {
                   <Star className="h-4 w-4 mr-2" />
                   View Reviews
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Service Status */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">Service Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Profile Status</span>
+                    <Badge className="bg-success text-success-foreground">Active</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Verification</span>
+                    <Badge className="bg-success text-success-foreground">Verified</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Availability</span>
+                    <Badge className="bg-primary text-primary-foreground">Available</Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
