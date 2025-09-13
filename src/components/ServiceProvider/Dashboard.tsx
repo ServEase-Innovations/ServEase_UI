@@ -56,6 +56,21 @@ interface ServiceProviderLeave {
   active: boolean;
 }
 
+interface ResponsibilityTask {
+  taskType: string;
+  persons?: number;
+  // Add other possible properties here
+  [key: string]: any; // For any additional properties
+}
+
+interface ResponsibilityAddOn {
+  // Define add_on properties as needed
+  [key: string]: any;
+}
+interface Responsibilities {
+  tasks?: ResponsibilityTask[];
+  add_ons?: ResponsibilityAddOn[];
+}
 export interface Booking {
   id: number;
   serviceProviderId: number;
@@ -69,7 +84,7 @@ export interface Booking {
   booking_type: string;
   service_type: string;
   bookingDate: string;
-  responsibilities: string[];
+  responsibilities: Responsibilities;
   housekeepingRole: string | null;
   mealType: string | null;
   noOfPersons: number | null;
@@ -201,6 +216,7 @@ const formatBookingForCard = (booking: any) => {
 
   return {
     id: booking.id.toString(),
+    bookingId: booking.id.toString(),
     clientName,
     service: getServiceTitle(booking.serviceType || booking.service_type),
     date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
@@ -210,6 +226,7 @@ const formatBookingForCard = (booking: any) => {
             booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
     amount: `₹${booking.monthlyAmount}`,
     bookingData: booking,
+    responsibilities: booking.responsibilities || {}, // Add this line
   };
 };
 
@@ -285,46 +302,50 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, auth0User]);
 
-  // ✅ Fetch booking history once serviceProviderId is available
- useEffect(() => {
+//  fetchData outside of useEffect
+const fetchData = async () => {
   if (!serviceProviderId) return;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const currentMonthYear = getCurrentMonthYear();
-      
-      // Fetch payout data
-      const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await axios.get(
-        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
-      );
-      setPayout(payoutResponse.data);
-      
-      // Fetch booking engagements
-      const response = await axiosInstance.get(
-        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
-      );
-      
-      if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  try {
+    setLoading(true);
+    const currentMonthYear = getCurrentMonthYear();
 
-      const data: BookingHistoryResponse = response.data;
-      setBookings(data);
+    // Fetch payout data
+    const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await axios.get(
+      `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+    );
+    setPayout(payoutResponse.data);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch data");
-      toast({
-        title: "Error",
-        description: "Failed to load data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    // Fetch booking engagements
+    const response = await axiosInstance.get(
+      `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+    );
+
+    if (response.status !== 200) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
 
-  fetchData();
+    const data: BookingHistoryResponse = response.data;
+    setBookings(data);
+
+    setError(null); // clear any previous errors
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to fetch data");
+    toast({
+      title: "Error",
+      description: "Failed to load data",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+//  Keep useEffect, just call fetchData
+useEffect(() => {
+  if (serviceProviderId) {
+    fetchData();
+  }
 }, [serviceProviderId, toast]);
 
 
@@ -523,69 +544,101 @@ export default function Dashboard() {
                     <Button
                       variant="outline"
                       className="mt-4"
-                      onClick={() => window.location.reload()}
+                      onClick={fetchData}
                     >
                       Retry
                     </Button>
                   </div>
                 ) : latestBooking.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No upcoming bookings found.</p>
-                  </div>
-                ) : (
-                  latestBooking.map((booking) => (
-                    <div key={booking.id} className="border rounded-lg p-4 mb-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold">{booking.clientName}</h3>
-                          <p className="text-sm text-muted-foreground">{booking.service}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
-                          {getStatusBadge(booking.bookingData.taskStatus)}
-                        </div>
-                      </div>
+  <div className="text-center py-8 text-muted-foreground">
+    <p>No upcoming bookings found.</p>
+  </div>
+) : (
+  latestBooking.map((booking) => (
+    <div key={booking.id} className="border rounded-xl p-6 mb-6 shadow-sm bg-white">
+      
+      {/* Header */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">Booking ID: {booking.bookingId}</p>
+          <h2 className="text-lg font-semibold">{booking.clientName}</h2>
+          <p className="text-sm text-muted-foreground">{booking.service}</p>
+        </div>
+        <div className="flex gap-2 items-center">
+          {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
+          {getStatusBadge(booking.bookingData.taskStatus)}
+        </div>
+      </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="text-sm font-medium">Date & Time</p>
-                          <p className="text-sm">
-                            {booking.date} at {booking.time}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Amount</p>
-                          <p className="text-sm font-semibold">{booking.amount}</p>
-                        </div>
-                      </div>
+      {/* Date & Amount */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
+          <p className="text-sm">{booking.date} at {booking.time}</p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">Amount</p>
+          <p className="text-sm font-semibold">{booking.amount}</p>
+        </div>
+      </div>
 
-                      <div className="mb-3">
-                        <p className="text-sm font-medium">Address</p>
-                        <p className="text-sm">{booking.location}</p>
-                      </div>
+      {/* Responsibilities */}
+      <div className="mb-4">
+        <p className="text-sm font-medium text-muted-foreground mb-1">Responsibilities</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ...((booking.responsibilities?.tasks || []).map((task: any) => ({ task, isAddon: false }))),
+            ...((booking.responsibilities?.add_ons || []).map((task: any) => ({ task, isAddon: true }))),
+          ].map((item: any, index: number) => {
+            const { task, isAddon } = item;
+            const taskLabel =
+              typeof task === "object" && task !== null
+                ? Object.entries(task)
+                    .filter(([key]) => key !== "taskType")
+                    .map(([key, value]) => `${value} ${key}`)
+                    .join(", ")
+                : "";
+            const taskName = typeof task === "object" ? task.taskType : task;
+            return (
+              <Badge key={index} variant="outline" className="text-xs">
+                {isAddon ? "Add-ons: " : ""}
+                {taskName} {taskLabel && `- ${taskLabel}`}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
 
-                      {/* Toggle Switch Section */}
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-sm font-medium">
-                          {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
-                        </p>
-                        <Switch
-                          checked={taskStatus[booking.id] || false}
-                          onChange={(e) => handleToggle(booking.id, e.target.checked)}
-                        />
-                      </div>
+      {/* Address */}
+      <div className="mb-4">
+        <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
+        <p className="text-sm">{booking.location || "Address not provided"}</p>
+      </div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => handleContactClient(booking)}
-                      >
-                        Contact Client
-                      </Button>
-                    </div>
-                  ))
-                )}
+      {/* Task Toggle */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-medium text-muted-foreground">
+          {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
+        </p>
+        <Switch
+          checked={taskStatus[booking.id] || false}
+          onChange={(e) => handleToggle(booking.id, e.target.checked)}
+        />
+      </div>
+
+      {/* Contact Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => handleContactClient(booking)}
+      >
+        Contact Client
+      </Button>
+    </div>
+  ))
+)}
+
               </CardContent>
             </Card>
           </div>
