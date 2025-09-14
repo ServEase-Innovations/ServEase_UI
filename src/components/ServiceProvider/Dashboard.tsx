@@ -29,7 +29,7 @@ import axiosInstance from "../../services/axiosInstance";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
-import Switch from "@mui/material/Switch/Switch";
+// Removed MUI Switch import as requested; we'll use start/stop buttons instead
 import { ReviewsDialog } from "./ReviewsDialog";
 import axios, { AxiosResponse } from "axios";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -59,12 +59,10 @@ interface ServiceProviderLeave {
 interface ResponsibilityTask {
   taskType: string;
   persons?: number;
-  // Add other possible properties here
-  [key: string]: any; // For any additional properties
+  [key: string]: any;
 }
 
 interface ResponsibilityAddOn {
-  // Define add_on properties as needed
   [key: string]: any;
 }
 interface Responsibilities {
@@ -226,7 +224,7 @@ const formatBookingForCard = (booking: any) => {
             booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
     amount: `₹${booking.monthlyAmount}`,
     bookingData: booking,
-    responsibilities: booking.responsibilities || {}, // Add this line
+    responsibilities: booking.responsibilities || {},
   };
 };
 
@@ -241,7 +239,10 @@ export default function Dashboard() {
   const [serviceProviderId, setServiceProviderId] = useState<number | null>(null);
   const [payout, setPayout] = useState<ProviderPayoutResponse | null>(null);
   const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
-  const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({});
+  // taskStatus now stores explicit status strings rather than booleans
+  const [taskStatus, setTaskStatus] = useState<Record<string, "IN_PROGRESS" | "COMPLETED" | undefined>>({});
+  // track which booking is currently updating so we can show a loader on the button
+  const [taskStatusUpdating, setTaskStatusUpdating] = useState<Record<string, boolean>>({});
 
   const metrics = [
     {
@@ -356,29 +357,43 @@ useEffect(() => {
     });
   };
 
-  const handleToggle = async (bookingId: string, isStarted: boolean) => {
-    setTaskStatus((prev) => ({ ...prev, [bookingId]: isStarted }));
+  // New start/stop handler (replaces Switch behavior)
+  // When 'start' is true we send IN_PROGRESS; when false we send COMPLETED.
+  const handleStartStop = async (bookingId: string, start: boolean) => {
+    if (!bookingId) return;
+
+    const statusToSend = start ? "IN_PROGRESS" : "COMPLETED";
+    const previousStatus = taskStatus[bookingId];
+
+    // optimistically update UI
+    setTaskStatus(prev => ({ ...prev, [bookingId]: statusToSend }));
+    setTaskStatusUpdating(prev => ({ ...prev, [bookingId]: true }));
 
     try {
-      const task_status = isStarted ? "STARTED" : "COMPLETED";
-      const response = await axios.put(
+      await axios.put(
         `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
-        { task_status },
+        { task_status: statusToSend },
         { headers: { "Content-Type": "application/json" } }
       );
 
       toast({
         title: "Task Status Updated",
-        description: `Task is now ${task_status}`,
+        description: `Task is now ${statusToSend}`,
         variant: "default",
       });
+
+      // Re-fetch the main data (payouts + engagements) to keep UI in sync
+      await fetchData();
     } catch (err) {
-      setTaskStatus((prev) => ({ ...prev, [bookingId]: !isStarted }));
+      // revert optimistic update
+      setTaskStatus(prev => ({ ...prev, [bookingId]: previousStatus }));
       toast({
         title: "Error",
         description: "Failed to update task status",
         variant: "destructive",
       });
+    } finally {
+      setTaskStatusUpdating(prev => ({ ...prev, [bookingId]: false }));
     }
   };
 
@@ -554,89 +569,106 @@ useEffect(() => {
     <p>No upcoming bookings found.</p>
   </div>
 ) : (
-  latestBooking.map((booking) => (
-    <div key={booking.id} className="border rounded-xl p-6 mb-6 shadow-sm bg-white">
-      
-      {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <p className="text-xs text-muted-foreground mb-1">Booking ID: {booking.bookingId}</p>
-          <h2 className="text-lg font-semibold">{booking.clientName}</h2>
-          <p className="text-sm text-muted-foreground">{booking.service}</p>
-        </div>
-        <div className="flex gap-2 items-center">
-          {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
-          {getStatusBadge(booking.bookingData.taskStatus)}
-        </div>
-      </div>
+  latestBooking.map((booking) => {
+    // derive status helpers
+    const originalStatus = booking.bookingData?.taskStatus ? String(booking.bookingData.taskStatus).toUpperCase() : undefined;
+    const isInProgress = taskStatus[booking.id] === 'IN_PROGRESS' || originalStatus === 'IN_PROGRESS' || originalStatus === 'STARTED';
 
-      {/* Date & Amount */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
-          <p className="text-sm">{booking.date} at {booking.time}</p>
+    return (
+      <div key={booking.id} className="border rounded-xl p-6 mb-6 shadow-sm bg-white">
+        
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Booking ID: {booking.bookingId}</p>
+            <h2 className="text-lg font-semibold">{booking.clientName}</h2>
+            <p className="text-sm text-muted-foreground">{booking.service}</p>
+          </div>
+          <div className="flex gap-2 items-center">
+            {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
+            {getStatusBadge(booking.bookingData.taskStatus)}
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">Amount</p>
-          <p className="text-sm font-semibold">{booking.amount}</p>
+
+        {/* Date & Amount */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
+            <p className="text-sm">{booking.date} at {booking.time}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Amount</p>
+            <p className="text-sm font-semibold">{booking.amount}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Responsibilities */}
-      <div className="mb-4">
-        <p className="text-sm font-medium text-muted-foreground mb-1">Responsibilities</p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ...((booking.responsibilities?.tasks || []).map((task: any) => ({ task, isAddon: false }))),
-            ...((booking.responsibilities?.add_ons || []).map((task: any) => ({ task, isAddon: true }))),
-          ].map((item: any, index: number) => {
-            const { task, isAddon } = item;
-            const taskLabel =
-              typeof task === "object" && task !== null
-                ? Object.entries(task)
-                    .filter(([key]) => key !== "taskType")
-                    .map(([key, value]) => `${value} ${key}`)
-                    .join(", ")
-                : "";
-            const taskName = typeof task === "object" ? task.taskType : task;
-            return (
-              <Badge key={index} variant="outline" className="text-xs">
-                {isAddon ? "Add-ons: " : ""}
-                {taskName} {taskLabel && `- ${taskLabel}`}
-              </Badge>
-            );
-          })}
+        {/* Responsibilities */}
+        <div className="mb-4">
+          <p className="text-sm font-medium text-muted-foreground mb-1">Responsibilities</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ...((booking.responsibilities?.tasks || []).map((task: any) => ({ task, isAddon: false }))),
+              ...((booking.responsibilities?.add_ons || []).map((task: any) => ({ task, isAddon: true }))),
+            ].map((item: any, index: number) => {
+              const { task, isAddon } = item;
+              const taskLabel =
+                typeof task === "object" && task !== null
+                  ? Object.entries(task)
+                      .filter(([key]) => key !== "taskType")
+                      .map(([key, value]) => `${value} ${key}`)
+                      .join(", ")
+                  : "";
+              const taskName = typeof task === "object" ? task.taskType : task;
+              return (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {isAddon ? "Add-ons: " : ""}
+                  {taskName} {taskLabel && `- ${taskLabel}`}
+                </Badge>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Address */}
-      <div className="mb-4">
-        <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
-        <p className="text-sm">{booking.location || "Address not provided"}</p>
-      </div>
+        {/* Address */}
+        <div className="mb-4">
+          <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
+          <p className="text-sm">{booking.location || "Address not provided"}</p>
+        </div>
 
-      {/* Task Toggle */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-muted-foreground">
-          {taskStatus[booking.id] ? "Task Started" : "Task Completed"}
-        </p>
-        <Switch
-          checked={taskStatus[booking.id] || false}
-          onChange={(e) => handleToggle(booking.id, e.target.checked)}
-        />
-      </div>
+        {/* Start / Stop Buttons */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-medium text-muted-foreground">
+            {isInProgress ? "Task In Progress" : (originalStatus === 'COMPLETED' ? 'Task Completed' : 'Not Started')}
+          </p>
+          <div className="flex gap-2">
+            {taskStatusUpdating[booking.id] ? (
+              <Button variant="ghost" size="sm" disabled>
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </Button>
+            ) : isInProgress ? (
+              <Button variant="destructive" size="sm" onClick={() => handleStartStop(booking.id, false)}>
+                Stop Task
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => handleStartStop(booking.id, true)}>
+                Start Task
+              </Button>
+            )}
+          </div>
+        </div>
 
-      {/* Contact Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => handleContactClient(booking)}
-      >
-        Contact Client
-      </Button>
-    </div>
-  ))
+        {/* Contact Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => handleContactClient(booking)}
+        >
+          Contact Client
+        </Button>
+      </div>
+    );
+  })
 )}
 
               </CardContent>
