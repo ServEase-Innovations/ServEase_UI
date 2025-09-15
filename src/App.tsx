@@ -37,11 +37,21 @@ function App() {
   const [checkoutData, setCheckoutData] = useState<any>();
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
-    const [showAboutPage, setShowAboutPage] = useState(false);
-    const [showContactUs, setShowContactUs] = useState(false);
+  const [currentSection, setCurrentSection] = useState<string>("HOME"); // Changed from 'page' to 'currentSection'
+  const [notificationReceived, setNotificationReceived] = useState(false);
+  
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
+   const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
+    console.log("Data received from child component:", data);
+    
+    if (type === 'section') {
+      setCurrentSection(data);
+    } else {
+      setSelection(data);
+    }
+  };
   const {
     loginWithRedirect,
     logout,
@@ -53,7 +63,6 @@ function App() {
 
 // Extract user data from Redux with correct type
 // const user = useSelector((state: RootState) => state.user as UserState);
-const [notificationReceived, setNotificationReceived] = useState(false);
 // Ensure `value` is not null before accessing `role`
 // const userRole = user?.value?.role ?? "No Role";
 // console.log("Logged-in user role:", userRole);
@@ -65,13 +74,6 @@ const [notificationReceived, setNotificationReceived] = useState(false);
 // } else {
 //   console.log("User role is unknown");
 // }
-
-console.log("User data in App component:", user);
-
-  const handleDataFromChild = (e: string) => {
-    console.log("Data received from child component:", e);
-    setSelection(e);
-  };
 
   const handleCheckoutItems = (item: any) => {
     setCheckoutData(item);
@@ -93,130 +95,138 @@ console.log("User data in App component:", user);
     setServiceProvidersData(e);
   };
   
- const handleAboutClick = () => {
-    setShowAboutPage(true);
-    setShowContactUs(false); // Ensure ContactUs is hidden
-    setSelection(undefined); // Clear any other selection
-  };
+  
+// In your App component
+const handleAboutClick = () => {
+  setCurrentSection("ABOUT");
+  setSelection(undefined); // Clear any service selection
+};
 
-  const handleContactClick = () => {
-    setShowContactUs(true);
-    setShowAboutPage(false); // Ensure About page is hidden
-    setSelection(undefined); // Clear any other selection
-  };
+const handleContactClick = () => {
+  setCurrentSection("CONTACT");
+  setSelection(undefined); // Clear any service selection
+};
 
-  const handleBackToHome = () => {
-    setShowAboutPage(false);
-    setShowContactUs(false); // Reset ContactUs state
-    setSelection(undefined); // Reset selection
-  };
+const handleBackToHome = () => {
+  setCurrentSection("HOME");
+  setSelection(undefined); // Clear any service selection
+};
 
+// Add this new function for logo click
+const handleLogoClick = () => {
+  setCurrentSection("HOME");
+  setSelection(undefined); // Clear any service selection
+};
+  
   useEffect(() => {
     getPricingData();
   });
 
-  useEffect(() => {
+useEffect(() => {
     console.log("user in useEffect -> ", user);
     if(user?.role === "SERVICE_PROVIDER") {
       const ws = new WebSocket("wss://utils-ndt3.onrender.com/");
 
-    ws.onopen = () => {
-      const serviceProviderId = user?.serviceProviderId; // Adjust field as needed
-      if (serviceProviderId) {
-        ws.send(JSON.stringify({ type: "IDENTIFY", id: serviceProviderId }));
-      }
-    };
+      ws.onopen = () => {
+        const serviceProviderId = user?.serviceProviderId;
+        if (serviceProviderId) {
+          ws.send(JSON.stringify({ type: "IDENTIFY", id: serviceProviderId }));
+        }
+      };
 
-    ws.onmessage = (event) => {
-      console.log("WebSocket message received:", event.data);
-      setNotificationReceived(true);
-    };
+      ws.onmessage = (event) => {
+        console.log("WebSocket message received:", event.data);
+        setNotificationReceived(true);
+      };
 
-    return () => ws.close();
+      return () => ws.close();
     }
-    
   }, [user]);
 
 
-  const getPricingData = () => {
+   const getPricingData = () => {
     axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });
   };
+
     // Determine if footer should be shown
   const shouldShowFooter = () => {
-  const noFooterPages = [
-    LOGIN,  ADMIN, DASHBOARD,
-    PROFILE,BOOKINGS, DETAILS, CONFIRMATION, CHECKOUT,
-  ];
-  return !noFooterPages.includes(selection as string) && !showAboutPage && !showContactUs;
-};
+    const noFooterPages = [
+      LOGIN, ADMIN, DASHBOARD,
+      PROFILE, BOOKINGS, DETAILS, CONFIRMATION, CHECKOUT,
+    ];
+    return !noFooterPages.includes(selection as string) && currentSection === "HOME";
+  };
+
   const renderContent = () => {
-      // If About page is shown, render it
-    if (showAboutPage) {
+    // Render About and Contact as sections within the main page
+    if (currentSection === "ABOUT") {
       return <AboutPage onBack={handleBackToHome} />;
     }
-      // If ContactUs is shown, render it
-    if (showContactUs) {
-  return <ContactUs onBack={handleBackToHome} />;
-}
-
     
-    if (!selection) {
-      return <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage
-  sendDataToParent={handleDataFromChild}
-  bookingType={handleSelectedBookingType}
-  onAboutClick={handleAboutClick}
-  onContactClick={handleContactClick}
-/>
-      </ServiceProviderContext.Provider>;
-    } else if (selection) {
-      if (selection === DETAILS) {
-
-        return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
-      } else if (selection === CONFIRMATION) {
-        console.log("selected details -> ", serviceProviderDetails);
-        return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
-      } else if (selection === CHECKOUT) {
-        return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
-      } else if (selection === LOGIN) {
-        return (
-          <div className="w-full max-w-4xl h-[75%]">
-            <Login sendDataToParent={handleDataFromChild} />
-          </div>
-        );
-      } else if (selection === BOOKINGS) {
-        return <Booking />;
-      }
-      else if (selection === DASHBOARD) {
-        return <Dashboard />;
-      }
-       else if (selection === PROFILE) {
-        return <ProfileScreen/>
-      } else if (selection === ADMIN) {
-        console.log("I am in admin");
-        return <Admin />;
-      }
+    if (currentSection === "CONTACT") {
+      return <ContactUs onBack={handleBackToHome} />;
     }
+
+    
+  // Render service-related pages when selection exists
+    if (selection === DETAILS) {
+      return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
+    } else if (selection === CONFIRMATION) {
+      return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
+    } else if (selection === CHECKOUT) {
+      return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
+    } else if (selection === LOGIN) {
+      return (
+        <div className="w-full max-w-4xl h-[75%]">
+          <Login sendDataToParent={handleDataFromChild} />
+        </div>
+      );
+      } else if (selection === BOOKINGS) {
+      return <Booking />;
+    } else if (selection === DASHBOARD) {
+      return <Dashboard />;
+    } else if (selection === PROFILE) {
+      return <ProfileScreen/>;
+    } else if (selection === ADMIN) {
+      return <Admin />;
+    }
+
+    // Default: Show HomePage when no selection and currentSection is HOME
+    return (
+      <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
+        <HomePage
+          sendDataToParent={(data) => handleDataFromChild(data, 'selection')}
+          bookingType={handleSelectedBookingType}
+          onAboutClick={handleAboutClick}
+          onContactClick={handleContactClick}
+        />
+      </ServiceProviderContext.Provider>
+    );
   };
-  
 
-return (
+  return (
   <div className="bg-gray-50 text-gray-800">
-    {/* Don't show header on About page */}
-    {!showAboutPage && <Header sendDataToParent={handleDataFromChild} />}
-    
-    {notificationReceived && <NotificationClient />}
-    
-    <div className="bg-gray-50 text-gray-800">
-      {renderContent()}
-    </div>
+    <Header
+        sendDataToParent={(data) => handleDataFromChild(data)} // Only one argument
+        onAboutClick={handleAboutClick}
+        onContactClick={handleContactClick}
+        onLogoClick={handleLogoClick} bookingType={""}    />
 
-    {/* If you want a footer on all pages except About, uncomment and keep only this one */}
-    {shouldShowFooter() && <Footer onAboutClick={handleAboutClick} onContactClick={handleContactClick} />}
-  </div>
-);
+      {/* Render the current content */}
+      {renderContent()}
+
+      {/* Show footer only on HOME section without service selections */}
+      {shouldShowFooter() && (
+        <Footer 
+          onAboutClick={handleAboutClick} 
+          onContactClick={handleContactClick} 
+        />
+      )}
+    </div>
+  );
 }
+
 export default App;

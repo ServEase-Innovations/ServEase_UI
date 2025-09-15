@@ -1,6 +1,6 @@
 import React from "react";
 
-interface AboutPageProps {
+interface AboutUsProps {
   onBack: () => void;
 }
 
@@ -31,7 +31,7 @@ interface AboutPageProps {
 //   },
 // ];
 
-const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
+const AboutUs = ({ onBack }) => {
   return (
     <div className="font-sans text-gray-800">
       {/* Back Button */}
@@ -44,7 +44,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
         </button>
       </div>
 
-      {/* Hero Section */}
+       {/* Hero Section */}
       <section
         className="relative bg-cover bg-center text-white"
         style={{
@@ -163,4 +163,4 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack }) => {
   );
 };
 
-export default AboutPage;
+export default AboutUs;

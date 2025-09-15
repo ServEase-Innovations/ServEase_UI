@@ -38,17 +38,35 @@ import { HiBuildingOffice } from "react-icons/hi2";
 import { FaLocationArrow } from "react-icons/fa";
 import { add } from "../../features/geoLocation/geoLocationSlice";
 import { ClipLoader } from 'react-spinners';
+import AboutUs from "../AboutUs/AboutUs";
 interface ChildComponentProps {
-  sendDataToParent: (data: string) => void;
+  sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
+  bookingType: string;
+  onAboutClick: () => void;
+  onContactClick: () => void;
+  onLogoClick: () => void;
 }
 
-export const Header: React.FC<ChildComponentProps> = ({ sendDataToParent }) => {
+export const Header: React.FC<ChildComponentProps> = ({ 
+  sendDataToParent, 
+  bookingType, 
+  onAboutClick, 
+  onContactClick,
+  onLogoClick
+}) => {
+  
   const handleClick = (e: any) => {
     if (e === "sign_out") {
       dispatch(remove());
-      sendDataToParent("");
+      sendDataToParent(""); // Only one argument
+    } else if (e === "ABOUT") {
+      onAboutClick();
+    } else if (e === "CONTACT") {
+      onContactClick();
+    } else if (e === "") {
+      onLogoClick();
     } else {
-      sendDataToParent(e);
+      sendDataToParent(e); // Only one argument
     }
   };
 
@@ -482,12 +500,11 @@ console.log("Checkout");
 
   return (
     <>
-<header
-  className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
-  style={{ height: "10%" }}
->
-  {/* Logo Section */}
-  <div className="flex items-center space-x-2 cursor-pointer" onClick={() => handleClick("")}>
+<header className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
+        style={{ height: "10%" }}>
+        
+        {/* Logo Section - Updated to use onLogoClick */}
+        <div className="flex items-center space-x-2 cursor-pointer" onClick={onLogoClick}>
     {/* Mobile logo */}
 <img
   src="NewLogoDesing.png"
@@ -508,43 +525,54 @@ console.log("Checkout");
       className="hidden lg:block h-48 w-auto max-w-[340px]"
     />
   </div>
-<nav className="flex items-center gap-6 text-white font-medium">
-    {/* Services Dropdown */}
-    <div className="relative">
-      <button
-        onClick={() => setServiceDropdownOpen((prev) => !prev)}
-        className="flex items-center gap-1 hover:text-gray-200 transition"
-      >
-        {selectedService || "Our Services"}
-        <ChevronDown className="w-4 h-4" />
-      </button>
 
-      {serviceDropdownOpen && (
-        <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800">
-          {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
-            <li
-              key={idx}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => {
-                setSelectedService(service);
-                setServiceDropdownOpen(false);
-              }}
+
+  {/* Navigation Links */}
+        <nav className="flex items-center gap-6 text-white font-medium">
+          {/* Services Dropdown */}
+          <div className="relative" ref={serviceDropdownRef}>
+            <button
+              onClick={() => setServiceDropdownOpen((prev) => !prev)}
+              className="flex items-center gap-1 hover:text-gray-200 transition"
             >
-              {service}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+              {selectedService || "Our Services"}
+              <ChevronDown className="w-4 h-4" />
+            </button>
 
-    <button onClick={() => handleClick("ABOUT")} className="hover:text-gray-200">
-      About Us
-    </button>
-    <button onClick={() => handleClick("CONTACT")} className="hover:text-gray-200">
-      Contact Us
-    </button>
-  
-  </nav>
+            {serviceDropdownOpen && (
+              <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+                {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
+                  <li
+                    key={idx}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setSelectedService(service);
+                      setServiceDropdownOpen(false);
+                      // You might want to handle service selection here
+                      sendDataToParent(service);
+                    }}
+                  >
+                    {service}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <button
+            onClick={() => handleClick("ABOUT")}
+            className="hover:text-gray-200"
+          >
+            About Us
+          </button>
+
+          <button 
+            onClick={() => handleClick("CONTACT")} 
+            className="hover:text-gray-200"
+          >
+            Contact Us
+          </button> 
+        </nav>
   {/* Right Side Content */}
   <div className="flex items-center gap-2 md:gap-4">
     
