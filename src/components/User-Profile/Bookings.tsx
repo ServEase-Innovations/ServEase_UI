@@ -20,6 +20,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
+import VacationManagement from './VacationManagement';
 
 interface Task {
   taskType: string;
@@ -89,7 +90,9 @@ const Booking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
   const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
-  
+  const [vacationDialogOpen, setVacationDialogOpen] = useState(false);
+  const [selectedBookingForVacation, setSelectedBookingForVacation] = useState<Booking | null>(null);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
@@ -222,10 +225,10 @@ const Booking: React.FC = () => {
 
   const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
     const statusOrder: Record<string, number> = {
-      'NOT_STARTED': 1,
-      'IN_PROGRESS': 2,
-      'COMPLETED': 3,
-      'CANCELLED': 4
+    'IN_PROGRESS': 1,
+    'NOT_STARTED': 2,
+    'COMPLETED': 3,
+    'CANCELLED': 4
     };
 
     return [...bookings].sort((a, b) => {
@@ -308,9 +311,23 @@ const Booking: React.FC = () => {
     setModifyDialogOpen(true);
   };
 
-  const handleVacationClick = (booking: Booking) => {
-    setSelectedBookingForLeave(booking);
-    setHolidayDialogOpen(true);
+const handleVacationClick = (booking: Booking) => {
+    setSelectedBookingForVacation(booking);
+    setVacationDialogOpen(true);
+  };
+
+  const handleVacationSuccess = () => {
+    // Refresh bookings data when vacation operation is successful
+    if (customerId !== null) {
+      axios.get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
+        .then((response) => {
+          const { past = [], ongoing = [], upcoming = [] } = response.data || {};
+          setPastBookings(mapBookingData(past));
+          setCurrentBookings(mapBookingData(ongoing));
+          setFutureBookings(mapBookingData(upcoming));
+        });
+    }
+    setOpenSnackbar(true);
   };
 
   const handleApplyLeaveClick = (booking: Booking) => {
@@ -534,17 +551,16 @@ const Booking: React.FC = () => {
             )}
 
             {booking.bookingType === "MONTHLY" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
-                onClick={() => handleVacationClick(booking)}
-                disabled={hasVacation(booking) || isRefreshing}
-              >
-                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
-              </Button>
+               <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-0 justify-center 
+                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                         w-1/3 sm:w-auto"
+              onClick={() => handleVacationClick(booking)}
+            >
+              {hasVacation(booking) ? "Modify Vacation" : "Add Vacation"}
+            </Button>
             )}
           </>
         );
@@ -587,17 +603,16 @@ const Booking: React.FC = () => {
             </Button>
 
             {booking.bookingType === "MONTHLY" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
-                onClick={() => handleVacationClick(booking)}
-                disabled={hasVacation(booking) || isRefreshing}
-              >
-                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
-              </Button>
+           <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-0 justify-center 
+                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                         w-1/3 sm:w-auto"
+              onClick={() => handleVacationClick(booking)}
+            >
+              {hasVacation(booking) ? "Modify Vacation" : "Add Vacation"}
+            </Button>
             )}
           </>
         );
@@ -1080,7 +1095,13 @@ const Booking: React.FC = () => {
         onSave={handleSaveModifiedBooking}
         customerId={customerId}
       />
-
+    <VacationManagement
+        open={vacationDialogOpen}
+        booking={selectedBookingForVacation || { id: 0 }}
+        customerId={customerId}
+        onClose={() => setVacationDialogOpen(false)}
+        onSuccess={handleVacationSuccess}
+      />
       <ConfirmationDialog
         open={confirmationDialog.open}
         onClose={() => setConfirmationDialog(prev => ({ ...prev, open: false }))}

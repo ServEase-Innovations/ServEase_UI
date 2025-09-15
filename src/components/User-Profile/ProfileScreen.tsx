@@ -74,7 +74,7 @@ const ProfileScreen = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
-    type: "Home",
+    type: userRole === "SERVICE_PROVIDER" ? "Home" : "Home", // Changed from "Office" to "Home"
     street: "",
     city: "",
     country: "",
@@ -203,7 +203,7 @@ const fetchCustomerAddresses = async (customerId: number) => {
       // Create address
       const serviceProviderAddress: Address = {
         id: "1",
-        type: "Office",
+        type: "Home", // Changed from "Office" to "Home"
         street: `${data.buildingName || ""} ${data.street || ""} ${data.locality || ""}`.trim(),
         city: data.nearbyLocation || data.currentLocation || "",
         country: "India",
@@ -223,7 +223,7 @@ const fetchCustomerAddresses = async (customerId: number) => {
   // Filter address types based on user role
   const getAvailableAddressTypes = () => {
     if (userRole === "SERVICE_PROVIDER") {
-      return ["Office"];
+      return ["Home"]; // Changed from "Office" to "Home"
     }
     return ["Home", "Work", "Other"];
   };
@@ -276,7 +276,7 @@ const handleAddAddress = async () => {
 
     // Reset form
     setNewAddress({
-      type: userRole === "SERVICE_PROVIDER" ? "Office" : "Home",
+      type: userRole === "SERVICE_PROVIDER" ? "Home" : "Home", // Changed from "Office" to "Home"
       street: "",
       city: "",
       country: "",
@@ -1023,6 +1023,64 @@ const handleAddAddress = async () => {
                   </div>
                 )}
               </div>
+
+              {/* Service Provider Status Section */}
+              {userRole === "SERVICE_PROVIDER" && (
+                <div className="mb-6">
+                  <div className="h-px bg-gray-200 my-6" />
+                  
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                    Service Status
+                  </h3>
+                  
+                  <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Profile Status */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-gray-500 uppercase mb-1">
+                          Profile Status
+                        </span>
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                          <span className="text-sm font-semibold text-gray-800">Active</span>
+                        </div>
+                      </div>
+                      
+                      {/* Verification */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-gray-500 uppercase mb-1">
+                          Verification
+                        </span>
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                          <span className="text-sm font-semibold text-gray-800">Verified</span>
+                        </div>
+                      </div>
+                      
+                      {/* Availability */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium text-gray-500 uppercase mb-1">
+                          Availability
+                        </span>
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                          <span className="text-sm font-semibold text-gray-800">Available</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Additional status details can be added here */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Last updated: {new Date().toLocaleDateString()}</span>
+                        <button className="text-xs text-blue-600 font-medium hover:underline">
+                          View complete status details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Submit Button - Only show when editing */}
               {isEditing && (

@@ -7,7 +7,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
 import axiosInstance from '../../services/axiosInstance';
 import { Button } from "../Button/button";
-import axios from "axios";
+import VacationManagement from './VacationManagement';
 
 interface Booking {
   bookingType: string;
@@ -65,78 +65,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [selectedSection, setSelectedSection] = useState<
     "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
   >("OPTIONS");
-
-  // Check if vacation can be cancelled (after it has started)
-  const canCancelVacation = (): boolean => {
-    if (!booking?.vacationDetails?.leave_start_date) return false;
-    
-    const vacationStartDate = dayjs(booking.vacationDetails.leave_start_date);
-    const today = dayjs();
-    
-    // Vacation can be cancelled if it has already started
-    return today.isAfter(vacationStartDate) || today.isSame(vacationStartDate, 'day');
-  };
-// const canCancelVacation = (): boolean => {
-//   return !!booking?.vacationDetails?.leave_start_date;
-// };
-  // Get vacation status message
-  const getVacationStatus = (): string => {
-    if (!booking?.vacationDetails) return "No vacation details available";
-    
-    const { leave_start_date, leave_end_date, total_days } = booking.vacationDetails;
-    
-    if (!leave_start_date || !leave_end_date) return "Vacation dates not available";
-    
-    const startDate = dayjs(leave_start_date);
-    const endDate = dayjs(leave_end_date);
-    const today = dayjs();
-    
-    if (today.isBefore(startDate)) {
-      return `Vacation scheduled from ${startDate.format('MMM D, YYYY')} to ${endDate.format('MMM D, YYYY')} (${total_days} days) - Starts in ${startDate.diff(today, 'day')} days`;
-    } else if (today.isAfter(endDate)) {
-      return `Vacation completed from ${startDate.format('MMM D, YYYY')} to ${endDate.format('MMM D, YYYY')} (${total_days} days)`;
-    } else {
-      const daysPassed = today.diff(startDate, 'day') + 1;
-      const daysRemaining = endDate.diff(today, 'day');
-      return `Vacation in progress: Day ${daysPassed} of ${total_days} (${daysRemaining} days remaining)`;
-    }
-  };
-
-  const handleCancelVacation = async () => {
-    if (!booking || !customerId) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // API call to cancel vacation
-      const response = await axios.delete(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves/${booking.id}`,
-        {
-          data: {
-            engagement_id: booking.id,
-            cancellation_reason: "Customer requested cancellation"
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setSuccess("Vacation cancelled successfully!");
-        // Refresh the parent component data
-        setTimeout(() => {
-          onClose();
-          // You might want to add a callback prop to refresh parent data
-        }, 2000);
-      } else {
-        setError("Failed to cancel vacation. Please try again.");
-      }
-    } catch (error: any) {
-      console.error("Error cancelling vacation:", error);
-      setError(error.response?.data?.message || "Failed to cancel vacation. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
 
@@ -235,6 +163,11 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     }
   };
 
+  const handleVacationSuccess = () => {
+    setSuccess("Vacation operation completed successfully!");
+    // You might want to refresh parent data here
+  };
+
   useEffect(() => {
     if (open && booking) {
       const bookedTime = getBookedTime();
@@ -250,7 +183,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 
   const modificationDisabled = isModificationDisabled(booking);
   const statusMessage = getModificationStatusMessage(booking);
-  const vacationCancellable = canCancelVacation();
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).id === "dialog-backdrop") {
@@ -298,46 +230,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </div>
         )}
 
-        {/* Vacation Section */}
-        {selectedSection === "VACATION" && (
-          <div className="p-6 space-y-4">
-            <div className="bg-blue-50 p-4 rounded-md">
-              <h4 className="font-semibold text-blue-800 mb-2">Vacation Details</h4>
-              <p className="text-sm text-blue-700">{getVacationStatus()}</p>
-              
-            </div>
+       
 
-            {vacationCancellable ? (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Your vacation has started. You can cancel it if needed.
-                </p>
-                <Button
-                  variant="contained"
-                  color="error"
-                  fullWidth
-                  onClick={handleCancelVacation}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Cancelling..." : "Cancel Vacation"}
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 p-4 rounded-md">
-                <p className="text-sm text-yellow-700">
-                  Vacation cancellation is only available after the vacation start date.
-                </p>
-              </div>
-            )}
-
-            <div className="p-4 border-t flex justify-between">
-              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
-              <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md">Close</button>
-            </div>
-          </div>
-        )}
-
-        {/* Other sections (BOOKING_DATE, BOOKING_TIME) remain the same */}
         {/* Reschedule Date */}
         {selectedSection === "BOOKING_DATE" && (
           <>
