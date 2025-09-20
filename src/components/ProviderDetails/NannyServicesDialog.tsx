@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress, Dialog, DialogContent, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
@@ -139,182 +139,89 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const currentLocation = users?.customerDetails?.currentLocation;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
 
-  // ✅ Build nanny packages dynamically from DB
- useEffect(() => {
-  const updatedNannyServices = getFilteredPricing("nanny");
-  if (!updatedNannyServices || updatedNannyServices.length === 0) {
-    setPackages({});
-    return;
-  }
+  const toggleCart = useCallback((key: string, pkg: NannyPackage) => {
+    // Detect package type from key
+    const packageType = key.includes("day") ? "day" 
+                      : key.includes("night") ? "night" 
+                      : "fullTime";
 
-  setAllServices(updatedNannyServices);
+    // Detect care type from category instead of splitting key
+    const careType = pkg.category.toLowerCase().includes("baby") 
+      ? "baby" 
+      : "elderly";
 
-  const isOnDemand = bookingType?.bookingPreference?.toLowerCase() === "date";
-  const bookingTypeLabel = isOnDemand ? "On_demand" : "REGULAR";
-
-  const initialPackages: PackagesState = {};
-  updatedNannyServices.forEach((service: any) => {
-    const hasPrice =
-      bookingTypeLabel === "On_demand"
-        ? service["Price /Day (INR)"]
-        : service["Price /Month (INR)"];
-
-    if (!hasPrice) return;
-
-    const key = `${service.Categories.toLowerCase()}_${service["Type"].toLowerCase()}_${bookingTypeLabel.toLowerCase()}`;
-
-    const defaultAge = service.Categories.toLowerCase().includes("baby") ? 1 : 60;
-
-    initialPackages[key] = {
-      selected: packages[key]?.selected || false, // preserve selection if already exists
-      inCart: packages[key]?.inCart || false,     // preserve inCart if already exists
-      age: packages[key]?.age || defaultAge,      // preserve existing age
-      calculatedPrice: getPackagePrice(
-        updatedNannyServices,
-        service.Categories,
-        bookingTypeLabel,
-        packages[key]?.age || defaultAge
-      ),
-      description: service["Job Description"]?.split("\n").filter((line: string) => line.trim() !== "") || [],
-      rating: 4.7,
-      reviews: "(1M reviews)",
-      category: service.Categories,
-      jobDescription: service["Job Description"],
-      remarks: service["Remarks/Conditions"] || "",
-      bookingType: bookingTypeLabel,
+    const cartItem: NannyCartItem = {
+      id: key.toUpperCase(),
+      type: "nanny",
+      careType: careType,
+      packageType: packageType,
+      age: pkg.age,
+      price: pkg.calculatedPrice,
+      description: pkg.description.join(", "),
+      providerId: providerDetails?.serviceproviderId || '',
+      providerName: providerFullName,
+      activeTab: activeTab // Add current active tab
     };
-  });
 
-  setPackages(initialPackages);
-}, [bookingType]); // ❌ removed nannyCartItems
-
-
-const toggleCart = (key: string, pkg: NannyPackage) => {
-  // Detect package type from key
-  const packageType = key.includes("day") ? "day" 
-                    : key.includes("night") ? "night" 
-                    : "fullTime";
-
-  // Detect care type from category instead of splitting key
-  const careType = pkg.category.toLowerCase().includes("baby") 
-    ? "baby" 
-    : "elderly";
-
-  const cartItem: NannyCartItem = {
-    id: key.toUpperCase(),
-    type: "nanny",
-    careType: careType,
-    packageType: packageType,
-    age: pkg.age,
-    price: pkg.calculatedPrice,
-    description: pkg.description.join(", "),
-    providerId: providerDetails?.serviceproviderId || '',
-    providerName: providerFullName,
-    activeTab: activeTab // Add current active tab
-  };
-
-  // Check if this item is already in the cart
-  const isAlreadyInCart = nannyCartItems.some(item => 
-    item.id === cartItem.id
-  );
-
-  if (isAlreadyInCart) {
-    // Remove from cart
-    dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
-    setPackages(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        inCart: false,
-        selected: false
-      }
-    }));
-  } else {
-    // Clear other nanny services from different tabs
-    const itemsToRemove = nannyCartItems.filter(item => 
-      item.type === 'nanny' && item.activeTab !== activeTab
+    // Check if this item is already in the cart
+    const isAlreadyInCart = nannyCartItems.some(item => 
+      item.id === cartItem.id
     );
-    
-    itemsToRemove.forEach(item => {
-      dispatch(removeFromCart({ id: item.id, type: 'nanny' }));
-    });
 
-    // Also clear other service types
-    dispatch(removeFromCart({ type: 'meal' }));
-    dispatch(removeFromCart({ type: 'maid' }));
-    
-    // Add to cart
-    dispatch(addToCart(cartItem));
-    setPackages(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        inCart: true,
-        selected: true
-      }
-    }));
-  }
-};
-
-// Update the useEffect to only sync when needed and preserve tab-based selection
-useEffect(() => {
-  // Only sync if there are actual changes to avoid unnecessary re-renders
-  setPackages(prev => {
-    let hasChanges = false;
-    const updatedPackages = { ...prev };
-    
-    Object.keys(updatedPackages).forEach(key => {
-      const id = key.toUpperCase();
+    if (isAlreadyInCart) {
+      // Remove from cart
+      dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
+      setPackages(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          inCart: false,
+          selected: false
+        }
+      }));
+    } else {
+      // Clear other nanny services from different tabs
+      const itemsToRemove = nannyCartItems.filter(item => 
+        item.type === 'nanny' && item.activeTab !== activeTab
+      );
       
-      const isInCart = nannyCartItems.some(item => item.id === id);
-      
-      // Only update if the state is different
-      if (updatedPackages[key].inCart !== isInCart) {
-        hasChanges = true;
-        updatedPackages[key] = {
-          ...updatedPackages[key],
-          inCart: isInCart,
-          selected: isInCart
-        };
-      }
-    });
-    
-    return hasChanges ? updatedPackages : prev;
-  });
-}, [nannyCartItems]);
+      itemsToRemove.forEach(item => {
+        dispatch(removeFromCart({ id: item.id, type: 'nanny' }));
+      });
 
-// Also update your package building useEffect to preserve cart state
+      // Also clear other service types
+      dispatch(removeFromCart({ type: 'meal' }));
+      dispatch(removeFromCart({ type: 'maid' }));
+      
+      // Add to cart
+      dispatch(addToCart(cartItem));
+      setPackages(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          inCart: true,
+          selected: true
+        }
+      }));
+    }
+  }, [activeTab, dispatch, nannyCartItems, providerDetails, providerFullName]);
+
 useEffect(() => {
   const updatedNannyServices = getFilteredPricing("nanny");
   if (!updatedNannyServices || updatedNannyServices.length === 0) {
-    setPackages({});
+    if (Object.keys(packages).length > 0) setPackages({});
     return;
   }
 
-  setAllServices(updatedNannyServices);
-
+  const newPackages: PackagesState = {};
   const isOnDemand = bookingType?.bookingPreference?.toLowerCase() === "date";
-  const bookingTypeLabel = isOnDemand ? "On_demand" : "REGULAR";
+  const bookingTypeLabel: "On_demand" | "REGULAR" = isOnDemand ? "On_demand" : "REGULAR";
 
-  const initialPackages: PackagesState = {};
   updatedNannyServices.forEach((service: any) => {
-    const hasPrice =
-      bookingTypeLabel === "On_demand"
-        ? service["Price /Day (INR)"]
-        : service["Price /Month (INR)"];
-
-    if (!hasPrice) return;
-
     const key = `${service.Categories.toLowerCase()}_${service["Type"].toLowerCase()}_${bookingTypeLabel.toLowerCase()}`;
-
     const defaultAge = service.Categories.toLowerCase().includes("baby") ? 1 : 60;
-
-    // Check if this package is already in the cart
-    const isInCart = nannyCartItems.some(item => item.id === key.toUpperCase());
-
-    initialPackages[key] = {
-      selected: isInCart, // Use cart state as source of truth
-      inCart: isInCart,   // Use cart state as source of truth
+    newPackages[key] = {
+      ...packages[key], // Use current packages to preserve selected/inCart
       age: packages[key]?.age || defaultAge,
       calculatedPrice: getPackagePrice(
         updatedNannyServices,
@@ -322,42 +229,57 @@ useEffect(() => {
         bookingTypeLabel,
         packages[key]?.age || defaultAge
       ),
-      description: service["Job Description"]?.split("\n").filter((line: string) => line.trim() !== "") || [],
+      description: service["Job Description"]?.split("\n").filter(Boolean) || [],
       rating: 4.7,
       reviews: "(1M reviews)",
       category: service.Categories,
       jobDescription: service["Job Description"],
       remarks: service["Remarks/Conditions"] || "",
       bookingType: bookingTypeLabel,
+      selected: packages[key]?.selected || false,
+      inCart: packages[key]?.inCart || false
     };
   });
 
-  setPackages(initialPackages);
-}, [bookingType, nannyCartItems]); // Add nannyCartItems dependency
+  // Only update if something actually changed
+  const prevStr = JSON.stringify(packages);
+  const newStr = JSON.stringify(newPackages);
+  if (prevStr !== newStr) setPackages(newPackages);
 
-useEffect(() => {
-  // When tab changes, clear cart items from the other tab
-  const itemsToRemove = nannyCartItems.filter(item => 
-    item.type === 'nanny' && item.activeTab !== activeTab
-  );
-  
-  itemsToRemove.forEach(item => {
-    dispatch(removeFromCart({ id: item.id, type: 'nanny' }));
+}, [bookingType, packages, getFilteredPricing]);
+
+
+  // 3. Clear cart items when switching tabs
+  useEffect(() => {
+    // Only run this when the tab actually changes and we have cart items
+    if (nannyCartItems.length === 0) return;
     
-    // Also update local package state
-    const packageKey = item.id.toLowerCase();
-    if (packages[packageKey]) {
-      setPackages(prev => ({
-        ...prev,
-        [packageKey]: {
-          ...prev[packageKey],
-          inCart: false,
-          selected: false
+    const itemsToRemove = nannyCartItems.filter(
+      item => item.type === "nanny" && item.activeTab !== activeTab
+    );
+
+    if (itemsToRemove.length === 0) return;
+
+    itemsToRemove.forEach(item => {
+      dispatch(removeFromCart({ id: item.id, type: "nanny" }));
+    });
+
+    // Update packages state without causing infinite loop
+    setPackages(prev => {
+      const updated = { ...prev };
+      itemsToRemove.forEach(item => {
+        const packageKey = item.id.toLowerCase();
+        if (updated[packageKey]) {
+          updated[packageKey] = { 
+            ...updated[packageKey], 
+            inCart: false, 
+            selected: false 
+          };
         }
-      }));
-    }
-  });
-}, [activeTab]); // Run when activeTab changes
+      });
+      return updated;
+    });
+  }, [activeTab, dispatch]);
 
   const prepareCartForCheckout = () => {
     // Clear all existing cart items
@@ -368,16 +290,14 @@ useEffect(() => {
     // Add selected packages to cart
     Object.entries(packages).forEach(([key, pkg]) => {
       if (pkg.selected) {
-const packageType = key.includes("day") ? "day" 
-                  : key.includes("night") ? "night" 
-                  : "fullTime";
+        const packageType = key.includes("day") ? "day" 
+                          : key.includes("night") ? "night" 
+                          : "fullTime";
 
-const careType = pkg.category.toLowerCase().includes("baby") 
-  ? "baby" 
-  : "elderly";
+        const careType = pkg.category.toLowerCase().includes("baby") 
+          ? "baby" 
+          : "elderly";
 
-
-        
         dispatch(addToCart({
           type: 'nanny',
           id: key.toUpperCase(),
@@ -432,131 +352,130 @@ const careType = pkg.category.toLowerCase().includes("baby")
       })
       .join(', ');
   };
-const handleCheckout = async () => {
-  try {
-    setLoading(true);
-    setError(null);
 
-    // 1. Filter selected packages
-    const selectedPackages = Object.entries(packages)
-      .filter(([_, pkg]) => pkg.selected)
-      .map(([key, pkg]) => ({
-        key,
-        age: pkg.age,
-        price: pkg.calculatedPrice,
-        category: pkg.category,
-        packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
-      }));
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-    if (baseTotal === 0) {
-      throw new Error('Please select at least one service');
+      // 1. Filter selected packages
+      const selectedPackages = Object.entries(packages)
+        .filter(([_, pkg]) => pkg.selected)
+        .map(([key, pkg]) => ({
+          key,
+          age: pkg.age,
+          price: pkg.calculatedPrice,
+          category: pkg.category,
+          packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+        }));
+
+      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+      if (baseTotal === 0) {
+        throw new Error('Please select at least one service');
+      }
+
+      const customerId = user?.customerid || "guest-id";
+
+      // 2. Build responsibilities array with readable taskType
+      const responsibilities = selectedPackages.map(pkg => {
+        return {
+          taskType: `${pkg.category} care - ${pkg.packageType} service`,
+          age: pkg.age,
+          careType: activeTab, // 'baby' or 'elderly'
+        };
+      });
+
+      // 3. Construct payload
+      const payload: BookingPayload = {
+        customerid: customerId,
+        serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+        start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+        end_date: bookingType?.endDate || "",
+        start_time: bookingType?.timeRange || '',
+        responsibilities: { tasks: responsibilities },
+        booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+        taskStatus: "NOT_STARTED",
+        service_type: "NANNY",
+        base_amount: baseTotal,
+        payment_mode: "razorpay",
+      };
+
+      console.log("Final Nanny Payload:", payload);
+
+      // 4. Send booking request
+      const result = await BookingService.bookAndPay(payload);
+
+      // 5. Clear carts & close dialogs
+      dispatch(removeFromCart({ type: 'meal' }));
+      dispatch(removeFromCart({ type: 'maid' }));
+      dispatch(removeFromCart({ type: 'nanny' }));
+
+      handleClose();
+      setCartDialogOpen(false);
+      alert("Booking confirmed! 🎉");
+
+    } catch (err: any) {
+      console.error("Checkout error:", err);
+      setError(err.response?.data?.message || err.message || "Payment failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const customerId = user?.customerid || "guest-id";
+  const calculateTotal = () => {
+    return Object.entries(packages)
+      .filter(([key, pkg]) => {
+        // Only include packages from current active tab
+        const isCurrentTab = activeTab === 'baby' 
+          ? key.includes('baby') 
+          : key.includes('elderly');
+        
+        return pkg.selected && isCurrentTab;
+      })
+      .reduce((sum, [_, pkg]) => sum + pkg.calculatedPrice, 0);
+  };
 
-    // 2. Build responsibilities array with readable taskType
-    const responsibilities = selectedPackages.map(pkg => {
+  const getSelectedPackagesCount = () => {
+    return Object.entries(packages)
+      .filter(([key, pkg]) => {
+        const isCurrentTab = activeTab === 'baby' 
+          ? key.includes('baby') 
+          : key.includes('elderly');
+        
+        return pkg.selected && isCurrentTab;
+      })
+      .length;
+  };
+
+  const handleAgeChange = useCallback((key: string, increment: number) => {
+    setPackages(prev => {
+      const currentPkg = prev[key];
+      if (!currentPkg) {
+        return prev;
+      }
+
+      const isBaby = key.includes('baby');
+      const minAge = isBaby ? 1 : 60;
+      const maxAge = isBaby ? 6 : 80;
+
+      const newAge = Math.max(minAge, Math.min(maxAge, currentPkg.age + increment));
+      const newPrice = getPackagePrice(
+        allServices,
+        currentPkg.category,
+        currentPkg.bookingType,
+        newAge
+      );
+
       return {
-        taskType: `${pkg.category} care - ${pkg.packageType} service`,
-        age: pkg.age,
-        careType: activeTab, // 'baby' or 'elderly'
+        ...prev,
+        [key]: {
+          ...currentPkg,
+          age: newAge,
+          calculatedPrice: newPrice
+        }
       };
     });
-
-    // 3. Construct payload
-    const payload: BookingPayload = {
-      customerid: customerId,
-      serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-      start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-      end_date: bookingType?.endDate || "",
-      start_time: bookingType?.timeRange || '',
-      responsibilities: { tasks: responsibilities },
-      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-      taskStatus: "NOT_STARTED",
-      service_type: "NANNY",
-      base_amount: baseTotal,
-      payment_mode: "razorpay",
-    };
-
-    console.log("Final Nanny Payload:", payload);
-
-    // 4. Send booking request
-    const result = await BookingService.bookAndPay(payload);
-
-    // 5. Clear carts & close dialogs
-    dispatch(removeFromCart({ type: 'meal' }));
-    dispatch(removeFromCart({ type: 'maid' }));
-    dispatch(removeFromCart({ type: 'nanny' }));
-
-    handleClose();
-    setCartDialogOpen(false);
-    alert("Booking confirmed! 🎉");
-
-  } catch (err: any) {
-    console.error("Checkout error:", err);
-    setError(err.response?.data?.message || err.message || "Payment failed. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
- const calculateTotal = () => {
-  return Object.entries(packages)
-    .filter(([key, pkg]) => {
-      // Only include packages from current active tab
-      const isCurrentTab = activeTab === 'baby' 
-        ? key.includes('baby') 
-        : key.includes('elderly');
-      
-      return pkg.selected && isCurrentTab;
-    })
-    .reduce((sum, [_, pkg]) => sum + pkg.calculatedPrice, 0);
-};
- const getSelectedPackagesCount = () => {
-  return Object.entries(packages)
-    .filter(([key, pkg]) => {
-      const isCurrentTab = activeTab === 'baby' 
-        ? key.includes('baby') 
-        : key.includes('elderly');
-      
-      return pkg.selected && isCurrentTab;
-    })
-    .length;
-};
-
- const handleAgeChange = (key: string, increment: number) => {
-  setPackages(prev => {
-    const currentPkg = prev[key];
-    if (!currentPkg) {
-      // console.warn("No package found for key:", key);
-      return prev;
-    }
-
-    const isBaby = key.includes('baby');
-    const minAge = isBaby ? 1 : 60;
-    const maxAge = isBaby ? 6 : 80;
-
-    const newAge = Math.max(minAge, Math.min(maxAge, currentPkg.age + increment));
-    const newPrice = getPackagePrice(
-      allServices,
-      currentPkg.category,
-      currentPkg.bookingType,
-      newAge
-    );
-
-    // console.log("Updating", key, "from age", currentPkg.age, "to", newAge);
-
-    return {
-      ...prev,
-      [key]: {
-        ...currentPkg,
-        age: newAge,
-        calculatedPrice: newPrice
-      }
-    };
-  });
-};
+  }, [allServices]);
 
   const handleApplyVoucher = () => {
     // Voucher logic here
@@ -591,21 +510,21 @@ const handleCheckout = async () => {
             <PersonsControl>
               <PersonsLabel>Age:</PersonsLabel>
               <PersonsInput>
-     <DecrementButton
-  onClick={(e) => {
-    e.stopPropagation();
-    handleAgeChange(key, -1);
-  }}
-  disabled={tab === 'baby' ? pkg.age <= 1 : pkg.age <= 60}
->-</DecrementButton>
+                <DecrementButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAgeChange(key, -1);
+                  }}
+                  disabled={tab === 'baby' ? pkg.age <= 1 : pkg.age <= 60}
+                >-</DecrementButton>
                 <PersonsValue>{pkg.age}</PersonsValue>
-<IncrementButton
-  onClick={(e) => {
-    e.stopPropagation();
-    handleAgeChange(key, 1);
-  }}
-  disabled={tab === 'baby' ? pkg.age >= 6 : pkg.age >= 80}
->+</IncrementButton>
+                <IncrementButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAgeChange(key, 1);
+                  }}
+                  disabled={tab === 'baby' ? pkg.age >= 6 : pkg.age >= 80}
+                >+</IncrementButton>
               </PersonsInput>
               {tab === 'baby' && pkg.age === 1 && (
                 <AgeInfoText>Age 1 includes babies from 1 to 12 months</AgeInfoText>
@@ -648,22 +567,21 @@ const handleCheckout = async () => {
       <StyledDialog open={open} onClose={handleClose}>
         <StyledDialogContent>
           <DialogContainer>
-           <DialogHeader className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
-  <h1>❤️ Caregiver Service</h1>
-  <CloseButton aria-label="close" onClick={handleClose} size="small">
-    <CloseIcon style={{ color: 'white' }} />
-  </CloseButton>
-</DialogHeader>
+            <DialogHeader className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
+              <h1>❤️ Caregiver Service</h1>
+              <CloseButton aria-label="close" onClick={handleClose} size="small">
+                <CloseIcon style={{ color: 'white' }} />
+              </CloseButton>
+            </DialogHeader>
 
-<TabContainer>
-  <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
-    <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
-  </TabButton>
-  <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
-    <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
-  </TabButton>
-</TabContainer>
-
+            <TabContainer>
+              <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
+                <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
+              </TabButton>
+              <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
+                <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
+              </TabButton>
+            </TabContainer>
 
             <PackagesContainer>
               {activeTab === 'baby' ? renderPackages('baby') : renderPackages('elderly')}
@@ -717,11 +635,11 @@ const handleCheckout = async () => {
       </StyledDialog>
       
       {/* CartDialog */}
-     <CartDialog
-  open={cartDialogOpen}
-  handleClose={() => setCartDialogOpen(false)}
-  handleNannyCheckout={handleCheckout}
-/>
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleNannyCheckout={handleCheckout}
+      />
       
       <Snackbar
         open={!!error}

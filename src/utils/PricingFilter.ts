@@ -17,9 +17,9 @@ export const usePricingFilterService = () => {
     : "Regular";
 
 
-      console.log("bookingType?.bookingPreference ", bookingType?.bookingPreference)
+      // console.log("bookingType?.bookingPreference ", bookingType?.bookingPreference)
 
-      console.log("matchBookingType ", matchBookingType)
+      // console.log("matchBookingType ", matchBookingType)
 
     return pricing[serviceType].filter(
       (item: any) => item.BookingType === matchBookingType
