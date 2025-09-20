@@ -49,7 +49,7 @@ import {
   VoucherInput,
   VoucherButton,
   AgeInfoText
-} from './NannyServicesDialog.styles';
+} from './CookServicesDialog.styles';
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
@@ -648,20 +648,22 @@ const handleCheckout = async () => {
       <StyledDialog open={open} onClose={handleClose}>
         <StyledDialogContent>
           <DialogContainer>
-            <DialogHeader>
-              <h1>❤️ Caregiver Service</h1>
-              <CloseButton aria-label="close" onClick={handleClose} size="small">
-                <CloseIcon />
-              </CloseButton>
-              <TabContainer>
-                <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
-                  <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
-                </TabButton>
-                <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
-                  <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
-                </TabButton>
-              </TabContainer>
-            </DialogHeader>
+           <DialogHeader className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
+  <h1>❤️ Caregiver Service</h1>
+  <CloseButton aria-label="close" onClick={handleClose} size="small">
+    <CloseIcon style={{ color: 'white' }} />
+  </CloseButton>
+</DialogHeader>
+
+<TabContainer>
+  <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
+    <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
+  </TabButton>
+  <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
+    <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
+  </TabButton>
+</TabContainer>
+
 
             <PackagesContainer>
               {activeTab === 'baby' ? renderPackages('baby') : renderPackages('elderly')}

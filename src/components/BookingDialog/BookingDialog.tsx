@@ -21,6 +21,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -199,12 +200,12 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
         } 
       }}
     >
-      <DialogTitle sx={{ 
-        fontSize: isMobile ? '1.1rem' : '1.25rem',
-        padding: isMobile ? '16px 16px 8px' : '24px 24px 16px'
-      }}>
-        Select your Booking Option
-      </DialogTitle>
+     <DialogHeader
+  className={`${isMobile ? "text-[1.1rem] px-4 pt-4 pb-2" : "text-[1.25rem] px-6 pt-6 pb-4"}`}
+>
+  Select your Booking Option
+</DialogHeader>
+
       
       <DialogContent sx={{ 
         padding: isMobile ? '8px 16px' : '16px 24px',

@@ -17,6 +17,8 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { Button } from "../Button/button";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { X } from "lucide-react";
 
 type ServiceFeature = {
   title?: string;
@@ -272,34 +274,19 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
     }
   }}
     >
-    <DialogTitle sx={{
-        backgroundColor: "#f5f5f5",
-        borderBottom: "1px solid #e0e0e0",
-        fontWeight: "bold",
-        fontSize: "1.5rem",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between", // Align items with space between
-        color: "#1d4ed8",
-        paddingRight: "40px" // Add padding to prevent overlap
-      }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {icon && <span style={{ fontSize: "1.5em" }}>{icon}</span>}
-          {title}
-        </Box>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{
-            color: '#1d4ed8',
-            position: 'absolute',
-            right: 16,
-            top: 16,
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+   <DialogHeader className="relative flex items-center justify-between bg-gray-100 border-b border-gray-300 text-blue-700 font-bold text-xl pr-10">
+  <div className="flex items-center gap-2">
+    {icon && <span className="text-2xl">{icon}</span>}
+    {title}
+  </div>
+  <IconButton
+    aria-label="close"
+    onClick={onClose}
+    className="!absolute right-4 top-4 !text-white"
+  >
+    <X className="w-6 h-6" />
+  </IconButton>
+</DialogHeader>
 
 
       <DialogContent dividers sx={{ padding: "24px", overflowY: "auto" }}>

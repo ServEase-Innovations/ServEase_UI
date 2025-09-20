@@ -8,7 +8,7 @@ import { Badge } from "../../components/Common/Badge";
 import { useToast } from "../hooks/use-toast";
 import axiosInstance from "../../services/axiosInstance";
 import { Dialog, DialogContent, DialogTitle } from "@mui/material";
-import { DialogHeader } from "../ProviderDetails/MaidServiceDialog.styles";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 interface Review {
   id: number;

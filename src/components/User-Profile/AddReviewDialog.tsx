@@ -6,7 +6,7 @@ import { Button } from "../Button/button";
 import axiosInstance from "../../services/axiosInstance";
 import { useAuth0 } from "@auth0/auth0-react";
 import { ClipLoader } from "react-spinners";
-import { DialogHeader } from "../ProviderDetails/MaidServiceDialog.styles";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 interface AddReviewDialogProps {
   open: boolean;

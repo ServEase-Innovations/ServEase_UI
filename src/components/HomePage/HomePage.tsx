@@ -343,32 +343,26 @@ useEffect(() => {
 
     {/* Buttons */}
 <div className="flex gap-3 pt-3 justify-center">
-  <Button 
-    className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
-    onClick={() => setChatbotOpen(true)}
-  >
-    I need help
-  </Button>
-
+ 
   {/* Show registration buttons only for unauthenticated users */}
   {!isAuthenticated && (
     <>
       <Button 
         className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
       >
-        Register as User
+        Register as an User
       </Button>
       <Button
         className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
         onClick={handleWorkClick}
       >
-        Register as Provider
+        Register as a Provider
       </Button>
       <Button 
         className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
         onClick={() => setIsAgentRegistrationOpen(true)}
       >
-        Register as Agent
+        Register as an Agent
       </Button>
     </>
   )}
@@ -426,46 +420,66 @@ useEffect(() => {
 
 
             {/* Services Section */}
-            <section className="py-10 px-6 md:px-20">
-                <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>
-                <div className="grid md:grid-cols-3 gap-6">
-                {[
-  {
-    title: "Home Cook",
-    desc: "Skilled and hygienic cooks who specialize in home-style meals.",
-    icon: "👩‍🍳",
-    type: "cook",
-  },
-  {
-    title: "Cleaning Help",
-    desc: "Reliable maids for daily, deep, or special occasion cleaning.",
-    icon: "🧼",
-    type: "maid",
-  },
-  {
-    title: "Caregiver",
-    desc: "Trained support for children, seniors, or patients at home.",
-    icon: "❤️",
-    type: "babycare",
-  },
-].map((service, index) => (
-  <Card key={index} className="text-center p-5 transition-all duration-200 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white border border-blue-100">
-    <CardContent className="space-y-3">
-      <div className="text-4xl">{service.icon}</div>
-      <h3 className="text-lg font-semibold">{service.title}</h3>
-      <p className="text-sm text-gray-600">{service.desc}</p>
-      <Button
-        variant="link"
-        className="text-sm"
-        onClick={() => setServiceDialog({ open: true, type: service.type as any })}
-      >
-        Learn More
-      </Button>
-    </CardContent>
-  </Card>
-))}
-                </div>
-            </section>
+        <section className="py-10 px-6 md:px-20 relative">
+  {/* Floating Help Card */}
+  <div className="absolute -top-6 right-20">
+    <button
+      onClick={() => setChatbotOpen(true)}
+      className="flex items-center gap-2 bg-[#fffbea] text-[#0a2a66] px-5 py-3 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition"
+    >
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0a2a66] text-white text-sm font-bold">
+        ?
+      </span>
+      <span className="font-medium">Need any help?</span>
+    </button>
+  </div>
+
+  {/* Popular Services Section */}
+  <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>
+
+  <div className="grid md:grid-cols-3 gap-6">
+    {[
+      {
+        title: "Home Cook",
+        desc: "Skilled and hygienic cooks who specialize in home-style meals.",
+        icon: "👩‍🍳",
+        type: "cook",
+      },
+      {
+        title: "Cleaning Help",
+        desc: "Reliable maids for daily, deep, or special occasion cleaning.",
+        icon: "🧼",
+        type: "maid",
+      },
+      {
+        title: "Caregiver",
+        desc: "Trained support for children, seniors, or patients at home.",
+        icon: "❤️",
+        type: "babycare",
+      },
+    ].map((service, index) => (
+      <Card
+        key={index}
+       className="text-center p-5 transition-all duration-200 hover:shadow-lg rounded-xl bg-gradient-to-br from-[#f5f9ff] via-[#eaf2ff] to-[#dbe8ff] border border-blue-100">
+        <CardContent className="space-y-3">
+          <div className="text-4xl">{service.icon}</div>
+          <h3 className="text-lg font-semibold">{service.title}</h3>
+          <p className="text-sm text-gray-600">{service.desc}</p>
+          <Button
+            variant="link"
+            className="text-sm"
+            onClick={() =>
+              setServiceDialog({ open: true, type: service.type as any })
+            }
+          >
+            Learn More
+          </Button>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+</section>
+
 
             {/* How it works */}
             <section className="bg-blue-50 py-14 px-6 md:px-20">

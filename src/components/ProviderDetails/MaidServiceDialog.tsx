@@ -64,7 +64,7 @@ import {
   LoginButton,
   CheckoutButton,
   CloseButton
-} from './MaidServiceDialog.styles';
+} from './CookServicesDialog.styles';
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
@@ -758,9 +758,15 @@ const handleCheckout = async () => {
           <DialogContainer>
             <DialogHeader>
               <h1>🧹Maid Service</h1>
-              <CloseButton aria-label="close" onClick={handleClose} size="small">
-                <CloseIcon />
-              </CloseButton>
+             <CloseButton
+  aria-label="close"
+  onClick={handleClose}
+  size="small"
+  className="!text-white"
+>
+  <CloseIcon />
+</CloseButton>
+
             </DialogHeader>
 
             {/* <TabsContainer>
