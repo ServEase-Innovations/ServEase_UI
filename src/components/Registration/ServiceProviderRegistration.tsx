@@ -45,6 +45,7 @@ import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
 import AddressComponent from "./AddressComponent";
+import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -851,6 +852,14 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
       setSnackbarOpen(false);
     }
   };
+const handleTermsChange = (allAccepted: boolean) => {
+  setFormData(prev => ({
+    ...prev,
+    keyFacts: allAccepted,
+    terms: allAccepted,
+    privacy: allAccepted,
+  }));
+};
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -1318,122 +1327,8 @@ case 1:
         </Typography>
 
      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-  {/* Key Facts */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.keyFacts}
-        onChange={handleChangeCheckbox}
-        name="keyFacts"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/KeyFactsStatement', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/KeyFactsStatement"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()} // prevent parent click
-        >
-          Key Facts Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Terms & Conditions */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.terms}
-        onChange={handleChangeCheckbox}
-        name="terms"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/TnC', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/TnC"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Terms and Conditions
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Privacy */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.privacy}
-        onChange={handleChangeCheckbox}
-        name="privacy"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/Privacy', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/Privacy"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Privacy Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
+  <TermsCheckboxes onChange={handleTermsChange} />
+ 
 </Box>     
       </Grid>
     </Grid>
