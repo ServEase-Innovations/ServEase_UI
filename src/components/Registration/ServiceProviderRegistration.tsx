@@ -46,6 +46,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -1341,22 +1342,38 @@ case 1:
   return (
     <>
       <Dialog fullWidth maxWidth="sm" open={true} >
-        <Box sx={{ padding: 2 }}>
-          <IconButton
-          aria-label="close"
-          onClick={() => onBackToLogin(true)}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-          <Typography variant="h5" gutterBottom className="text-center pb-3">
-            Service Provider Registration
-          </Typography>
+     <DialogHeader
+  style={{ 
+    position: 'relative', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  }}
+>
+   <Typography 
+  variant="h5" 
+  gutterBottom 
+  sx={{ textAlign: 'center', paddingTop: 2 }}
+>
+    Service Provider Registration
+  </Typography>
+  <IconButton
+    aria-label="close"
+    onClick={() => onBackToLogin(true)}
+    sx={{
+      position: 'absolute',
+      right: 8,
+      top: 8,
+      color: '#fff',
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
+         <Box sx={{ padding: 2 }}>
+          
+         
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>

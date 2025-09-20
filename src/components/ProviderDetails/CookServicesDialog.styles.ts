@@ -48,11 +48,14 @@ export const CloseButton = styled(IconButton)`
 
 export const DialogHeader = styled.div`
   position: relative;
-  padding: 20px;
+  height: 4rem;  /* fixed height */
+  padding: 0 20px; /* horizontal padding only */
+  display: flex;
+  align-items: center; /* vertically center content */
   border-bottom: 1px solid #f0f0f0;
   background: linear-gradient(to right, #0a2a66, #328aff); 
-  color: white; 
-  
+  color: white;
+
   h1 {
     color: white; 
     margin: 0;
@@ -60,6 +63,7 @@ export const DialogHeader = styled.div`
     padding-right: 30px;
   }
 `;
+
 
 // Tab Components
 export const TabContainer = styled.div`
