@@ -23,6 +23,7 @@ import {
   ADMIN,
   BOOKINGS,
   DASHBOARD,
+  DETAILS,
   LOGIN,
   PROFILE,
 } from "../../Constants/pagesConstants";
@@ -41,6 +42,9 @@ import { ClipLoader } from 'react-spinners';
 import AboutUs from "../AboutUs/AboutUs";
 import BookingDialog from "../BookingDialog/BookingDialog";
 import { Dayjs } from "dayjs";
+import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
+import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
+import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -306,6 +310,9 @@ useEffect(() => {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Dayjs | null>(null);
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
+  const [openServiceDialog, setOpenServiceDialog] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedRadioButtonValue, setSelectedRadioButtonValue] = useState('');
 
 
   // Ref to close dropdown when clicked outside
@@ -415,6 +422,48 @@ console.log("Checkout");
   const handleClose = () => {
     setOpen(false);
   };
+  const handleServiceClick = (service: string) => {
+  // Map the service names to your internal types
+  let serviceType = '';
+  if (service === "Home Cook") serviceType = "COOK";
+  if (service === "Cleaning Help") serviceType = "MAID";
+  if (service === "Caregiver") serviceType = "NANNY";
+  
+  setSelectedType(serviceType);
+  setDialogService(service);
+  setDialogOpen(true);
+};
+const handleBookingSave = () => {
+  let timeRange = "";
+
+  if (selectedRadioButtonValue === "Date") {
+    timeRange = startTime?.format("HH:mm") || "";
+  } else if (selectedRadioButtonValue === "Short term") {
+    timeRange = `${startTime?.format("HH:mm") || ""} - ${endTime?.format("HH:mm") || ""}`;
+  } else {
+    timeRange = startTime?.format("HH:mm") || "";
+  }
+
+  // Create booking object
+  const booking = {
+    startDate: startDate ? startDate.split("T")[0] : "",
+    endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
+    timeRange: timeRange,
+    bookingPreference: selectedRadioButtonValue,
+    housekeepingRole: selectedType,
+  };
+
+  console.log("Booking details:", booking);
+
+  // Same condition check as in homepage
+  if (selectedRadioButtonValue === "Date") {
+    setOpenServiceDialog(true);
+  } else {
+    sendDataToParent(DETAILS);
+  }
+
+  setDialogOpen(false);
+};
 
   const handleSave = () => {
     if (!dataFromMap) {
@@ -558,39 +607,31 @@ function setDialogOpen(isOpen: boolean) {
             </button>
 
             {serviceDropdownOpen && (
-  <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-    {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
-      <li
-        key={idx}
-        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-        onClick={() => {
-          setSelectedService(service);
-          setServiceDropdownOpen(false);
-          
-          // These will now work correctly
-          setDialogService(service);
-          setDialogOpen(true);
-        }}
-      >
-        {service}
-      </li>
-    ))}
-  </ul>
+ <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+  {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
+    <li
+      key={idx}
+      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+      onClick={() => {
+        setSelectedService(service);
+        setServiceDropdownOpen(false);
+        handleServiceClick(service); // Use the new handler
+      }}
+    >
+      {service}
+    </li>
+  ))}
+</ul>
 )}
+
 
 {/* // Render the BookingDialog component - use dialogOpenState instead of dialogOpen */}
 <BookingDialog
-  open={dialogOpenState} // Use dialogOpenState here
+  open={dialogOpenState}
   onClose={() => setDialogOpen(false)}
-  onSave={(bookingDetails) => {
-    // Handle booking confirmation
-    console.log("Booking details:", bookingDetails);
-    console.log("Service:", dialogServiceState);
-    setDialogOpen(false);
-  }}
-  // Pass all required props
-  selectedOption={selectedOption}
-  onOptionChange={setSelectedOption}
+  onSave={handleBookingSave} // Use the new handleBookingSave function
+  selectedOption={selectedRadioButtonValue}
+  onOptionChange={setSelectedRadioButtonValue}
   startDate={startDate}
   endDate={endDate}
   startTime={startTime}
@@ -600,7 +641,24 @@ function setDialogOpen(isOpen: boolean) {
   setStartTime={setStartTime}
   setEndTime={setEndTime}
 />
-
+{selectedType === "COOK" && (
+  <CookServicesDialog
+    open={openServiceDialog}
+    handleClose={() => setOpenServiceDialog(false)}
+  />
+)}
+{selectedType === "MAID" && (
+  <MaidServiceDialog
+    open={openServiceDialog}
+    handleClose={() => setOpenServiceDialog(false)}
+  />
+)}
+{selectedType === "NANNY" && (
+  <NannyServicesDialog
+    open={openServiceDialog}
+    handleClose={() => setOpenServiceDialog(false)}
+  />
+)}
           </div>
 
           <button
