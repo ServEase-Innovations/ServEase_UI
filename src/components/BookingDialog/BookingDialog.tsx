@@ -29,7 +29,7 @@ dayjs.extend(isSameOrAfter);
 interface BookingDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: () => void;
+    onSave: (bookingDetails: any) => void; 
   selectedOption: string;
   onOptionChange: (val: string) => void;
   startDate: string | null;
@@ -164,12 +164,19 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
   };
 
   const handleAccept = () => {
-    if (startTime && !isBookingValid(startTime)) {
-      alert("Please select a time between 5 AM and 10 PM, at least 30 minutes from now");
-      return;
-    }
-    onSave();
-  };
+  if (startTime && !isBookingValid(startTime)) {
+    alert("Please select a time between 5 AM and 10 PM, at least 30 minutes from now");
+    return;
+  }
+
+  onSave({
+    option: selectedOption,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+  });
+};
 
   // Disable dates outside allowed range
   const shouldDisableDate = (date: Dayjs) => {

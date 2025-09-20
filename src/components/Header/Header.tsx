@@ -39,6 +39,8 @@ import { FaLocationArrow } from "react-icons/fa";
 import { add } from "../../features/geoLocation/geoLocationSlice";
 import { ClipLoader } from 'react-spinners';
 import AboutUs from "../AboutUs/AboutUs";
+import BookingDialog from "../BookingDialog/BookingDialog";
+import { Dayjs } from "dayjs";
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -295,8 +297,16 @@ useEffect(() => {
   const [cartOpen, setCartOpen] = useState(false); 
   const [OpenSaveOptionForSave , setOpenSaveOptionForSave] = useState(false);
   const [showInput, setShowInput] = useState(false);
-   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState("");
+  const [dialogOpenState, setDialogOpenState] = useState(false); // Changed variable name
+  const [dialogServiceState, setDialogServiceState] = useState("");
+  const [selectedOption, setSelectedOption] = useState("Date");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [endTime, setEndTime] = useState<Dayjs | null>(null);
+
 
   // Ref to close dropdown when clicked outside
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
@@ -498,6 +508,14 @@ console.log("Checkout");
 
   const [showDropdown, setShowDropdown] = useState(false);
 
+  function setDialogService(service: string) {
+  setDialogServiceState(service);
+}
+
+function setDialogOpen(isOpen: boolean) {
+  setDialogOpenState(isOpen);
+}
+
   return (
     <>
 <header className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
@@ -540,23 +558,49 @@ console.log("Checkout");
             </button>
 
             {serviceDropdownOpen && (
-              <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-                {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
-                  <li
-                    key={idx}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => {
-                      setSelectedService(service);
-                      setServiceDropdownOpen(false);
-                      // You might want to handle service selection here
-                      sendDataToParent(service);
-                    }}
-                  >
-                    {service}
-                  </li>
-                ))}
-              </ul>
-            )}
+  <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+    {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
+      <li
+        key={idx}
+        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+        onClick={() => {
+          setSelectedService(service);
+          setServiceDropdownOpen(false);
+          
+          // These will now work correctly
+          setDialogService(service);
+          setDialogOpen(true);
+        }}
+      >
+        {service}
+      </li>
+    ))}
+  </ul>
+)}
+
+{/* // Render the BookingDialog component - use dialogOpenState instead of dialogOpen */}
+<BookingDialog
+  open={dialogOpenState} // Use dialogOpenState here
+  onClose={() => setDialogOpen(false)}
+  onSave={(bookingDetails) => {
+    // Handle booking confirmation
+    console.log("Booking details:", bookingDetails);
+    console.log("Service:", dialogServiceState);
+    setDialogOpen(false);
+  }}
+  // Pass all required props
+  selectedOption={selectedOption}
+  onOptionChange={setSelectedOption}
+  startDate={startDate}
+  endDate={endDate}
+  startTime={startTime}
+  endTime={endTime}
+  setStartDate={setStartDate}
+  setEndDate={setEndDate}
+  setStartTime={setStartTime}
+  setEndTime={setEndTime}
+/>
+
           </div>
 
           <button
