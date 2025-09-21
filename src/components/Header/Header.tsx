@@ -316,6 +316,8 @@ useEffect(() => {
   const [selectedType, setSelectedType] = useState('');
   const [selectedRadioButtonValue, setSelectedRadioButtonValue] = useState('');
 
+  const isMobile = useMediaQuery("(max-width:768px)");
+
 
   // Ref to close dropdown when clicked outside
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
@@ -581,62 +583,87 @@ function setDialogOpen(isOpen: boolean) {
         <div className="flex items-center space-x-2 cursor-pointer" onClick={onLogoClick}>
     {/* Mobile logo */}
 <img
-  src="NewLogoDesing.png"
+  src="ServEaso_Logo.png"
   alt="ServEase Logo"
   className="h-[7.5rem] w-auto md:hidden"
 />
 
     {/* Tablet logo */}
 <img
-  src="NewLogoDesing.png"
+  src="ServEaso_Logo.png"
   alt="ServEase Logo"
   className="hidden md:block lg:hidden h-[9rem] w-auto max-w-[200px]"
 />
     {/* Desktop logo */}
     <img
-      src="NewLogoDesing.png"
+      src="ServEaso_Logo.png"
       alt="ServEase Logo"
       className="hidden lg:block h-48 w-auto max-w-[340px]"
     />
   </div>
 
 
-  {/* Navigation Links */}
-        <nav className="flex items-center gap-6 text-white font-medium">
-          {/* Services Dropdown */}
-          <div className="relative" ref={serviceDropdownRef}>
-            <button
-              onClick={() => setServiceDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-1 hover:text-gray-200 transition"
-            >
-              {selectedService || "Our Services"}
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {serviceDropdownOpen && (
- <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-  {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
-    <li
-      key={idx}
-      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-      onClick={() => {
-        setSelectedService(service);
-        setServiceDropdownOpen(false);
-        handleServiceClick(service); // Use the new handler
-      }}
+ {/* Navigation Links */}
+{!isMobile && (
+  <nav className="flex items-center gap-6 text-white font-medium">
+    {/* Home Tab */}
+    <button
+      onClick={() => handleClick("")} // This will trigger the onLogoClick functionality
+      className="hover:text-gray-200 transition"
     >
-      {service}
-    </li>
-  ))}
-</ul>
+      Home
+    </button>
+
+    {/* Services Dropdown */}
+    <div className="relative" ref={serviceDropdownRef}>
+      <button
+        onClick={() => setServiceDropdownOpen((prev) => !prev)}
+        className="flex items-center gap-1 hover:text-gray-200 transition"
+      >
+        Our Services {/* Always show "Our Services" */}
+        <ChevronDown className="w-4 h-4" />
+      </button>
+
+      {serviceDropdownOpen && (
+        <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+          {["Home Cook", "Cleaning Help", "Caregiver"].map((service, idx) => (
+            <li
+              key={idx}
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                setSelectedService(service); // Still track selection internally
+                setServiceDropdownOpen(false);
+                handleServiceClick(service);
+              }}
+            >
+              {service}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    <button
+      onClick={() => handleClick("ABOUT")}
+      className="hover:text-gray-200"
+    >
+      About Us
+    </button>
+    
+    <button 
+      onClick={() => handleClick("CONTACT")} 
+      className="hover:text-gray-200"
+    >
+      Contact Us
+    </button> 
+  </nav>
 )}
 
-
-{/* // Render the BookingDialog component - use dialogOpenState instead of dialogOpen */}
+{/* Move these dialog components outside the navigation */}
 <BookingDialog
   open={dialogOpenState}
   onClose={() => setDialogOpen(false)}
-  onSave={handleBookingSave} // Use the new handleBookingSave function
+  onSave={handleBookingSave}
   selectedOption={selectedRadioButtonValue}
   onOptionChange={setSelectedRadioButtonValue}
   startDate={startDate}
@@ -648,6 +675,7 @@ function setDialogOpen(isOpen: boolean) {
   setStartTime={setStartTime}
   setEndTime={setEndTime}
 />
+
 {selectedType === "COOK" && (
   <CookServicesDialog
     open={openServiceDialog}
@@ -666,22 +694,6 @@ function setDialogOpen(isOpen: boolean) {
     handleClose={() => setOpenServiceDialog(false)}
   />
 )}
-          </div>
-
-          <button
-            onClick={() => handleClick("ABOUT")}
-            className="hover:text-gray-200"
-          >
-            About Us
-          </button>
-
-          <button 
-            onClick={() => handleClick("CONTACT")} 
-            className="hover:text-gray-200"
-          >
-            Contact Us
-          </button> 
-        </nav>
   {/* Right Side Content */}
   <div className="flex items-center gap-2 md:gap-4">
     
