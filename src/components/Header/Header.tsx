@@ -218,6 +218,8 @@ useEffect(() => {
         }));
   
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+
+        console.log("Suggestions updated:", suggestions);
       }
     }  catch (error: any) {
     if (error.response?.status === 404) {
@@ -377,6 +379,7 @@ console.log("Checkout");
 
 
   const handleChange = (newValue: any) => {
+    console.log("➡️ New Value Selected:", newValue);
     if (newValue === "Add Address") {
       setOpen(true);
     } else if (newValue === "Detect Location") {
@@ -421,6 +424,7 @@ console.log("Checkout");
 
   const handleClose = () => {
     setOpen(false);
+    setOpenSaveOptionForSave(false);
   };
   const handleServiceClick = (service: string) => {
   // Map the service names to your internal types
@@ -479,6 +483,8 @@ const handleBookingSave = () => {
     console.log("Location saved as:", locationAs);
     console.log("user preference ", userPreference)
 
+    console.log(location)
+
     updateUserSetting()
 
   }
@@ -494,9 +500,8 @@ const handleBookingSave = () => {
       location: dataFromMap[0],
     };
   
-    // Safely extract existing savedLocations from state
     const existingLocations =
-      Array.isArray(userPreference?.savedLocations) ? userPreference.savedLocations : [];
+      Array.isArray(userPreference[0]?.savedLocations) ? userPreference[0].savedLocations : [];
   
     const updatedLocations = [...existingLocations, newLocation];
   
@@ -545,6 +550,8 @@ const handleBookingSave = () => {
   }
 
   const handleUserPreference = (preference? : string) => {
+
+    console.log("User preference selected: ", preference);
 
     if(!preference) {
       setShowInput(true) ;
