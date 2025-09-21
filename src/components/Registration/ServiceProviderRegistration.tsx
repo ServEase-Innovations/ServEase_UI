@@ -45,6 +45,8 @@ import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
 import AddressComponent from "./AddressComponent";
+import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -851,6 +853,14 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
       setSnackbarOpen(false);
     }
   };
+const handleTermsChange = (allAccepted: boolean) => {
+  setFormData(prev => ({
+    ...prev,
+    keyFacts: allAccepted,
+    terms: allAccepted,
+    privacy: allAccepted,
+  }));
+};
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -1318,122 +1328,8 @@ case 1:
         </Typography>
 
      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-  {/* Key Facts */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.keyFacts}
-        onChange={handleChangeCheckbox}
-        name="keyFacts"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/KeyFactsStatement', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/KeyFactsStatement"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()} // prevent parent click
-        >
-          Key Facts Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Terms & Conditions */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.terms}
-        onChange={handleChangeCheckbox}
-        name="terms"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/TnC', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/TnC"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Terms and Conditions
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Privacy */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.privacy}
-        onChange={handleChangeCheckbox}
-        name="privacy"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/Privacy', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/Privacy"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Privacy Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
+  <TermsCheckboxes onChange={handleTermsChange} />
+ 
 </Box>     
       </Grid>
     </Grid>
@@ -1446,22 +1342,38 @@ case 1:
   return (
     <>
       <Dialog fullWidth maxWidth="sm" open={true} >
-        <Box sx={{ padding: 2 }}>
-          <IconButton
-          aria-label="close"
-          onClick={() => onBackToLogin(true)}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-          <Typography variant="h5" gutterBottom className="text-center pb-3">
-            Service Provider Registration
-          </Typography>
+     <DialogHeader
+  style={{ 
+    position: 'relative', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  }}
+>
+   <Typography 
+  variant="h5" 
+  gutterBottom 
+  sx={{ textAlign: 'center', paddingTop: 2 }}
+>
+    Service Provider Registration
+  </Typography>
+  <IconButton
+    aria-label="close"
+    onClick={() => onBackToLogin(true)}
+    sx={{
+      position: 'absolute',
+      right: 8,
+      top: 8,
+      color: '#fff',
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
+         <Box sx={{ padding: 2 }}>
+          
+         
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>

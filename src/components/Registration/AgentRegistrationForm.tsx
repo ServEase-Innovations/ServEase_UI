@@ -20,6 +20,7 @@ import { Visibility, VisibilityOff, FileCopy } from "@mui/icons-material";
 import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
 import { ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-material";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
 }
@@ -175,31 +176,34 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
 
   return (
     <Dialog fullWidth maxWidth="sm" open={true}>
-         <DialogTitle>
-                <IconButton
-        aria-label="back"
-        onClick={() => onBackToLogin(true)}
-        sx={{ color: (theme) => theme.palette.grey[500] }}
-      >
-        <ArrowBackIcon />
-      </IconButton>
+        <DialogHeader
+  style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+>
+  <IconButton
+    aria-label="back"
+    onClick={() => onBackToLogin(true)}
+    sx={{ color: (theme) => theme.palette.grey[500], position: 'absolute', left: 8 }}
+  >
+    <ArrowBackIcon />
+  </IconButton>
 
-      <Typography variant="h5" align="center" sx={{ marginBottom: 0.4 }}>
-        Agent Registration
-      </Typography>
-      <IconButton
-        aria-label="close"
-        onClick={() => onBackToLogin(true)}
-        sx={{
-          position: 'absolute',
-          right: 8,
-          top: 8,
-          color: (theme) => theme.palette.grey[500],
-        }}
-      >
-        <CloseIcon />
-      </IconButton>
-    </DialogTitle>
+  <Typography variant="h5" align="center">
+    Agent Registration
+  </Typography>
+
+  <IconButton
+    aria-label="close"
+    onClick={() => onBackToLogin(true)}
+    sx={{
+      position: 'absolute',
+      right: 8,
+       color: '#fff',
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
       <DialogContent>
         <Box sx={{ padding: 2 }}>
           <form onSubmit={handleSubmit}>

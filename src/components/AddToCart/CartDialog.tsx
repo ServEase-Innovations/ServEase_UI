@@ -8,6 +8,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import { Button } from '../../components/Button/button';
 import { useEffect, useState } from 'react';
+import { TermsCheckboxes } from '../Common/TermsCheckboxes/TermsCheckboxes';
 
 interface CartDialogProps {
   open: boolean;
@@ -72,12 +73,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       });
     }
   }, [open]);
-
-  // Check if ALL terms are accepted
-  const allTermsAccepted = termsAccepted.keyFacts && 
-                          termsAccepted.termsConditions && 
-                          termsAccepted.privacyPolicy;
-
+const [allTermsAccepted, setAllTermsAccepted] = useState(false);
   const handleCheckboxChange = (term: keyof typeof termsAccepted) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setTermsAccepted((prev) => ({
       ...prev,
@@ -267,143 +263,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
 }} />
 
 <Box sx={{ mt: 2 }}>
-  <Box
-    component="ul"
-    sx={{
-      pl: 2,
-      listStyle: 'none',
-      '& li': {
-        mb: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-      },
-    }}
-  >
-    {/* Master Checkbox */}
-    <li>
-      <input
-        type="checkbox"
-        checked={
-          termsAccepted.keyFacts &&
-          termsAccepted.termsConditions &&
-          termsAccepted.privacyPolicy
-        }
-        onChange={(e) => {
-          const checked = e.target.checked;
-          setTermsAccepted({
-            keyFacts: checked,
-            termsConditions: checked,
-            privacyPolicy: checked,
-          });
-        }}
-        style={{ marginRight: '8px' }}
-      />
-      <Typography
-    variant="body2"
-    sx={{ color: '#4a5568', fontWeight: 500, mb: 1 }}
-  >
-    We kindly ask you to review and agree to the following policies before
-    proceeding:
-  </Typography>
-    </li>
-
-   {/* Key Facts */}
-<li>
-  <input
-    type="checkbox"
-    checked={termsAccepted.keyFacts}
-    onChange={handleCheckboxChange('keyFacts')}
-    style={{ marginRight: '8px' }}
-  />
-  <Typography
-    variant="body2"
-    component="span"
-    sx={{ color: '#4a5568' }}
-    onClick={() => window.open('/KeyFactsStatement', '_blank')}
-  >
-    I agree to the ServEaso{' '}
-    <a
-      href="/KeyFactsStatement"
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        color: '#3182ce',
-        textDecoration: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-      }}
-    >
-      Key Facts Statement
-      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-    </a>
-  </Typography>
-</li>
-
-{/* Terms & Conditions */}
-<li>
-  <input
-    type="checkbox"
-    checked={termsAccepted.termsConditions}
-    onChange={handleCheckboxChange('termsConditions')}
-    style={{ marginRight: '8px' }}
-  />
-  <Typography
-    variant="body2"
-    component="span"
-    sx={{ color: '#4a5568' }}
-    onClick={() => window.open('/TnC', '_blank')}
-  >
-    I agree to the ServEaso{' '}
-    <a
-      href="/TnC"
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        color: '#3182ce',
-        textDecoration: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-      }}
-    >
-      Terms and Conditions
-      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-    </a>
-  </Typography>
-</li>
-
-{/* Privacy */}
-<li>
-  <input
-    type="checkbox"
-    checked={termsAccepted.privacyPolicy}
-    onChange={handleCheckboxChange('privacyPolicy')}
-    style={{ marginRight: '8px' }}
-  />
-  <Typography
-    variant="body2"
-    component="span"
-    sx={{ color: '#4a5568' }}
-    onClick={() => window.open('/Privacy', '_blank')}
-  >
-    I agree to the ServEaso{' '}
-    <a
-      href="/Privacy"
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        color: '#3182ce',
-        textDecoration: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-      }}
-    >
-      Privacy Statement
-      <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-    </a>
-  </Typography>
-</li>
-
-  </Box>
+  <TermsCheckboxes onChange={setAllTermsAccepted} />
 </Box>
 
             </Box>
