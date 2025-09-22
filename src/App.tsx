@@ -135,34 +135,48 @@ const handleLogoClick = () => {
 
   useEffect(() => {
     console.log("User data changed:", user);
+  
     if (user?.role === "SERVICE_PROVIDER") {
-      const newSocket = io("https://payments-j5id.onrender.com", {
+      const socketUrl =
+        process?.env?.REACT_APP_SOCKET_URL || "http://localhost:5000";
+  
+      console.log("🔌 Attempting to connect to socket at:", socketUrl);
+  
+      if (!process.env.REACT_APP_SOCKET_URL) {
+        console.warn(
+          "⚠️ REACT_APP_SOCKET_URL is not set. Falling back to localhost."
+        );
+      }
+  
+      const newSocket = io(socketUrl, {
         transports: ["websocket"],
         withCredentials: true,
       });
-
+  
       newSocket.on("connect", () => {
         console.log("✅ Connected to server:", newSocket.id);
-        console.log("✅ Connected to join:", user);
+        console.log("✅ Sending join for provider:", user.serviceProviderId);
+  
         newSocket.emit("join", { providerId: user.serviceProviderId });
       });
-
+  
       newSocket.on("new-engagement", (data) => {
-        console.log("📩 New engagement:", data);
-        setActiveToast(data.engagement);
+        console.log("📩 New engagement received:", data);
+        setActiveToast(data.engagement); // 👈 your toast logic
       });
-
+  
       newSocket.on("disconnect", () => {
-        console.log("❌ Disconnected");
+        console.log("❌ Disconnected from server");
       });
-
+  
       newSocket.on("connect_error", (err) => {
-        console.error("Connection error:", err.message);
+        console.error("❌ Connection error:", err.message);
       });
-
+  
       setSocket(newSocket);
-
+  
       return () => {
+        console.log("🔌 Closing socket connection...");
         newSocket.disconnect();
       };
     }
