@@ -136,7 +136,7 @@ const handleLogoClick = () => {
   useEffect(() => {
     console.log("User data changed:", user);
     if (user?.role === "SERVICE_PROVIDER") {
-      const newSocket = io("wss://payments-j5id.onrender.com", {
+      const newSocket = io("https://payments-j5id.onrender.com", {
         transports: ["websocket"],
       });
 
