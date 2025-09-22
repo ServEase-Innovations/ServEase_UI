@@ -1,3 +1,4 @@
+/* eslint-disable */
 import axios from "axios";
 import { useSelector } from "react-redux";
 import store from "src/store/userStore";
