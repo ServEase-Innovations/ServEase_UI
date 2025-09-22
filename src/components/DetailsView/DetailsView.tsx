@@ -126,38 +126,29 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
  
+  // const location  = useSelector((state: any) => state?.geoLocation?.value);
   
  const performSearch = async () => {
-  const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
-    new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by this browser."));
-      } else {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error) => reject(error)
-        );
-      }
-    });
-
   try {
     setLoading(true);
+
+    console.log("Booking Type in performSearch:", location);
+    console.log("Location object:", location?.geometry?.location);
 
     let latitude = 0;
     let longitude = 0;
 
-    if (!location) {
-      ({ latitude, longitude } = await getCoordinates());
-    } else {
-      const latLng = location.location.geometry.location;
-      latitude = latLng?.lat;
-      longitude = latLng?.lng;
+
+    if(location?.geometry?.location){
+      latitude = location?.geometry?.location?.lat;
+      longitude = location?.geometry?.location?.lng;
+    } else if (location?.lat && location?.lng) {
+      latitude = location?.lat;
+      longitude = location?.lng;
     }
+
+  
+
 
     // ✅ Ensure only "YYYY-MM-DD" is sent
     const formatDateOnly = (dateString?: string) => {
@@ -173,6 +164,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       latitude: latitude.toString(),
       longitude: longitude.toString(),
     });
+
+    console.log("Query Params:", queryParams.toString());
 
     const response = await axiosInstance.get(
       `/api/serviceproviders/search?${queryParams.toString()}`

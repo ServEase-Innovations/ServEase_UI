@@ -29,6 +29,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
 import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
+import ProviderNotifications from "./components/Notifications/ProviderNotifications";
 
 
 function App() {
@@ -217,6 +218,8 @@ useEffect(() => {
 
       {/* Render the current content */}
       {renderContent()}
+
+      {/* <ProviderNotifications providerId={202} /> */}
 
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (

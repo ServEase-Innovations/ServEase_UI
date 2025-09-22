@@ -1,4 +1,6 @@
 import axios from "axios";
+import { useSelector } from "react-redux";
+import store from "src/store/userStore";
 
 declare global {
   interface Window {
@@ -41,6 +43,8 @@ export interface RazorpayPaymentResponse {
 }
 
 export const BookingService = {
+
+  
   createEngagement: async (payload: BookingPayload) => {
     const res = await axios.post(`${API_BASE}/api/engagements`, payload, {
       headers: { "Content-Type": "application/json" },
@@ -88,8 +92,30 @@ export const BookingService = {
    * Full flow: create engagement -> open Razorpay -> verify
    */
   bookAndPay: async (payload: BookingPayload) => {
-    payload.start_time = payload.start_time;
+
+    const state = store.getState();
+    const location : any = state.geoLocation.value; 
+
+    let latitude = 0;
+    let longitude = 0;
+
+
+    if(location?.geometry?.location){
+      latitude = location?.geometry?.location?.lat;
+      longitude = location?.geometry?.location?.lng;
+    } else if (location?.lat && location?.lng) {
+      latitude = location?.lat;
+      longitude = location?.lng;
+    }
+
+
+    console.log("location payload:", location);
+    
+    console.log("Current location from store:", location);
+    // payload.start_time = to24Hour(payload.start_time);
     payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
+    payload.latitude = latitude;
+    payload.longitude = longitude;
     const engagementData = await BookingService.createEngagement(payload);
 
     // Extract order id & amount
@@ -120,18 +146,18 @@ export const BookingService = {
   },
 };
 
-// function to24Hour(timeStr) {
-//   const [time, modifier] = timeStr.split(" ");
-//   let [hours, minutes] = time.split(":");
+function to24Hour(timeStr) {
+  const [time, modifier] = timeStr.split(" ");
+  let [hours, minutes] = time.split(":");
 
-//   hours = parseInt(hours, 10);
+  hours = parseInt(hours, 10);
 
-//   if (modifier.toLowerCase() === "pm" && hours !== 12) {
-//     hours += 12;
-//   }
-//   if (modifier.toLowerCase() === "am" && hours === 12) {
-//     hours = 0;
-//   }
+  if (modifier.toLowerCase() === "pm" && hours !== 12) {
+    hours += 12;
+  }
+  if (modifier.toLowerCase() === "am" && hours === 12) {
+    hours = 0;
+  }
 
-//   return `${String(hours).padStart(2, "0")}:${minutes}`;
-// }
+  return `${String(hours).padStart(2, "0")}:${minutes}`;
+}

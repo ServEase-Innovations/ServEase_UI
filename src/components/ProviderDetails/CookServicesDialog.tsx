@@ -290,6 +290,26 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     };
     
     try {
+
+      // const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
+      //   new Promise((resolve, reject) => {
+      //     if (!navigator.geolocation) {
+      //       reject(new Error("Geolocation is not supported by this browser."));
+      //     } else {
+      //       navigator.geolocation.getCurrentPosition(
+      //         (position) => {
+      //           resolve({
+      //             latitude: position.coords.latitude,
+      //             longitude: position.coords.longitude,
+      //           });
+      //         },
+      //         (error) => reject(error)
+      //       );
+      //     }
+      //   });
+
+      //   const { latitude, longitude } = await getCoordinates()
+
     const payload: BookingPayload = {
     customerid: customerId,
     serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
@@ -301,7 +321,10 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     service_type: "COOK",
     base_amount: baseTotal,
     payment_mode: "razorpay",
-    start_time : bookingType?.timeRange || ''
+    start_time : bookingType?.timeRange || '',
+    // latitude,
+    // longitude
+   
     };
     
     const result = await BookingService.bookAndPay(payload);
