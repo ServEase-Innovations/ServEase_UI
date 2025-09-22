@@ -138,6 +138,7 @@ const handleLogoClick = () => {
     if (user?.role === "SERVICE_PROVIDER") {
       const newSocket = io("https://payments-j5id.onrender.com", {
         transports: ["websocket"],
+        withCredentials: true,
       });
 
       newSocket.on("connect", () => {
