@@ -29,7 +29,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
 import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
-import ProviderNotifications from "./components/Notifications/ProviderNotifications";
+import BookingRequestToast from "./components/Notifications/BookingRequestToast";
+import { io, Socket } from "socket.io-client";
 
 
 function App() {
@@ -40,6 +41,9 @@ function App() {
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
   const [currentSection, setCurrentSection] = useState<string>("HOME"); // Changed from 'page' to 'currentSection'
   const [notificationReceived, setNotificationReceived] = useState(false);
+  const [activeToast, setActiveToast] = useState<any>(null);
+  const [toastOpen, setToastOpen] = useState(false);
+
   
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
@@ -62,19 +66,23 @@ function App() {
     getAccessTokenSilently,
   } = useAuth0();
 
-// Extract user data from Redux with correct type
-// const user = useSelector((state: RootState) => state.user as UserState);
-// Ensure `value` is not null before accessing `role`
-// const userRole = user?.value?.role ?? "No Role";
-// console.log("Logged-in user role:", userRole);
-
-// if (userRole === "CUSTOMER") {
-//   console.log("User is a Customer");
-// } else if (userRole === "SERVICE_PROVIDER") {
-//   console.log("User is a Service Provider");
-// } else {
-//   console.log("User role is unknown");
-// }
+  const handleAccept = async (engagementId: number) => {
+    try {
+      const res = await axios.patch(
+        `https://payments-j5id.onrender.com/api/engagements/${engagementId}/accept`,
+        { providerId: user?.serviceProviderId }
+      );
+      console.log("✅ Engagement accepted:", res.data);
+    } catch (err) {
+      console.error("❌ Failed to accept engagement", err);
+    }
+  };
+  
+  // handler for reject
+  const handleReject = (engagementId: number) => {
+    console.log("❌ Engagement rejected:", engagementId);
+    // Optionally send a reject API call
+  };
 
   const handleCheckoutItems = (item: any) => {
     setCheckoutData(item);
@@ -123,24 +131,39 @@ const handleLogoClick = () => {
     getPricingData();
   });
 
-useEffect(() => {
-    console.log("user in useEffect -> ", user);
-    if(user?.role === "SERVICE_PROVIDER") {
-      const ws = new WebSocket("wss://utils-ndt3.onrender.com/");
+  const [socket, setSocket] = useState<Socket | null>(null);
 
-      ws.onopen = () => {
-        const serviceProviderId = user?.serviceProviderId;
-        if (serviceProviderId) {
-          ws.send(JSON.stringify({ type: "IDENTIFY", id: serviceProviderId }));
-        }
+  useEffect(() => {
+    console.log("User data changed:", user);
+    if (user?.role === "SERVICE_PROVIDER") {
+      const newSocket = io("wss://payments-j5id.onrender.com", {
+        transports: ["websocket"],
+      });
+
+      newSocket.on("connect", () => {
+        console.log("✅ Connected to server:", newSocket.id);
+        console.log("✅ Connected to join:", user);
+        newSocket.emit("join", { providerId: user.serviceProviderId });
+      });
+
+      newSocket.on("new-engagement", (data) => {
+        console.log("📩 New engagement:", data);
+        setActiveToast(data.engagement);
+      });
+
+      newSocket.on("disconnect", () => {
+        console.log("❌ Disconnected");
+      });
+
+      newSocket.on("connect_error", (err) => {
+        console.error("Connection error:", err.message);
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
       };
-
-      ws.onmessage = (event) => {
-        console.log("WebSocket message received:", event.data);
-        setNotificationReceived(true);
-      };
-
-      return () => ws.close();
     }
   }, [user]);
 
@@ -218,9 +241,6 @@ useEffect(() => {
 
       {/* Render the current content */}
       {renderContent()}
-
-      {/* <ProviderNotifications providerId={202} /> */}
-
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 
@@ -228,6 +248,15 @@ useEffect(() => {
           onContactClick={handleContactClick} 
         />
       )}
+       {activeToast && (
+  <BookingRequestToast
+    engagement={activeToast}
+    onAccept={handleAccept}
+    onReject={handleReject}
+    onClose={() => setActiveToast(null)}
+  />
+)}
+
     </div>
   );
 }
