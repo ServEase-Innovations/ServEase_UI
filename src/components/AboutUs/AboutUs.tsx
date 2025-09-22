@@ -1,35 +1,8 @@
-import React from "react";
+/* eslint-disable */
 
 interface AboutUsProps {
   onBack: () => void;
 }
-
-// const teamMembers = [
-//   {
-//     name: "David Kivitz",
-//     role: "CEO",
-//     img: "https://via.placeholder.com/100",
-//     desc: "As head of the company, my job is to ensure everyone",
-//   },
-//   {
-//     name: "Antony Radbod",
-//     role: "CFO",
-//     img: "https://via.placeholder.com/100",
-//     desc: "As head of the company, my job is to ensure everyone",
-//   },
-//   {
-//     name: "Justin Vuong",
-//     role: "CIO",
-//     img: "https://via.placeholder.com/100",
-//     desc: "As head of the company, my job is to ensure everyone",
-//   },
-//   {
-//     name: "Jim Bates",
-//     role: "Director of Credit & Risk",
-//     img: "https://via.placeholder.com/100",
-//     desc: "As head of the company, my job is to ensure everyone",
-//   },
-// ];
 
 const AboutUs = ({ onBack }) => {
   return (

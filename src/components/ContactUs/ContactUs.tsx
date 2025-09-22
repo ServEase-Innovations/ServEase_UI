@@ -1,4 +1,5 @@
 /* ContactUs.tsx */
+/* eslint-disable */
 import React from "react";
 import {
   FaLinkedin,

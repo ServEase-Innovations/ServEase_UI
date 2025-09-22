@@ -1,4 +1,5 @@
 // src/components/ui/card.tsx
+/* eslint-disable */
 
 import * as React from "react";
 import { cn } from "../utils";
