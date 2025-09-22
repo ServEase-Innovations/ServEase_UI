@@ -137,6 +137,7 @@ const handleLogoClick = () => {
     console.log("User data changed:", user);
   
     if (user?.role === "SERVICE_PROVIDER") {
+      console.log("++++++++++++++ CONNeCTIONG TO SOCKET ++++++++++++++");
       const socketUrl =
         process?.env?.REACT_APP_SOCKET_URL || "http://localhost:5000";
   
