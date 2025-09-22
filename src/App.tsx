@@ -134,20 +134,18 @@ const handleLogoClick = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    console.log("User data changed:", user);
+    if (!isAuthenticated || !user) {
+      console.log("⏳ Waiting for user authentication...");
+      return;
+    }
   
-    if (user?.role === "SERVICE_PROVIDER") {
-      console.log("++++++++++++++ CONNeCTIONG TO SOCKET ++++++++++++++");
+    console.log("🔎 Full user object:", user);
+  
+    if (user.role === "SERVICE_PROVIDER") {
+      console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
+  
       const socketUrl =
-        process?.env?.REACT_APP_SOCKET_URL || "http://localhost:5000";
-  
-      console.log("🔌 Attempting to connect to socket at:", socketUrl);
-  
-      if (!process.env.REACT_APP_SOCKET_URL) {
-        console.warn(
-          "⚠️ REACT_APP_SOCKET_URL is not set. Falling back to localhost."
-        );
-      }
+        process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
   
       const newSocket = io(socketUrl, {
         transports: ["websocket"],
@@ -156,14 +154,12 @@ const handleLogoClick = () => {
   
       newSocket.on("connect", () => {
         console.log("✅ Connected to server:", newSocket.id);
-        console.log("✅ Sending join for provider:", user.serviceProviderId);
-  
         newSocket.emit("join", { providerId: user.serviceProviderId });
       });
   
       newSocket.on("new-engagement", (data) => {
         console.log("📩 New engagement received:", data);
-        setActiveToast(data.engagement); // 👈 your toast logic
+        setActiveToast(data.engagement);
       });
   
       newSocket.on("disconnect", () => {
@@ -181,7 +177,8 @@ const handleLogoClick = () => {
         newSocket.disconnect();
       };
     }
-  }, [user]);
+  }, [isAuthenticated, user]);
+  
 
 
    const getPricingData = () => {
