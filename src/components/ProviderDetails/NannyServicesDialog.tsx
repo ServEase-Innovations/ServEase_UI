@@ -128,7 +128,10 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
- 
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const { isAuthenticated, user, loginWithRedirect } = useAuth0();
@@ -354,73 +357,90 @@ useEffect(() => {
   };
 
   const handleCheckout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
 
-      // 1. Filter selected packages
-      const selectedPackages = Object.entries(packages)
-        .filter(([_, pkg]) => pkg.selected)
-        .map(([key, pkg]) => ({
-          key,
-          age: pkg.age,
-          price: pkg.calculatedPrice,
-          category: pkg.category,
-          packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
-        }));
+    // 1. Filter selected packages
+    const selectedPackages = Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([key, pkg]) => ({
+        key,
+        age: pkg.age,
+        price: pkg.calculatedPrice,
+        category: pkg.category,
+        packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+      }));
 
-      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-      if (baseTotal === 0) {
-        throw new Error('Please select at least one service');
-      }
-
-      const customerId = user?.customerid || "guest-id";
-
-      // 2. Build responsibilities array with readable taskType
-      const responsibilities = selectedPackages.map(pkg => {
-        return {
-          taskType: `${pkg.category} care - ${pkg.packageType} service`,
-          age: pkg.age,
-          careType: activeTab, // 'baby' or 'elderly'
-        };
-      });
-
-      // 3. Construct payload
-      const payload: BookingPayload = {
-        customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-        start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        end_date: bookingType?.endDate || "",
-        start_time: bookingType?.timeRange || '',
-        responsibilities: { tasks: responsibilities },
-        booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-        taskStatus: "NOT_STARTED",
-        service_type: "NANNY",
-        base_amount: baseTotal,
-        payment_mode: "razorpay",
-      };
-
-      console.log("Final Nanny Payload:", payload);
-
-      // 4. Send booking request
-      const result = await BookingService.bookAndPay(payload);
-
-      // 5. Clear carts & close dialogs
-      dispatch(removeFromCart({ type: 'meal' }));
-      dispatch(removeFromCart({ type: 'maid' }));
-      dispatch(removeFromCart({ type: 'nanny' }));
-
-      handleClose();
-      setCartDialogOpen(false);
-      alert("Booking confirmed! 🎉");
-
-    } catch (err: any) {
-      console.error("Checkout error:", err);
-      setError(err.response?.data?.message || err.message || "Payment failed. Please try again.");
-    } finally {
-      setLoading(false);
+    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+    if (baseTotal === 0) {
+      setSnackbarMessage("Please select at least one service");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
     }
-  };
+
+    const customerId = user?.customerid || "guest-id";
+
+    const responsibilities = selectedPackages.map(pkg => ({
+      taskType: `${pkg.category} care - ${pkg.packageType} service`,
+      age: pkg.age,
+      careType: activeTab,
+    }));
+
+    const payload: BookingPayload = {
+      customerid: customerId,
+      serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
+      start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+      end_date: bookingType?.endDate || "",
+      start_time: bookingType?.timeRange || '',
+      responsibilities: { tasks: responsibilities },
+      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+      taskStatus: "NOT_STARTED",
+      service_type: "NANNY",
+      base_amount: baseTotal,
+      payment_mode: "razorpay",
+    };
+
+    console.log("Final Nanny Payload:", payload);
+
+    const result = await BookingService.bookAndPay(payload);
+
+    // ✅ Show success message
+    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+
+    // clear cart + close
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
+    handleClose();
+    setCartDialogOpen(false);
+
+  } catch (err: any) {
+    console.error("Checkout error:", err);
+
+    // ✅ Extract proper backend message
+    let backendMessage = "Payment failed. Please try again.";
+    if (err?.response?.data) {
+      if (typeof err.response.data === "string") {
+        backendMessage = err.response.data;
+      } else if (err.response.data.error) {
+        backendMessage = err.response.data.error;
+      } else if (err.response.data.message) {
+        backendMessage = err.response.data.message;
+      }
+    } else if (err.message) {
+      backendMessage = err.message;
+    }
+
+    setSnackbarMessage(backendMessage);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const calculateTotal = () => {
     return Object.entries(packages)
@@ -641,15 +661,21 @@ useEffect(() => {
         handleNannyCheckout={handleCheckout}
       />
       
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-      >
-        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
+     <Snackbar
+  open={snackbarOpen}
+  autoHideDuration={6000}
+  onClose={() => setSnackbarOpen(false)}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert
+    onClose={() => setSnackbarOpen(false)}
+    severity={snackbarSeverity}
+    sx={{ width: "100%" }}
+  >
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
+
     </>
   );
 };

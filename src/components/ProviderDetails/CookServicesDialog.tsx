@@ -5,7 +5,7 @@ import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box, CircularProgress } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box, CircularProgress, Snackbar, Alert } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
@@ -52,6 +52,9 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   const currentLocation = users?.customerDetails?.currentLocation;
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   // Calculate price based on number of persons
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
@@ -227,132 +230,81 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
 
   // Checkout handler (Razorpay payment)
   const handleCheckout = async () => {
-    try {
+  try {
     setLoading(true);
-      const selectedPackages = Object.entries(packages)
+
+    const selectedPackages = Object.entries(packages)
       .filter(([_, pkg]) => pkg.selected)
       .map(([name, pkg]) => ({
-        taskType: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize: breakfast -> Breakfast
+        taskType: name.charAt(0).toUpperCase() + name.slice(1),
         persons: pkg.persons,
         price: pkg.calculatedPrice,
       }));
-    
+
     const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-   
-    const customerName = user?.name || "Guest";
     const customerId = user?.customerid || "guest-id";
-    
- // Build responsibilities array for payload
+
     const responsibilities = selectedPackages.map(pkg => ({
       taskType: pkg.taskType,
       persons: pkg.persons
     }));
 
-    // Calculate tax and platform fee (18% tax + 6% platform fee)
-    const tax = baseTotal * 0.18;
-    const platformFee = baseTotal * 0.06;
-    const grandTotal = baseTotal + tax + platformFee;
-    // First create the Razorpay order with initial amount
-    
-    console.log("Initiating payment for amount:", grandTotal);
-    
-    const bookingDetails: BookingDetails = {
-    
-    serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-    
-    customerId: customerId,
-    
-    startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-    
-    endDate: bookingType?.endDate || "",
-    
-    start_time: bookingType?.timeRange || '',
-    
-    end_date: bookingType?.endDate || "",
-    
-    responsibilities: [],
-    
-    address: currentLocation,
-    
-    timeslot: bookingType?.timeRange || "",
-    
-    monthlyAmount: baseTotal,
-    
-    paymentMode: "UPI",
-    
-    booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-    
-    taskStatus: "NOT_STARTED",
-    
-    service_type: "COOK",
-    
-    base_amount: baseTotal,
-    };
-    
-    try {
-
-      // const getCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
-      //   new Promise((resolve, reject) => {
-      //     if (!navigator.geolocation) {
-      //       reject(new Error("Geolocation is not supported by this browser."));
-      //     } else {
-      //       navigator.geolocation.getCurrentPosition(
-      //         (position) => {
-      //           resolve({
-      //             latitude: position.coords.latitude,
-      //             longitude: position.coords.longitude,
-      //           });
-      //         },
-      //         (error) => reject(error)
-      //       );
-      //     }
-      //   });
-
-      //   const { latitude, longitude } = await getCoordinates()
-
     const payload: BookingPayload = {
-    customerid: customerId,
-    serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-    start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-    end_date: bookingType?.endDate || "",
-     responsibilities: { tasks: responsibilities },
-    booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-    taskStatus: "NOT_STARTED",
-    service_type: "COOK",
-    base_amount: baseTotal,
-    payment_mode: "razorpay",
-    start_time : bookingType?.timeRange || '',
-    // latitude,
-    // longitude
-   
+      customerid: customerId,
+      serviceproviderid: providerDetails?.serviceproviderId
+        ? Number(providerDetails.serviceproviderId)
+        : 0,
+      start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      end_date: bookingType?.endDate || "",
+      responsibilities: { tasks: responsibilities },
+      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+      taskStatus: "NOT_STARTED",
+      service_type: "COOK",
+      base_amount: baseTotal,
+      payment_mode: "razorpay",
+      start_time: bookingType?.timeRange || "",
     };
-    
+
     const result = await BookingService.bookAndPay(payload);
     console.log("Final result:", result);
-    // setStatus("Booking & Payment Successful ✅");
+
+    // ✅ Success snackbar
+    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+
     if (sendDataToParent) {
-    sendDataToParent(BOOKINGS);
+      sendDataToParent(BOOKINGS);
     }
     handleClose();
     setCartDialogOpen(false);
-    } catch (err: any) {
-    console.error(err);
-    }
-    finally {
-    setLoading(false);
-    }
-    
-    
-    
-    
-    
-    } catch (error) {
+
+  } catch (error: any) {
     console.error("Checkout error:", error);
-    alert("Failed to initiate payment. Please try again.");
-    } finally {
-    setLoading(false);
+
+    // ✅ Extract backend error properly
+    let backendMessage = "Failed to initiate payment";
+    if (error?.response?.data) {
+      if (typeof error.response.data === "string") {
+        backendMessage = error.response.data;
+      } else if (error.response.data.error) {
+        backendMessage = error.response.data.error; // 👈 your case
+      } else if (error.response.data.message) {
+        backendMessage = error.response.data.message;
+      }
+    } else if (error.message) {
+      backendMessage = error.message;
     }
-    };
+
+    setSnackbarMessage(backendMessage);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
     if (!bookingPreference) return 'MONTHLY';
@@ -512,6 +464,17 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   handleClose={() => setCartDialogOpen(false)}
   handleCookCheckout={handleCheckout}
 />
+<Snackbar
+  open={snackbarOpen}
+  autoHideDuration={4000}
+  onClose={() => setSnackbarOpen(false)}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
+
     </>
   );
 };

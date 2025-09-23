@@ -44,9 +44,6 @@ import { Button } from "../Button/button";
 import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
-import AddressComponent from "./AddressComponent";
-import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -86,22 +83,6 @@ interface FormData {
   terms: boolean;
   privacy: boolean;
   keyFacts: boolean;
-    permanentAddress: {
-    apartment: string;
-    street: string;
-    city: string;
-    state: string;
-    country: string;
-    pincode: string;
-  };
-  correspondenceAddress: {
-    apartment: string;
-    street: string;
-    city: string;
-    state: string;
-    country: string;
-    pincode: string;
-  };
 }
 
 // Define the shape of errors to hold string messages
@@ -132,22 +113,6 @@ interface FormErrors {
   documentImage?: string;
   cookingSpeciality?: string;
   diet?: string;
-   permanentAddress?: {
-    apartment?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    pincode?: string;
-  };
-  correspondenceAddress?: {
-    apartment?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    pincode?: string;
-  };
 }
 
 // Regex for validation
@@ -223,22 +188,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     terms: false,
     privacy: false,
     keyFacts: false,
-     permanentAddress: {
-    apartment: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    pincode: ""
-  },
-  correspondenceAddress: {
-    apartment: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    pincode: ""
-  },
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -271,12 +220,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     [name]: value,
   }));
 };
-const handleAddressChange = (type: 'permanent' | 'correspondence', data: any) => {
-  setFormData(prev => ({
-    ...prev,
-    [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
-  }));
-};
+
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/;
@@ -492,60 +436,28 @@ const handleAddressChange = (type: 'permanent' | 'correspondence', data: any) =>
     }
 
     if (activeStep === 1) {
-  // Validate permanent address
-  if (!formData.permanentAddress.apartment) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, apartment: "Apartment is required." };
-  }
-  if (!formData.permanentAddress.street) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, street: "Street is required." };
-  }
-  if (!formData.permanentAddress.city) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, city: "City is required." };
-  }
-  if (!formData.permanentAddress.state) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, state: "State is required." };
-  }
-  if (!formData.permanentAddress.country) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, country: "Country is required." };
-  }
-  if (!formData.permanentAddress.pincode) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode is required." };
-  } else if (formData.permanentAddress.pincode.length !== 6) {
-    tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode must be exactly 6 digits." };
-  }
+      if (!formData.address) {
+        tempErrors.address = "Address is required.";
+      }
+      if (!formData.buildingName) {
+        tempErrors.buildingName = "Building Name is required.";
+      }
+      if (!formData.locality) {
+        tempErrors.locality = "Locality is required.";
+      }
+      if (!formData.street) {
+        tempErrors.street = "Street is required.";
+      }
+      if (!formData.currentLocation) {
+        tempErrors.currentLocation = "Current Location is required.";
+      }
+      if (!formData.pincode) {
+        tempErrors.pincode = "Pincode is required.";
+      } else if (formData.pincode.length !== 6) {
+        tempErrors.pincode = "Pincode must be exactly 6 digits.";
+      }
+    }
 
-  // Validate correspondence address only if it's different from permanent address
-  const isSameAddress = 
-    formData.permanentAddress.apartment === formData.correspondenceAddress.apartment &&
-    formData.permanentAddress.street === formData.correspondenceAddress.street &&
-    formData.permanentAddress.city === formData.correspondenceAddress.city &&
-    formData.permanentAddress.state === formData.correspondenceAddress.state &&
-    formData.permanentAddress.country === formData.correspondenceAddress.country &&
-    formData.permanentAddress.pincode === formData.correspondenceAddress.pincode;
-
-  if (!isSameAddress) {
-    if (!formData.correspondenceAddress.apartment) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, apartment: "Apartment is required." };
-    }
-    if (!formData.correspondenceAddress.street) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, street: "Street is required." };
-    }
-    if (!formData.correspondenceAddress.city) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, city: "City is required." };
-    }
-    if (!formData.correspondenceAddress.state) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, state: "State is required." };
-    }
-    if (!formData.correspondenceAddress.country) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, country: "Country is required." };
-    }
-    if (!formData.correspondenceAddress.pincode) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode is required." };
-    } else if (formData.correspondenceAddress.pincode.length !== 6) {
-      tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode must be exactly 6 digits." };
-    }
-  }
-}
     if (activeStep === 2) {
       if (!formData.housekeepingRole) {
         tempErrors.housekeepingRole = "Please select a service type.";
@@ -702,102 +614,77 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSnackbarOpen(false);
   };
 
- const fetchLocationData = async () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const response = await axios.get(
-            "https://maps.googleapis.com/maps/api/geocode/json",
-            {
-              params: {
-                latlng: `${latitude},${longitude}`,
-                key: keys.api_key,
-              },
-            }
-          );
-
-          const locationData = response.data.results[0];
-          const address = locationData.formatted_address || "";
-          const components = locationData.address_components;
-
-          let apartment = "", street = "", city = "", pincode = "", state = "", country = "";
-
-          components.forEach((component: any) => {
-            if (component.types.includes("street_number")) {
-              apartment = component.long_name;
-            } else if (component.types.includes("route")) {
-              street = component.long_name;
-            } else if (component.types.includes("locality") || component.types.includes("sublocality")) {
-              city = component.long_name;
-            } else if (component.types.includes("administrative_area_level_1")) {
-              state = component.long_name;
-            } else if (component.types.includes("country")) {
-              country = component.long_name;
-            } else if (component.types.includes("postal_code")) {
-              pincode = component.long_name;
-            }
-          });
-
-          // If we couldn't find a locality, try using the first type that might contain a city name
-          if (!city) {
-            const cityComponent = components.find((comp: any) => 
-              comp.types.includes("locality") || 
-              comp.types.includes("sublocality") || 
-              comp.types.includes("administrative_area_level_2")
+  const fetchLocationData = async () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Use the latitude and longitude to fetch location data from the Geocode API
+            const response = await axios.get(
+              "https://maps.googleapis.com/maps/api/geocode/json",
+              {
+                params: {
+                  latlng: `${latitude},${longitude}`,
+                  key: keys.api_key, // Ensure your API key is here
+                },
+              }
             );
-            if (cityComponent) {
-              city = cityComponent.long_name;
-            }
+
+            // Extract the location data from the API response
+            const locationData = response.data.results[0];
+
+            // Extract relevant fields from the location data
+            const address = locationData.formatted_address || "";
+            const components = locationData.address_components;
+
+            let buildingName = "",
+              locality = "",
+              street = "",
+              pincode = "",
+              nearbyLocation = "";
+
+            components.forEach((component: any) => {
+              if (component.types.includes("street_number")) {
+                street = component.long_name;
+              } else if (component.types.includes("route")) {
+                street += ` ${component.long_name}`;
+              } else if (component.types.includes("locality")) {
+                locality = component.long_name;
+              } else if (component.types.includes("postal_code")) {
+                pincode = component.long_name;
+              } else if (
+                component.types.includes("administrative_area_level_1")
+              ) {
+                nearbyLocation = component.long_name;
+              }
+            });
+
+            // Autofill form fields with the location data
+            setFormData((prevState) => ({
+              ...prevState,
+              address: address,
+              buildingName: buildingName,
+              locality: locality,
+              street: street,
+              pincode: pincode,
+              currentLocation: address,
+              nearbyLocation: nearbyLocation,
+              latitude: latitude,
+              longitude: longitude,
+            }));
+          } catch (error) {
+            console.error("Error fetching location data", error);
           }
-
-          const newAddress = {
-            apartment: apartment || "Not specified",
-            street: street || "Not specified",
-            city: city || "Not specified",
-            state: state || "Not specified",
-            country: country || "Not specified",
-            pincode: pincode || ""
-          };
-
-          setFormData(prev => ({
-            ...prev,
-            permanentAddress: newAddress,
-
-          }));
-
-          // Show success message
-          setSnackbarMessage("Location fetched successfully!");
-          setSnackbarSeverity("success");
-          setSnackbarOpen(true);
-
-        } catch (error) {
-          console.error("Error fetching location data", error);
-          setSnackbarMessage("Failed to fetch location data. Please try again.");
-          setSnackbarSeverity("error");
-          setSnackbarOpen(true);
+        },
+        (error) => {
+          console.error("Geolocation error:", error.message);
         }
-      },
-      (error) => {
-        console.error("Geolocation error:", error.message);
-        setSnackbarMessage("Geolocation failed. Please check your browser permissions.");
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
-    );
-  } else {
-    console.log("Geolocation is not supported by this browser.");
-    setSnackbarMessage("Geolocation is not supported by your browser.");
-    setSnackbarSeverity("warning");
-    setSnackbarOpen(true);
-  }
-};
+      );
+    } else {
+      console.log("Geolocation is not supported by this browser.");
+    }
+  };
   const validateAge = (dob) => {
     if (!dob) return false;
 
@@ -853,14 +740,6 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
       setSnackbarOpen(false);
     }
   };
-const handleTermsChange = (allAccepted: boolean) => {
-  setFormData(prev => ({
-    ...prev,
-    keyFacts: allAccepted,
-    terms: allAccepted,
-    privacy: allAccepted,
-  }));
-};
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -1043,32 +922,111 @@ const handleTermsChange = (allAccepted: boolean) => {
             </Grid>
           </Grid>
         );
-    // In your main component's renderStepContent for step 1:
-case 1:
-  return (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <AddressComponent
-          onAddressChange={handleAddressChange}
-          permanentAddress={formData.permanentAddress}
-          correspondenceAddress={formData.correspondenceAddress}
-          errors={{
-            permanent: errors.permanentAddress,
-            correspondence: errors.correspondenceAddress
-          }}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={fetchLocationData}
-        >
-          Fetch My Location
-        </Button>
-      </Grid>
-    </Grid>
-  );
+      case 1:
+        return (
+          <Grid container spacing={2}>
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <TextField
+                placeholder="Address *"
+                name="address"
+                fullWidth
+                required
+                value={formData.address}
+                onChange={handleChange}
+                error={!!errors.address}
+                helperText={errors.address}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Building Name *"
+                name="buildingName"
+                fullWidth
+                required
+                value={formData.buildingName}
+                onChange={handleChange}
+                error={!!errors.buildingName}
+                helperText={errors.buildingName}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Locality *"
+                name="locality"
+                fullWidth
+                required
+                value={formData.locality}
+                onChange={handleChange}
+                error={!!errors.locality}
+                helperText={errors.locality}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Street *"
+                name="street"
+                fullWidth
+                required
+                value={formData.street}
+                onChange={handleChange}
+                error={!!errors.street}
+                helperText={errors.street}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Pincode *"
+                name="pincode"
+                fullWidth
+                required
+                value={formData.pincode}
+                onChange={handleRealTimeValidation}
+                error={!!errors.pincode}
+                helperText={errors.pincode}
+                inputProps={{
+                  maxLength: 6,
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                }}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Current Location *"
+                name="currentLocation"
+                fullWidth
+                required
+                value={formData.currentLocation}
+                onChange={handleChange}
+                error={!!errors.currentLocation}
+                helperText={errors.currentLocation}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                placeholder="Nearby Location"
+                name="nearbyLocation"
+                fullWidth
+                value={formData.nearbyLocation}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={fetchLocationData}
+              >
+                Fetch Location
+              </Button>
+            </Grid>
+          </Grid>
+        );
       case 2: // Additional Details
         return (
           <Grid container spacing={2}>
@@ -1328,8 +1286,122 @@ case 1:
         </Typography>
 
      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-  <TermsCheckboxes onChange={handleTermsChange} />
- 
+  {/* Key Facts */}
+  <FormControlLabel
+    control={
+      <Checkbox
+        checked={formData.keyFacts}
+        onChange={handleChangeCheckbox}
+        name="keyFacts"
+        required
+      />
+    }
+    label={
+      <Typography
+        component="span"
+        sx={{ color: '#4a5568', cursor: 'pointer' }}
+        onClick={() => window.open('/KeyFactsStatement', '_blank')}
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="/KeyFactsStatement"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+          onClick={(e) => e.stopPropagation()} // prevent parent click
+        >
+          Key Facts Statement
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
+        </a>
+      </Typography>
+    }
+  />
+
+  {/* Terms & Conditions */}
+  <FormControlLabel
+    control={
+      <Checkbox
+        checked={formData.terms}
+        onChange={handleChangeCheckbox}
+        name="terms"
+        required
+      />
+    }
+    label={
+      <Typography
+        component="span"
+        sx={{ color: '#4a5568', cursor: 'pointer' }}
+        onClick={() => window.open('/TnC', '_blank')}
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="/TnC"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          Terms and Conditions
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
+        </a>
+      </Typography>
+    }
+  />
+
+  {/* Privacy */}
+  <FormControlLabel
+    control={
+      <Checkbox
+        checked={formData.privacy}
+        onChange={handleChangeCheckbox}
+        name="privacy"
+        required
+      />
+    }
+    label={
+      <Typography
+        component="span"
+        sx={{ color: '#4a5568', cursor: 'pointer' }}
+        onClick={() => window.open('/Privacy', '_blank')}
+      >
+        I agree to the ServEaso{' '}
+        <a
+          href="/Privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#3182ce',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          Privacy Statement
+          <OpenInNewIcon
+            fontSize="small"
+            style={{ marginLeft: 4, verticalAlign: 'middle' }}
+          />
+        </a>
+      </Typography>
+    }
+  />
 </Box>     
       </Grid>
     </Grid>
@@ -1342,38 +1414,22 @@ case 1:
   return (
     <>
       <Dialog fullWidth maxWidth="sm" open={true} >
-     <DialogHeader
-  style={{ 
-    position: 'relative', 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  }}
->
-   <Typography 
-  variant="h5" 
-  gutterBottom 
-  sx={{ textAlign: 'center', paddingTop: 2 }}
->
-    Service Provider Registration
-  </Typography>
-  <IconButton
-    aria-label="close"
-    onClick={() => onBackToLogin(true)}
-    sx={{
-      position: 'absolute',
-      right: 8,
-      top: 8,
-      color: '#fff',
-    }}
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogHeader>
-
-         <Box sx={{ padding: 2 }}>
-          
-         
+        <Box sx={{ padding: 2 }}>
+          <IconButton
+          aria-label="close"
+          onClick={() => onBackToLogin(true)}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+          <Typography variant="h5" gutterBottom className="text-center pb-3">
+            Service Provider Registration
+          </Typography>
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>
@@ -1460,3 +1516,4 @@ case 1:
 };
 
 export default ServiceProviderRegistration;
+

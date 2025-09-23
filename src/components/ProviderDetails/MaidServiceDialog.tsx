@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton, CircularProgress } from '@mui/material';
+import { Dialog, DialogContent, Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
@@ -194,6 +194,11 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const providerFullName = `${providerDetails?.firstName || ''} ${providerDetails?.lastName || ''}`.trim();
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const filtered = getFilteredPricing('maid');
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+
 
   // Normalize pricing source (prefer hook -> store -> empty)
   const maidPricingRows: MaidPricingRow[] = useMemo(() => {
@@ -680,22 +685,19 @@ const handleCheckout = async () => {
   try {
     setLoading(true);
 
-    // Get only maid cart items
     const selectedServices = allCartItems.filter(isMaidCartItem);
-
     const baseTotal = selectedServices.reduce((sum, item) => sum + (item.price || 0), 0);
     if (baseTotal <= 0) {
-      alert("No items selected for checkout");
+      setSnackbarMessage("No items selected for checkout");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
       return;
     }
 
     const customerId = user?.customerid || "guest-id";
-
-    // --- Separate packages and add-ons ---
     const packages = selectedServices.filter(item => item.serviceType === "package");
     const addOns = selectedServices.filter(item => item.serviceType === "addon");
 
-    // --- Build responsibilities ---
     const responsibilities = {
       tasks: packages.map(item => {
         if (item.name === "utensilCleaning") {
@@ -709,17 +711,16 @@ const handleCheckout = async () => {
         }
         return { taskType: item.name };
       }),
-      add_ons: addOns.map(item => ({ taskType: item.name })) // <-- add-ons separately
+      add_ons: addOns.map(item => ({ taskType: item.name }))
     };
 
-    // --- Prepare payload ---
     const payload: BookingPayload = {
       customerid: customerId,
       serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
       start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
       end_date: bookingType?.endDate || "",
       start_time: bookingType?.timeRange || "",
-      responsibilities, // <-- now includes add_ons separately
+      responsibilities,
       booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
       taskStatus: "NOT_STARTED",
       service_type: "MAID",
@@ -731,15 +732,37 @@ const handleCheckout = async () => {
 
     const result = await BookingService.bookAndPay(payload);
 
+    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+
     if (sendDataToParent) {
       sendDataToParent(BOOKINGS);
     }
     handleClose();
     setCartDialogOpen(false);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Checkout error:", error);
-    alert("Failed to initiate payment. Please try again.");
+
+    // ✅ Extract proper backend error
+    let backendMessage = "Failed to initiate payment";
+    if (error?.response?.data) {
+      if (typeof error.response.data === "string") {
+        backendMessage = error.response.data;
+      } else if (error.response.data.error) {
+        backendMessage = error.response.data.error;
+      } else if (error.response.data.message) {
+        backendMessage = error.response.data.message;
+      }
+    } else if (error.message) {
+      backendMessage = error.message;
+    }
+
+    setSnackbarMessage(backendMessage);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+
   } finally {
     setLoading(false);
   }
@@ -1014,6 +1037,17 @@ const handleCheckout = async () => {
   handleClose={() => setCartDialogOpen(false)}
   handleMaidCheckout={handleCheckout}
 />
+<Snackbar
+  open={snackbarOpen}
+  autoHideDuration={4000}
+  onClose={() => setSnackbarOpen(false)}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
+
     </>
   );
 };
