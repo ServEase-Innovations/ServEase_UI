@@ -1,8 +1,9 @@
 /* eslint-disable */
 import React, { useState } from 'react';
 import axios from 'axios';
+import utilsInstance from 'src/services/utilsInstance';
 
-const API_URL = 'https://utils-ndt3.onrender.com/api'; // Update if different
+// const API_URL = 'https://utils-ndt3.onrender.com/api'; // Update if different
 type LoginWith2FAProps = {
   onLoginSuccess: (role: string) => void;
 };
@@ -22,7 +23,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/register`, { username, password });
+      const res = await utilsInstance.post(`/register`, { username, password });
       if (res.data.qr) {
         setMessage('✅ Registered successfully! Please login now.');
         setMode('login');
@@ -42,7 +43,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/login`, { username, password });
+      const res = await utilsInstance.post(`/login`, { username, password });
       if (res.data.message === '2FA required') {
         setUserId(res.data.userId);
         setStep('2fa');
@@ -61,7 +62,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/verify-token`, {
+      const res = await utilsInstance.post(`/verify-token`, {
         username,
         token: otpCode,
       });

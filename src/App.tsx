@@ -32,6 +32,7 @@ import Footer from "./components/Footer/Footer";
 import BookingRequestToast from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
 import PaymentInstance from "./services/paymentInstance";
+import utilsInstance from "./services/utilsInstance";
 
 
 function App() {
@@ -183,7 +184,7 @@ const handleLogoClick = () => {
 
 
    const getPricingData = () => {
-    axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
+    utilsInstance.get('/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });

@@ -6,6 +6,7 @@ import axiosInstance from "src/services/axiosInstance";
 import { ClipLoader } from "react-spinners";
 import axios from "axios";
 import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import utilsInstance from "src/services/utilsInstance";
 
 interface Address {
   id: string;
@@ -137,8 +138,8 @@ const ProfileScreen = () => {
  // Fetch customer addresses - Combine all addresses
 const fetchCustomerAddresses = async (customerId: number) => {
   try {
-    const response = await axios.get(
-      `https://utils-ndt3.onrender.com/user-settings/${customerId}`
+    const response = await utilsInstance.get(
+      `/user-settings/${customerId}`
     );
 
     // API gives an array of documents for this customer
@@ -266,7 +267,7 @@ const handleAddAddress = async () => {
           ],
         };
 
-        await axios.post("https://utils-ndt3.onrender.com/user-settings", payload);
+        await utilsInstance.post("/user-settings", payload);
         console.log("✅ Address saved successfully:", payload);
       } catch (err) {
         console.error("❌ Failed to save new address:", err);

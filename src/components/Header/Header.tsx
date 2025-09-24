@@ -45,6 +45,7 @@ import {
   import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
   import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
   import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
+import utilsInstance from "src/services/utilsInstance";
   interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -124,8 +125,8 @@ import {
   const email = user.email ?? "";
   
   // Step 4: Check email (this must finish before moving on)
-  const response = await axios.get(
-  `https://utils-ndt3.onrender.com/customer/check-email?email=${encodeURIComponent(email)}`
+  const response = await utilsInstance.get(
+  `/customer/check-email?email=${encodeURIComponent(email)}`
   );
   console.log("Email check response:", response.data);
   console.log("User role:", response.data.user_role);
@@ -196,7 +197,7 @@ import {
   const getCustomerPreferences = async (customerId: number) => {
   try {
   setLoadingLocations(true);
-  const response = await axios.get(`https://utils-ndt3.onrender.com/user-settings/${customerId}`);
+  const response = await utilsInstance.get(`/user-settings/${customerId}`);
   console.log("Response from user settings API:", response.data);
   
   if (response.status === 200) {
@@ -244,7 +245,7 @@ import {
   
   console.log("Creating user preferences with payload:", payload);
   
-  const response = await axios.post("https://utils-ndt3.onrender.com/user-settings", payload);
+  const response = await utilsInstance.post("/user-settings", payload);
   
   // Optionally check response before setting state
   if (response.status === 200 || response.status === 201) {
@@ -520,8 +521,8 @@ import {
   };
   
   try {
-  const response = await axios.put(
-  `https://utils-ndt3.onrender.com/user-settings/${user.customerid}`,
+  const response = await utilsInstance.put(
+  `/user-settings/${user.customerid}`,
   payload
   );
   

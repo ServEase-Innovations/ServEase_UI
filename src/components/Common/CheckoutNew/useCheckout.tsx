@@ -6,6 +6,7 @@ import { BookingDetails } from 'src/types/engagementRequest';
 import { removeFromCart, selectCartItems } from 'src/features/addToCart/addToSlice';
 import { isMaidCartItem, isMealCartItem, isNannyCartItem } from 'src/types/cartSlice';
 import axiosInstance from 'src/services/axiosInstance';
+import utilsInstance from 'src/services/utilsInstance';
 
 interface CheckoutParams {
   baseTotal: number;
@@ -75,8 +76,8 @@ export const useCheckout = () => {
       const grandTotal = baseTotal + tax + platformFee;
 
       // Create Razorpay order
-      const response = await axios.post(
-        "https://utils-ndt3.onrender.com/create-order",
+      const response = await utilsInstance.post(
+        "/create-order",
         { amount: Math.round(grandTotal * 100) },
         { headers: { "Content-Type": "application/json" } }
       );

@@ -44,6 +44,7 @@ import { Button } from "../Button/button";
 import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
+import utilsInstance from "src/services/utilsInstance";
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -586,7 +587,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
           name : `${filteredPayload.firstName} ${filteredPayload.lastName}`,
         };
 
-        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+        utilsInstance.post('/authO/create-autho-user', authPayload)
           .then((authResponse) => {
             console.log("AuthO user created successfully:", authResponse.data);
           }).catch((authError) => {
