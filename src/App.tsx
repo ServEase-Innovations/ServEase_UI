@@ -34,7 +34,6 @@ import { io, Socket } from "socket.io-client";
 import PaymentInstance from "./services/paymentInstance";
 import utilsInstance from "./services/utilsInstance";
 
-
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
