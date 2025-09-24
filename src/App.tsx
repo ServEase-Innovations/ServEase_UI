@@ -31,6 +31,8 @@ import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
 import BookingRequestToast from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
+import PaymentInstance from "./services/paymentInstance";
+import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
 
@@ -71,8 +73,8 @@ function App() {
 
   const handleAccept = async (engagementId: number) => {
     try {
-      const res = await axios.patch(
-        `https://payments-j5id.onrender.com/api/engagements/${engagementId}/accept`,
+      const res = await PaymentInstance.patch(
+        `/api/engagements/${engagementId}/accept`,
         { providerId: user?.serviceProviderId }
       );
       console.log("✅ Engagement accepted:", res.data);
@@ -144,7 +146,7 @@ const handleLogoClick = () => {
   
     console.log("🔎 Full user object:", user);
   
-    if (user.role === "SERVICE_PROVIDER") {
+    if (user.role?.trim().toUpperCase() === "SERVICE_PROVIDER") {
       console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
   
       const socketUrl =
@@ -185,7 +187,7 @@ const handleLogoClick = () => {
 
 
    const getPricingData = () => {
-    axios.get('https://utils-ndt3.onrender.com/records').then(function (response) {
+    utilsInstance.get('/records').then(function (response) {
       console.log(response.data);
       dispatch(add(response.data));
     }).catch(function (error) { console.log(error) });

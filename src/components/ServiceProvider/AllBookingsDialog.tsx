@@ -13,6 +13,7 @@ import axiosInstance from "src/services/axiosInstance";
 import { Booking, BookingHistoryResponse } from "./Dashboard";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import dayjs, { Dayjs } from "dayjs";
+import PaymentInstance from "src/services/paymentInstance";
 
 interface AllBookingsDialogProps {
   bookings: BookingHistoryResponse | null;
@@ -87,8 +88,8 @@ export function AllBookingsDialog({
     try {
       setLoading(true);
       const formatted = `${year}-${String(month).padStart(2, "0")}`;
-      const res = await axiosInstance.get(
-        `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${formatted}`
+      const res = await PaymentInstance.get(
+        `/api/service-providers/${serviceProviderId}/engagements?month=${formatted}`
       );
 
       const apiData: BookingHistoryResponse = res.data;

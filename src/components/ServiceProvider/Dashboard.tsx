@@ -34,6 +34,7 @@ import { ReviewsDialog } from "./ReviewsDialog";
 import axios, { AxiosResponse } from "axios";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import ProviderCalendarBig from "./ProviderCalendarBig";
+import PaymentInstance from "src/services/paymentInstance";
 
 // Types for API response
 interface CustomerHoliday {
@@ -312,14 +313,14 @@ const fetchData = async () => {
     const currentMonthYear = getCurrentMonthYear();
 
     // Fetch payout data
-    const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await axios.get(
-      `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+    const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await PaymentInstance.get(
+      `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
     );
     setPayout(payoutResponse.data);
 
     // Fetch booking engagements
-    const response = await axiosInstance.get(
-      `https://payments-j5id.onrender.com/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+    const response = await PaymentInstance.get(
+      `/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
     );
 
     if (response.status !== 200) {
@@ -370,8 +371,8 @@ useEffect(() => {
     setTaskStatusUpdating(prev => ({ ...prev, [bookingId]: true }));
 
     try {
-      await axios.put(
-        `https://payments-j5id.onrender.com/api/engagements/${bookingId}`,
+      await PaymentInstance.put(
+        `/api/engagements/${bookingId}`,
         { task_status: statusToSend },
         { headers: { "Content-Type": "application/json" } }
       );

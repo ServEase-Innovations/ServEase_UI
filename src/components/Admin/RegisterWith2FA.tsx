@@ -1,8 +1,9 @@
 /* eslint-disable */
 import React, { useState } from "react";
 import axios from "axios";
+import utilsInstance from "src/services/utilsInstance";
 
-const API_URL = "https://utils-ndt3.onrender.com/api";
+// const API_URL = "https://utils-ndt3.onrender.com/api";
 
 const RegisterWith2FA = () => {
   const [username, setUsername] = useState("");
@@ -16,7 +17,7 @@ const RegisterWith2FA = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/register`, { username, password });
+      const res = await utilsInstance.post(`/register`, { username, password });
       setQrCode(res.data.qr); // base64 image
       setUsername(res.data.username); // Needed for OTP verify
       setStep("verify");
@@ -29,7 +30,7 @@ const RegisterWith2FA = () => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/verify`, { username, token: otp });
+      const res = await utilsInstance.post(`/verify`, { username, token: otp });
       setMessage("✅ 2FA setup complete! You can now login.");
       setStep("register");
       setQrCode("");

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../Common/Card";
 import { Button } from "../Button/button";
 import { Bell, CheckCircle } from "lucide-react";
 import axios from "axios";
+import PaymentInstance from "src/services/paymentInstance";
 
 interface NotificationPayload {
   engagementId: number;
@@ -52,8 +53,8 @@ export default function ProviderNotifications({ providerId }: { providerId: numb
 
   const handleAccept = async (engagementId: number) => {
     try {
-      const res = await axios.post(
-        `https://payments-j5id.onrender.com/api/engagements/${engagementId}/accept`,
+      const res = await PaymentInstance.post(
+        `/api/engagements/${engagementId}/accept`,
         { providerId }
       );
       alert(res.data.message || "Engagement accepted!");

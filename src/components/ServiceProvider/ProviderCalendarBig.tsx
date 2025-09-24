@@ -7,6 +7,7 @@ import {
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import axios from "axios";
+import PaymentInstance from "src/services/paymentInstance";
 
 const localizer = momentLocalizer(moment);
 
@@ -42,8 +43,8 @@ export default function ProviderCalendarBig({
     const fetchCalendar = async () => {
       try {
         const month = moment(currentDate).format("YYYY-MM");
-        const res = await axios.get(
-          `https://payments-j5id.onrender.com/api/service-providers/${providerId}/calendar?month=${month}`
+        const res = await PaymentInstance.get(
+          `/api/service-providers/${providerId}/calendar?month=${month}`
         );
 
         const entries: CalendarEntry[] = res.data.calendar || [];
