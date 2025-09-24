@@ -5,9 +5,8 @@ import { Typography, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
-import axiosInstance from '../../services/axiosInstance';
 import { Button } from "../Button/button";
-import VacationManagement from './VacationManagement';
+import axios from "axios";
 
 interface Booking {
   bookingType: string;
@@ -39,6 +38,8 @@ interface ModifyBookingDialogProps {
     timeSlot: string;
   }) => void;
   customerId: number | null;
+  refreshBookings: () => Promise<void>;
+  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
@@ -48,6 +49,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   timeSlots,
   onSave,
   customerId,
+  refreshBookings,
+  setOpenSnackbar,
 }) => {
   const today = dayjs();
   const maxDate90Days = dayjs().add(90, "day");
@@ -133,39 +136,82 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     setIsLoading(true);
     setError(null);
 
-    const timePortion = startDate.format("HH:mm");
-    let finalEndDate = startDate;
-    if (booking.bookingType === "MONTHLY") {
-      finalEndDate = startDate.add(1, "month");
-    } else if (booking.bookingType === "SHORT_TERM") {
-      finalEndDate = endDate || startDate.add(1, "day");
-    }
-
     try {
-      const updatePayload: any = {
-        customerId: customerId,
-        startDate: startDate.format("YYYY-MM-DD"),
-        endDate: finalEndDate.format("YYYY-MM-DD"),
-        timeslot: timePortion,
-        modifiedBy: "CUSTOMER",
-      };
-      await axiosInstance.put(`/api/serviceproviders/update/engagement/${booking.id}`, updatePayload);
+      // Determine what type of modification based on selected section
+      const isDateModification = selectedSection === "BOOKING_DATE";
+      const isTimeModification = selectedSection === "BOOKING_TIME";
+      
+      // Prepare the update payload - only include what's being modified
+      const updatePayload: any = {};
+
+      if (isDateModification) {
+        // Only send date changes for date rescheduling
+        updatePayload.new_start_date = startDate.format("YYYY-MM-DD");
+        
+        // Calculate new end date based on booking type
+        let finalEndDate = startDate;
+        if (booking.bookingType === "MONTHLY") {
+          finalEndDate = startDate.add(1, "month");
+        } else if (booking.bookingType === "SHORT_TERM") {
+          finalEndDate = endDate || startDate.add(1, "day");
+        }
+        updatePayload.new_end_date = finalEndDate.format("YYYY-MM-DD");
+        
+      } else if (isTimeModification) {
+        // Only send time changes for time rescheduling
+        const newStartTime = startDate.format("HH:mm");
+        updatePayload.new_startTime = newStartTime;
+      }
+
+      console.log("Update payload:", updatePayload);
+
+      // Make the API call
+      const response = await axios.put(
+        `https://payments-j5id.onrender.com/api/engagements/${booking.id}`,
+        updatePayload,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Refresh the main bookings data after successful modification
+      if (customerId !== null) {
+        await refreshBookings();
+      }
+
+      // Calculate final end date for the onSave callback
+      let finalEndDate = startDate;
+      if (booking.bookingType === "MONTHLY") {
+        finalEndDate = startDate.add(1, "month");
+      } else if (booking.bookingType === "SHORT_TERM") {
+        finalEndDate = endDate || startDate.add(1, "day");
+      }
+
+      const newStartTime = startDate.format("HH:mm");
+
+      // Call the onSave callback with updated data
       onSave({
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: finalEndDate.format("YYYY-MM-DD"),
-        timeSlot: timePortion,
+        timeSlot: newStartTime,
       });
+
+      setSuccess("Booking modified successfully!");
+      setOpenSnackbar(true);
+      
+      // Close the dialog after successful modification
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+      
     } catch (error: any) {
-      console.error("Error updating booking:", error);
-      setError("Failed to update booking. Please try again.");
+      console.error("Error modifying booking:", error);
+      setError("Failed to modify booking. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleVacationSuccess = () => {
-    setSuccess("Vacation operation completed successfully!");
-    // You might want to refresh parent data here
   };
 
   useEffect(() => {
@@ -221,16 +267,28 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 
             {booking.bookingType === "MONTHLY" && (
               <>
-                <Button variant="contained" fullWidth onClick={() => setSelectedSection("BOOKING_DATE")} disabled={modificationDisabled}>Reschedule Date</Button>
-                <Button variant="contained" fullWidth onClick={() => setSelectedSection("BOOKING_TIME")} disabled={modificationDisabled}>Reschedule Time</Button>
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  onClick={() => setSelectedSection("BOOKING_DATE")} 
+                  disabled={modificationDisabled || isLoading}
+                >
+                  Reschedule Date
+                </Button>
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  onClick={() => setSelectedSection("BOOKING_TIME")} 
+                  disabled={modificationDisabled || isLoading}
+                >
+                  Reschedule Time
+                </Button>
               </>
             )}
 
             {modificationDisabled && (<p className="text-sm text-red-600 text-center">{statusMessage}</p>)}
           </div>
         )}
-
-       
 
         {/* Reschedule Date */}
         {selectedSection === "BOOKING_DATE" && (
@@ -256,8 +314,27 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               </LocalizationProvider>
             </div>
             <div className="p-4 border-t flex justify-between">
-              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
-              <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md">Save Date</button>
+              <button 
+                onClick={() => setSelectedSection("OPTIONS")} 
+                className="px-4 py-2 text-gray-700 border rounded-md"
+                disabled={isLoading}
+              >
+                Back
+              </button>
+              <button 
+                onClick={handleSubmit} 
+                disabled={isLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-blue-300 flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Date'
+                )}
+              </button>
             </div>
           </>
         )}
@@ -290,8 +367,27 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               </LocalizationProvider>
             </div>
             <div className="p-4 border-t flex justify-between">
-              <button onClick={() => setSelectedSection("OPTIONS")} className="px-4 py-2 text-gray-700 border">Back</button>
-              <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md">Save Time</button>
+              <button 
+                onClick={() => setSelectedSection("OPTIONS")} 
+                className="px-4 py-2 text-gray-700 border rounded-md"
+                disabled={isLoading}
+              >
+                Back
+              </button>
+              <button 
+                onClick={handleSubmit} 
+                disabled={isLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-blue-300 flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Time'
+                )}
+              </button>
             </div>
           </>
         )}

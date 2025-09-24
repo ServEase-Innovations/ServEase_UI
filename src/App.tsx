@@ -31,6 +31,8 @@ import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
 import BookingRequestToast from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
+import Chatbot from "./components/Chat/Chatbot";
+import ChatbotButton from "./components/Chat/ChatbotButton";
 
 
 function App() {
@@ -43,6 +45,7 @@ function App() {
   const [notificationReceived, setNotificationReceived] = useState(false);
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState<boolean>(false);
 
   
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
@@ -254,6 +257,11 @@ const handleLogoClick = () => {
 
       {/* Render the current content */}
       {renderContent()}
+      <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
+ <ChatbotButton 
+  open={chatOpen} 
+  onToggle={() => setChatOpen(prev => !prev)} 
+/>
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 

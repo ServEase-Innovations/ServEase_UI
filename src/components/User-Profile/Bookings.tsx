@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -20,7 +20,6 @@ import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
-import VacationManagement from './VacationManagement';
 
 interface Task {
   taskType: string;
@@ -90,9 +89,7 @@ const Booking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
   const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
-  const [vacationDialogOpen, setVacationDialogOpen] = useState(false);
-  const [selectedBookingForVacation, setSelectedBookingForVacation] = useState<Booking | null>(null);
-
+  
   const [openDialog, setOpenDialog] = useState(false);
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
@@ -130,6 +127,20 @@ const Booking: React.FC = () => {
 
   const { user: auth0User, isAuthenticated } = useAuth0();
 
+  // Function to refresh bookings data
+  const refreshBookings = async () => {
+    if (customerId !== null && customerId !== undefined) {
+      const response = await axios.get(
+        `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
+      );
+      
+      const { past = [], ongoing = [], upcoming = [] } = response.data || {};
+      setPastBookings(mapBookingData(past));
+      setCurrentBookings(mapBookingData(ongoing));
+      setFutureBookings(mapBookingData(upcoming));
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated && auth0User) {
       setCustomerId(auth0User.customerid);
@@ -141,16 +152,7 @@ const Booking: React.FC = () => {
     
     const fetchBookings = async () => {
       try {
-        if (customerId !== null && customerId !== undefined) {
-          const response = await axios.get(
-            `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
-          );
-          
-          const { past = [], ongoing = [], upcoming = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(ongoing));
-          setFutureBookings(mapBookingData(upcoming));
-        }
+        await refreshBookings();
       } catch (error) {
         console.error("Error fetching booking details:", error);
       } finally {
@@ -161,6 +163,7 @@ const Booking: React.FC = () => {
     if (customerId !== null && customerId !== undefined) {
       fetchBookings();
     } else if (isAuthenticated) {
+      // Wait for customerId to be set
     } else {
       setIsLoading(false);
     }
@@ -225,10 +228,10 @@ const Booking: React.FC = () => {
 
   const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
     const statusOrder: Record<string, number> = {
-    'IN_PROGRESS': 1,
-    'NOT_STARTED': 2,
-    'COMPLETED': 3,
-    'CANCELLED': 4
+      'NOT_STARTED': 2,
+      'IN_PROGRESS': 1,
+      'COMPLETED': 3,
+      'CANCELLED': 4
     };
 
     return [...bookings].sort((a, b) => {
@@ -311,23 +314,9 @@ const Booking: React.FC = () => {
     setModifyDialogOpen(true);
   };
 
-const handleVacationClick = (booking: Booking) => {
-    setSelectedBookingForVacation(booking);
-    setVacationDialogOpen(true);
-  };
-
-  const handleVacationSuccess = () => {
-    // Refresh bookings data when vacation operation is successful
-    if (customerId !== null) {
-      axios.get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
-        .then((response) => {
-          const { past = [], ongoing = [], upcoming = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(ongoing));
-          setFutureBookings(mapBookingData(upcoming));
-        });
-    }
-    setOpenSnackbar(true);
+  const handleVacationClick = (booking: Booking) => {
+    setSelectedBookingForLeave(booking);
+    setHolidayDialogOpen(true);
   };
 
   const handleApplyLeaveClick = (booking: Booking) => {
@@ -351,21 +340,13 @@ const handleVacationClick = (booking: Booking) => {
         }
       );
 
-      if (customerId !== null) {
-        await axios.get(
-          `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
-        ).then((response) => {
-          const { past = [], ongoing = [], upcoming = [] } = response.data || {};
-          setPastBookings(mapBookingData(past));
-          setCurrentBookings(mapBookingData(ongoing));
-          setFutureBookings(mapBookingData(upcoming));
-        });
-      }
-
+      // Refresh bookings after cancellation
+      await refreshBookings();
       setOpenSnackbar(true);
       
     } catch (error: any) {
       console.error("Error cancelling engagement:", error);
+      // Fallback update local state
       setCurrentBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
@@ -386,55 +367,9 @@ const handleVacationClick = (booking: Booking) => {
     endDate: string;
     timeSlot: string;
   }) => {
-    if (!selectedBooking) return;
-
-    try {
-      setIsRefreshing(true);
-      
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === selectedBooking.id
-            ? { 
-                ...b, 
-                startDate: updatedData.startDate,
-                endDate: updatedData.endDate,
-                timeSlot: updatedData.timeSlot 
-              }
-            : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === selectedBooking.id
-            ? { 
-                ...b, 
-                startDate: updatedData.startDate,
-                endDate: updatedData.endDate,
-                timeSlot: updatedData.timeSlot 
-              }
-            : b
-        )
-      );
-      setModifiedBookings(prev => [...prev, selectedBooking.id]);
-      setModifyDialogOpen(false);
-      setOpenSnackbar(true);
-      
-      if (customerId !== null) {
-        await axiosInstance
-          .get(`api/serviceproviders/get-sp-booking-history-by-customer?customerId=${customerId}`)
-          .then((response) => {
-            const { past = [], current = [], future = [] } = response.data || {};
-            setPastBookings(mapBookingData(past));
-            setCurrentBookings(mapBookingData(current));
-            setFutureBookings(mapBookingData(future));
-          });
-      }
-    } catch (error: any) {
-      console.error("Error updating booking:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      }
-    }
+    // The actual data refresh is handled by the dialog's refreshBookings call
+    // This function can be used for any additional local state updates if needed
+    setModifyDialogOpen(false);
   };
 
   const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
@@ -457,17 +392,8 @@ const handleVacationClick = (booking: Booking) => {
 
       setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
 
-      if (customerId !== null) {
-        await axios
-          .get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
-          .then((response) => {
-            const { past = [], ongoing = [], upcoming = [] } = response.data || {};
-            setPastBookings(mapBookingData(past));
-            setCurrentBookings(mapBookingData(ongoing));
-            setFutureBookings(mapBookingData(upcoming));
-          });
-      }
-
+      // Refresh bookings after applying leave
+      await refreshBookings();
       setOpenSnackbar(true);
       setHolidayDialogOpen(false);
     } catch (error) {
@@ -551,16 +477,17 @@ const handleVacationClick = (booking: Booking) => {
             )}
 
             {booking.bookingType === "MONTHLY" && (
-               <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-              onClick={() => handleVacationClick(booking)}
-            >
-              {hasVacation(booking) ? "Modify Vacation" : "Add Vacation"}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-0 justify-center 
+                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                           w-1/3 sm:w-auto"
+                onClick={() => handleVacationClick(booking)}
+                disabled={hasVacation(booking) || isRefreshing}
+              >
+                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
+              </Button>
             )}
           </>
         );
@@ -603,16 +530,17 @@ const handleVacationClick = (booking: Booking) => {
             </Button>
 
             {booking.bookingType === "MONTHLY" && (
-           <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-              onClick={() => handleVacationClick(booking)}
-            >
-              {hasVacation(booking) ? "Modify Vacation" : "Add Vacation"}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-0 justify-center 
+                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                           w-1/3 sm:w-auto"
+                onClick={() => handleVacationClick(booking)}
+                disabled={hasVacation(booking) || isRefreshing}
+              >
+                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
+              </Button>
             )}
           </>
         );
@@ -1087,21 +1015,17 @@ const handleVacationClick = (booking: Booking) => {
         onLeaveSubmit={handleLeaveSubmit}
       />
       
-      <ModifyBookingDialog
-        open={modifyDialogOpen}
-        onClose={() => setModifyDialogOpen(false)}
-        booking={selectedBooking}
-        timeSlots={timeSlots}
-        onSave={handleSaveModifiedBooking}
-        customerId={customerId}
-      />
-    <VacationManagement
-        open={vacationDialogOpen}
-        booking={selectedBookingForVacation || { id: 0 }}
-        customerId={customerId}
-        onClose={() => setVacationDialogOpen(false)}
-        onSuccess={handleVacationSuccess}
-      />
+     <ModifyBookingDialog
+  open={modifyDialogOpen}
+  onClose={() => setModifyDialogOpen(false)}
+  booking={selectedBooking}
+  timeSlots={timeSlots}
+  onSave={handleSaveModifiedBooking}
+  customerId={customerId}
+  refreshBookings={refreshBookings} // Add this
+  setOpenSnackbar={setOpenSnackbar} // Add this
+/>
+
       <ConfirmationDialog
         open={confirmationDialog.open}
         onClose={() => setConfirmationDialog(prev => ({ ...prev, open: false }))}
@@ -1138,4 +1062,4 @@ const handleVacationClick = (booking: Booking) => {
   );
 };
 
-export default Booking;
+export default Booking; 

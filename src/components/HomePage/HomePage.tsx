@@ -34,6 +34,12 @@ interface ChildComponentProps {
       onAboutClick: () => void;
       onContactClick: () => void;
 }
+interface Auth0User {
+  name?: string;
+  email?: string;
+  role?: string;
+  serviceProviderId?: number;
+}
 
 const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick }) => {
     const dispatch = useDispatch();
@@ -205,37 +211,19 @@ const handleSave = () => {
     return outputArray.buffer;
 }
  // AUTH & INITIALIZATION
-const { user: auth0User, isAuthenticated, loginWithRedirect } = useAuth0();
-const [role, setRole] = useState<string | null>(null);
+ const { user, isAuthenticated, loginWithRedirect } = useAuth0<Auth0User>();
+
+  // Keep a local role state if you already use it for UI (your code references `role`)
+  const [role, setRole] = useState<string | null>(null);
 
 useEffect(() => {
-  const initializeUser = async () => {
-    if (isAuthenticated && auth0User) {
-      // Extract role from multiple possible locations
-      const userRole =
-        auth0User.role ||
-        auth0User["https://yourdomain.com/roles"]?.[0] ||
-        auth0User["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-        "CUSTOMER";
-      
-      setRole(userRole);
-      console.log("User role:", userRole);
-      
-      // If you need to extract user ID as well (similar to ProfileScreen)
-      const id =
-        auth0User.serviceProviderId ||
-        auth0User["https://yourdomain.com/serviceProviderId"] ||
-        auth0User.customerid ||
-        null;
-      
-      console.log("User ID:", id);
-    } else {
-  
-    }
-  };
+  if (!isAuthenticated || !user) return;
 
-  initializeUser();
-}, [isAuthenticated, auth0User]);
+  const role = (user as any)["https://your-app.com/claims/role"];
+  console.log("👤 User role:", role);
+}, [isAuthenticated, user]);
+
+
 
  // Carousel state
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -281,62 +269,65 @@ useEffect(() => {
     </p>
 
    <div style={{ display: "flex", justifyContent: "space-around", gap: "20px" }}>
+
   {/* Cook */}
-<div
-  className="flex flex-col items-center cursor-pointer"
-  onClick={() => handleClick("COOK")}
->
-  <div className="card p-0"> {/* no padding */}
-    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
-      <img
-        src="../CookNew.png"
-        alt="Cook"
-        className="transition-transform duration-300 hover:scale-110"
-        style={{ height: "121px", width: "121px" }} // bigger default size
-      />
+  <div
+    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("COOK")}
+  >
+    <div className="card p-0">
+      <div className="card-body flex justify-center p-1">
+        <img
+          src="../CookNew.png"
+          alt="Cook"
+          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          style={{ height: "121px", width: "121px" }}
+        />
+      </div>
     </div>
+    <p className="mt-2 text-sm font-semibold text-white">Home Cook</p>
+   
   </div>
-  <p className="mt-2 text-sm font-semibold text-white">Home Cook</p>
-</div>
 
-
-{/* Maid */}
-<div
-  className="flex flex-col items-center cursor-pointer"
-  onClick={() => handleClick("MAID")}
->
-  <div className="card p-0"> {/* no padding */}
-    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
-      <img
-        src="../MaidNew.png"
-        alt="Maid"
-        className="transition-transform duration-300 hover:scale-110"
-        style={{ height: "121px", width: "121px" }} // 110px * 1.1 = 121px
-      />
+  {/* Maid */}
+  <div
+    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("MAID")}
+  >
+    <div className="card p-0">
+      <div className="card-body flex justify-center p-1">
+        <img
+          src="../MaidNew.png"
+          alt="Maid"
+          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          style={{ height: "121px", width: "121px" }}
+        />
+      </div>
     </div>
+    <p className="mt-2 text-sm font-semibold text-white">Cleaning Help</p>
+   
   </div>
-  <p className="mt-2 text-sm font-semibold text-white">Cleaning Help</p>
-</div>
-
 
   {/* Nanny */}
-<div
-  className="flex flex-col items-center cursor-pointer"
-  onClick={() => handleClick("NANNY")}
->
-  <div className="card p-0"> {/* no padding */}
-    <div className="card-body flex justify-center p-1"> {/* smaller padding */}
-      <img
-        src="../NannyNew.png"
-        alt="Nanny"
-        className="transition-transform duration-300 hover:scale-110"
-        style={{ height: "121px", width: "121px" }} // 110px * 1.1 = 121px
-      />
+  <div
+    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("NANNY")}
+  >
+    <div className="card p-0">
+      <div className="card-body flex justify-center p-1">
+        <img
+          src="../NannyNew.png"
+          alt="Nanny"
+          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          style={{ height: "121px", width: "121px" }}
+        />
+      </div>
     </div>
+    <p className="mt-2 text-sm font-semibold text-white">Caregiver</p>
+    {/* {role === "SERVICE_PROVIDER" && (
+      <span className="text-xs text-gray-300 mt-1">Not available</span>
+    )} */}
   </div>
-  <p className="mt-2 text-sm font-semibold text-white">Caregiver</p>
-</div>
-
 </div>
 
 
@@ -422,7 +413,7 @@ useEffect(() => {
             {/* Services Section */}
         <section className="py-10 px-6 md:px-20 relative">
   {/* Floating Help Card */}
-  <div className="absolute -top-6 right-20">
+  {/* <div className="absolute -top-6 right-20">
     <button
       onClick={() => setChatbotOpen(true)}
       className="flex items-center gap-2 bg-[#fffbea] text-[#0a2a66] px-5 py-3 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition"
@@ -432,7 +423,7 @@ useEffect(() => {
       </span>
       <span className="font-medium">Need any help?</span>
     </button>
-  </div>
+  </div> */}
 
   {/* Popular Services Section */}
   <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>
