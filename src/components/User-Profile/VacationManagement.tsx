@@ -16,6 +16,7 @@ import axios from "axios";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import PaymentInstance from "src/services/paymentInstance";
 
 interface VacationDetails {
   leave_start_date?: string;
@@ -64,8 +65,8 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
     setSuccess(null);
 
     try {
-      const response = await axios.delete(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves/${booking.id}`,
+      const response = await PaymentInstance.delete(
+        `/api/customer/${customerId}/leaves/${booking.id}`,
         {
           data: {
             engagement_id: booking.id,
@@ -99,8 +100,8 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
     setSuccess(null);
 
     try {
-      const response = await axios.put(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves/${booking.id}`,
+      const response = await PaymentInstance.put(
+        `/api/customer/${customerId}/leaves/${booking.id}`,
         {
           engagement_id: booking.id,
           new_end_date: newEndDate.format("YYYY-MM-DD"),

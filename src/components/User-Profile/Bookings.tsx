@@ -21,6 +21,7 @@ import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 import VacationManagement from './VacationManagement';
+import PaymentInstance from 'src/services/paymentInstance';
 
 interface Task {
   taskType: string;
@@ -142,8 +143,8 @@ const Booking: React.FC = () => {
     const fetchBookings = async () => {
       try {
         if (customerId !== null && customerId !== undefined) {
-          const response = await axios.get(
-            `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
+          const response = await PaymentInstance.get(
+            `/api/customers/${customerId}/engagements`
           );
           
           const { past = [], ongoing = [], upcoming = [] } = response.data || {};
@@ -319,7 +320,7 @@ const handleVacationClick = (booking: Booking) => {
   const handleVacationSuccess = () => {
     // Refresh bookings data when vacation operation is successful
     if (customerId !== null) {
-      axios.get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
+      PaymentInstance.get(`/api/customers/${customerId}/engagements`)
         .then((response) => {
           const { past = [], ongoing = [], upcoming = [] } = response.data || {};
           setPastBookings(mapBookingData(past));
@@ -339,8 +340,8 @@ const handleVacationClick = (booking: Booking) => {
     try {
       setActionLoading(true);
       
-      const response = await axios.put(
-        `https://payments-j5id.onrender.com/api/engagements/${booking.id}`,
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
         {
           task_status: "CANCELLED"
         },
@@ -352,8 +353,8 @@ const handleVacationClick = (booking: Booking) => {
       );
 
       if (customerId !== null) {
-        await axios.get(
-          `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
+        await PaymentInstance.get(
+          `/api/customers/${customerId}/engagements`
         ).then((response) => {
           const { past = [], ongoing = [], upcoming = [] } = response.data || {};
           setPastBookings(mapBookingData(past));
@@ -445,8 +446,8 @@ const handleVacationClick = (booking: Booking) => {
     try {
       setIsRefreshing(true);
       
-      await axios.post(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves`,
+      await PaymentInstance.post(
+        `/api/customer/${customerId}/leaves`,
         {
           engagement_id: selectedBookingForLeave.id,
           leave_start_date: startDate,
@@ -458,8 +459,8 @@ const handleVacationClick = (booking: Booking) => {
       setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
 
       if (customerId !== null) {
-        await axios
-          .get(`https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`)
+        await PaymentInstance
+          .get(`/api/customers/${customerId}/engagements`)
           .then((response) => {
             const { past = [], ongoing = [], upcoming = [] } = response.data || {};
             setPastBookings(mapBookingData(past));

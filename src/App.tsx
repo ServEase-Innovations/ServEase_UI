@@ -31,6 +31,7 @@ import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
 import BookingRequestToast from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
+import PaymentInstance from "./services/paymentInstance";
 
 
 function App() {
@@ -68,8 +69,8 @@ function App() {
 
   const handleAccept = async (engagementId: number) => {
     try {
-      const res = await axios.patch(
-        `https://payments-j5id.onrender.com/api/engagements/${engagementId}/accept`,
+      const res = await PaymentInstance.patch(
+        `/api/engagements/${engagementId}/accept`,
         { providerId: user?.serviceProviderId }
       );
       console.log("✅ Engagement accepted:", res.data);

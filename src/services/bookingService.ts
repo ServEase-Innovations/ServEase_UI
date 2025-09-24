@@ -2,6 +2,7 @@
 import axios from "axios";
 import { useSelector } from "react-redux";
 import store from "src/store/userStore";
+import PaymentInstance from "./paymentInstance";
 
 declare global {
   interface Window {
@@ -9,7 +10,7 @@ declare global {
   }
 }
 
-const API_BASE = "https://payments-j5id.onrender.com"; // backend base URL
+// const API_BASE = "https://payments-j5id.onrender.com"; // backend base URL
 
 async function loadRazorpayScript(): Promise<boolean> {
   if (window.Razorpay) return true;
@@ -47,7 +48,7 @@ export const BookingService = {
 
   
   createEngagement: async (payload: BookingPayload) => {
-    const res = await axios.post(`${API_BASE}/api/engagements`, payload, {
+    const res = await PaymentInstance.post(`/api/engagements`, payload, {
       headers: { "Content-Type": "application/json" },
     });
     return res.data;
@@ -83,7 +84,7 @@ export const BookingService = {
   },
 
   verifyPayment: async (paymentData: RazorpayPaymentResponse) => {
-    const res = await axios.post(`${API_BASE}/api/payments/verify`, paymentData, {
+    const res = await PaymentInstance.post(`/api/payments/verify`, paymentData, {
       headers: { "Content-Type": "application/json" },
     });
     return res.data;

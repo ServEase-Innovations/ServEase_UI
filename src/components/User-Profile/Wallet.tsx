@@ -4,6 +4,7 @@ import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import { Button } from "../../components/Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
+import PaymentInstance from "src/services/paymentInstance";
 
 interface WalletDialogProps {
   open: boolean;
@@ -33,8 +34,8 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
     if (open && isAuthenticated && auth0User?.customerid) {
       console.log("Fetching wallet for user:", auth0User.customerid);
 
-      axios
-        .get(`https://payments-j5id.onrender.com/api/wallets/${auth0User.customerid}`)
+      PaymentInstance
+        .get(`/api/wallets/${auth0User.customerid}`)
         .then((response) => {
           console.log("Wallet API Response:", response.data);
           setWallet(response.data);
