@@ -2,7 +2,7 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const utilsInstance = axios.create({
-  baseURL: 'https://servease-be-5x7f.onrender.com',
+  baseURL: 'https://utils-ndt3.onrender.com',
   // 'http://localhost:8080' ,
   // 'http://43.205.212.94:8080',http://3.109.59.100:8080
   // // Change to your API's base URL

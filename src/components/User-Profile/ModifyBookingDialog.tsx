@@ -1,12 +1,14 @@
 /* eslint-disable */
 import React, { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
-import { Typography, IconButton } from "@mui/material";
+import { Typography, IconButton, Dialog, DialogContent, DialogActions } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider, DateTimePicker, TimePicker } from "@mui/x-date-pickers";
 import { Button } from "../Button/button";
 import axios from "axios";
+import PaymentInstance from "src/services/paymentInstance";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 interface Booking {
   bookingType: string;
@@ -68,6 +70,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [selectedSection, setSelectedSection] = useState<
     "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
   >("OPTIONS");
+
+  // State to control calendar open state
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
 
@@ -166,8 +171,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       console.log("Update payload:", updatePayload);
 
       // Make the API call
-      const response = await axios.put(
-        `https://payments-j5id.onrender.com/api/engagements/${booking.id}`,
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
         updatePayload,
         {
           headers: {
@@ -222,44 +227,62 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       setError(null);
       setSuccess(null);
       setSelectedSection("OPTIONS");
+      setIsCalendarOpen(false);
     }
   }, [open, booking]);
+
+  // Auto-open calendar when BOOKING_DATE section is selected
+  useEffect(() => {
+    if (selectedSection === "BOOKING_DATE" && open) {
+      // Small delay to ensure the component is rendered
+      setTimeout(() => {
+        setIsCalendarOpen(true);
+      }, 100);
+    }
+  }, [selectedSection, open]);
 
   if (!open || !booking) return null;
 
   const modificationDisabled = isModificationDisabled(booking);
   const statusMessage = getModificationStatusMessage(booking);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).id === "dialog-backdrop") {
-      onClose();
-    }
-  };
-
   return (
-    <div
-      id="dialog-backdrop"
-      onClick={handleBackdropClick}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
     >
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md relative" onClick={(e) => e.stopPropagation()}>
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Modify Options</h3>
-          <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
-        </div>
+      <DialogHeader className="flex justify-between items-center">
+        <Typography variant="h6" component="span">
+          Modify Options
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogHeader>
 
-        {error && (<div className="p-4 bg-red-50 border-b border-red-200"><p className="text-red-700 text-sm">{error}</p></div>)}
-        {success && (<div className="p-4 bg-green-50 border-b border-green-200"><p className="text-green-700 text-sm">{success}</p></div>)}
+      <DialogContent dividers>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md mb-4">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md mb-4">
+            <p className="text-green-700 text-sm">{success}</p>
+          </div>
+        )}
 
         {/* Options */}
         {selectedSection === "OPTIONS" && (
-          <div className="p-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {booking?.hasVacation && (
               <Button
                 onClick={() => setSelectedSection("VACATION")}
                 variant="outlined"
                 color="secondary"
-                className="w-full mt-3"
+                className="w-full"
               >
                 Manage Vacation
               </Button>
@@ -286,113 +309,113 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               </>
             )}
 
-            {modificationDisabled && (<p className="text-sm text-red-600 text-center">{statusMessage}</p>)}
+            {modificationDisabled && (
+              <p className="text-sm text-red-600 text-center mt-2">{statusMessage}</p>
+            )}
           </div>
         )}
 
         {/* Reschedule Date */}
         {selectedSection === "BOOKING_DATE" && (
-          <>
-            <div className="p-4 space-y-4">
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateTimePicker
-                  label="Select New Date"
-                  value={startDate}
-                  onChange={(newValue) => {
-                    if (newValue) {
-                      const originalTime = dayjs(booking.startDate);
-                      const updated = newValue.set("hour", originalTime.hour()).set("minute", originalTime.minute());
-                      setStartDate(updated);
-                    }
-                  }}
-                  views={['year','month','day']}
-                  minDate={today}
-                  maxDate={maxDate90Days}
-                  shouldDisableDate={shouldDisableStartDate}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                />
-              </LocalizationProvider>
-            </div>
-            <div className="p-4 border-t flex justify-between">
-              <button 
-                onClick={() => setSelectedSection("OPTIONS")} 
-                className="px-4 py-2 text-gray-700 border rounded-md"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-              <button 
-                onClick={handleSubmit} 
-                disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-blue-300 flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Date'
-                )}
-              </button>
-            </div>
-          </>
+          <div className="space-y-4">
+            <Typography variant="body2" className="text-gray-600">
+              Select a new date for your booking. The calendar will open automatically.
+            </Typography>
+            
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateTimePicker
+                label="Select New Date"
+                value={startDate}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    const originalTime = dayjs(booking.startDate);
+                    const updated = newValue.set("hour", originalTime.hour()).set("minute", originalTime.minute());
+                    setStartDate(updated);
+                  }
+                }}
+                onClose={() => setIsCalendarOpen(false)}
+                open={isCalendarOpen}
+                views={['year', 'month', 'day']}
+                minDate={today}
+                maxDate={maxDate90Days}
+                shouldDisableDate={shouldDisableStartDate}
+                slotProps={{ 
+                  textField: { 
+                    fullWidth: true, 
+                    size: "small",
+                    onClick: () => setIsCalendarOpen(true)
+                  },
+                  actionBar: {
+                    actions: ['accept', 'cancel', 'clear']
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </div>
         )}
 
         {/* Reschedule Time */}
-        {selectedSection === "BOOKING_TIME" && (
-          <>
-            <div className="p-4 space-y-4">
-              <div className="mb-4">
-                <Typography variant="body2" className="text-gray-600 mb-2">
-                  Current Booked Time: <strong>{booking.timeSlot}</strong>
-                </Typography>
-              </div>
-              
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateTimePicker
-                  label="Select New Time"
-                  value={startDate}
-                  onChange={(newValue) => {
-                    if (newValue) {
-                      const originalDate = dayjs(booking.startDate);
-                      const updated = originalDate.set("hour", newValue.hour()).set("minute", newValue.minute());
-                      setStartDate(updated);
-                    }
-                  }}
-                  views={['hours','minutes']}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                  ampm={true}
-                />
-              </LocalizationProvider>
-            </div>
-            <div className="p-4 border-t flex justify-between">
-              <button 
-                onClick={() => setSelectedSection("OPTIONS")} 
-                className="px-4 py-2 text-gray-700 border rounded-md"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-              <button 
-                onClick={handleSubmit} 
-                disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:bg-blue-300 flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Time'
-                )}
-              </button>
-            </div>
-          </>
-        )}
+{selectedSection === "BOOKING_TIME" && (
+  <>
+    <div className="p-4 space-y-4">
+      <div className="mb-4">
+        <Typography variant="body2" className="text-gray-600 mb-2">
+          Current Booked Time: <strong>{booking.timeSlot}</strong>
+        </Typography>
       </div>
+
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <TimePicker
+          label="Select New Time"
+          value={startDate}
+          onChange={(newValue) => {
+            if (newValue) {
+              const originalDate = dayjs(booking.startDate);
+              const updated = originalDate
+                .set("hour", newValue.hour())
+                .set("minute", newValue.minute());
+              setStartDate(updated);
+            }
+          }}
+          ampm={true}
+          slotProps={{
+            textField: { fullWidth: true, size: "small" },
+          }}
+        />
+      </LocalizationProvider>
     </div>
+  </>
+)}
+
+      </DialogContent>
+
+      {(selectedSection === "BOOKING_DATE" || selectedSection === "BOOKING_TIME") && (
+        <DialogActions className="justify-between p-4">
+          <Button 
+            onClick={() => setSelectedSection("OPTIONS")} 
+            variant="outlined"
+            disabled={isLoading}
+          >
+            Back
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading}
+            variant="contained"
+            className="flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </>
+            ) : (
+              selectedSection === "BOOKING_DATE" ? 'Save Date' : 'Save Time'
+            )}
+          </Button>
+        </DialogActions>
+      )}
+    </Dialog>
   );
 };
 

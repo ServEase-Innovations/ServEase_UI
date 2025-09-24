@@ -36,7 +36,6 @@ import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
 
-
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 

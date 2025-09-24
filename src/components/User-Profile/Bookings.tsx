@@ -20,6 +20,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
+import PaymentInstance from 'src/services/paymentInstance';
 
 interface Task {
   taskType: string;
@@ -130,8 +131,8 @@ const Booking: React.FC = () => {
   // Function to refresh bookings data
   const refreshBookings = async () => {
     if (customerId !== null && customerId !== undefined) {
-      const response = await axios.get(
-        `https://payments-j5id.onrender.com/api/customers/${customerId}/engagements`
+      const response = await PaymentInstance.get(
+        `/api/customers/${customerId}/engagements`
       );
       
       const { past = [], ongoing = [], upcoming = [] } = response.data || {};
@@ -328,8 +329,8 @@ const Booking: React.FC = () => {
     try {
       setActionLoading(true);
       
-      const response = await axios.put(
-        `https://payments-j5id.onrender.com/api/engagements/${booking.id}`,
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
         {
           task_status: "CANCELLED"
         },
@@ -380,8 +381,8 @@ const Booking: React.FC = () => {
     try {
       setIsRefreshing(true);
       
-      await axios.post(
-        `https://payments-j5id.onrender.com/api/customer/${customerId}/leaves`,
+      await PaymentInstance.post(
+        `/api/customer/${customerId}/leaves`,
         {
           engagement_id: selectedBookingForLeave.id,
           leave_start_date: startDate,
