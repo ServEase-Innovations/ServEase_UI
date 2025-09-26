@@ -145,7 +145,7 @@ const handleLogoClick = () => {
   
     console.log("🔎 Full user object:", user);
   
-    if (user.role?.trim().toUpperCase() === "SERVICE_PROVIDER") {
+    if (user?.role?.toUpperCase() === "SERVICE_PROVIDER") {
       console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
   
       const socketUrl =
