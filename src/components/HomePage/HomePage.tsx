@@ -26,6 +26,7 @@ import Chatbot from "../Chat/Chatbot";
 import { useAuth0 } from "@auth0/auth0-react";
 import Footer from "../Footer/Footer";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
+import { useAppUser } from "src/context/AppUserContext";
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
@@ -216,12 +217,14 @@ const handleSave = () => {
   // Keep a local role state if you already use it for UI (your code references `role`)
   const [role, setRole] = useState<string | null>(null);
 
-useEffect(() => {
-  if (!isAuthenticated || !user) return;
+  const { appUser } = useAppUser();
 
-  const role = (user as any)["https://your-app.com/claims/role"];
-  console.log("👤 User role:", role);
-}, [isAuthenticated, user]);
+useEffect(() => {
+  if (!isAuthenticated || !appUser) return;
+
+  const role = appUser.role;
+  console.log("👤 User role:", appUser);
+}, [isAuthenticated, appUser]);
 
 
 
@@ -272,15 +275,15 @@ useEffect(() => {
 
   {/* Cook */}
   <div
-    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("COOK")}
+    className={`flex flex-col items-center ${appUser?.role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => appUser?.role !== "SERVICE_PROVIDER" && handleClick("COOK")}
   >
     <div className="card p-0">
       <div className="card-body flex justify-center p-1">
         <img
           src="../CookNew.png"
           alt="Cook"
-          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>
@@ -291,15 +294,15 @@ useEffect(() => {
 
   {/* Maid */}
   <div
-    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("MAID")}
+    className={`flex flex-col items-center ${appUser?.role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => appUser?.role !== "SERVICE_PROVIDER" && handleClick("MAID")}
   >
     <div className="card p-0">
       <div className="card-body flex justify-center p-1">
         <img
           src="../MaidNew.png"
           alt="Maid"
-          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>
@@ -310,15 +313,15 @@ useEffect(() => {
 
   {/* Nanny */}
   <div
-    className={`flex flex-col items-center ${role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-    onClick={() => role !== "SERVICE_PROVIDER" && handleClick("NANNY")}
+    className={`flex flex-col items-center ${appUser?.role === "SERVICE_PROVIDER" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+    onClick={() => appUser?.role !== "SERVICE_PROVIDER" && handleClick("NANNY")}
   >
     <div className="card p-0">
       <div className="card-body flex justify-center p-1">
         <img
           src="../NannyNew.png"
           alt="Nanny"
-          className={`transition-transform duration-300 ${role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
+          className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>

@@ -14,6 +14,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useSelector, useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
+import { useAppUser } from "src/context/AppUserContext";
 
 //   interface ChildComponentProps {
 //     sendDataToParent: (data: string) => void; // Callback to close UserProfile
@@ -30,6 +31,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
 
   // Access user data from Redux store
   const userData = useSelector((state: any) => state.user.value);
+  const { appUser } = useAppUser();
+  
 
   const [formData, setFormData] = useState({
     account: {
@@ -61,11 +64,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
     if (userData) {
       console.log("user Data ===> ", userData)
       let userInfo;
-      if(userData.role === "SERVICE_PROVIDER"){
+      if(appUser.role === "SERVICE_PROVIDER"){
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        userInfo = userData.serviceProviderDetails
-      } else if(userData.role === "CUSTOMER"){
-        userInfo = userData.customerDetails
+        userInfo = appUser.serviceProviderDetails
+      } else if(appUser.role === "CUSTOMER"){
+        userInfo = appUser.customerDetails
       }
       setFormData({
         account: {

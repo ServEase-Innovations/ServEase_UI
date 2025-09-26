@@ -87,6 +87,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   } = useAuth0();
 
   const { setAppUser } = useAppUser();
+   const { appUser } = useAppUser();
 
   const cart = useSelector((state: any) => state.cart?.value);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -253,7 +254,12 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const createUserPreferences = async (customerId: number) => {
     if (user) {
-      user.customerid = customerId; // Ensure user object has customerId
+      // user.customerid = customerId; // Ensure user object has customerId
+      setAppUser({
+        ...user,
+        role: "CUSTOMER",
+        customerid: customerId,
+      });
     }
     try {
       const payload: any = {
@@ -823,8 +829,8 @@ export const Header: React.FC<ChildComponentProps> = ({
                 className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
               >
                 <img
-                  src={user?.picture}
-                  alt={user?.name}
+                  src={appUser?.picture}
+                  alt={appUser?.name}
                   className="w-6 h-6 md:w-8 md:h-8 rounded-full"
                 />
                 <span className="font-medium hidden sm:inline">
@@ -845,7 +851,7 @@ export const Header: React.FC<ChildComponentProps> = ({
                     >
                       Profile
                     </li>
-                    {user?.role === "CUSTOMER" && (
+                    {appUser?.role === "CUSTOMER" && (
                       <li
                         className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleClick(BOOKINGS)}
@@ -853,7 +859,7 @@ export const Header: React.FC<ChildComponentProps> = ({
                         My Bookings
                       </li>
                     )}
-                    {user?.role === "SERVICE_PROVIDER" && (
+                    {appUser?.role === "SERVICE_PROVIDER" && (
                       <li
                         className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleClick(DASHBOARD)}
