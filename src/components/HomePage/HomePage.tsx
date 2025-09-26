@@ -439,7 +439,7 @@ useEffect(() => {
       {
         title: "Cleaning Help",
         desc: "Reliable maids for daily, deep, or special occasion cleaning.",
-        icon: "🧼",
+        icon: "🧹",
         type: "maid",
       },
       {
@@ -451,7 +451,7 @@ useEffect(() => {
     ].map((service, index) => (
       <Card
         key={index}
-       className="text-center p-5 transition-all duration-200 hover:shadow-lg rounded-xl bg-gradient-to-br from-[#f5f9ff] via-[#eaf2ff] to-[#dbe8ff] border border-blue-100">
+       className="text-center p-5 transition-all duration-200 hover:shadow-lg rounded-xl bg-gradient-to-br from-[#cfdcef] via-[#eaf2ff] to-[#205cc7] border border-blue-100">
         <CardContent className="space-y-3">
           <div className="text-4xl">{service.icon}</div>
           <h3 className="text-lg font-semibold">{service.title}</h3>

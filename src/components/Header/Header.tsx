@@ -433,14 +433,14 @@ import utilsInstance from "src/services/utilsInstance";
   };
   const handleServiceClick = (service: string) => {
   // Map the service names to your internal types
-  let serviceType = '';
-  if (service === "Home Cook") serviceType = "COOK";
-  if (service === "Cleaning Help") serviceType = "MAID";
-  if (service === "Caregiver") serviceType = "NANNY";
-  
-  setSelectedType(serviceType);
-  setDialogService(service);
-  setDialogOpen(true);
+   let serviceType = '';
+    if (service === "Home Cook") serviceType = "COOK";
+    if (service === "Cleaning Help") serviceType = "MAID";
+    if (service === "Caregiver") serviceType = "NANNY";
+    
+    setSelectedType(serviceType);
+    setDialogService(service);
+    setDialogOpen(true);
   };
   const handleBookingSave = () => {
   let timeRange = "";
@@ -454,24 +454,24 @@ import utilsInstance from "src/services/utilsInstance";
   }
   
   // Create booking object
-  const booking = {
-  startDate: startDate ? startDate.split("T")[0] : "",
-  endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
-  timeRange: timeRange,
-  bookingPreference: selectedRadioButtonValue,
-  housekeepingRole: selectedType,
-  };
+ const booking = {
+      startDate: startDate ? startDate.split("T")[0] : "",
+      endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
+      timeRange: timeRange,
+      bookingPreference: selectedRadioButtonValue,
+      housekeepingRole: selectedType,
+    };
   
   console.log("Booking details:", booking);
   
   // Same condition check as in homepage
-  if (selectedRadioButtonValue === "Date") {
-  setOpenServiceDialog(true);
-  } else {
-  sendDataToParent(DETAILS);
-  }
-  
-  setDialogOpen(false);
+   if (selectedRadioButtonValue === "Date") {
+      setOpenServiceDialog(true);
+    } else {
+      sendDataToParent(DETAILS, selectedType);
+    }
+    
+    setDialogOpen(false);
   };
   
   const handleSave = () => {
