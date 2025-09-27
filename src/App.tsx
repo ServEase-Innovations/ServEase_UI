@@ -72,16 +72,22 @@ function App() {
   } = useAuth0();
 
   const handleAccept = async (engagementId: number) => {
-    try {
-      const res = await PaymentInstance.patch(
-        `/api/engagements/${engagementId}/accept`,
-        { providerId: user?.serviceProviderId }
-      );
-      console.log("✅ Engagement accepted:", res.data);
-    } catch (err) {
-      console.error("❌ Failed to accept engagement", err);
-    }
-  };
+  try {
+    const payload = {
+      providerId: appUser?.serviceProviderId, // ✅ send only serviceProviderId
+    };
+
+    const res = await PaymentInstance.patch(
+      `/api/engagements/${engagementId}/accept`,
+      payload
+    );
+
+    console.log("✅ Engagement accepted:", res.data);
+  } catch (err) {
+    console.error("❌ Failed to accept engagement", err);
+  }
+};
+
   
   // handler for reject
   const handleReject = (engagementId: number) => {
