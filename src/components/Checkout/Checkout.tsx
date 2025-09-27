@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+/* eslint-disable */
+
 
 import { Card, Button, Box, Typography, Snackbar, Alert, IconButton, Tooltip, DialogContent, Dialog } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -15,6 +17,7 @@ import Login from "../Login/Login";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { BOOKINGS, CONFIRMATION } from "../../Constants/pagesConstants";
 import { add, remove } from "../../features/cart/cartSlice";
+import { useAppUser } from "src/context/AppUserContext";
 
 
 // Define the structure of each item in selectedItems
@@ -90,13 +93,15 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
     dispatch(add({ grandTotal, selecteditem: updatedCheckout }));
   };
 
+  const { appUser } = useAppUser();
+
   
   useEffect(() => {
    
-      if(user?.role=== 'CUSTOMER'){
+      if(appUser?.role=== 'CUSTOMER'){
         setLoggedInUser(user);
       }
-    }, [user]);
+    }, [appUser]);
 
     const handleBookingPage = (e : string | undefined) =>{
       setOpen(false)

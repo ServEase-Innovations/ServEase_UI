@@ -17,6 +17,7 @@ import KeyFactsStatement from "./TermsAndConditions/KeyFactsStatement";
 import Chat from "./components/LiveChat/Chat";
 import AdminChats from "./components/Admin/Dashboard/Chats";
 import Chats from "./components/Admin/Dashboard/Chats";
+import { AppUserProvider } from "./context/AppUserContext";
 
 const domain = "dev-plavkbiy7v55pbg4.us.auth0.com";
 const clientId = "FkZvRgSNTXloPOo2ZVRmt24MbTrfIusi";
@@ -53,41 +54,49 @@ root.render(
     domain={domain}
     clientId={clientId}
     authorizationParams={{
-      redirect_uri: window.location.origin
+      redirect_uri: window.location.origin,
     }}
   >
-    <React.StrictMode>
-    <Provider store={store}>
-      <Router>  
-        <Routes>
-          <Route path="/" element={<App />} /> 
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/chat" element={  
-            <Chat
-            sessionId="66bb100ae5c3c4b23a20"
-            userId={2}
-            senderRole="User"
-            senderName="Diya"
-          />
-          } />
-          <Route path="/adminchat" element={<Chats />} />
-          <Route path="/chat2" element={  
-            <Chat
-            sessionId="66bb100ae5c3c4b23a20"
-            userId={101}
-            senderRole="User"
-            senderName="Subhra"
-          />
-          } />
-          <Route path="/TnC" element={ <TnC />} />
-          <Route path="/Privacy" element={ <PrivacyPolicy />} />
-          <Route path="/KeyFactsStatement" element={ <KeyFactsStatement />} />
-        </Routes>
-      </Router>
-    </Provider>
-  </React.StrictMode>
+    <AppUserProvider>
+      <React.StrictMode>
+        <Provider store={store}>
+          <Router>
+            <Routes>
+              <Route path="/" element={<App />} /> 
+              <Route path="/admin" element={<Admin />} />
+              <Route
+                path="/chat"
+                element={
+                  <Chat
+                    sessionId="66bb100ae5c3c4b23a20"
+                    userId={2}
+                    senderRole="User"
+                    senderName="Diya"
+                  />
+                }
+              />
+              <Route path="/adminchat" element={<Chats />} />
+              <Route
+                path="/chat2"
+                element={
+                  <Chat
+                    sessionId="66bb100ae5c3c4b23a20"
+                    userId={101}
+                    senderRole="User"
+                    senderName="Subhra"
+                  />
+                }
+              />
+              <Route path="/TnC" element={<TnC />} />
+              <Route path="/Privacy" element={<PrivacyPolicy />} />
+              <Route path="/KeyFactsStatement" element={<KeyFactsStatement />} />
+            </Routes>
+          </Router>
+        </Provider>
+      </React.StrictMode>
+    </AppUserProvider>
   </Auth0Provider>
-  
 );
+
 
 reportWebVitals();

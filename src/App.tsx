@@ -35,6 +35,7 @@ import PaymentInstance from "./services/paymentInstance";
 import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
+import { useAppUser } from "./context/AppUserContext";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -137,15 +138,17 @@ const handleLogoClick = () => {
 
   const [socket, setSocket] = useState<Socket | null>(null);
 
+  const { appUser } = useAppUser();
+
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !appUser) {
       console.log("⏳ Waiting for user authentication...");
       return;
     }
   
-    console.log("🔎 Full user object:", user);
+    console.log("🔎 Full user object:", appUser);
   
-    if (user.role?.trim().toUpperCase() === "SERVICE_PROVIDER") {
+    if (appUser?.role?.toUpperCase() === "SERVICE_PROVIDER") {
       console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
   
       const socketUrl =
@@ -158,7 +161,7 @@ const handleLogoClick = () => {
   
       newSocket.on("connect", () => {
         console.log("✅ Connected to server:", newSocket.id);
-        newSocket.emit("join", { providerId: user.serviceProviderId });
+        newSocket.emit("join", { providerId: appUser.serviceProviderId });
       });
   
       newSocket.on("new-engagement", (data) => {
@@ -181,7 +184,7 @@ const handleLogoClick = () => {
         newSocket.disconnect();
       };
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, appUser]);
   
 
 

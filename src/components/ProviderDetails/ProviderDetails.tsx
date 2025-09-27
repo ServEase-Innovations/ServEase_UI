@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
 import moment from "moment";
@@ -23,6 +24,7 @@ import MaidServiceDialog from "./MaidServiceDialog";
 import NannyServicesDialog from "./NannyServicesDialog";
 import CookServicesDialog from "./CookServicesDialog";
 import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
+import { useAppUser } from "src/context/AppUserContext";
 
 interface ProviderDetailsProps {
   housekeepingRole: string;
@@ -252,12 +254,14 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       setWarning("");
     }
   };
+  
+  const { appUser } = useAppUser();
 
   useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
+    if (appUser?.role === 'CUSTOMER') {
       setLoggedInUser(user);
     }
-  }, [user]);
+  }, [appUser]);
 
   if (!hasCheckedRef.current) {
     checkMissingTimeSlots();

@@ -45,58 +45,66 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
             </div>
           </div>
 
+               {/* Main footer content */}
+      <div className="container mx-auto px-4 py-8">
+        {/* Grid container for 4 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+          
+          {/* Legal */}
+          <div className="flex flex-col items-start">
+            <ul className="space-y-1 text-left">
+              <li><a href="#!" className="hover:text-gray-900 text-sm">Terms of Service</a></li>
+              <li><a href="#!" className="hover:text-gray-900 text-sm">Privacy Policy</a></li>
+            </ul>
+          </div>
+
           {/* Resources */}
           <div className="flex flex-col items-start">
-            <ul className="mt-2 space-y-1 text-left">
-              <li><a href="#!" className="hover:text-gray-900">Terms of Service</a></li>
-              <li><a href="#!" className="hover:text-gray-900">Privacy Policy</a></li>
-              {/* <li><a href="#!" className="hover:text-gray-900 text-sm">Documentation</a></li> */}
+            <ul className="space-y-1 text-left">
               <li><a href="#!" className="hover:text-gray-900 text-sm">Tutorials</a></li>
-              {/* <li><a href="#!" className="hover:text-gray-900 text-sm">Support</a></li> */}
               <li><a href="#!" className="hover:text-gray-900 text-sm">Blog</a></li>
-              {/* <li><a href="#!" className="hover:text-gray-900 text-sm">Features</a></li> */}
-                
             </ul>
           </div>
 
           {/* Company */}
           <div className="flex flex-col items-start">
-            <ul className="mt-2 space-y-1 text-left">
+            <ul className="space-y-1 text-left">
               <li>
-                <button 
-                  onClick={onContactClick} 
-                  className="hover:text-gray-900 text-left text-sm"
-                >
+                <button onClick={onContactClick} className="hover:text-gray-900 text-left text-sm">
                   Contact Us
                 </button>
               </li>
-              {/* <li><a href="#!" className="hover:text-gray-900 text-sm">Careers</a></li> */}
               <li><a href="#!" className="hover:text-gray-900 text-sm">Partners</a></li>
+            </ul>
+          </div>
+
+          {/* Information */}
+          <div className="flex flex-col items-start">
+            <ul className="space-y-1 text-left">
               <li><a href="#!" className="hover:text-gray-900 text-sm">Pricing</a></li>
-               <li>
-                <button 
-                  onClick={onAboutClick} 
-                  className="hover:text-gray-900 text-left text-sm"
-                >
+              <li>
+                <button onClick={onAboutClick} className="hover:text-gray-900 text-left text-sm">
                   About
                 </button>
               </li>
             </ul>
           </div>
-        </div>
+          
+        </div> {/* Close grid container */}
+      </div>
+    </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-200 py-2">
-          <div className="w-full px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
-            <p>© 2025 ServEaso. All rights reserved.</p>
-            <div className="flex space-x-4 mt-2 md:mt-0">
-            
-            </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-gray-200 py-2">
+        <div className="w-full px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
+          <p>© 2025 ServEaso. All rights reserved.</p>
+          <div className="flex space-x-4 mt-2 md:mt-0">
           </div>
         </div>
-      </footer>
-    </>
-  );
+      </div>
+    </footer>
+  </>
+);
 };
-
 export default Footer;
