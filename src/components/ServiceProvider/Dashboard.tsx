@@ -35,6 +35,7 @@ import axios, { AxiosResponse } from "axios";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import ProviderCalendarBig from "./ProviderCalendarBig";
 import PaymentInstance from "src/services/paymentInstance";
+import { useAppUser } from "src/context/AppUserContext";
 
 // Types for API response
 interface CustomerHoliday {
@@ -291,6 +292,10 @@ export default function Dashboard() {
   };
 
   // ✅ Extract name and serviceProviderId from Auth0 user
+
+
+  const { appUser } = useAppUser();
+  
   useEffect(() => {
     if (isAuthenticated && auth0User) {
       const name = auth0User.name || null;
@@ -299,10 +304,11 @@ export default function Dashboard() {
         auth0User["https://yourdomain.com/serviceProviderId"] || 
         null;
 
-      setUserName(name);
-      setServiceProviderId(id ? Number(id) : null);
+        console.log("auth0User:", appUser);
+      setUserName(appUser?.name);
+      setServiceProviderId(appUser?.serviceProviderId ? Number(appUser?.serviceProviderId) : null);
     }
-  }, [isAuthenticated, auth0User]);
+  }, [isAuthenticated, appUser]);
 
 //  fetchData outside of useEffect
 const fetchData = async () => {
