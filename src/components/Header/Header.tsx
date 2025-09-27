@@ -28,7 +28,7 @@ import {
   PROFILE,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
+import { Bell, ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -466,7 +466,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     setDialogService(service);
     setDialogOpen(true);
   };
-  
+
 const handleBookingSave = () => {
   let timeRange = "";
 
@@ -815,7 +815,9 @@ const handleBookingSave = () => {
     <ShoppingCart className="w-5 h-5" />
     </Button>
     </Badge> */}
-
+    <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" >
+   <Bell className="w-5 h-5" />
+    </Button>
           {/* User / Auth */}
           {!isAuthenticated ? (
             <Button
