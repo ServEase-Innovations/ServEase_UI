@@ -21,6 +21,7 @@ import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
+import { useAppUser } from 'src/context/AppUserContext';
 
 interface Task {
   taskType: string;
@@ -60,8 +61,8 @@ interface Booking {
     leave_type?: string;
     total_days?: number;
     refund_amount?: number;
-    leave_end_date?: string;
-    leave_start_date?: string;
+    end_date?: string;
+    start_date?: string;
   };
 }
 
@@ -129,52 +130,56 @@ const Booking: React.FC = () => {
   const { user: auth0User, isAuthenticated } = useAuth0();
 
   // Function to refresh bookings data
-  const refreshBookings = async () => {
-    if (customerId !== null && customerId !== undefined) {
+  const refreshBookings = async (id?: string) => {
+    const effectiveId = id || customerId; // fallback to state if not passed
+    if (effectiveId !== null && effectiveId !== undefined) {
+      console.log("Fetching bookings for customerId:", effectiveId);
+  
       const response = await PaymentInstance.get(
-        `/api/customers/${customerId}/engagements`
+        `/api/customers/${effectiveId}/engagements`
       );
-      
-      const { past = [], ongoing = [], upcoming = [] } = response.data || {};
+  
+      const { past = [], ongoing = [], upcoming = [], cancelled = [] } = response.data || {};
+  
       setPastBookings(mapBookingData(past));
       setCurrentBookings(mapBookingData(ongoing));
       setFutureBookings(mapBookingData(upcoming));
     }
   };
+  
+
+
+   const { appUser } = useAppUser();
 
   useEffect(() => {
-    if (isAuthenticated && auth0User) {
-      setCustomerId(auth0User.customerid);
-    }
-  }, [isAuthenticated, auth0User]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    
-    const fetchBookings = async () => {
-      try {
-        await refreshBookings();
-      } catch (error) {
-        console.error("Error fetching booking details:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (customerId !== null && customerId !== undefined) {
-      fetchBookings();
-    } else if (isAuthenticated) {
-      // Wait for customerId to be set
+    if (isAuthenticated && appUser?.customerid) {
+      setIsLoading(true);
+  
+      // Wait for state update with customerId
+      setCustomerId(appUser.customerid);
+  
+      // Use appUser.customerid directly instead of waiting for state
+      fetchBookings(appUser.customerid);
     } else {
       setIsLoading(false);
     }
-  }, [customerId, isAuthenticated]);
+  }, [appUser, isAuthenticated]);
+  
+  const fetchBookings = async (id: string) => {
+    try {
+      await refreshBookings(id); // pass id
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
-          const hasVacation = Array.isArray(item.modifications) && 
-            item.modifications.some((mod: any) => mod.modified_type === "VACATION");
+          const hasVacation = item?.vacation?.leave_days > 0;
           
           return {
             id: item.engagement_id,
@@ -205,14 +210,18 @@ const Booking: React.FC = () => {
             responsibilities: item.responsibilities,
             customerHolidays: item.customerHolidays || [],
             hasVacation: hasVacation,
-            vacationDetails: hasVacation ? 
-              item.modifications.find((mod: any) => mod.modified_type === "VACATION")?.modified_data : null
+            vacationDetails: hasVacation && item.vacation?.leave_days > 0 
+  ? item.vacation 
+  : null
           };
         })
       : [];
   };
+  
 
   const hasVacation = (booking: Booking): boolean => {
+    console.log("Has vacation " , booking.hasVacation)
+
     return booking.hasVacation || false;
   };
 
@@ -381,13 +390,13 @@ const Booking: React.FC = () => {
     try {
       setIsRefreshing(true);
       
-      await PaymentInstance.post(
-        `/api/customer/${customerId}/leaves`,
+      await PaymentInstance.put(
+        `api/engagements/${selectedBookingForLeave.id}`,
         {
-          engagement_id: selectedBookingForLeave.id,
-          leave_start_date: startDate,
-          leave_end_date: endDate,
-          leave_type: 'VACATION',
+          modified_by_role: appUser.role,
+          vacation_start_date: startDate,
+          vacation_end_date: endDate,
+          modified_by_id : customerId,
         }
       );
 

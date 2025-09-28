@@ -48,6 +48,9 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [newEndDate, setNewEndDate] = useState<Dayjs | null>(null);
 
+
+  console.log("Booking details:", booking);
+
   const details = booking?.vacationDetails;
   const startDate = details?.leave_start_date
     ? dayjs(details.leave_start_date)

@@ -22,10 +22,9 @@ interface Booking {
   bookingDate: string;
   hasVacation?: boolean;
   vacationDetails?: {
-    leave_start_date?: string;
-    leave_end_date?: string;
-    total_days?: number;
-    refund_amount?: number;
+    start_date?: string;
+    end_date?: string;
+    leave_days?: number;
   };
 }
 
@@ -54,6 +53,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   refreshBookings,
   setOpenSnackbar,
 }) => {
+
+  console.log("ModifyBookingDialog booking:", booking);
   const today = dayjs();
   const maxDate90Days = dayjs().add(90, "day");
 
