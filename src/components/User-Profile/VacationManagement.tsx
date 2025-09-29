@@ -8,14 +8,17 @@ import {
   Button,
   Typography,
   Box,
+  IconButton,
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
 import PaymentInstance from "src/services/paymentInstance";
+import CloseIcon from '@mui/icons-material/Close';
 
 // MUI X date pickers
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 interface VacationDetails {
   leave_start_date?: string;
@@ -148,7 +151,19 @@ useEffect(() => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Manage Vacation</DialogTitle>
+     <DialogHeader className="flex justify-between items-center">
+  <Typography variant="h6" component="span">
+    Manage Vacation
+  </Typography>
+  <IconButton
+    onClick={onClose}
+    size="small"
+    sx={{ color: "#fff" }} // white color
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
       <DialogContent dividers>
         <Box>
           <Typography variant="subtitle1" gutterBottom>
