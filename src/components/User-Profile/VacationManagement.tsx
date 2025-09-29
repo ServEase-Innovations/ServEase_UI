@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,13 +10,12 @@ import {
   Box,
 } from "@mui/material";
 import dayjs, { Dayjs } from "dayjs";
-import axios from "axios";
+import PaymentInstance from "src/services/paymentInstance";
 
 // MUI X date pickers
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import PaymentInstance from "src/services/paymentInstance";
 
 interface VacationDetails {
   leave_start_date?: string;
@@ -46,23 +45,33 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [newEndDate, setNewEndDate] = useState<Dayjs | null>(null);
-
-
-  console.log("Booking details:", booking);
+  const [selectedEndDate, setSelectedEndDate] = useState<Dayjs | null>(null);
 
   const details = booking?.vacationDetails;
   const startDate = details?.leave_start_date
     ? dayjs(details.leave_start_date)
     : null;
-  const endDate = details?.leave_end_date
-    ? dayjs(details.leave_end_date)
-    : null;
+  const endDate = details?.leave_end_date ? dayjs(details.leave_end_date) : null;
+
   const today = dayjs();
+
+  // Total vacation days and max modifiable days (half)
+  const totalVacationDays = endDate && startDate ? endDate.diff(startDate, "day") + 1 : 0;
+  const maxModifiableDays = Math.floor(totalVacationDays / 2);
+
+  // Initialize selected end date to the current vacation end
+useEffect(() => {
+  // Only set initial selectedEndDate once on mount or when booking changes
+  if (booking?.vacationDetails?.leave_end_date) {
+    setSelectedEndDate(dayjs(booking.vacationDetails.leave_end_date));
+  }
+}, [booking?.vacationDetails?.leave_end_date]);
+
 
   // Cancel vacation completely
   const handleCancelVacation = async () => {
     if (!booking || !customerId) return;
+
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -97,7 +106,14 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
 
   // Modify vacation (shorten)
   const handleModifyVacation = async () => {
-    if (!booking || !customerId || !newEndDate) return;
+    if (!booking || !customerId || !selectedEndDate || !startDate) return;
+
+    const daysSelected = selectedEndDate.diff(startDate, "day") + 1;
+    if (daysSelected > maxModifiableDays) {
+      setError(`You can only modify up to ${maxModifiableDays} day(s) of vacation.`);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -107,7 +123,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         `/api/customer/${customerId}/leaves/${booking.id}`,
         {
           engagement_id: booking.id,
-          new_end_date: newEndDate.format("YYYY-MM-DD"),
+          new_end_date: selectedEndDate.format("YYYY-MM-DD"),
         }
       );
 
@@ -128,24 +144,22 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
     }
   };
 
+  if (!startDate || !endDate) return null;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Manage Vacation</DialogTitle>
       <DialogContent dividers>
-        {details ? (
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>
-              Vacation Details
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Start: {startDate?.format("MMM D, YYYY")} <br />
-              End: {endDate?.format("MMM D, YYYY")} <br />
-              Total Days: {details?.total_days}
-            </Typography>
-          </Box>
-        ) : (
-          <Typography>No vacation details available.</Typography>
-        )}
+        <Box>
+          <Typography variant="subtitle1" gutterBottom>
+            Vacation Details
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Start: {startDate.format("MMM D, YYYY")} <br />
+            End: {endDate.format("MMM D, YYYY")} <br />
+            Total Days: {totalVacationDays}
+          </Typography>
+        </Box>
 
         {error && (
           <Box mt={2} p={2} bgcolor="error.light" borderRadius={2}>
@@ -160,28 +174,32 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         )}
 
         {/* Modify vacation section */}
-        {startDate && endDate && (
-          <Box mt={3}>
-            <Typography variant="subtitle2" gutterBottom>
-              Modify Vacation End Date
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Select a new end date (between {startDate.format("MMM D")} and{" "}
-              {endDate.format("MMM D")}).
-            </Typography>
+        <Box mt={3}>
+          <Typography variant="subtitle2" gutterBottom>
+            Modify Vacation End Date
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Select a new end date (you can shorten vacation up to {maxModifiableDays} day(s)).
+          </Typography>
 
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DateCalendar
-                value={newEndDate}
-                onChange={setNewEndDate}
-                shouldDisableDate={(date) =>
-                  date.isBefore(startDate, "day") ||
-                  date.isAfter(endDate, "day")
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateCalendar
+              value={selectedEndDate}
+              onChange={(date) => {
+                if (!date) return;
+                const daysSelected = date.diff(startDate, "day") + 1;
+                if (daysSelected > maxModifiableDays) {
+                  setSelectedEndDate(startDate.add(maxModifiableDays - 1, "day"));
+                } else {
+                  setSelectedEndDate(date);
                 }
-              />
-            </LocalizationProvider>
-          </Box>
-        )}
+              }}
+              shouldDisableDate={(date) =>
+                date.isBefore(today, "day") || date.isAfter(endDate, "day")
+              }
+            />
+          </LocalizationProvider>
+        </Box>
       </DialogContent>
 
       <DialogActions>
@@ -200,7 +218,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
           color="primary"
           variant="contained"
           onClick={handleModifyVacation}
-          disabled={!newEndDate || isLoading}
+          disabled={!selectedEndDate || isLoading}
         >
           {isLoading ? "Updating..." : "Update Vacation"}
         </Button>

@@ -9,6 +9,7 @@ import { Button } from "../Button/button";
 import axios from "axios";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import VacationManagementDialog from "./VacationManagement";
 
 interface Booking {
   bookingType: string;
@@ -67,6 +68,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isVacationDialogOpen, setIsVacationDialogOpen] = useState(false);
 
   const [selectedSection, setSelectedSection] = useState<
     "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
@@ -279,15 +281,15 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         {selectedSection === "OPTIONS" && (
           <div className="flex flex-col gap-3">
             {booking?.hasVacation && (
-              <Button
-                onClick={() => setSelectedSection("VACATION")}
-                variant="outlined"
-                color="secondary"
-                className="w-full"
-              >
-                Manage Vacation
-              </Button>
-            )}
+  <Button
+    onClick={() => setIsVacationDialogOpen(true)}
+    variant="outlined"
+    color="secondary"
+    className="w-full"
+  >
+    Manage Vacation
+  </Button>
+)}
 
             {booking.bookingType === "MONTHLY" && (
               <>
@@ -416,7 +418,29 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
         </DialogActions>
       )}
+      <VacationManagementDialog
+  open={isVacationDialogOpen}
+  onClose={() => setIsVacationDialogOpen(false)}
+  booking={{
+    id: booking.id,
+    vacationDetails: booking.vacationDetails
+      ? {
+          leave_start_date: booking.vacationDetails.start_date,
+          leave_end_date: booking.vacationDetails.end_date,
+          total_days: booking.vacationDetails.leave_days,
+        }
+      : undefined,
+  }}
+  customerId={customerId}
+  onSuccess={async () => {
+    await refreshBookings();
+    setIsVacationDialogOpen(false);
+    setOpenSnackbar(true);
+  }}
+/>
+
     </Dialog>
+    
   );
 };
 
