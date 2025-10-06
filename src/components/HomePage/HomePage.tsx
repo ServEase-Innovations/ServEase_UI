@@ -332,29 +332,29 @@ useEffect(() => {
     )} */}
   </div>
 </div>
-
-
-
-    {/* Buttons */}
-<div className="flex gap-3 pt-3 justify-center">
- 
+<div className="flex gap-3 pt-3 justify-center flex-nowrap">
   {/* Show registration buttons only for unauthenticated users */}
   {!isAuthenticated && (
     <>
-        <Button 
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
-        onClick={() => loginWithRedirect()} 
+      <Button
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
+                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
+        onClick={() => loginWithRedirect()}
       >
         Register as an User
       </Button>
+
       <Button
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
+                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
         onClick={handleWorkClick}
       >
         Register as a Provider
       </Button>
-      <Button 
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold"
+
+      <Button
+        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
+                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
         onClick={() => setIsAgentRegistrationOpen(true)}
       >
         Register as an Agent
@@ -362,6 +362,8 @@ useEffect(() => {
     </>
   )}
 </div>
+
+
   </div>
 
   {/* Carousel Section */}
