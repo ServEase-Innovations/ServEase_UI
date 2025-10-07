@@ -5,9 +5,10 @@ interface FooterProps {
   onAboutClick: () => void;
   onContactClick: () => void;
   onPrivacyPolicyClick: () => void;
+  onTermsClick: () => void; 
 }
 
-const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivacyPolicyClick}) => {
+const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivacyPolicyClick, onTermsClick}) => {
   return (
     <>
       <footer className="border-t border-gray-200 w-full" style={{ backgroundColor: "#d6f0ff" }}>
@@ -48,12 +49,16 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivac
                {/* Main footer content */}
       <div className="container mx-auto px-4 py-10">
         {/* Grid container for 4 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-11 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+          style={{ gap: '4.75rem', width: '164%' }}>
           
           {/* Legal */}
           <div className="flex flex-col items-start">
             <ul className="space-y-1 text-left">
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Terms of Service</a></li>
+              <li> <button onClick={onTermsClick} className="hover:text-gray-900 text-left text-sm">
+                      Terms of Service
+                    </button>
+                    </li>
               <li>
                 <button onClick={onPrivacyPolicyClick} className="hover:text-gray-900 text-left text-sm">
                     Privacy Policy

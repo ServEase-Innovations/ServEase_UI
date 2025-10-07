@@ -37,6 +37,7 @@ import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
 import { useAppUser } from "./context/AppUserContext";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
+import TnC from "./TermsAndConditions/TnC";
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
@@ -130,6 +131,9 @@ const handleContactClick = () => {
 const handlePrivacyPolicyClick = () => {
   setCurrentSection("PRIVACY_POLICY");
   setSelection(undefined);
+};
+const handleTermsClick = () => {
+  setCurrentSection("TERMS_CONDITIONS");
 };
 
 const handleBackToHome = () => {
@@ -228,6 +232,10 @@ const handleLogoClick = () => {
   if (currentSection === "PRIVACY_POLICY") {
     return <PrivacyPolicy />;
   }
+  // Add this new condition for Terms and Conditions
+  if (currentSection === "TERMS_CONDITIONS") {
+    return <TnC />;
+  }
 
     
   // Render service-related pages when selection exists
@@ -287,6 +295,7 @@ const handleLogoClick = () => {
           onAboutClick={handleAboutClick} 
           onContactClick={handleContactClick} 
           onPrivacyPolicyClick={handlePrivacyPolicyClick}
+          onTermsClick={handleTermsClick}
         />
       )}
        {activeToast && (
