@@ -36,7 +36,7 @@ import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
 import { useAppUser } from "./context/AppUserContext";
-
+import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
@@ -125,6 +125,11 @@ const handleAboutClick = () => {
 const handleContactClick = () => {
   setCurrentSection("CONTACT");
   setSelection(undefined); // Clear any service selection
+};
+
+const handlePrivacyPolicyClick = () => {
+  setCurrentSection("PRIVACY_POLICY");
+  setSelection(undefined);
 };
 
 const handleBackToHome = () => {
@@ -219,6 +224,10 @@ const handleLogoClick = () => {
     if (currentSection === "CONTACT") {
       return <ContactUs onBack={handleBackToHome} />;
     }
+      // Add this new condition for Privacy Policy
+  if (currentSection === "PRIVACY_POLICY") {
+    return <PrivacyPolicy />;
+  }
 
     
   // Render service-related pages when selection exists
@@ -277,6 +286,7 @@ const handleLogoClick = () => {
         <Footer 
           onAboutClick={handleAboutClick} 
           onContactClick={handleContactClick} 
+          onPrivacyPolicyClick={handlePrivacyPolicyClick}
         />
       )}
        {activeToast && (

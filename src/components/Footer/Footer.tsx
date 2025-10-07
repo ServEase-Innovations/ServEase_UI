@@ -1,12 +1,13 @@
 import React from "react";
-import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaFacebook } from "react-icons/fa6";
+import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaFacebook, FaXTwitter } from "react-icons/fa6";
 
 interface FooterProps {
   onAboutClick: () => void;
   onContactClick: () => void;
+  onPrivacyPolicyClick: () => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
+const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivacyPolicyClick}) => {
   return (
     <>
       <footer className="border-t border-gray-200 w-full" style={{ backgroundColor: "#d6f0ff" }}>
@@ -16,7 +17,7 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
           <div className="text-left flex flex-col items-start">
             <div className="flex items-center space-x-2">
               <img
-                src="NewLogoDesing2.png"
+                src="ServEaso.png"
                 alt="ServEaso Logo"
                 className="h-8 w-8 md:h-9 md:w-9"
               />
@@ -27,8 +28,7 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
             </p>
 
             <div className="flex space-x-3 mt-3 text-gray-600">
-              <a href="https://x.com/ServEaso" target="_blank" rel="noopener noreferrer">
-                <FaTwitter size={16} />
+              <a href="https://x.com/ServEaso" target="_blank" rel="noreferrer"><FaXTwitter size={16} />
               </a>
               <a href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn" target="_blank" rel="noopener noreferrer">
                 <FaInstagram size={16} />
@@ -46,15 +46,19 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick }) => {
           </div>
 
                {/* Main footer content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-10">
         {/* Grid container for 4 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-11 w-full">
           
           {/* Legal */}
           <div className="flex flex-col items-start">
             <ul className="space-y-1 text-left">
               <li><a href="#!" className="hover:text-gray-900 text-sm">Terms of Service</a></li>
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Privacy Policy</a></li>
+              <li>
+                <button onClick={onPrivacyPolicyClick} className="hover:text-gray-900 text-left text-sm">
+                    Privacy Policy
+                    </button>
+                  </li>
             </ul>
           </div>
 

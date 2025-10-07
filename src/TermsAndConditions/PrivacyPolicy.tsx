@@ -15,8 +15,15 @@ import {
 const PrivacyPolicy = () => {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ fontWeight: 'bold' }}>
+      {/* ⬇️ Changed padding to 88px and border-radius to 2px */}
+      <Paper elevation={3} sx={{ p: '88px', borderRadius: '2px' }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          align="center"
+          sx={{ fontWeight: 'bold' }}
+        >
           Privacy Statement
         </Typography>
         
@@ -94,12 +101,10 @@ const PrivacyPolicy = () => {
           </ListItem>
         </List>
         
-        {/* Continue with all other sections following the same pattern */}
-        
         <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'bold', mt: 3 }}>
           10. Contact Us
         </Typography>
-        <Box sx={{ backgroundColor: '#f5f5f5', p: 3, borderRadius: 1, mt: 2 }}>
+        <Box sx={{ backgroundColor: '#f5f5f5', p: 3, borderRadius: '2px', mt: 2 }}>
           <Typography variant="body1" paragraph>
             If you have any questions or concerns about this Privacy Statement or our data 
             practices, please contact us at:
@@ -112,7 +117,7 @@ const PrivacyPolicy = () => {
           </Typography>
         </Box>
         
-        <Box sx={{ mt: 4, p: 3, backgroundColor: '#fff8e1', borderRadius: 1 }}>
+        <Box sx={{ mt: 4, p: 3, backgroundColor: '#fff8e1', borderRadius: '2px' }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
             Crucial Considerations for Your Legal Review:
           </Typography>
