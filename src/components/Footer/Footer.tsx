@@ -28,31 +28,31 @@ const Footer: React.FC<FooterProps> = ({
         style={{ backgroundColor: "#d6f0ff" }}
       >
         {/* Top section */}
-        <div className="w-full px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
+        <div className="w-full px-4 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
           {/* Left side - Logo & Description */}
           <div className="text-left flex flex-col items-start">
             <div className="flex items-center space-x-2">
               <img
                 src="ServEaso.png"
                 alt="ServEaso Logo"
-                className="h-8 w-8 md:h-9 md:w-9"
+                className="h-6 w-6 md:h-7 md:w-7"
               />
             </div>
 
-            <p className="mt-2 text-gray-700 text-sm max-w-xs md:max-w-sm">
+            <p className="mt-1 text-gray-700 text-xs max-w-xs md:max-w-sm">
               Book trusted, trained house-help instantly. ServEaso provides safe,
               affordable maids, cooks, and caregivers.
             </p>
 
             {/* Social Links */}
-            <div className="flex space-x-3 mt-3 text-gray-600">
+            <div className="flex space-x-2 mt-2 text-gray-600">
               <a
                 href="https://x.com/ServEaso"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-black transition-colors"
               >
-                <FaXTwitter size={18} />
+                <FaXTwitter size={14} />
               </a>
               <a
                 href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn"
@@ -60,7 +60,7 @@ const Footer: React.FC<FooterProps> = ({
                 rel="noopener noreferrer"
                 className="hover:text-pink-600 transition-colors"
               >
-                <FaInstagram size={18} />
+                <FaInstagram size={14} />
               </a>
               <a
                 href="https://www.linkedin.com/in/serveaso-media-7b7719381/"
@@ -68,7 +68,7 @@ const Footer: React.FC<FooterProps> = ({
                 rel="noopener noreferrer"
                 className="hover:text-blue-600 transition-colors"
               >
-                <FaLinkedin size={18} />
+                <FaLinkedin size={14} />
               </a>
               <a
                 href="https://www.youtube.com/@ServEaso"
@@ -76,7 +76,7 @@ const Footer: React.FC<FooterProps> = ({
                 rel="noopener noreferrer"
                 className="hover:text-red-600 transition-colors"
               >
-                <FaYoutube size={18} />
+                <FaYoutube size={14} />
               </a>
               <a
                 href="https://www.facebook.com/profile.php?id=61572701168852"
@@ -84,22 +84,22 @@ const Footer: React.FC<FooterProps> = ({
                 rel="noopener noreferrer"
                 className="hover:text-blue-600 transition-colors"
               >
-                <FaFacebook size={18} />
+                <FaFacebook size={14} />
               </a>
             </div>
           </div>
 
           {/* Main footer links */}
-          <div className="md:col-span-2 container mx-auto px-4 py-[0.5rem]">
+          <div className="md:col-span-2 container mx-auto px-3 py-[0.3rem]">
             {/* Responsive grid for links */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-12 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-8 w-full">
               {/* Legal */}
               <div className="flex flex-col items-center sm:items-start">
-                <ul className="space-y-2 text-center sm:text-left">
+                <ul className="space-y-1 text-center sm:text-left">
                   <li>
                     <button
                       onClick={onTermsClick}
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Terms of Service
                     </button>
@@ -107,7 +107,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onPrivacyPolicyClick}
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Privacy Policy
                     </button>
@@ -117,11 +117,11 @@ const Footer: React.FC<FooterProps> = ({
 
               {/* Resources */}
               <div className="flex flex-col items-center sm:items-start">
-                <ul className="space-y-2 text-center sm:text-left">
+                <ul className="space-y-1 text-center sm:text-left">
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Tutorials
                     </a>
@@ -129,7 +129,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Blog
                     </a>
@@ -139,11 +139,11 @@ const Footer: React.FC<FooterProps> = ({
 
               {/* Company */}
               <div className="flex flex-col items-center sm:items-start">
-                <ul className="space-y-2 text-center sm:text-left">
+                <ul className="space-y-1 text-center sm:text-left">
                   <li>
                     <button
                       onClick={onContactClick}
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Contact Us
                     </button>
@@ -151,7 +151,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Partners
                     </a>
@@ -161,11 +161,11 @@ const Footer: React.FC<FooterProps> = ({
 
               {/* Information */}
               <div className="flex flex-col items-center sm:items-start">
-                <ul className="space-y-2 text-center sm:text-left">
+                <ul className="space-y-1 text-center sm:text-left">
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       Pricing
                     </a>
@@ -173,7 +173,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onAboutClick}
-                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
                     >
                       About
                     </button>
@@ -185,7 +185,7 @@ const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-200 py-3 px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600 text-center md:text-left">
+        <div className="border-t border-gray-200 py-1 px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 text-center md:text-left">
           <p>© 2025 ServEaso. All rights reserved.</p>
         </div>
       </footer>
