@@ -10,7 +10,7 @@ interface TnCProps {
 const TnC = () => {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* ✅ Updated padding and border radius */}
+      {/* Updated padding and border radius */}
       <Paper elevation={3} sx={{ p: '88px', borderRadius: '2px' }}>
         <Typography
           variant="h4"

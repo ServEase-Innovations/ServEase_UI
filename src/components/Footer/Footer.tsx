@@ -1,19 +1,34 @@
 import React from "react";
-import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaFacebook, FaXTwitter } from "react-icons/fa6";
+import {
+  FaTwitter,
+  FaInstagram,
+  FaLinkedin,
+  FaYoutube,
+  FaFacebook,
+  FaXTwitter,
+} from "react-icons/fa6";
 
 interface FooterProps {
   onAboutClick: () => void;
   onContactClick: () => void;
   onPrivacyPolicyClick: () => void;
-  onTermsClick: () => void; 
+  onTermsClick: () => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivacyPolicyClick, onTermsClick}) => {
+const Footer: React.FC<FooterProps> = ({
+  onAboutClick,
+  onContactClick,
+  onPrivacyPolicyClick,
+  onTermsClick,
+}) => {
   return (
     <>
-      <footer className="border-t border-gray-200 w-full" style={{ backgroundColor: "#d6f0ff" }}>
-        <div className="w-full px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
-          
+      <footer
+        className="border-t border-gray-200 w-full"
+        style={{ backgroundColor: "#d6f0ff" }}
+      >
+        {/* Top section */}
+        <div className="w-full px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
           {/* Left side - Logo & Description */}
           <div className="text-left flex flex-col items-start">
             <div className="flex items-center space-x-2">
@@ -24,96 +39,158 @@ const Footer: React.FC<FooterProps> = ({ onAboutClick, onContactClick,  onPrivac
               />
             </div>
 
-            <p className="mt-2 text-gray-700 text-sm">
-              Book trusted, trained house-help instantly. ServEaso provides safe, affordable maids, cooks, and caregivers.
+            <p className="mt-2 text-gray-700 text-sm max-w-xs md:max-w-sm">
+              Book trusted, trained house-help instantly. ServEaso provides safe,
+              affordable maids, cooks, and caregivers.
             </p>
 
+            {/* Social Links */}
             <div className="flex space-x-3 mt-3 text-gray-600">
-              <a href="https://x.com/ServEaso" target="_blank" rel="noreferrer"><FaXTwitter size={16} />
+              <a
+                href="https://x.com/ServEaso"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-black transition-colors"
+              >
+                <FaXTwitter size={18} />
               </a>
-              <a href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn" target="_blank" rel="noopener noreferrer">
-                <FaInstagram size={16} />
+              <a
+                href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-pink-600 transition-colors"
+              >
+                <FaInstagram size={18} />
               </a>
-              <a href="https://www.linkedin.com/in/serveaso-media-7b7719381/" target="_blank" rel="noopener noreferrer">
-                <FaLinkedin size={16} />
+              <a
+                href="https://www.linkedin.com/in/serveaso-media-7b7719381/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 transition-colors"
+              >
+                <FaLinkedin size={18} />
               </a>
-              <a href="https://www.youtube.com/@ServEaso" target="_blank" rel="noopener noreferrer">
-                <FaYoutube size={16} />
+              <a
+                href="https://www.youtube.com/@ServEaso"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-red-600 transition-colors"
+              >
+                <FaYoutube size={18} />
               </a>
-              <a href="https://www.facebook.com/profile.php?id=61572701168852" target="_blank" rel="noopener noreferrer">
-                <FaFacebook size={16} />
+              <a
+                href="https://www.facebook.com/profile.php?id=61572701168852"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 transition-colors"
+              >
+                <FaFacebook size={18} />
               </a>
             </div>
           </div>
 
-               {/* Main footer content */}
-      <div className="container mx-auto px-4 py-10">
-        {/* Grid container for 4 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-          style={{ gap: '4.75rem', width: '164%' }}>
-          
-          {/* Legal */}
-          <div className="flex flex-col items-start">
-            <ul className="space-y-1 text-left">
-              <li> <button onClick={onTermsClick} className="hover:text-gray-900 text-left text-sm">
+          {/* Main footer links */}
+          <div className="md:col-span-2 container mx-auto px-4 py-[0.5rem]">
+            {/* Responsive grid for links */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-12 w-full">
+              {/* Legal */}
+              <div className="flex flex-col items-center sm:items-start">
+                <ul className="space-y-2 text-center sm:text-left">
+                  <li>
+                    <button
+                      onClick={onTermsClick}
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
                       Terms of Service
                     </button>
-                    </li>
-              <li>
-                <button onClick={onPrivacyPolicyClick} className="hover:text-gray-900 text-left text-sm">
-                    Privacy Policy
+                  </li>
+                  <li>
+                    <button
+                      onClick={onPrivacyPolicyClick}
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Privacy Policy
                     </button>
                   </li>
-            </ul>
-          </div>
+                </ul>
+              </div>
 
-          {/* Resources */}
-          <div className="flex flex-col items-start">
-            <ul className="space-y-1 text-left">
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Tutorials</a></li>
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Blog</a></li>
-            </ul>
-          </div>
+              {/* Resources */}
+              <div className="flex flex-col items-center sm:items-start">
+                <ul className="space-y-2 text-center sm:text-left">
+                  <li>
+                    <a
+                      href="#!"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Tutorials
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#!"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Blog
+                    </a>
+                  </li>
+                </ul>
+              </div>
 
-          {/* Company */}
-          <div className="flex flex-col items-start">
-            <ul className="space-y-1 text-left">
-              <li>
-                <button onClick={onContactClick} className="hover:text-gray-900 text-left text-sm">
-                  Contact Us
-                </button>
-              </li>
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Partners</a></li>
-            </ul>
-          </div>
+              {/* Company */}
+              <div className="flex flex-col items-center sm:items-start">
+                <ul className="space-y-2 text-center sm:text-left">
+                  <li>
+                    <button
+                      onClick={onContactClick}
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Contact Us
+                    </button>
+                  </li>
+                  <li>
+                    <a
+                      href="#!"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Partners
+                    </a>
+                  </li>
+                </ul>
+              </div>
 
-          {/* Information */}
-          <div className="flex flex-col items-start">
-            <ul className="space-y-1 text-left">
-              <li><a href="#!" className="hover:text-gray-900 text-sm">Pricing</a></li>
-              <li>
-                <button onClick={onAboutClick} className="hover:text-gray-900 text-left text-sm">
-                  About
-                </button>
-              </li>
-            </ul>
-          </div>
-          
-        </div> {/* Close grid container */}
-      </div>
-    </div>
-
-
-      {/* Bottom Bar */}
-      <div className="border-t border-gray-200 py-2">
-        <div className="w-full px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
-          <p>© 2025 ServEaso. All rights reserved.</p>
-          <div className="flex space-x-4 mt-2 md:mt-0">
+              {/* Information */}
+              <div className="flex flex-col items-center sm:items-start">
+                <ul className="space-y-2 text-center sm:text-left">
+                  <li>
+                    <a
+                      href="#!"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      Pricing
+                    </a>
+                  </li>
+                  <li>
+                    <button
+                      onClick={onAboutClick}
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
+                    >
+                      About
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </footer>
-  </>
-);
+
+        {/* Bottom Bar */}
+        <div className="border-t border-gray-200 py-3 px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-600 text-center md:text-left">
+          <p>© 2025 ServEaso. All rights reserved.</p>
+        </div>
+      </footer>
+    </>
+  );
 };
+
 export default Footer;
