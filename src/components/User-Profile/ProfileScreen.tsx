@@ -25,6 +25,24 @@ interface Address {
   };
 }
 
+interface PermanentAddress {
+  field1: string;
+  field2: string;
+  ctArea: string;
+  pinNo: string;
+  state: string;
+  country: string;
+}
+
+interface CorrespondenceAddress {
+  field1: string;
+  field2: string;
+  ctArea: string;
+  pinNo: string;
+  state: string;
+  country: string;
+}
+
 interface UserData {
   firstName: string;
   lastName: string;
@@ -48,6 +66,8 @@ interface ServiceProvider {
   pincode: number;
   currentLocation: string;
   nearbyLocation: string;
+  permanentAddress: PermanentAddress;
+  correspondenceAddress: CorrespondenceAddress;
 }
 
 const ProfileScreen = () => {
@@ -187,21 +207,67 @@ const ProfileScreen = () => {
   }
 };
   
-  const fetchServiceProviderData = async (serviceProviderId: number) => {
-    try {
-      const response = await axiosInstance.get(
-        `/api/serviceproviders/get/serviceprovider/${serviceProviderId}`
-      );
+ const fetchServiceProviderData = async (serviceProviderId: number) => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/serviceproviders/get/serviceprovider/${serviceProviderId}`
+    );
 
-      const data = response.data;
-      setServiceProviderData(data);
+    const data = response.data;
+    setServiceProviderData(data);
 
-      setUserData(prev => ({
-        ...prev,
-        contactNumber: data.mobileNo ? data.mobileNo.toString() : "",
-        altContactNumber: data.alternateNo ? data.alternateNo.toString() : ""
-      }));
+    setUserData(prev => ({
+      ...prev,
+      contactNumber: data.mobileNo ? data.mobileNo.toString() : "",
+      altContactNumber: data.alternateNo ? data.alternateNo.toString() : ""
+    }));
 
+    // Create addresses from permanent and correspondence addresses
+    const addresses: Address[] = [];
+
+    // Permanent Address
+    if (data.permanentAddress) {
+      const permAddr = data.permanentAddress;
+      const streetAddress = `${permAddr.field1 || ""} ${permAddr.field2 || ""}`.trim() || 
+                           data.street || 
+                           data.buildingName || 
+                           "";
+      
+      addresses.push({
+        id: "permanent",
+        type: "Permanent",
+        street: streetAddress || "Address not specified",
+        city: permAddr.ctArea || data.locality || data.currentLocation || "",
+        country: permAddr.country || "India",
+        postalCode: permAddr.pinNo || (data.pincode ? data.pincode.toString() : ""),
+        isPrimary: true,
+      });
+    }
+
+    // Correspondence Address
+    if (data.correspondenceAddress) {
+      const corrAddr = data.correspondenceAddress;
+      const streetAddress = `${corrAddr.field1 || ""} ${corrAddr.field2 || ""}`.trim() || 
+                           data.street || 
+                           data.buildingName || 
+                           "";
+      
+      addresses.push({
+        id: "correspondence",
+        type: "Correspondence",
+        street: streetAddress || "Address not specified",
+        city: corrAddr.ctArea || data.locality || data.currentLocation || "",
+        country: corrAddr.country || "India",
+        postalCode: corrAddr.pinNo || (data.pincode ? data.pincode.toString() : ""),
+        isPrimary: false,
+      });
+    }
+
+    // Debug log to check what addresses are being set
+    console.log("Service Provider Addresses:", addresses);
+
+    // If no specific addresses found, fall back to the old method
+    if (addresses.length === 0) {
       const serviceProviderAddress: Address = {
         id: "1",
         type: "Home",
@@ -211,15 +277,16 @@ const ProfileScreen = () => {
         postalCode: data.pincode ? data.pincode.toString() : "",
         isPrimary: true,
       };
-
-      setAddresses([serviceProviderAddress]);
-    } catch (error) {
-      console.error("Failed to fetch service provider data:", error);
+      addresses.push(serviceProviderAddress);
     }
-  };
 
+    setAddresses(addresses);
+  } catch (error) {
+    console.error("Failed to fetch service provider data:", error);
+  }
+};
   const getAvailableAddressTypes = () => {
-    if (userRole === "SERVICE_PROVIDER") return ["Home"];
+    if (userRole === "SERVICE_PROVIDER") return ["Permanent", "Correspondence"];
     return ["Home", "Work", "Other"];
   };
 
@@ -332,19 +399,38 @@ const ProfileScreen = () => {
 
     try {
       if (userRole === "SERVICE_PROVIDER" && userId) {
-        const currentAddress = addresses[0];
+        // For service providers, we need to handle both addresses
+        const permanentAddress = addresses.find(addr => addr.type === "Permanent");
+        const correspondenceAddress = addresses.find(addr => addr.type === "Correspondence");
+
         const payload = {
           serviceproviderId: userId,
           firstName: userData.firstName,
           lastName: userData.lastName,
           mobileNo: userData.contactNumber?.replace("+", "") || null,
           alternateNo: userData.altContactNumber?.replace("+", "") || null,
-          buildingName: currentAddress.street || "",
-          street: currentAddress.street || "",
-          locality: currentAddress.city || "",
-          pincode: currentAddress.postalCode || null,
-          currentLocation: currentAddress.city || "",
-          nearbyLocation: currentAddress.city || "",
+          buildingName: permanentAddress?.street || "",
+          street: permanentAddress?.street || "",
+          locality: permanentAddress?.city || "",
+          pincode: permanentAddress?.postalCode || null,
+          currentLocation: permanentAddress?.city || "",
+          nearbyLocation: permanentAddress?.city || "",
+          permanentAddress: permanentAddress ? {
+            field1: permanentAddress.street.split(' ')[0] || "",
+            field2: permanentAddress.street || "",
+            ctArea: permanentAddress.city || "",
+            pinNo: permanentAddress.postalCode || "",
+            state: "West Bengal", // You might want to make this dynamic
+            country: permanentAddress.country || "India"
+          } : null,
+          correspondenceAddress: correspondenceAddress ? {
+            field1: correspondenceAddress.street.split(' ')[0] || "",
+            field2: correspondenceAddress.street || "",
+            ctArea: correspondenceAddress.city || "",
+            pinNo: correspondenceAddress.postalCode || "",
+            state: "West Bengal", // You might want to make this dynamic
+            country: correspondenceAddress.country || "India"
+          } : null
         };
 
         await axiosInstance.put(
@@ -455,9 +541,9 @@ const ProfileScreen = () => {
           {/* Address Section */}
           <div className="mb-6">
             <SkeletonLoader width={96} height={16} className="mb-4" />
-            <div className="space-y-3">
-              <SkeletonLoader height={80} />
-              <SkeletonLoader height={80} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonLoader height={120} />
+              <SkeletonLoader height={120} />
             </div>
           </div>
         </div>
@@ -804,139 +890,144 @@ const ProfileScreen = () => {
               </div>
             )}
 
-            {addresses.length === 0 ? (
-              <p className="text-gray-500 italic">No addresses saved yet</p>
-            ) : (
-              <div className="space-y-3">
-                {addresses.map((address, idx) => {
-                  const isExpanded = idx === 0 || expandedAddressIds.includes(address.id);
+     {addresses.length === 0 ? (
+  <p className="text-gray-500 italic">No addresses saved yet</p>
+) : (
+  <div className={`grid grid-cols-1 ${userRole === "SERVICE_PROVIDER" ? 'md:grid-cols-2' : ''} gap-4`}>
+    {addresses.map((address) => {
+      // For service providers, always show both addresses expanded
+      const isExpanded = userRole === "SERVICE_PROVIDER" || expandedAddressIds.includes(address.id);
 
-                  return (
-                    <div
-                      key={address.id}
-                      className={`border ${address.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-gray-200'} rounded-lg transition-all duration-300 overflow-hidden ${
-                        isExpanded ? "p-4" : "p-3"
-                      }`}
+      return (
+        <div
+          key={address.id}
+          className={`border ${address.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-gray-200'} rounded-lg transition-all duration-300 overflow-hidden p-4`}
+        >
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              {isEditing ? (
+                <select
+                  value={address.type}
+                  onChange={(e) => handleEditAddress(address.id, 'type', e.target.value)}
+                  className="font-semibold bg-white border border-gray-300 rounded px-2 py-1 text-sm mr-2"
+                >
+                  {getAvailableAddressTypes().map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="font-semibold">{address.type} Address</span>
+              )}
+              {address.isPrimary && (
+                <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  Primary
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isEditing && addresses.length > 1 && userRole === "CUSTOMER" && (
+                <>
+                  {!address.isPrimary && (
+                    <button
+                      onClick={() => setPrimaryAddress(address.id)}
+                      className="text-blue-600 text-sm font-medium"
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          {isEditing ? (
-                            <select
-                              value={address.type}
-                              onChange={(e) => handleEditAddress(address.id, 'type', e.target.value)}
-                              className="font-semibold bg-transparent border-none p-0 m-0 mr-2"
-                            >
-                              {getAvailableAddressTypes().map(type => (
-                                <option key={type} value={type}>{type}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="font-semibold">{address.type} Address</span>
-                          )}
-                          {address.isPrimary && (
-                            <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                              Primary
-                            </span>
-                          )}
-                        </div>
+                      Set Primary
+                    </button>
+                  )}
+                  <button
+                    onClick={() => removeAddress(address.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X size={18} />
+                  </button>
+                </>
+              )}
+              {userRole === "CUSTOMER" && (
+                <button
+                  onClick={() => toggleAddress(address.id)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+              )}
+            </div>
+          </div>
 
-                        <div className="flex items-center gap-2">
-                          {isEditing && addresses.length > 1 && (
-                            <>
-                              {!address.isPrimary && (
-                                <button
-                                  onClick={() => setPrimaryAddress(address.id)}
-                                  className="text-blue-600 text-sm font-medium"
-                                >
-                                  Set Primary
-                                </button>
-                              )}
-                              <button
-                                onClick={() => removeAddress(address.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
-                          {idx !== 0 && (
-                            <button
-                              onClick={() => toggleAddress(address.id)}
-                              className="text-gray-500 hover:text-gray-700"
-                            >
-                              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                     {isExpanded && (
-  <div className="mt-2 text-sm text-gray-700 space-y-2">
-    {isEditing ? (
-      <>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Street Address</label>
-          <input
-            type="text"
-            value={address.street}
-            onChange={(e) => handleEditAddress(address.id, 'street', e.target.value)}
-            className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">City</label>
-            <input
-              type="text"
-              value={address.city}
-              onChange={(e) => handleEditAddress(address.id, 'city', e.target.value)}
-              className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Country</label>
-            <input
-              type="text"
-              value={address.country}
-              onChange={(e) => handleEditAddress(address.id, 'country', e.target.value)}
-              className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Postal Code</label>
-            <input
-              type="text"
-              value={address.postalCode}
-              onChange={(e) => handleEditAddress(address.id, 'postalCode', e.target.value)}
-              className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
-            />
-          </div>
-        </div>
-      </>
-    ) : (
-      <>
-        {/* Show the full formatted address */}
-        <p className="font-medium">{address.street}</p>
-        <div className="text-xs text-gray-500 space-y-1">
-          {address.city && <p><span className="font-semibold">City:</span> {address.city}</p>}
-          {address.country && <p><span className="font-semibold">Country:</span> {address.country}</p>}
-          {address.postalCode && <p><span className="font-semibold">Postal Code:</span> {address.postalCode}</p>}
-          {address.rawData && (
-            <>
-              {/* <p><span className="font-semibold">Coordinates:</span> {address.rawData.latitude.toFixed(6)}, {address.rawData.longitude.toFixed(6)}</p>
-              <p><span className="font-semibold">Place ID:</span> {address.rawData.placeId}</p> */}
-            </>
+          {isExpanded && (
+            <div className="mt-3 text-sm text-gray-700 space-y-2">
+              {isEditing ? (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Street Address</label>
+                    <input
+                      type="text"
+                      value={address.street}
+                      onChange={(e) => handleEditAddress(address.id, 'street', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={address.city}
+                        onChange={(e) => handleEditAddress(address.id, 'city', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Country</label>
+                      <input
+                        type="text"
+                        value={address.country}
+                        onChange={(e) => handleEditAddress(address.id, 'country', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Postal Code</label>
+                    <input
+                      type="text"
+                      value={address.postalCode}
+                      onChange={(e) => handleEditAddress(address.id, 'postalCode', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Show the full formatted address */}
+                  <p className="font-medium text-gray-900">{address.street}</p>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {address.city && (
+                      <p>
+                        <span className="font-semibold">City:</span> {address.city}
+                      </p>
+                    )}
+                    {address.country && (
+                      <p>
+                        <span className="font-semibold">Country:</span> {address.country}
+                      </p>
+                    )}
+                    {address.postalCode && (
+                      <p>
+                        <span className="font-semibold">Postal Code:</span> {address.postalCode}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
-      </>
-    )}
+      );
+    })}
   </div>
 )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Service Provider Status Section */}
