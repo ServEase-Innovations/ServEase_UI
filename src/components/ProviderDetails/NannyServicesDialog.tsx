@@ -387,19 +387,25 @@ useEffect(() => {
       careType: activeTab,
     }));
 
-    const payload: BookingPayload = {
-      customerid: customerId,
-      serviceproviderid: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-      start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-      end_date: bookingType?.endDate || "",
-      start_time: bookingType?.timeRange || '',
-      responsibilities: { tasks: responsibilities },
-      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-      taskStatus: "NOT_STARTED",
-      service_type: "NANNY",
-      base_amount: baseTotal,
-      payment_mode: "razorpay",
-    };
+   const payload: BookingPayload = {
+  customerid: customerId,
+  serviceproviderid: providerDetails?.serviceproviderId
+    ? Number(providerDetails.serviceproviderId)
+    : 0,
+  start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+  end_date: bookingType?.endDate || "",
+  start_time: bookingType?.timeRange || '',
+  responsibilities: { tasks: responsibilities },
+  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+  taskStatus: "NOT_STARTED",
+  service_type: "NANNY",
+  base_amount: baseTotal,
+  payment_mode: "razorpay",
+  ...(bookingType?.bookingPreference === "ON_DEMAND" && {
+    end_time: bookingType?.endTime || "",
+  }),
+};
+
 
     console.log("Final Nanny Payload:", payload);
 

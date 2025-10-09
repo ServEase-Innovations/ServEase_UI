@@ -250,20 +250,23 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     }));
 
     const payload: BookingPayload = {
-      customerid: customerId,
-      serviceproviderid: providerDetails?.serviceproviderId
-        ? Number(providerDetails.serviceproviderId)
-        : 0,
-      start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
-      end_date: bookingType?.endDate || "",
-      responsibilities: { tasks: responsibilities },
-      booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-      taskStatus: "NOT_STARTED",
-      service_type: "COOK",
-      base_amount: baseTotal,
-      payment_mode: "razorpay",
-      start_time: bookingType?.timeRange || "",
-    };
+  customerid: customerId,
+  serviceproviderid: providerDetails?.serviceproviderId
+    ? Number(providerDetails.serviceproviderId)
+    : 0,
+  start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+  end_date: bookingType?.endDate || "",
+  responsibilities: { tasks: responsibilities },
+  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+  taskStatus: "NOT_STARTED",
+  service_type: "COOK",
+  base_amount: baseTotal,
+  payment_mode: "razorpay",
+  start_time: bookingType?.timeRange || "",
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+    end_time: bookingType?.endTime || "",
+  }),
+};
 
     const result = await BookingService.bookAndPay(payload);
     console.log("Final result:", result);
