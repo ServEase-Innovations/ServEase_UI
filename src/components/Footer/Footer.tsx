@@ -28,21 +28,21 @@ const Footer: React.FC<FooterProps> = ({
         style={{ backgroundColor: "#d6f0ff" }}
       >
         {/* Top section */}
-        <div className="w-full px-4 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+        <div className="w-full px-4 custom-py flex flex-col md:flex-row md:justify-start md:items-start text-sm text-gray-600">
           {/* Left side - Logo & Description */}
-          <div className="text-left flex flex-col items-start">
-            <div className="flex items-center space-x-2">
-              <img
-                src="ServEaso.png"
-                alt="ServEaso Logo"
-                className="h-6 w-6 md:h-7 md:w-7"
-              />
-            </div>
+          <div className="flex flex-col items-start justify-start text-left md:float-right md:w-1/3 self-start md:ml-6">
+    <div className="flex items-center space-x-2">
+      <img
+        src="ServEaso.png"
+        alt="ServEaso Logo"
+        className="h-6 w-6 md:h-7 md:w-7"
+      />
+    </div>
 
-            <p className="mt-1 text-gray-700 text-xs max-w-xs md:max-w-sm">
-              Book trusted, trained house-help instantly. ServEaso provides safe,
-              affordable maids, cooks, and caregivers.
-            </p>
+            <p className="mt-1 text-gray-700 text-xs max-w-xs md:max-w-sm text-left">
+      Book trusted, trained house-help instantly. ServEaso provides safe,
+      affordable maids, cooks, and caregivers.
+    </p>
 
             {/* Social Links */}
             <div className="flex space-x-2 mt-2 text-gray-600">
@@ -90,7 +90,15 @@ const Footer: React.FC<FooterProps> = ({
           </div>
 
           {/* Main footer links */}
-          <div className="md:col-span-2 container mx-auto px-3 py-[0.3rem]">
+          <div
+  className="md:col-span-2 container mx-auto"
+  style={{
+    paddingLeft: "7rem",
+    paddingRight: "3rem",
+    paddingTop: "1.3rem",
+    paddingBottom: "1.3rem",
+  }}
+>
             {/* Responsive grid for links */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-8 w-full">
               {/* Legal */}
@@ -99,7 +107,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onTermsClick}
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Terms of Service
                     </button>
@@ -107,7 +115,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onPrivacyPolicyClick}
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Privacy Policy
                     </button>
@@ -121,7 +129,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Tutorials
                     </a>
@@ -129,7 +137,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Blog
                     </a>
@@ -143,7 +151,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onContactClick}
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Contact Us
                     </button>
@@ -151,7 +159,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Partners
                     </a>
@@ -165,7 +173,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <a
                       href="#!"
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       Pricing
                     </a>
@@ -173,7 +181,7 @@ const Footer: React.FC<FooterProps> = ({
                   <li>
                     <button
                       onClick={onAboutClick}
-                      className="hover:text-gray-900 text-gray-600 text-[10px] hover:underline"
+                      className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
                       About
                     </button>
@@ -185,8 +193,9 @@ const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-200 py-1 px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 text-center md:text-left">
-          <p>© 2025 ServEaso. All rights reserved.</p>
+        <div className="border-t border-gray-200 py-1 px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 text-center md:text-left md:ml-4">
+
+          <p> © 2025 ServEaso. All rights reserved.</p>
         </div>
       </footer>
     </>
