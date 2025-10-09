@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import moment from "moment";
 import {
   TextField,
@@ -29,6 +29,7 @@ import {
   Tooltip,
   Snackbar,
   Dialog,
+  CircularProgress,
 } from "@mui/material";
 import {
   Visibility,
@@ -44,7 +45,13 @@ import { Button } from "../Button/button";
 import CustomFileInput from "./CustomFileInput";
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Close as CloseIcon } from "@mui/icons-material";
-import utilsInstance from "src/services/utilsInstance";
+import AddressComponent from "./AddressComponent";
+import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { debounce } from "src/utils/debounce";
+import { useFieldValidation } from "./useFieldValidation";
+import { CheckIcon } from "lucide-react";
+
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -56,36 +63,56 @@ interface FormData {
   confirmPassword: string;
   mobileNo: string;
   AlternateNumber: string;
-  address: string;
-  buildingName: string;
-  locality: string;
-  street: string;
-  currentLocation: string;
-  nearbyLocation: string;
-  pincode: string;
+  buildingName: string; // Add back
+  locality: string; // Add back
+  street: string; // Add back
+  currentLocation: string; // Add back
+  nearbyLocation: string; // Add back
+  pincode: string; // Add back
+  latitude: number;
+  longitude: number;
   AADHAR: string;
   pan: string;
-  panImage: File | null; // New field for PAN image upload
-  housekeepingRole: string; // Dropdown for Service Type
-  description: string; // Text area for business description
-  experience: string; // Experience in years
+  panImage: File | null;
+  housekeepingRole: string;
+  description: string;
+  experience: string;
   kyc: string;
   documentImage: File | null;
   otherDetails: string;
-  profileImage: File | null; // New field for Profile Image
+  profileImage: File | null;
   cookingSpeciality: string;
-  age: "";
+  age: string;
   diet: string;
-  dob: "";
+  dob: string;
   profilePic: string;
   timeslot: string;
-  referralCode: "";
-   agreeToTerms: boolean;
+  referralCode: string;
+  agreeToTerms: boolean;
   terms: boolean;
   privacy: boolean;
   keyFacts: boolean;
+  permanentAddress: {
+    apartment: string;
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+  };
+  correspondenceAddress: {
+    apartment: string;
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+  };
+  // Removed only geoHash fields:
+  // geoHash5: string;
+  // geoHash6: string;
+  // geoHash7: string;
 }
-
 // Define the shape of errors to hold string messages
 interface FormErrors {
   firstName?: string;
@@ -95,7 +122,6 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   mobileNo?: string;
-  address?: string;
   buildingName?: string;
   locality?: string;
   street?: string;
@@ -114,6 +140,22 @@ interface FormErrors {
   documentImage?: string;
   cookingSpeciality?: string;
   diet?: string;
+  permanentAddress?: {
+    apartment?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+  };
+  correspondenceAddress?: {
+    apartment?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+  };
 }
 
 // Regex for validation
@@ -151,45 +193,68 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [sliderValueMorning, setSliderValueMorning] = useState([6, 12]);
   const [sliderValueEvening, setSliderValueEvening] = useState([12, 20]);
   const [isCookSelected, setIsCookSelected] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
+
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    gender: "",
-    emailId: "",
-    password: "",
-    confirmPassword: "",
-    mobileNo: "",
-    AlternateNumber: "",
-    address: "",
-    buildingName: "",
-    locality: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  gender: "",
+  emailId: "",
+  password: "",
+  confirmPassword: "",
+  mobileNo: "",
+  AlternateNumber: "",
+  buildingName: "", // Add back
+  locality: "", // Add back
+  street: "", // Add back
+  currentLocation: "", // Add back
+  nearbyLocation: "", // Add back
+  pincode: "", // Add back
+  latitude: 0,
+  longitude: 0,
+  AADHAR: "",
+  pan: "",
+  panImage: null,
+  housekeepingRole: "",
+  description: "",
+  experience: "",
+  kyc: "AADHAR",
+  documentImage: null,
+  otherDetails: "",
+  profileImage: null,
+  cookingSpeciality: "",
+  age: "",
+  diet: "",
+  dob: "",
+  profilePic: "",
+  timeslot: "06:00-20:00",
+  referralCode: "",
+  agreeToTerms: false,
+  terms: false,
+  privacy: false,
+  keyFacts: false,
+  permanentAddress: {
+    apartment: "",
     street: "",
-    currentLocation: "",
-    nearbyLocation: "",
-    pincode: "",
-    AADHAR: "",
-    pan: "",
-    panImage: null,
-    housekeepingRole: "",
-    description: "",
-    experience: "",
-    kyc: "AADHAR",
-    documentImage: null,
-    otherDetails: "",
-    profileImage: null,
-    cookingSpeciality: "",
-    age: "",
-    diet: "",
-    dob: "",
-    profilePic: "",
-    timeslot: "06:00-20:00",
-    referralCode: "",
-    agreeToTerms: false,
-    terms: false,
-    privacy: false,
-    keyFacts: false,
-  });
+    city: "",
+    state: "",
+    country: "",
+    pincode: ""
+  },
+  correspondenceAddress: {
+    apartment: "",
+    street: "",
+    city: "",
+    state: "",
+    country: "",
+    pincode: ""
+  },
+});
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -210,18 +275,47 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     setShowConfirmPassword(!showConfirmPassword);
   };
 
- const handleChange = (
-  e: React.ChangeEvent<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  >
-) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
+  const handleAddressChange = (type: 'permanent' | 'correspondence', data: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
+    }));
+  };
+const { validationResults, validateField, resetValidation } = useFieldValidation();
+
+// Add debounced validation functions
+const debouncedEmailValidation = useCallback(
+  debounce((email: string) => {
+    validateField('email', email);
+  }, 500),
+  [validateField]
+);
+
+const debouncedMobileValidation = useCallback(
+  debounce((mobile: string) => {
+    validateField('mobile', mobile);
+  }, 500),
+  [validateField]
+);
+
+const debouncedAlternateValidation = useCallback(
+  debounce((alternate: string) => {
+    validateField('alternate', alternate);
+  }, 500),
+  [validateField]
+);
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/;
@@ -323,35 +417,59 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "emailId") {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          emailId: "Please enter a valid email address.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          emailId: "",
-        }));
-      }
+     if (name === "emailId") {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailId: "Please enter a valid email address.",
+      }));
+      resetValidation('email');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailId: "",
+      }));
+      // Trigger debounced email validation
+      debouncedEmailValidation(value);
     }
+  }
 
-    if (name === "mobileNo") {
-      const mobilePattern = /^[0-9]{10}$/;
-      if (!mobilePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          mobileNo: "Please enter a valid 10-digit mobile number.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          mobileNo: "",
-        }));
-      }
+  if (name === "mobileNo") {
+    const mobilePattern = /^[0-9]{10}$/;
+    if (!mobilePattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        mobileNo: "Please enter a valid 10-digit mobile number.",
+      }));
+      resetValidation('mobile');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        mobileNo: "",
+      }));
+      // Trigger debounced mobile validation
+      debouncedMobileValidation(value);
     }
+  }
+
+  if (name === "AlternateNumber" && value) {
+    const mobilePattern = /^[0-9]{10}$/;
+    if (!mobilePattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        AlternateNumber: "Please enter a valid 10-digit mobile number.",
+      }));
+      resetValidation('alternate');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        AlternateNumber: "",
+      }));
+      // Trigger debounced alternate number validation
+      debouncedAlternateValidation(value);
+    }
+  }
 
     if (name === "AADHAR") {
       if (!aadhaarPattern.test(value)) {
@@ -399,6 +517,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, cookingSpeciality: value }));
   };
+
   const validateForm = (): boolean => {
     let tempErrors: FormErrors = {};
 
@@ -422,40 +541,74 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!formData.gender) {
         tempErrors.gender = "Please select a gender.";
       }
-      if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
-        tempErrors.emailId = "Valid email is required.";
-      }
+       if (validationResults.email.error) {
+      tempErrors.emailId = validationResults.email.error;
+    }
       if (!formData.password || !strongPasswordRegex.test(formData.password)) {
         tempErrors.password = "Password is required.";
       }
       if (formData.password !== formData.confirmPassword) {
         tempErrors.confirmPassword = "Passwords do not match.";
       }
-      if (!formData.mobileNo || !phoneRegex.test(formData.mobileNo)) {
-        tempErrors.mobileNo = "Phone number is required.";
-      }
+   if (validationResults.mobile.error) {
+      tempErrors.mobileNo = validationResults.mobile.error;
+    }
+   
     }
 
     if (activeStep === 1) {
-      if (!formData.address) {
-        tempErrors.address = "Address is required.";
+      // Validate permanent address
+      if (!formData.permanentAddress.apartment) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, apartment: "Apartment is required." };
       }
-      if (!formData.buildingName) {
-        tempErrors.buildingName = "Building Name is required.";
+      if (!formData.permanentAddress.street) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, street: "Street is required." };
       }
-      if (!formData.locality) {
-        tempErrors.locality = "Locality is required.";
+      if (!formData.permanentAddress.city) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, city: "City is required." };
       }
-      if (!formData.street) {
-        tempErrors.street = "Street is required.";
+      if (!formData.permanentAddress.state) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, state: "State is required." };
       }
-      if (!formData.currentLocation) {
-        tempErrors.currentLocation = "Current Location is required.";
+      if (!formData.permanentAddress.country) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, country: "Country is required." };
       }
-      if (!formData.pincode) {
-        tempErrors.pincode = "Pincode is required.";
-      } else if (formData.pincode.length !== 6) {
-        tempErrors.pincode = "Pincode must be exactly 6 digits.";
+      if (!formData.permanentAddress.pincode) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode is required." };
+      } else if (formData.permanentAddress.pincode.length !== 6) {
+        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode must be exactly 6 digits." };
+      }
+
+      // Validate correspondence address only if it's different from permanent address
+      const isSameAddress = 
+        formData.permanentAddress.apartment === formData.correspondenceAddress.apartment &&
+        formData.permanentAddress.street === formData.correspondenceAddress.street &&
+        formData.permanentAddress.city === formData.correspondenceAddress.city &&
+        formData.permanentAddress.state === formData.correspondenceAddress.state &&
+        formData.permanentAddress.country === formData.correspondenceAddress.country &&
+        formData.permanentAddress.pincode === formData.correspondenceAddress.pincode;
+
+      if (!isSameAddress) {
+        if (!formData.correspondenceAddress.apartment) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, apartment: "Apartment is required." };
+        }
+        if (!formData.correspondenceAddress.street) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, street: "Street is required." };
+        }
+        if (!formData.correspondenceAddress.city) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, city: "City is required." };
+        }
+        if (!formData.correspondenceAddress.state) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, state: "State is required." };
+        }
+        if (!formData.correspondenceAddress.country) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, country: "Country is required." };
+        }
+        if (!formData.correspondenceAddress.pincode) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode is required." };
+        } else if (formData.correspondenceAddress.pincode.length !== 6) {
+          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode must be exactly 6 digits." };
+        }
       }
     }
 
@@ -481,17 +634,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-   if (activeStep === 4) {
-  if (!formData.keyFacts) {
-    tempErrors.keyFacts = "You must agree to the Key Facts Document";
-  }
-  if (!formData.terms) {
-    tempErrors.terms = "You must agree to the Terms and Conditions";
-  }
-  if (!formData.privacy) {
-    tempErrors.privacy = "You must agree to the Privacy Policy";
-  }
-}
+    if (activeStep === 4) {
+      if (!formData.keyFacts) {
+        tempErrors.keyFacts = "You must agree to the Key Facts Document";
+      }
+      if (!formData.terms) {
+        tempErrors.terms = "You must agree to the Terms and Conditions";
+      }
+      if (!formData.privacy) {
+        tempErrors.privacy = "You must agree to the Privacy Policy";
+      }
+    }
 
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -506,111 +659,143 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
   };
-const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, checked } = event.target;
-  setFormData(prev => ({
-    ...prev,
-    [name]: checked,
-    // If you want to keep agreeToTerms as a master checkbox that requires all others:
-    agreeToTerms: name === 'terms' || name === 'privacy' || name === 'keyFacts' 
-      ? checked && prev.terms && prev.privacy && prev.keyFacts
-      : prev.agreeToTerms
-  }));
-};
+
+  const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = event.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
   const handleBack = () => {
     if (activeStep === 0) {
-      onBackToLogin(true); // Navigate to login page
+      onBackToLogin(true);
     } else {
       setActiveStep((prevActiveStep) => prevActiveStep - 1);
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); // Prevent default form submission
+const handleSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
 
-    // Only proceed if we're on the last step
-    if (activeStep !== steps.length - 1) return;
+  if (activeStep !== steps.length - 1) return;
 
-    // Filter out empty values from the form data
-    const filteredPayload = Object.fromEntries(
-      Object.entries(formData).filter(
-        ([key, value]) => value !== "" && value !== null && value !== undefined
-      )
-    );
+  if (validateForm()) {
+    try {
+      let profilePicUrl = "";
+      
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
 
-    // Form validation
-    if (validateForm()) {
-      try {
-        if (image) {
-          const formData1 = new FormData();
-          formData1.append("image", image);
-
-          const imageResponse = await axiosInstance.post(
-            "http://65.2.153.173:3000/upload",
-            formData1,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
-
-          if (imageResponse.status === 200) {
-            filteredPayload.profilePic = imageResponse.data.imageUrl;
-          } else {
-            setSnackbarOpen(true);
-            setSnackbarSeverity("error");
-            setSnackbarMessage(
-              "Image upload failed. Proceeding without profile picture."
-            );
-          }
-        }
-
-        const response = await axiosInstance.post(
-          "/api/serviceproviders/serviceprovider/add",
-          filteredPayload,
+        const imageResponse = await axiosInstance.post(
+          "http://65.2.153.173:3000/upload",
+          formData1,
           {
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "multipart/form-data",
             },
           }
         );
 
-        setSnackbarOpen(true);
-        setSnackbarSeverity("success");
-        setSnackbarMessage("Service provider added successfully!");
-
-        // add SP in autho DB
-        const authPayload = {
-          email: filteredPayload.emailId,
-          password: filteredPayload.password,
-          name : `${filteredPayload.firstName} ${filteredPayload.lastName}`,
-        };
-
-        utilsInstance.post('/authO/create-autho-user', authPayload)
-          .then((authResponse) => {
-            console.log("AuthO user created successfully:", authResponse.data);
-          }).catch((authError) => {
-            console.error("Error creating AuthO user:", authError);
-          });
-        
-        setTimeout(() => {
-          onBackToLogin(true);
-        }, 3000);
-      } catch (error) {
-        setSnackbarOpen(true);
-        setSnackbarSeverity("error");
-        setSnackbarMessage("Failed to add service provider. Please try again.");
-        console.error("Error submitting form:", error);
+        if (imageResponse.status === 200) {
+          profilePicUrl = imageResponse.data.imageUrl;
+        }
       }
-    } else {
+
+      // Prepare the payload according to your desired structure
+      const payload = {
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        mobileNo: parseInt(formData.mobileNo) || 0,
+        alternateNo: parseInt(formData.AlternateNumber) || 0,
+        emailId: formData.emailId,
+        gender: formData.gender,
+        buildingName: formData.buildingName,
+        locality: formData.locality,
+        latitude: currentLocation?.latitude || formData.latitude,
+        longitude: currentLocation?.longitude || formData.longitude,
+        street: formData.street,
+        pincode: parseInt(formData.pincode) || 0,
+        currentLocation: formData.currentLocation,
+        nearbyLocation: formData.nearbyLocation,
+        location: formData.currentLocation,
+        housekeepingRole: formData.housekeepingRole,
+        diet: formData.diet,
+        cookingSpeciality: formData.cookingSpeciality,
+        timeslot: formData.timeslot,
+        expectedSalary: 0,
+        experience: parseInt(formData.experience) || 0,
+        username: formData.emailId,
+        password: formData.password,
+        privacy: formData.privacy,
+        keyFacts: formData.keyFacts,
+        permanentAddress: {
+          field1: formData.permanentAddress.apartment,
+          field2: formData.permanentAddress.street,
+          ctArea: formData.permanentAddress.city,
+          pinNo: formData.permanentAddress.pincode,
+          state: formData.permanentAddress.state,
+          country: formData.permanentAddress.country
+        },
+        correspondenceAddress: {
+          field1: formData.correspondenceAddress.apartment,
+          field2: formData.correspondenceAddress.street,
+          ctArea: formData.correspondenceAddress.city,
+          pinNo: formData.correspondenceAddress.pincode,
+          state: formData.correspondenceAddress.state,
+          country: formData.correspondenceAddress.country
+        },
+        active: true,
+        kyc: formData.kyc,
+        dob: formData.dob
+      };
+
+      const response = await axiosInstance.post(
+        "/api/serviceproviders/serviceprovider/add",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       setSnackbarOpen(true);
-      setSnackbarSeverity("warning");
-      setSnackbarMessage("Please fill out all required fields.");
+      setSnackbarSeverity("success");
+      setSnackbarMessage("Service provider added successfully!");
+
+      // Create Auth0 user
+      const authPayload = {
+        email: formData.emailId,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`,
+      };
+
+      axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+        .then((authResponse) => {
+          console.log("AuthO user created successfully:", authResponse.data);
+        }).catch((authError) => {
+          console.error("Error creating AuthO user:", authError);
+        });
+      
+      setTimeout(() => {
+        onBackToLogin(true);
+      }, 3000);
+    } catch (error) {
+      setSnackbarOpen(true);
+      setSnackbarSeverity("error");
+      setSnackbarMessage("Failed to add service provider. Please try again.");
+      console.error("Error submitting form:", error);
     }
-  };
-
-
+  } else {
+    setSnackbarOpen(true);
+    setSnackbarSeverity("warning");
+    setSnackbarMessage("Please fill out all required fields.");
+  }
+};
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
@@ -621,90 +806,125 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            // Use the latitude and longitude to fetch location data from the Geocode API
             const response = await axios.get(
               "https://maps.googleapis.com/maps/api/geocode/json",
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
-                  key: keys.api_key, // Ensure your API key is here
+                  key: keys.api_key,
                 },
               }
             );
 
-            // Extract the location data from the API response
             const locationData = response.data.results[0];
-
-            // Extract relevant fields from the location data
             const address = locationData.formatted_address || "";
             const components = locationData.address_components;
 
-            let buildingName = "",
-              locality = "",
-              street = "",
-              pincode = "",
-              nearbyLocation = "";
+            let apartment = "", street = "", city = "", pincode = "", state = "", country = "";
 
             components.forEach((component: any) => {
               if (component.types.includes("street_number")) {
-                street = component.long_name;
+                apartment = component.long_name;
               } else if (component.types.includes("route")) {
-                street += ` ${component.long_name}`;
-              } else if (component.types.includes("locality")) {
-                locality = component.long_name;
+                street = component.long_name;
+              } else if (component.types.includes("locality") || component.types.includes("sublocality")) {
+                city = component.long_name;
+              } else if (component.types.includes("administrative_area_level_1")) {
+                state = component.long_name;
+              } else if (component.types.includes("country")) {
+                country = component.long_name;
               } else if (component.types.includes("postal_code")) {
                 pincode = component.long_name;
-              } else if (
-                component.types.includes("administrative_area_level_1")
-              ) {
-                nearbyLocation = component.long_name;
               }
             });
 
-            // Autofill form fields with the location data
-            setFormData((prevState) => ({
-              ...prevState,
-              address: address,
-              buildingName: buildingName,
-              locality: locality,
-              street: street,
-              pincode: pincode,
+            if (!city) {
+              const cityComponent = components.find((comp: any) => 
+                comp.types.includes("locality") || 
+                comp.types.includes("sublocality") || 
+                comp.types.includes("administrative_area_level_2")
+              );
+              if (cityComponent) {
+                city = cityComponent.long_name;
+              }
+            }
+
+            const newAddress = {
+              apartment: apartment || "Not specified",
+              street: street || "Not specified",
+              city: city || "Not specified",
+              state: state || "Not specified",
+              country: country || "Not specified",
+              pincode: pincode || ""
+            };
+
+            setCurrentLocation({
+              latitude,
+              longitude,
+              address
+            });
+
+            setFormData(prev => ({
+              ...prev,
+              permanentAddress: newAddress,
+              correspondenceAddress: newAddress,
+              latitude,
+              longitude,
               currentLocation: address,
-              nearbyLocation: nearbyLocation,
-              latitude: latitude,
-              longitude: longitude,
+              locality: city || "",
+              street: street || "",
+              pincode: pincode || "",
+              buildingName: apartment || ""
             }));
+
+            setSnackbarMessage("Location fetched successfully!");
+            setSnackbarSeverity("success");
+            setSnackbarOpen(true);
+
           } catch (error) {
             console.error("Error fetching location data", error);
+            setSnackbarMessage("Failed to fetch location data. Please try again.");
+            setSnackbarSeverity("error");
+            setSnackbarOpen(true);
           }
         },
         (error) => {
           console.error("Geolocation error:", error.message);
+          setSnackbarMessage("Geolocation failed. Please check your browser permissions.");
+          setSnackbarSeverity("error");
+          setSnackbarOpen(true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
     } else {
       console.log("Geolocation is not supported by this browser.");
+      setSnackbarMessage("Geolocation is not supported by your browser.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
     }
   };
-  const validateAge = (dob) => {
+
+  const validateAge = (dob: string) => {
     if (!dob) return false;
 
     const birthDate = moment(dob, "YYYY-MM-DD");
     const today = moment();
     const age = today.diff(birthDate, "years");
 
-    console.log("Entered DOB:", dob);
-    console.log("Calculated Age:", age);
-
     return age >= 18;
   };
+
   const formatDisplayTime = (value: number) => {
     const hour = Math.floor(value);
     const minutes = value % 1 === 0.5 ? "30" : "00";
-    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`; // Add leading zero
-
+    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
     return `${formattedHour}:${minutes}`;
   };
+
   const updateFormTimeSlot = (
     morningRange: number[],
     eveningRange: number[]
@@ -714,9 +934,7 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
     const startEvening = formatDisplayTime(eveningRange[0]);
     const endEvening = formatDisplayTime(eveningRange[1]);
 
-    // Format as "HH:MM-HH:MM, HH:MM-HH:MM"
     const formattedTimeSlot = `${startMorning}-${endMorning}, ${startEvening}-${endEvening}`;
-
     setFormData((prev) => ({ ...prev, timeslot: formattedTimeSlot }));
   };
 
@@ -725,10 +943,9 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prevData) => ({ ...prevData, diet: value }));
   };
 
-  const handleDOBChange = (dob) => {
+  const handleDOBChange = (dob: string) => {
     setFormData((prev) => ({ ...prev, dob }));
 
-    // Validate age and set field disabled status
     const isValidAge = validateAge(dob);
 
     if (!isValidAge) {
@@ -741,6 +958,15 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
       setSnackbarOpen(false);
     }
   };
+
+  const handleTermsChange = useCallback((allAccepted: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      keyFacts: allAccepted,
+      terms: allAccepted,
+      privacy: allAccepted,
+    }));
+  }, []);
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -830,18 +1056,38 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
                 )}
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Email *"
-                name="emailId"
-                fullWidth
-                required
-                value={formData.emailId}
-                onChange={handleRealTimeValidation}
-                error={!!errors.emailId}
-                helperText={errors.emailId}
-              />
-            </Grid>
+            <Grid item xs={12}>  
+            <TextField
+    placeholder="Email *"
+    name="emailId"
+    fullWidth
+    required
+    value={formData.emailId}
+    onChange={handleRealTimeValidation}
+    error={!!errors.emailId || validationResults.email.isAvailable === false}
+    helperText={
+      errors.emailId || 
+      (validationResults.email.loading ? "Checking availability..." : 
+       validationResults.email.error || 
+       (validationResults.email.isAvailable ? "Email is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.email.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.email.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.email.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
             <Grid item xs={12}>
               <TextField
                 placeholder="Password *"
@@ -900,134 +1146,99 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Mobile Number *"
-                name="mobileNo"
-                fullWidth
-                required
-                value={formData.mobileNo}
-                onChange={handleRealTimeValidation}
-                error={!!errors.mobileNo}
-                helperText={errors.mobileNo}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Alternate Number"
-                name="AlternateNumber"
-                fullWidth
-                value={formData.AlternateNumber}
-                onChange={handleChange}
-              />
-            </Grid>
+          <Grid item xs={12}>
+  <TextField
+    placeholder="Mobile Number *"
+    name="mobileNo"
+    fullWidth
+    required
+    value={formData.mobileNo}
+    onChange={handleRealTimeValidation}
+    error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
+    helperText={
+      errors.mobileNo || 
+      (validationResults.mobile.loading ? "Checking availability..." : 
+       validationResults.mobile.error || 
+       (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.mobile.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.mobile.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.mobile.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
+
+
+<Grid item xs={12}>
+  <TextField
+    placeholder="Alternate Number"
+    name="AlternateNumber"
+    fullWidth
+    value={formData.AlternateNumber}
+    onChange={handleRealTimeValidation}
+    error={ validationResults.alternate.isAvailable === false}
+    helperText={
+     
+      (validationResults.alternate.loading ? "Checking availability..." : 
+       validationResults.alternate.error || 
+       (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.alternate.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.alternate.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.alternate.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
           </Grid>
         );
-      case 1:
-        return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sx={{ mt: 2 }}>
-              <TextField
-                placeholder="Address *"
-                name="address"
-                fullWidth
-                required
-                value={formData.address}
-                onChange={handleChange}
-                error={!!errors.address}
-                helperText={errors.address}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Building Name *"
-                name="buildingName"
-                fullWidth
-                required
-                value={formData.buildingName}
-                onChange={handleChange}
-                error={!!errors.buildingName}
-                helperText={errors.buildingName}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Locality *"
-                name="locality"
-                fullWidth
-                required
-                value={formData.locality}
-                onChange={handleChange}
-                error={!!errors.locality}
-                helperText={errors.locality}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Street *"
-                name="street"
-                fullWidth
-                required
-                value={formData.street}
-                onChange={handleChange}
-                error={!!errors.street}
-                helperText={errors.street}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Pincode *"
-                name="pincode"
-                fullWidth
-                required
-                value={formData.pincode}
-                onChange={handleRealTimeValidation}
-                error={!!errors.pincode}
-                helperText={errors.pincode}
-                inputProps={{
-                  maxLength: 6,
-                  inputMode: "numeric",
-                  pattern: "[0-9]*",
-                }}
-                onKeyPress={(e) => {
-                  if (!/[0-9]/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Current Location *"
-                name="currentLocation"
-                fullWidth
-                required
-                value={formData.currentLocation}
-                onChange={handleChange}
-                error={!!errors.currentLocation}
-                helperText={errors.currentLocation}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Nearby Location"
-                name="nearbyLocation"
-                fullWidth
-                value={formData.nearbyLocation}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={fetchLocationData}
-              >
-                Fetch Location
-              </Button>
-            </Grid>
-          </Grid>
-        );
+    // In your main component's renderStepContent for step 1:
+case 1:
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <AddressComponent
+          onAddressChange={handleAddressChange}
+          permanentAddress={formData.permanentAddress}
+          correspondenceAddress={formData.correspondenceAddress}
+          errors={{
+            permanent: errors.permanentAddress,
+            correspondence: errors.correspondenceAddress
+          }}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={fetchLocationData}
+        >
+          Fetch My Location
+        </Button>
+      </Grid>
+    </Grid>
+  );
       case 2: // Additional Details
         return (
           <Grid container spacing={2}>
@@ -1287,122 +1498,8 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
         </Typography>
 
      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-  {/* Key Facts */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.keyFacts}
-        onChange={handleChangeCheckbox}
-        name="keyFacts"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/KeyFactsStatement', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/KeyFactsStatement"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()} // prevent parent click
-        >
-          Key Facts Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Terms & Conditions */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.terms}
-        onChange={handleChangeCheckbox}
-        name="terms"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/TnC', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/TnC"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Terms and Conditions
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
-
-  {/* Privacy */}
-  <FormControlLabel
-    control={
-      <Checkbox
-        checked={formData.privacy}
-        onChange={handleChangeCheckbox}
-        name="privacy"
-        required
-      />
-    }
-    label={
-      <Typography
-        component="span"
-        sx={{ color: '#4a5568', cursor: 'pointer' }}
-        onClick={() => window.open('/Privacy', '_blank')}
-      >
-        I agree to the ServEaso{' '}
-        <a
-          href="/Privacy"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#3182ce',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Privacy Statement
-          <OpenInNewIcon
-            fontSize="small"
-            style={{ marginLeft: 4, verticalAlign: 'middle' }}
-          />
-        </a>
-      </Typography>
-    }
-  />
+  <TermsCheckboxes onChange={handleTermsChange} />
+ 
 </Box>     
       </Grid>
     </Grid>
@@ -1415,22 +1512,38 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
   return (
     <>
       <Dialog fullWidth maxWidth="sm" open={true} >
-        <Box sx={{ padding: 2 }}>
-          <IconButton
-          aria-label="close"
-          onClick={() => onBackToLogin(true)}
-          sx={{
-            position: 'absolute',
-            right: 8,
-            top: 8,
-            color: (theme) => theme.palette.grey[500],
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-          <Typography variant="h5" gutterBottom className="text-center pb-3">
-            Service Provider Registration
-          </Typography>
+     <DialogHeader
+  style={{ 
+    position: 'relative', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  }}
+>
+   <Typography 
+  variant="h5" 
+  gutterBottom 
+  sx={{ textAlign: 'center', paddingTop: 2 }}
+>
+    Service Provider Registration
+  </Typography>
+  <IconButton
+    aria-label="close"
+    onClick={() => onBackToLogin(true)}
+    sx={{
+      position: 'absolute',
+      right: 8,
+      top: 8,
+      color: '#fff',
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
+         <Box sx={{ padding: 2 }}>
+          
+         
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>
@@ -1517,4 +1630,3 @@ const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
 };
 
 export default ServiceProviderRegistration;
-

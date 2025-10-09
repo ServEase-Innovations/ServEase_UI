@@ -47,7 +47,8 @@ import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
 import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
-import { add as addBooking } from "../../features/bookingType/bookingTypeSlice"; 
+import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
+import NotificationsDialog from "../Notifications/NotificationsPage";
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -94,6 +95,17 @@ export const Header: React.FC<ChildComponentProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
+ const [showNotifications, setShowNotifications] = useState(false);
+
+  const handleNotificationClick = () => {
+    setShowNotifications(true);
+  };
+
+  const handleCloseNotifications = () => {
+    setShowNotifications(false);
+  };
+
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -815,7 +827,7 @@ const handleBookingSave = () => {
     <ShoppingCart className="w-5 h-5" />
     </Button>
     </Badge> */}
-    <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" >
+    <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleNotificationClick} >
    <Bell className="w-5 h-5" />
     </Button>
           {/* User / Auth */}
@@ -974,7 +986,12 @@ const handleBookingSave = () => {
             Save
           </Button>
         </DialogActions>
+         
       </Dialog>
+      <NotificationsDialog 
+        open={showNotifications} 
+        onClose={handleCloseNotifications} 
+      />
       {/* <CartDialog
     open={cartOpen}
     handleClose={handleCartClose}

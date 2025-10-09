@@ -109,18 +109,21 @@ const handleSave = () => {
     timeRange = startTime?.format("HH:mm") || "";
   }
 
-  // 🔹 Ensure only date part is stored
-  const booking: Bookingtype = {
+  const booking: Bookingtype & { startTime?: string; endTime?: string } = {
     startDate: startDate ? startDate.split("T")[0] : "",
     endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
     timeRange: timeRange,
     bookingPreference: selectedRadioButtonValue,
     housekeepingRole: selectedType,
+    // ✅ Store times in HH:mm format
+    endTime: endTime?.format("HH:mm") || "",
   };
 
   console.log("Booking details:", {
     startDate: booking.startDate,
     endDate: booking.endDate,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
     timeSlot: booking.timeRange,
     bookingPreference: booking.bookingPreference,
   });
@@ -134,6 +137,7 @@ const handleSave = () => {
   dispatch(add(booking));
   setOpen(false);
 };
+
 
 
     function isConfirmDisabled(): boolean | undefined {
