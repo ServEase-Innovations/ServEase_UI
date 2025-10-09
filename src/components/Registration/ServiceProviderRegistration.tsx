@@ -29,6 +29,7 @@ import {
   Tooltip,
   Snackbar,
   Dialog,
+  CircularProgress,
 } from "@mui/material";
 import {
   Visibility,
@@ -47,6 +48,9 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { debounce } from "src/utils/debounce";
+import { useFieldValidation } from "./useFieldValidation";
+import { CheckIcon } from "lucide-react";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -289,7 +293,29 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
     }));
   };
+const { validationResults, validateField, resetValidation } = useFieldValidation();
 
+// Add debounced validation functions
+const debouncedEmailValidation = useCallback(
+  debounce((email: string) => {
+    validateField('email', email);
+  }, 500),
+  [validateField]
+);
+
+const debouncedMobileValidation = useCallback(
+  debounce((mobile: string) => {
+    validateField('mobile', mobile);
+  }, 500),
+  [validateField]
+);
+
+const debouncedAlternateValidation = useCallback(
+  debounce((alternate: string) => {
+    validateField('alternate', alternate);
+  }, 500),
+  [validateField]
+);
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/;
@@ -391,35 +417,59 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "emailId") {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          emailId: "Please enter a valid email address.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          emailId: "",
-        }));
-      }
+     if (name === "emailId") {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailId: "Please enter a valid email address.",
+      }));
+      resetValidation('email');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailId: "",
+      }));
+      // Trigger debounced email validation
+      debouncedEmailValidation(value);
     }
+  }
 
-    if (name === "mobileNo") {
-      const mobilePattern = /^[0-9]{10}$/;
-      if (!mobilePattern.test(value)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          mobileNo: "Please enter a valid 10-digit mobile number.",
-        }));
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          mobileNo: "",
-        }));
-      }
+  if (name === "mobileNo") {
+    const mobilePattern = /^[0-9]{10}$/;
+    if (!mobilePattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        mobileNo: "Please enter a valid 10-digit mobile number.",
+      }));
+      resetValidation('mobile');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        mobileNo: "",
+      }));
+      // Trigger debounced mobile validation
+      debouncedMobileValidation(value);
     }
+  }
+
+  if (name === "AlternateNumber" && value) {
+    const mobilePattern = /^[0-9]{10}$/;
+    if (!mobilePattern.test(value)) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        AlternateNumber: "Please enter a valid 10-digit mobile number.",
+      }));
+      resetValidation('alternate');
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        AlternateNumber: "",
+      }));
+      // Trigger debounced alternate number validation
+      debouncedAlternateValidation(value);
+    }
+  }
 
     if (name === "AADHAR") {
       if (!aadhaarPattern.test(value)) {
@@ -491,18 +541,19 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!formData.gender) {
         tempErrors.gender = "Please select a gender.";
       }
-      if (!formData.emailId || !emailIdRegex.test(formData.emailId)) {
-        tempErrors.emailId = "Valid email is required.";
-      }
+       if (validationResults.email.error) {
+      tempErrors.emailId = validationResults.email.error;
+    }
       if (!formData.password || !strongPasswordRegex.test(formData.password)) {
         tempErrors.password = "Password is required.";
       }
       if (formData.password !== formData.confirmPassword) {
         tempErrors.confirmPassword = "Passwords do not match.";
       }
-      if (!formData.mobileNo || !phoneRegex.test(formData.mobileNo)) {
-        tempErrors.mobileNo = "Phone number is required.";
-      }
+   if (validationResults.mobile.error) {
+      tempErrors.mobileNo = validationResults.mobile.error;
+    }
+   
     }
 
     if (activeStep === 1) {
@@ -1005,18 +1056,38 @@ const handleSubmit = async (event: React.FormEvent) => {
                 )}
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Email *"
-                name="emailId"
-                fullWidth
-                required
-                value={formData.emailId}
-                onChange={handleRealTimeValidation}
-                error={!!errors.emailId}
-                helperText={errors.emailId}
-              />
-            </Grid>
+            <Grid item xs={12}>  
+            <TextField
+    placeholder="Email *"
+    name="emailId"
+    fullWidth
+    required
+    value={formData.emailId}
+    onChange={handleRealTimeValidation}
+    error={!!errors.emailId || validationResults.email.isAvailable === false}
+    helperText={
+      errors.emailId || 
+      (validationResults.email.loading ? "Checking availability..." : 
+       validationResults.email.error || 
+       (validationResults.email.isAvailable ? "Email is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.email.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.email.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.email.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
             <Grid item xs={12}>
               <TextField
                 placeholder="Password *"
@@ -1075,27 +1146,71 @@ const handleSubmit = async (event: React.FormEvent) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Mobile Number *"
-                name="mobileNo"
-                fullWidth
-                required
-                value={formData.mobileNo}
-                onChange={handleRealTimeValidation}
-                error={!!errors.mobileNo}
-                helperText={errors.mobileNo}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Alternate Number"
-                name="AlternateNumber"
-                fullWidth
-                value={formData.AlternateNumber}
-                onChange={handleChange}
-              />
-            </Grid>
+          <Grid item xs={12}>
+  <TextField
+    placeholder="Mobile Number *"
+    name="mobileNo"
+    fullWidth
+    required
+    value={formData.mobileNo}
+    onChange={handleRealTimeValidation}
+    error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
+    helperText={
+      errors.mobileNo || 
+      (validationResults.mobile.loading ? "Checking availability..." : 
+       validationResults.mobile.error || 
+       (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.mobile.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.mobile.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.mobile.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
+
+
+<Grid item xs={12}>
+  <TextField
+    placeholder="Alternate Number"
+    name="AlternateNumber"
+    fullWidth
+    value={formData.AlternateNumber}
+    onChange={handleRealTimeValidation}
+    error={ validationResults.alternate.isAvailable === false}
+    helperText={
+     
+      (validationResults.alternate.loading ? "Checking availability..." : 
+       validationResults.alternate.error || 
+       (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
+    }
+    InputProps={{
+      endAdornment: validationResults.alternate.loading ? (
+        <InputAdornment position="end">
+          <CircularProgress size={20} />
+        </InputAdornment>
+      ) : validationResults.alternate.isAvailable ? (
+        <InputAdornment position="end">
+          <CheckIcon color="success" />
+        </InputAdornment>
+      ) : validationResults.alternate.isAvailable === false ? (
+        <InputAdornment position="end">
+          <CloseIcon color="error" />
+        </InputAdornment>
+      ) : null,
+    }}
+  />
+</Grid>
           </Grid>
         );
     // In your main component's renderStepContent for step 1:
