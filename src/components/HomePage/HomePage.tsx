@@ -422,18 +422,7 @@ useEffect(() => {
 
             {/* Services Section */}
         <section className="py-10 px-6 md:px-20 relative">
-  {/* Floating Help Card */}
-  {/* <div className="absolute -top-6 right-20">
-    <button
-      onClick={() => setChatbotOpen(true)}
-      className="flex items-center gap-2 bg-[#fffbea] text-[#0a2a66] px-5 py-3 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition"
-    >
-      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0a2a66] text-white text-sm font-bold">
-        ?
-      </span>
-      <span className="font-medium">Need any help?</span>
-    </button>
-  </div> */}
+  
 
   {/* Popular Services Section */}
   <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>

@@ -38,6 +38,8 @@ import ChatbotButton from "./components/Chat/ChatbotButton";
 import { useAppUser } from "./context/AppUserContext";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import TnC from "./TermsAndConditions/TnC";
+import axiosInstance from "./services/axiosInstance";
+import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
@@ -49,7 +51,7 @@ function App() {
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState<boolean>(false);
-
+  const [showMobileDialog, setShowMobileDialog] = useState(false);
   
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
@@ -146,7 +148,34 @@ const handleLogoClick = () => {
   setCurrentSection("HOME");
   setSelection(undefined); // Clear any service selection
 };
+
+useEffect(() => {
+  if (!appUser || appUser?.role?.toUpperCase() !== "CUSTOMER") return;
+
+  const fetchCustomerDetails = async () => {
+    try {
+      console.log("Fetching customer details for ID:", appUser.customerid);
+
+      const response = await axiosInstance.get(`/api/customer/get-customer-by-id/${appUser.customerid}`);
+      console.log(" Customer details fetched successfully:", response.data);
+   const customer = response.data;
+
   
+      if (!customer?.mobileNo) {
+        console.warn("⚠️ Customer mobile number is missing (null).");
+       setShowMobileDialog(true);
+      }
+
+    } catch (error) {
+      console.error("❌ Error fetching customer details:", error);
+    }
+  };
+
+
+
+  fetchCustomerDetails();
+}, );
+
   useEffect(() => {
     getPricingData();
   });
@@ -284,6 +313,7 @@ const handleLogoClick = () => {
 
       {/* Render the current content */}
       {renderContent()}
+      {showMobileDialog && <MobileNumberDialog />}
       <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
  <ChatbotButton 
   open={chatOpen} 
