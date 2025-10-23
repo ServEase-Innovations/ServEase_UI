@@ -313,7 +313,16 @@ useEffect(() => {
 
       {/* Render the current content */}
       {renderContent()}
-      {showMobileDialog && <MobileNumberDialog />}
+  {showMobileDialog && appUser?.customerid && (
+  <MobileNumberDialog
+    onClose={() => setShowMobileDialog(false)}
+    customerId={appUser.customerid}
+    onSuccess={() => {
+      console.log("✅ Mobile number updated successfully!");
+      setShowMobileDialog(false);
+    }}
+  />
+)}
       <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
  <ChatbotButton 
   open={chatOpen} 

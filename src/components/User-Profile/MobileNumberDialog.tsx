@@ -14,18 +14,28 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import axiosInstance from "src/services/axiosInstance";
 import { CheckIcon, X } from "lucide-react";
-
+// ✅ Define props interface
+interface MobileNumberDialogProps {
+  onClose: () => void;
+  customerId: number;
+  onSuccess?: () => void;
+}
 interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
 }
 
-const MobileNumberDialog = () => {
-  const [open, setOpen] = useState(false);
+const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
+  onClose,
+  customerId,
+  onSuccess,
+}) => {
+  const [open, setOpen] = useState(true); // directly true instead of useEffect
   const [contactNumber, setContactNumber] = useState("");
   const [altContactNumber, setAltContactNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const { appUser, setAppUser } = useAppUser();
 
   // Validation states
   const [contactValidation, setContactValidation] = useState<ValidationState>({
@@ -39,7 +49,7 @@ const MobileNumberDialog = () => {
     isAvailable: null
   });
 
-  const { appUser } = useAppUser();
+  
 
   useEffect(() => {
     setOpen(true);
@@ -230,7 +240,7 @@ const MobileNumberDialog = () => {
     return true;
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     // Validate all fields before submission
     const isValid = await validateAllFields();
     if (!isValid) {
@@ -261,6 +271,20 @@ const MobileNumberDialog = () => {
       );
 
       console.log("✅ API Response:", response.data);
+      
+      // ✅ UPDATE APPUSER WITH MOBILE NUMBERS HERE
+      setAppUser((prevUser: any) => ({
+        ...prevUser,
+        mobileNo: contactNumber,
+        alternateNo: altContactNumber || null, // Store null if empty
+      }));
+
+      console.log("✅ Updated appUser with mobile numbers:", {
+        ...appUser,
+        mobileNo: contactNumber,
+        alternateNo: altContactNumber || null,
+      });
+
       alert("Mobile number(s) updated successfully!");
       setOpen(false);
     } catch (error) {
