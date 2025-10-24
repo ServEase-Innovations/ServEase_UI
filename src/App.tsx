@@ -148,33 +148,25 @@ const handleLogoClick = () => {
   setCurrentSection("HOME");
   setSelection(undefined); // Clear any service selection
 };
-
+ const { appUser } = useAppUser();
 useEffect(() => {
   if (!appUser || appUser?.role?.toUpperCase() !== "CUSTOMER") return;
 
   const fetchCustomerDetails = async () => {
     try {
-      console.log("Fetching customer details for ID:", appUser.customerid);
-
       const response = await axiosInstance.get(`/api/customer/get-customer-by-id/${appUser.customerid}`);
-      console.log(" Customer details fetched successfully:", response.data);
-   const customer = response.data;
+      const customer = response.data;
 
-  
       if (!customer?.mobileNo) {
-        console.warn("⚠️ Customer mobile number is missing (null).");
-       setShowMobileDialog(true);
+        setShowMobileDialog(true); // only opens once per customer load
       }
-
     } catch (error) {
-      console.error("❌ Error fetching customer details:", error);
+      console.error(error);
     }
   };
 
-
-
   fetchCustomerDetails();
-}, );
+}, [appUser]); // only runs when appUser changes
 
   useEffect(() => {
     getPricingData();
@@ -182,7 +174,7 @@ useEffect(() => {
 
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  const { appUser } = useAppUser();
+ 
 
   useEffect(() => {
     if (!isAuthenticated || !appUser) {
@@ -313,16 +305,18 @@ useEffect(() => {
 
       {/* Render the current content */}
       {renderContent()}
-  {showMobileDialog && appUser?.customerid && (
+ {showMobileDialog && appUser?.customerid && (
   <MobileNumberDialog
+    open={showMobileDialog}
     onClose={() => setShowMobileDialog(false)}
     customerId={appUser.customerid}
     onSuccess={() => {
-      console.log("✅ Mobile number updated successfully!");
+      console.log("Mobile number updated successfully!");
       setShowMobileDialog(false);
     }}
   />
 )}
+
       <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
  <ChatbotButton 
   open={chatOpen} 

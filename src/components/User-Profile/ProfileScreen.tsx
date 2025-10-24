@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
-import MobileNumberDialog from "../User-Profile/MobileNumberDialog"; // Import the dialog
+import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
 
 interface Address {
   id: string;
@@ -78,7 +78,6 @@ interface CustomerDetails {
   mobileNo: string | null;
   altMobileNo: string | null;
   email: string;
-  // Add other customer fields as needed
 }
 
 const ProfileScreen = () => {
@@ -123,7 +122,6 @@ const ProfileScreen = () => {
     );
   };
 
-  // Fetch customer details and check mobile numbers
   const fetchCustomerDetails = async (customerId: number) => {
     try {
       console.log("Fetching customer details for ID:", customerId);
@@ -133,13 +131,10 @@ const ProfileScreen = () => {
       const customer = response.data;
       setCustomerData(customer);
 
-      // Check if mobile number is missing or invalid
       if (!customer?.mobileNo || customer.mobileNo === null || customer.mobileNo === "") {
         console.warn("⚠️ Customer mobile number is missing (null/empty).");
-        setShowMobileDialog(true);
       }
 
-      // Update userData with customer contact information
       setUserData(prev => ({
         ...prev,
         contactNumber: customer.mobileNo || "",
@@ -182,7 +177,7 @@ const ProfileScreen = () => {
           if (role === "SERVICE_PROVIDER" && id) {
             await fetchServiceProviderData(id);
           } else if (role === "CUSTOMER" && id) {
-            await fetchCustomerDetails(Number(id)); // Fetch customer details first
+            await fetchCustomerDetails(Number(id));
             await fetchCustomerAddresses(Number(id));
           }
         } catch (err) {
@@ -264,10 +259,8 @@ const ProfileScreen = () => {
         altContactNumber: data.alternateNo ? data.alternateNo.toString() : ""
       }));
 
-      // Create addresses from permanent and correspondence addresses
       const addresses: Address[] = [];
 
-      // Permanent Address
       if (data.permanentAddress) {
         const permAddr = data.permanentAddress;
         const streetAddress = `${permAddr.field1 || ""} ${permAddr.field2 || ""}`.trim() || 
@@ -286,7 +279,6 @@ const ProfileScreen = () => {
         });
       }
 
-      // Correspondence Address
       if (data.correspondenceAddress) {
         const corrAddr = data.correspondenceAddress;
         const streetAddress = `${corrAddr.field1 || ""} ${corrAddr.field2 || ""}`.trim() || 
@@ -324,7 +316,6 @@ const ProfileScreen = () => {
     }
   };
 
-  // Function to check if mobile numbers are properly set
   const hasValidMobileNumbers = () => {
     if (userRole !== "CUSTOMER") return true;
     
@@ -334,7 +325,6 @@ const ProfileScreen = () => {
            customerData.mobileNo !== "null";
   };
 
-  // Function to format mobile number for display
   const formatMobileNumber = (number: string | null) => {
     if (!number || number === "null" || number === "undefined") return "Not provided";
     return number;
@@ -454,7 +444,6 @@ const ProfileScreen = () => {
 
     try {
       if (userRole === "SERVICE_PROVIDER" && userId) {
-        // For service providers, we need to handle both addresses
         const permanentAddress = addresses.find(addr => addr.type === "Permanent");
         const correspondenceAddress = addresses.find(addr => addr.type === "Correspondence");
 
@@ -494,7 +483,6 @@ const ProfileScreen = () => {
         );
         await fetchServiceProviderData(userId);
       } else if (userRole === "CUSTOMER" && userId) {
-        // For customers, update customer details including mobile numbers
         const payload = {
           customerid: userId,
           firstName: userData.firstName,
@@ -509,7 +497,6 @@ const ProfileScreen = () => {
           payload
         );
         
-        // Refresh customer data after update
         await fetchCustomerDetails(userId);
       }
       setIsEditing(false);
@@ -541,10 +528,8 @@ const ProfileScreen = () => {
     }
   };
 
-  // Skeleton Loading Component
   const ProfileSkeleton = () => (
     <div className="w-full">
-      {/* Header Skeleton */}
       <div className="relative mt-16 bg-gradient-to-b from-blue-100 to-white">
         <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between h-auto md:h-32 max-w-6xl px-6 mx-auto py-8 gap-4 md:gap-0">
           <div className="flex items-center gap-5">
@@ -558,14 +543,12 @@ const ProfileScreen = () => {
         </div>
       </div>
 
-      {/* Main Content Skeleton */}
       <div className="flex justify-center w-full py-6">
         <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
           <div className="flex justify-between items-center border-b pb-3 mb-6">
             <SkeletonLoader width={120} height={24} />
           </div>
 
-          {/* User Info Section */}
           <div className="mb-6">
             <SkeletonLoader width={160} height={20} className="mb-4" />
             <div className="flex flex-wrap gap-4 mb-6">
@@ -597,7 +580,6 @@ const ProfileScreen = () => {
 
           <div className="h-px bg-gray-200 my-6" />
 
-          {/* Contact Info Section */}
           <div className="mb-6">
             <SkeletonLoader width={160} height={20} className="mb-4" />
             <div className="flex flex-wrap gap-4 mb-6">
@@ -612,7 +594,6 @@ const ProfileScreen = () => {
             </div>
           </div>
 
-          {/* Address Section */}
           <div className="mb-6">
             <SkeletonLoader width={96} height={16} className="mb-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -631,19 +612,18 @@ const ProfileScreen = () => {
 
   return (
     <div className="w-full">
-      {/* Mobile Number Dialog */}
-      {showMobileDialog && (
-        <MobileNumberDialog 
-          onClose={() => setShowMobileDialog(false)}
-          customerId={userId || 0}
-          onSuccess={() => {
-            setShowMobileDialog(false);
-            if (userId) {
-              fetchCustomerDetails(userId); // Refresh data after successful update
-            }
-          }}
-        />
-      )}
+      {/* Fixed MobileNumberDialog - removed internal open state management */}
+      <MobileNumberDialog 
+        open={showMobileDialog}
+        onClose={() => setShowMobileDialog(false)}
+        customerId={userId || 0}
+        onSuccess={() => {
+          setShowMobileDialog(false);
+          if (userId) {
+            fetchCustomerDetails(userId);
+          }
+        }}
+      />
 
       {/* Header */}
       <div className="relative mt-16 bg-gradient-to-b from-blue-100 to-white text-blue-900">
@@ -875,7 +855,6 @@ const ProfileScreen = () => {
             </div>
           </div>
 
-          {/* Rest of the component remains the same */}
           {/* Address Section */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
@@ -893,10 +872,77 @@ const ProfileScreen = () => {
               )}
             </div>
 
-            {/* Address display and editing logic remains the same */}
             {showAddAddress && isEditing && (
               <div className="border border-blue-200 rounded-lg p-4 mb-4 bg-blue-50">
-                {/* Add address form remains the same */}
+                <h4 className="font-medium text-gray-700 mb-3">Add New Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select
+                    name="type"
+                    value={newAddress.type}
+                    onChange={handleAddressInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    {getAvailableAddressTypes().map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="isPrimary"
+                      checked={newAddress.isPrimary}
+                      onChange={handleAddressInputChange}
+                      className="mr-2"
+                    />
+                    <label className="text-sm text-gray-600">Set as primary address</label>
+                  </div>
+                  <input
+                    type="text"
+                    name="street"
+                    placeholder="Street Address"
+                    value={newAddress.street}
+                    onChange={handleAddressInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm md:col-span-2"
+                  />
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City"
+                    value={newAddress.city}
+                    onChange={handleAddressInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="text"
+                    name="country"
+                    placeholder="Country"
+                    value={newAddress.country}
+                    onChange={handleAddressInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="text"
+                    name="postalCode"
+                    placeholder="Postal Code"
+                    value={newAddress.postalCode}
+                    onChange={handleAddressInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2 mt-3">
+                  <button
+                    onClick={() => setShowAddAddress(false)}
+                    className="px-3 py-1 text-gray-600 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddAddress}
+                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                  >
+                    Add Address
+                  </button>
+                </div>
               </div>
             )}
 
@@ -912,7 +958,63 @@ const ProfileScreen = () => {
                       key={address.id}
                       className={`border ${address.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-gray-200'} rounded-lg transition-all duration-300 overflow-hidden p-4`}
                     >
-                      {/* Address display logic remains the same */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-gray-800">{address.type}</span>
+                          {address.isPrimary && (
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Primary</span>
+                          )}
+                        </div>
+                        <div className="flex space-x-1">
+                          {userRole === "CUSTOMER" && (
+                            <button
+                              onClick={() => toggleAddress(address.id)}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
+                          )}
+                          {isEditing && userRole === "CUSTOMER" && addresses.length > 1 && (
+                            <button
+                              onClick={() => removeAddress(address.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={`transition-all duration-300 ${isExpanded ? 'block' : 'hidden'}`}>
+                        <p className="text-sm text-gray-600 mt-2">{address.street}</p>
+                        <p className="text-sm text-gray-600">
+                          {address.city}, {address.country} {address.postalCode}
+                        </p>
+
+                        {isEditing && (
+                          <div className="mt-3 space-y-2">
+                            {!address.isPrimary && (
+                              <button
+                                onClick={() => setPrimaryAddress(address.id)}
+                                className="text-blue-600 text-sm hover:text-blue-800"
+                              >
+                                Set as Primary
+                              </button>
+                            )}
+                            {userRole === "SERVICE_PROVIDER" && (
+                              <div className="text-xs text-gray-500 mt-2">
+                                Service provider addresses are managed separately
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {userRole === "CUSTOMER" && !isExpanded && (
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-600 truncate">{address.street}</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -929,7 +1031,17 @@ const ProfileScreen = () => {
                 Service Status
               </h3>
               
-              {/* Service provider status display remains the same */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">Account Status</p>
+                    <p className="text-sm text-gray-600">Active Service Provider</p>
+                  </div>
+                  <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
+                    Verified
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 

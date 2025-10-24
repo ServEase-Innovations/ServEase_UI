@@ -14,12 +14,14 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import axiosInstance from "src/services/axiosInstance";
 import { CheckIcon, X } from "lucide-react";
-// ✅ Define props interface
+
 interface MobileNumberDialogProps {
+  open: boolean;
   onClose: () => void;
   customerId: number;
   onSuccess?: () => void;
 }
+
 interface ValidationState {
   loading: boolean;
   error: string;
@@ -27,17 +29,16 @@ interface ValidationState {
 }
 
 const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
+  open,
   onClose,
   customerId,
   onSuccess,
 }) => {
-  const [open, setOpen] = useState(true); // directly true instead of useEffect
   const [contactNumber, setContactNumber] = useState("");
   const [altContactNumber, setAltContactNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const { appUser, setAppUser } = useAppUser();
 
-  // Validation states
   const [contactValidation, setContactValidation] = useState<ValidationState>({
     loading: false,
     error: '',
@@ -49,19 +50,21 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     isAvailable: null
   });
 
-  
-
   useEffect(() => {
-    setOpen(true);
-  }, []);
+    if (open) {
+      // Reset form when dialog opens
+      setContactNumber("");
+      setAltContactNumber("");
+      setContactValidation({ loading: false, error: '', isAvailable: null });
+      setAltContactValidation({ loading: false, error: '', isAvailable: null });
+    }
+  }, [open]);
 
-  // Validate mobile number format
   const validateMobileFormat = (number: string): boolean => {
     const mobilePattern = /^[0-9]{10}$/;
     return mobilePattern.test(number);
   };
 
-  // Check if mobile number is available
   const checkMobileAvailability = async (number: string, isAlternate: boolean = false): Promise<boolean> => {
     if (!number || !validateMobileFormat(number)) {
       return false;
@@ -76,7 +79,6 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     });
 
     try {
-      // Use different endpoints for mobile and alternate number validation
       const endpoint = isAlternate 
         ? `/api/serviceproviders/check-alternate/${encodeURIComponent(number)}`
         : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
@@ -112,7 +114,6 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }
   };
 
-  // Debounced validation for mobile numbers
   const useDebouncedValidation = () => {
     const timeouts = {
       contact: null as NodeJS.Timeout | null,
@@ -134,7 +135,6 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
   const debouncedValidation = useDebouncedValidation();
 
-  // Handle contact number change
   const handleContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setContactNumber(value);
@@ -142,7 +142,6 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     if (value.length === 10) {
       debouncedValidation(value, false);
       
-      // Also check if alternate number is same as contact number
       if (altContactNumber === value) {
         setAltContactValidation(prev => ({
           ...prev,
@@ -150,13 +149,11 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
           isAvailable: false
         }));
       } else if (altContactNumber && altContactValidation.error === 'Alternate number cannot be same as contact number') {
-        // Clear the error if numbers are now different
         setAltContactValidation(prev => ({
           ...prev,
           error: '',
           isAvailable: null
         }));
-        // Re-validate alternate number
         if (validateMobileFormat(altContactNumber)) {
           debouncedValidation(altContactNumber, true);
         }
@@ -170,13 +167,11 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }
   };
 
-  // Handle alternate contact number change
   const handleAltContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setAltContactNumber(value);
 
     if (value && value.length === 10) {
-      // Check if alternate number is same as contact number
       if (value === contactNumber) {
         setAltContactValidation({
           loading: false,
@@ -195,40 +190,33 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }
   };
 
-  // Check if numbers are unique
   const areNumbersUnique = (): boolean => {
     if (!contactNumber || !altContactNumber) return true;
     return contactNumber !== altContactNumber;
   };
 
-  // Validate all fields before submission
   const validateAllFields = async (): Promise<boolean> => {
-    // Validate contact number
     if (!validateMobileFormat(contactNumber)) {
       alert("Please enter a valid 10-digit contact number");
       return false;
     }
 
-    // Validate alternate number if provided
     if (altContactNumber && !validateMobileFormat(altContactNumber)) {
       alert("Please enter a valid 10-digit alternate contact number");
       return false;
     }
 
-    // Check uniqueness
     if (!areNumbersUnique()) {
       alert("Contact number and alternate contact number must be different");
       return false;
     }
 
-    // Check contact number availability
     const isContactAvailable = await checkMobileAvailability(contactNumber, false);
     if (!isContactAvailable) {
       alert("Contact number is not available");
       return false;
     }
 
-    // Check alternate number availability if provided
     if (altContactNumber) {
       const isAltContactAvailable = await checkMobileAvailability(altContactNumber, true);
       if (!isAltContactAvailable) {
@@ -240,8 +228,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     return true;
   };
 
-const handleSubmit = async () => {
-    // Validate all fields before submission
+  const handleSubmit = async () => {
     const isValid = await validateAllFields();
     if (!isValid) {
       return;
@@ -257,14 +244,12 @@ const handleSubmit = async () => {
         return;
       }
 
-      // Prepare payload conditionally
       const payload: any = {};
       if (contactNumber) payload.mobileNo = contactNumber;
       if (altContactNumber) payload.alternateNo = altContactNumber;
 
       console.log(" Sending update payload:", payload);
 
-      // Real PUT API call
       const response = await axiosInstance.put(
         `/api/customer/update-customer/${appUser.customerid}`,
         payload
@@ -272,11 +257,10 @@ const handleSubmit = async () => {
 
       console.log("✅ API Response:", response.data);
       
-      // ✅ UPDATE APPUSER WITH MOBILE NUMBERS HERE
       setAppUser((prevUser: any) => ({
         ...prevUser,
         mobileNo: contactNumber,
-        alternateNo: altContactNumber || null, // Store null if empty
+        alternateNo: altContactNumber || null,
       }));
 
       console.log("✅ Updated appUser with mobile numbers:", {
@@ -286,7 +270,8 @@ const handleSubmit = async () => {
       });
 
       alert("Mobile number(s) updated successfully!");
-      setOpen(false);
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error("❌ Error updating mobile numbers:", error);
       alert("Something went wrong while updating!");
@@ -295,14 +280,12 @@ const handleSubmit = async () => {
     }
   };
 
-  // Check if form is valid for submission
   const isFormValid = (): boolean => {
     const basicValidation = validateMobileFormat(contactNumber) &&
       contactValidation.isAvailable !== false &&
       (altContactNumber === '' || validateMobileFormat(altContactNumber)) &&
       areNumbersUnique();
 
-    // For alternate number, check availability only if it's provided and valid
     const altNumberValidation = altContactNumber === '' || 
       (validateMobileFormat(altContactNumber) && 
        altContactValidation.isAvailable !== false &&
@@ -312,28 +295,26 @@ const handleSubmit = async () => {
   };
 
   return (
-    <Dialog open={open} onClose={() => setOpen(false)}>
-     <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
-  <DialogTitle className="text-xl font-semibold text-white">
-    Update Contact Numbers
-  </DialogTitle>
-
-  <button
-    onClick={() => setOpen(false)}
-    className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
-    aria-label="Close"
-  >
-    &times;
-  </button>
-</DialogHeader>
-
+    <Dialog open={open} onClose={onClose}>
+      <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
+        <DialogTitle className="text-xl font-semibold text-white">
+          Update Contact Numbers
+        </DialogTitle>
+        <button
+          onClick={onClose}
+          className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </DialogHeader>
 
       <DialogContent className="max-w-md p-6">
         <div className="flex flex-col gap-4 mt-4">
           <div>
             <p className="text-sm text-black-500 ">
-          Please enter your mobile and alternative contact numbers to continue.
-        </p>
+              Please enter your mobile and alternative contact numbers to continue.
+            </p>
             <label className="text-sm font-medium text-gray-700">
               Contact Number *
             </label>
@@ -420,7 +401,7 @@ const handleSubmit = async () => {
 
         <DialogActions className="mt-6">
           <Button
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             className="bg-gray-200 text-gray-800 hover:bg-gray-300"
           >
             Cancel
