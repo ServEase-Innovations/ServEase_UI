@@ -6,7 +6,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DateTimePicker, TimePicker } from "@mui/x-date-pickers";
 import { Button } from "../Button/button";
-import axios from "axios";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import VacationManagementDialog from "./VacationManagement";
@@ -27,6 +26,20 @@ interface Booking {
     end_date?: string;
     leave_days?: number;
   };
+  modifications?: Array<{
+    date: string;
+    action: string;
+    changes?: {
+      new_start_date?: string;
+      new_end_date?: string;
+      new_start_time?: string;
+      start_date?: { from: string; to: string };
+      end_date?: { from: string; to: string };
+      start_time?: { from: string; to: string };
+    };
+    refund?: number;
+    penalty?: number;
+  }>;
 }
 
 interface ModifyBookingDialogProps {
@@ -54,8 +67,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   refreshBookings,
   setOpenSnackbar,
 }) => {
-
-  console.log("ModifyBookingDialog booking:", booking);
   const today = dayjs();
   const maxDate90Days = dayjs().add(90, "day");
 
@@ -105,122 +116,223 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     return bookedDate.set('hour', hours).set('minute', minutes).set('second', 0);
   };
 
-  // --- Checks for modification eligibility ---
-  const isModificationTimeAllowed = (startDate: string, timeSlot: string) => {
+  // --- MODIFICATION RESTRICTION CHECKS ---
+
+  // Check if modification is allowed (at least 30 minutes before start time)
+  const isModificationTimeAllowed = (startDate: string, timeSlot: string): boolean => {
     const now = dayjs();
+    
+    // Parse the time slot
     const [time, period] = timeSlot.split(' ');
     const [hoursStr, minutesStr] = time.split(':');
     let hours = parseInt(hoursStr, 10);
     const minutes = parseInt(minutesStr, 10);
+    
+    // Convert to 24-hour format
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
-    const bookingDateTime = dayjs(startDate).set('hour', hours).set('minute', minutes).set('second', 0);
+    
+    // Create booking datetime
+    const bookingDateTime = dayjs(startDate)
+      .set('hour', hours)
+      .set('minute', minutes)
+      .set('second', 0);
+    
+    // Check if current time is at least 30 minutes before booking time
     return now.isBefore(bookingDateTime.subtract(30, 'minute'));
   };
 
   const isBookingAlreadyModified = (booking: Booking | null): boolean => {
     if (!booking) return false;
-    return new Date(booking.modifiedDate).getTime() !== new Date(booking.bookingDate).getTime();
+    
+    // Check for specific modification types
+    const hasExplicitModifications = booking.modifications && 
+      booking.modifications.length > 0 && 
+      booking.modifications.some(mod => 
+        mod.action === "Date Rescheduled" || 
+        mod.action === "Time Rescheduled" ||
+        mod.action === "Modified" || 
+        mod.action?.includes("Modified") ||
+        mod.action?.includes("modified") ||
+        mod.action === "Rescheduled" ||
+        mod.action?.includes("Reschedule")
+      );
+    
+    return !!hasExplicitModifications;
   };
 
+  // Get modification status message
   const getModificationStatusMessage = (booking: Booking | null): string => {
     if (!booking) return "";
-    if (isBookingAlreadyModified(booking)) return "This booking has already been modified and cannot be modified again.";
-    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) return "Modification is only allowed at least 30 minutes before the scheduled time.";
+    
+    if (isBookingAlreadyModified(booking)) {
+      return "This booking has already been modified and cannot be modified again.";
+    }
+    
+    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) {
+      return "Modification is only allowed at least 30 minutes before the scheduled time.";
+    }
+    
     return "";
   };
 
+  // Check if modification is completely disabled
   const isModificationDisabled = (booking: Booking | null): boolean => {
     if (!booking) return true;
-    return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || isBookingAlreadyModified(booking);
+    
+    return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || 
+           isBookingAlreadyModified(booking);
   };
 
-  const handleSubmit = async () => {
-    if (!startDate || !booking) return;
-    if (isModificationDisabled(booking)) {
-      setError(getModificationStatusMessage(booking));
-      return;
+  // Calculate time until booking starts for display
+  const getTimeUntilBooking = (booking: Booking | null): string => {
+    if (!booking) return "";
+    
+    const bookedTime = getBookedTime();
+    const now = dayjs();
+    const diffMinutes = bookedTime.diff(now, 'minute');
+    
+    if (diffMinutes <= 0) {
+      return "Booking has already started or passed";
     }
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Determine what type of modification based on selected section
-      const isDateModification = selectedSection === "BOOKING_DATE";
-      const isTimeModification = selectedSection === "BOOKING_TIME";
-      
-      // Prepare the update payload - only include what's being modified
-      const updatePayload: any = {};
-
-      if (isDateModification) {
-        // Only send date changes for date rescheduling
-        updatePayload.new_start_date = startDate.format("YYYY-MM-DD");
-        
-        // Calculate new end date based on booking type
-        let finalEndDate = startDate;
-        if (booking.bookingType === "MONTHLY") {
-          finalEndDate = startDate.add(1, "month");
-        } else if (booking.bookingType === "SHORT_TERM") {
-          finalEndDate = endDate || startDate.add(1, "day");
-        }
-        updatePayload.new_end_date = finalEndDate.format("YYYY-MM-DD");
-        
-      } else if (isTimeModification) {
-        // Only send time changes for time rescheduling
-        const newStartTime = startDate.format("HH:mm");
-        updatePayload.new_startTime = newStartTime;
-      }
-
-      console.log("Update payload:", updatePayload);
-
-      // Make the API call
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        updatePayload,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Refresh the main bookings data after successful modification
-      if (customerId !== null) {
-        await refreshBookings();
-      }
-
-      // Calculate final end date for the onSave callback
-      let finalEndDate = startDate;
-      if (booking.bookingType === "MONTHLY") {
-        finalEndDate = startDate.add(1, "month");
-      } else if (booking.bookingType === "SHORT_TERM") {
-        finalEndDate = endDate || startDate.add(1, "day");
-      }
-
-      const newStartTime = startDate.format("HH:mm");
-
-      // Call the onSave callback with updated data
-      onSave({
-        startDate: startDate.format("YYYY-MM-DD"),
-        endDate: finalEndDate.format("YYYY-MM-DD"),
-        timeSlot: newStartTime,
-      });
-
-      setSuccess("Booking modified successfully!");
-      setOpenSnackbar(true);
-      
-      // Close the dialog after successful modification
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-      
-    } catch (error: any) {
-      console.error("Error modifying booking:", error);
-      setError("Failed to modify booking. Please try again.");
-    } finally {
-      setIsLoading(false);
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m until booking starts`;
     }
+    return `${minutes}m until booking starts`;
   };
+
+  // Get last modification details for display
+  const getLastModificationDetails = (booking: Booking | null): string => {
+    if (!booking || !booking.modifications || booking.modifications.length === 0) return "";
+    
+    const lastMod = booking.modifications[booking.modifications.length - 1];
+    
+    if (lastMod.action === "Date Rescheduled" && lastMod.changes) {
+      if (lastMod.changes.new_start_date && lastMod.changes.new_end_date) {
+        return `Last rescheduled to ${lastMod.changes.new_start_date}`;
+      } else if (lastMod.changes.start_date) {
+        return `Last rescheduled from ${lastMod.changes.start_date.from} to ${lastMod.changes.start_date.to}`;
+      }
+    } else if (lastMod.action === "Time Rescheduled" && lastMod.changes) {
+      if (lastMod.changes.new_start_time) {
+        return `Last time changed to ${lastMod.changes.new_start_time}`;
+      } else if (lastMod.changes.start_time) {
+        return `Last time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
+      }
+    }
+    
+    return `Last modified: ${lastMod.action}`;
+  };
+
+ const handleSubmit = async () => {
+  if (!startDate || !booking) return;
+
+  // Restriction checks
+  if (isModificationDisabled(booking)) {
+    setError(getModificationStatusMessage(booking));
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const isDateModification = selectedSection === "BOOKING_DATE";
+    const isTimeModification = selectedSection === "BOOKING_TIME";
+    const now = dayjs().toISOString(); // modification timestamp
+
+    // ✅ Prepare modification entry
+    const modificationEntry: any = {
+      date: now,
+      refund: 0,
+      penalty: 0,
+      changes: {},
+    };
+
+    if (isDateModification) {
+      modificationEntry.action = "Date Rescheduled";
+
+      // Old and new date ranges
+      const oldStart = booking.startDate;
+      const oldEnd = booking.endDate;
+
+      let newEnd = startDate;
+      if (booking.bookingType === "MONTHLY") newEnd = startDate.add(1, "month");
+      else if (booking.bookingType === "SHORT_TERM")
+        newEnd = endDate || startDate.add(1, "day");
+
+      modificationEntry.changes = {
+        start_date: { from: oldStart, to: startDate.format("YYYY-MM-DD") },
+        end_date: { from: oldEnd, to: newEnd.format("YYYY-MM-DD") },
+      };
+    }
+
+    if (isTimeModification) {
+      modificationEntry.action = "Time Rescheduled";
+
+      // Old and new start time
+      const oldTime = booking.timeSlot.split(" ")[0]; // e.g. "06:00"
+      const newTime = startDate.format("HH:mm");
+
+      modificationEntry.changes = {
+        start_time: { from: oldTime, to: newTime },
+      };
+    }
+
+    // ✅ Build final update payload
+    const updatePayload = {
+      startDate: startDate.format("YYYY-MM-DD"),
+      endDate:
+        booking.bookingType === "MONTHLY"
+          ? startDate.add(1, "month").format("YYYY-MM-DD")
+          : endDate
+          ? endDate.format("YYYY-MM-DD")
+          : startDate.add(1, "day").format("YYYY-MM-DD"),
+      timeSlot: startDate.format("HH:mm"),
+      modifications: [modificationEntry], // 👈 attach modification array
+    };
+
+    console.log("Update Payload Sent to BE:", updatePayload);
+
+    // Send to backend
+    const response = await PaymentInstance.put(
+      `/api/engagements/${booking.id}`,
+      updatePayload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    // Refresh bookings after update
+    if (customerId !== null) await refreshBookings();
+
+    // Update UI instantly
+    onSave({
+      startDate: updatePayload.startDate,
+      endDate: updatePayload.endDate,
+      timeSlot: updatePayload.timeSlot,
+    });
+
+    const successMessage =
+      isDateModification
+        ? "Booking date rescheduled successfully!"
+        : "Booking time rescheduled successfully!";
+
+    setSuccess(successMessage);
+    setOpenSnackbar(true);
+
+    // Close dialog after a short delay
+    setTimeout(() => onClose(), 1500);
+  } catch (error) {
+    console.error("Error modifying booking:", error);
+    setError("Failed to modify booking. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   useEffect(() => {
     if (open && booking) {
@@ -248,6 +360,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
 
   const modificationDisabled = isModificationDisabled(booking);
   const statusMessage = getModificationStatusMessage(booking);
+  const timeUntilBooking = getTimeUntilBooking(booking);
+  const lastModificationDetails = getLastModificationDetails(booking);
 
   return (
     <Dialog 
@@ -258,7 +372,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     >
       <DialogHeader className="flex justify-between items-center">
         <Typography variant="h6" component="span">
-          Modify Options
+          Modify Booking
         </Typography>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
@@ -266,6 +380,31 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       </DialogHeader>
 
       <DialogContent dividers>
+        {/* Booking Information */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-md">
+          <Typography variant="body2" className="font-medium text-gray-700">
+            Booking #{booking.id} - {booking.service_type}
+          </Typography>
+          <Typography variant="body2" className="text-gray-600">
+            Scheduled: {dayjs(booking.startDate).format('MMM D, YYYY')} at {booking.timeSlot}
+          </Typography>
+          <Typography variant="body2" className="text-gray-600">
+            {timeUntilBooking}
+          </Typography>
+          {booking.modifications && booking.modifications.length > 0 && (
+            <div className="mt-2">
+              <Typography variant="body2" className="text-amber-600 font-medium">
+                This booking has been modified {booking.modifications.length} time(s)
+              </Typography>
+              {lastModificationDetails && (
+                <Typography variant="body2" className="text-amber-600 text-sm">
+                  {lastModificationDetails}
+                </Typography>
+              )}
+            </div>
+          )}
+        </div>
+
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md mb-4">
             <p className="text-red-700 text-sm">{error}</p>
@@ -281,15 +420,15 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         {selectedSection === "OPTIONS" && (
           <div className="flex flex-col gap-3">
             {booking?.hasVacation && (
-  <Button
-    onClick={() => setIsVacationDialogOpen(true)}
-    variant="outlined"
-    color="secondary"
-    className="w-full"
-  >
-    Manage Vacation
-  </Button>
-)}
+              <Button
+                onClick={() => setIsVacationDialogOpen(true)}
+                variant="outlined"
+                color="secondary"
+                className="w-full"
+              >
+                Manage Vacation
+              </Button>
+            )}
 
             {booking.bookingType === "MONTHLY" && (
               <>
@@ -298,22 +437,28 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                   fullWidth 
                   onClick={() => setSelectedSection("BOOKING_DATE")} 
                   disabled={modificationDisabled || isLoading}
+                  title={modificationDisabled ? statusMessage : "Reschedule the booking date"}
                 >
                   Reschedule Date
+                  {modificationDisabled && " (Not Available)"}
                 </Button>
                 <Button 
                   variant="contained" 
                   fullWidth 
                   onClick={() => setSelectedSection("BOOKING_TIME")} 
                   disabled={modificationDisabled || isLoading}
+                  title={modificationDisabled ? statusMessage : "Reschedule the booking time"}
                 >
                   Reschedule Time
+                  {modificationDisabled && " (Not Available)"}
                 </Button>
               </>
             )}
 
             {modificationDisabled && (
-              <p className="text-sm text-red-600 text-center mt-2">{statusMessage}</p>
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-700 text-center">{statusMessage}</p>
+              </div>
             )}
           </div>
         )}
@@ -358,37 +503,37 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         )}
 
         {/* Reschedule Time */}
-{selectedSection === "BOOKING_TIME" && (
-  <>
-    <div className="p-4 space-y-4">
-      <div className="mb-4">
-        <Typography variant="body2" className="text-gray-600 mb-2">
-          Current Booked Time: <strong>{booking.timeSlot}</strong>
-        </Typography>
-      </div>
+        {selectedSection === "BOOKING_TIME" && (
+          <>
+            <div className="p-4 space-y-4">
+              <div className="mb-4">
+                <Typography variant="body2" className="text-gray-600 mb-2">
+                  Current Booked Time: <strong>{booking.timeSlot}</strong>
+                </Typography>
+              </div>
 
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <TimePicker
-          label="Select New Time"
-          value={startDate}
-          onChange={(newValue) => {
-            if (newValue) {
-              const originalDate = dayjs(booking.startDate);
-              const updated = originalDate
-                .set("hour", newValue.hour())
-                .set("minute", newValue.minute());
-              setStartDate(updated);
-            }
-          }}
-          ampm={true}
-          slotProps={{
-            textField: { fullWidth: true, size: "small" },
-          }}
-        />
-      </LocalizationProvider>
-    </div>
-  </>
-)}
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <TimePicker
+                  label="Select New Time"
+                  value={startDate}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      const originalDate = dayjs(booking.startDate);
+                      const updated = originalDate
+                        .set("hour", newValue.hour())
+                        .set("minute", newValue.minute());
+                      setStartDate(updated);
+                    }
+                  }}
+                  ampm={true}
+                  slotProps={{
+                    textField: { fullWidth: true, size: "small" },
+                  }}
+                />
+              </LocalizationProvider>
+            </div>
+          </>
+        )}
 
       </DialogContent>
 
@@ -403,9 +548,10 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isLoading}
+            disabled={isLoading || modificationDisabled}
             variant="contained"
             className="flex items-center gap-2"
+            title={modificationDisabled ? statusMessage : "Save changes"}
           >
             {isLoading ? (
               <>
@@ -418,29 +564,28 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </Button>
         </DialogActions>
       )}
+      
       <VacationManagementDialog
-  open={isVacationDialogOpen}
-  onClose={() => setIsVacationDialogOpen(false)}
-  booking={{
-    id: booking.id,
-    vacationDetails: booking.vacationDetails
-      ? {
-          leave_start_date: booking.vacationDetails.start_date,
-          leave_end_date: booking.vacationDetails.end_date,
-          total_days: booking.vacationDetails.leave_days,
-        }
-      : undefined,
-  }}
-  customerId={customerId}
-  onSuccess={async () => {
-    await refreshBookings();
-    setIsVacationDialogOpen(false);
-    setOpenSnackbar(true);
-  }}
-/>
-
+        open={isVacationDialogOpen}
+        onClose={() => setIsVacationDialogOpen(false)}
+        booking={{
+          id: booking.id,
+          vacationDetails: booking.vacationDetails
+            ? {
+                leave_start_date: booking.vacationDetails.start_date,
+                leave_end_date: booking.vacationDetails.end_date,
+                total_days: booking.vacationDetails.leave_days,
+              }
+            : undefined,
+        }}
+        customerId={customerId}
+        onSuccess={async () => {
+          await refreshBookings();
+          setIsVacationDialogOpen(false);
+          setOpenSnackbar(true);
+        }}
+      />
     </Dialog>
-    
   );
 };
 

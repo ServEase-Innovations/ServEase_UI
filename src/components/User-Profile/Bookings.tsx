@@ -64,6 +64,20 @@ interface Booking {
     end_date?: string;
     start_date?: string;
   };
+  modifications: Array<{
+    date: string;
+    action: string;
+    changes?: {
+      new_start_date?: string;
+      new_end_date?: string;
+      new_start_time?: string;
+      start_date?: { from: string; to: string };
+      end_date?: { from: string; to: string };
+      start_time?: { from: string; to: string };
+    };
+    refund?: number;
+    penalty?: number;
+  }>;
 }
 
 const getServiceIcon = (type: string) => {
@@ -78,6 +92,85 @@ const getServiceIcon = (type: string) => {
     default:
       return <span className={iconClass}>👩‍🍳</span>;
   }
+};
+
+// Modification restriction functions
+const isModificationTimeAllowed = (startDate: string, timeSlot: string): boolean => {
+  const now = dayjs();
+  const [time, period] = timeSlot.split(' ');
+  const [hoursStr, minutesStr] = time.split(':');
+  let hours = parseInt(hoursStr, 10);
+  const minutes = parseInt(minutesStr, 10);
+  
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  
+  const bookingDateTime = dayjs(startDate)
+    .set('hour', hours)
+    .set('minute', minutes)
+    .set('second', 0);
+  
+  return now.isBefore(bookingDateTime.subtract(30, 'minute'));
+};
+
+const isBookingAlreadyModified = (booking: Booking | null): boolean => {
+  if (!booking) return false;
+  
+  const hasExplicitModifications = booking.modifications && 
+    booking.modifications.length > 0 && 
+    booking.modifications.some(mod => 
+      mod.action === "Date Rescheduled" || 
+      mod.action === "Time Rescheduled" ||
+      mod.action === "Modified" || 
+      mod.action?.includes("Modified") ||
+      mod.action?.includes("modified") ||
+      mod.action === "Rescheduled" ||
+      mod.action?.includes("Reschedule")
+    );
+  
+  return !!hasExplicitModifications;
+};
+
+const isModificationDisabled = (booking: Booking | null): boolean => {
+  if (!booking) return true;
+  
+  return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || 
+         isBookingAlreadyModified(booking);
+};
+
+const getModificationTooltip = (booking: Booking | null): string => {
+  if (!booking) return "";
+  
+  if (isBookingAlreadyModified(booking)) {
+    return "This booking has already been modified and cannot be modified again.";
+  }
+  if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) {
+    return "Modification is only allowed at least 30 minutes before the scheduled time.";
+  }
+  return "Modify this booking";
+};
+
+// Get detailed modification information for display
+const getModificationDetails = (booking: Booking): string => {
+  if (!booking.modifications || booking.modifications.length === 0) return "";
+  
+  const lastMod = booking.modifications[booking.modifications.length - 1];
+  
+  if (lastMod.action === "Date Rescheduled" && lastMod.changes) {
+    if (lastMod.changes.new_start_date && lastMod.changes.new_end_date) {
+      return `Date rescheduled to ${lastMod.changes.new_start_date}`;
+    } else if (lastMod.changes.start_date) {
+      return `Date changed from ${dayjs(lastMod.changes.start_date.from).format('MMM D, YYYY')} to ${dayjs(lastMod.changes.start_date.to).format('MMM D, YYYY')}`;
+    }
+  } else if (lastMod.action === "Time Rescheduled" && lastMod.changes) {
+    if (lastMod.changes.new_start_time) {
+      return `Time rescheduled to ${lastMod.changes.new_start_time}`;
+    } else if (lastMod.changes.start_time) {
+      return `Time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
+    }
+  }
+  
+  return `Last modified: ${lastMod.action}`;
 };
 
 const Booking: React.FC = () => {
@@ -131,34 +224,28 @@ const Booking: React.FC = () => {
 
   // Function to refresh bookings data
   const refreshBookings = async (id?: string) => {
-    const effectiveId = id || customerId; // fallback to state if not passed
+    const effectiveId = id || customerId;
     if (effectiveId !== null && effectiveId !== undefined) {
       console.log("Fetching bookings for customerId:", effectiveId);
-  
+
       const response = await PaymentInstance.get(
         `/api/customers/${effectiveId}/engagements`
       );
-  
+
       const { past = [], ongoing = [], upcoming = [], cancelled = [] } = response.data || {};
-  
+
       setPastBookings(mapBookingData(past));
       setCurrentBookings(mapBookingData(ongoing));
       setFutureBookings(mapBookingData(upcoming));
     }
   };
-  
 
-
-   const { appUser } = useAppUser();
+  const { appUser } = useAppUser();
 
   useEffect(() => {
     if (isAuthenticated && appUser?.customerid) {
       setIsLoading(true);
-  
-      // Wait for state update with customerId
       setCustomerId(appUser.customerid);
-  
-      // Use appUser.customerid directly instead of waiting for state
       fetchBookings(appUser.customerid);
     } else {
       setIsLoading(false);
@@ -167,29 +254,34 @@ const Booking: React.FC = () => {
   
   const fetchBookings = async (id: string) => {
     try {
-      await refreshBookings(id); // pass id
+      await refreshBookings(id);
     } catch (error) {
       console.error("Error fetching booking details:", error);
     } finally {
       setIsLoading(false);
     }
   };
-  
 
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
           const hasVacation = item?.vacation?.leave_days > 0;
-          
+          const modifications = item.modifications || [];
+          const hasModifications = modifications.length > 0;
+
+          // Use the current dates from API (which should reflect modifications)
+          const effectiveStartDate = item.start_date;
+          const effectiveEndDate = item.end_date;
+
           return {
             id: item.engagement_id,
             customerId: item.customerId,
             serviceProviderId: item.serviceProviderId,
             name: item.customerName,
             timeSlot: item.start_time,
-            date: item.start_date,
-            startDate: item.start_date,
-            endDate: item.end_date,
+            date: effectiveStartDate,
+            startDate: effectiveStartDate,
+            endDate: effectiveEndDate,
             bookingType: item.booking_type,
             monthlyAmount: item.monthlyAmount,
             paymentMode: item.paymentMode,
@@ -204,24 +296,22 @@ const Booking: React.FC = () => {
             experience: item.experience,
             noOfPersons: item.noOfPersons,
             mealType: item.mealType,
-            modifiedDate: Array.isArray(item.modifications) && item.modifications.length > 0
-              ? item.modifications[item.modifications.length - 1]?.created_at
+            modifiedDate: hasModifications
+              ? modifications[modifications.length - 1]?.date || item.created_at
               : item.created_at,
             responsibilities: item.responsibilities,
             customerHolidays: item.customerHolidays || [],
             hasVacation: hasVacation,
             vacationDetails: hasVacation && item.vacation?.leave_days > 0 
-  ? item.vacation 
-  : null
+              ? item.vacation 
+              : null,
+            modifications: modifications
           };
         })
       : [];
   };
-  
 
   const hasVacation = (booking: Booking): boolean => {
-    console.log("Has vacation " , booking.hasVacation)
-
     return booking.hasVacation || false;
   };
 
@@ -350,13 +440,11 @@ const Booking: React.FC = () => {
         }
       );
 
-      // Refresh bookings after cancellation
       await refreshBookings();
       setOpenSnackbar(true);
       
     } catch (error: any) {
       console.error("Error cancelling engagement:", error);
-      // Fallback update local state
       setCurrentBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
@@ -377,8 +465,6 @@ const Booking: React.FC = () => {
     endDate: string;
     timeSlot: string;
   }) => {
-    // The actual data refresh is handled by the dialog's refreshBookings call
-    // This function can be used for any additional local state updates if needed
     setModifyDialogOpen(false);
   };
 
@@ -401,8 +487,6 @@ const Booking: React.FC = () => {
       );
 
       setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
-
-      // Refresh bookings after applying leave
       await refreshBookings();
       setOpenSnackbar(true);
       setHolidayDialogOpen(false);
@@ -423,7 +507,6 @@ const Booking: React.FC = () => {
   const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
   const filteredPastBookings = filterBookings(pastBookings, searchTerm);
 
-  // Define status tabs based on the four main statuses
   const statusTabs = [
     { value: 'ALL', label: 'All', count: upcomingBookings.length },
     { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
@@ -432,8 +515,10 @@ const Booking: React.FC = () => {
     { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
   ];
 
-  // Function to render action buttons based on booking status
   const renderActionButtons = (booking: Booking) => {
+    const modificationDisabled = isModificationDisabled(booking);
+    const modificationTooltip = getModificationTooltip(booking);
+
     switch (booking.taskStatus) {
       case 'NOT_STARTED':
         return (
@@ -480,9 +565,11 @@ const Booking: React.FC = () => {
                            text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
                            w-1/3 sm:w-auto"
                 onClick={() => handleModifyClick(booking)}
+                disabled={modificationDisabled}
+                title={modificationTooltip}
               >
                 <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                Modify Booking
+                {modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}
               </Button>
             )}
 
@@ -747,6 +834,11 @@ const Booking: React.FC = () => {
                         <div className="flex gap-2">
                           {getBookingTypeBadge(booking.bookingType)}
                           {getStatusBadge(booking.taskStatus)}
+                          {booking.modifications && booking.modifications.length > 0 && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Modified
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground pt-2">
                           Booking Date:{" "}
@@ -755,12 +847,11 @@ const Booking: React.FC = () => {
                             day: "numeric",
                             year: "numeric"
                           })}
-                          {new Date(booking.modifiedDate).getTime() !==
-                            new Date(booking.bookingDate).getTime() && (
+                          {booking.modifications && booking.modifications.length > 0 && (
                             <>
                               <br />
-                              Modified Date:{" "}
-                              {new Date(booking.modifiedDate).toLocaleDateString("en-US", {
+                              Last Modified:{" "}
+                              {new Date(booking.modifications[booking.modifications.length - 1].date).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric"
@@ -777,12 +868,19 @@ const Booking: React.FC = () => {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{new Date(booking.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}</span>
+                          <span>
+                            {new Date(booking.startDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <span className="ml-2 text-xs text-green-600 font-medium">
+                                (Rescheduled)
+                              </span>
+                            )}
+                          </span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm">
@@ -794,6 +892,13 @@ const Booking: React.FC = () => {
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <span>{booking.address}</span>
                         </div>
+
+                        {/* Show modification details if available */}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-3">
@@ -891,6 +996,11 @@ const Booking: React.FC = () => {
                       <div className="flex gap-2">
                         {getBookingTypeBadge(booking.bookingType)}
                         {getStatusBadge(booking.taskStatus)}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Modified
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -900,12 +1010,19 @@ const Booking: React.FC = () => {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{new Date(booking.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}</span>
+                          <span>
+                            {new Date(booking.startDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <span className="ml-2 text-xs text-green-600 font-medium">
+                                (Rescheduled)
+                              </span>
+                            )}
+                          </span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm">
@@ -917,6 +1034,13 @@ const Booking: React.FC = () => {
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <span>{booking.address}</span>
                         </div>
+
+                        {/* Show modification details if available */}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-3">
@@ -1025,16 +1149,19 @@ const Booking: React.FC = () => {
         onLeaveSubmit={handleLeaveSubmit}
       />
       
-     <ModifyBookingDialog
-  open={modifyDialogOpen}
-  onClose={() => setModifyDialogOpen(false)}
-  booking={selectedBooking}
-  timeSlots={timeSlots}
-  onSave={handleSaveModifiedBooking}
-  customerId={customerId}
-  refreshBookings={refreshBookings} // Add this
-  setOpenSnackbar={setOpenSnackbar} // Add this
-/>
+      <ModifyBookingDialog
+        open={modifyDialogOpen}
+        onClose={() => {
+          setModifyDialogOpen(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        timeSlots={timeSlots}
+        onSave={handleSaveModifiedBooking}
+        customerId={customerId}
+        refreshBookings={refreshBookings}
+        setOpenSnackbar={setOpenSnackbar}
+      />
 
       <ConfirmationDialog
         open={confirmationDialog.open}
@@ -1072,4 +1199,4 @@ const Booking: React.FC = () => {
   );
 };
 
-export default Booking; 
+export default Booking;
