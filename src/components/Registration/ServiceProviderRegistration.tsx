@@ -703,55 +703,56 @@ const handleSubmit = async (event: React.FormEvent) => {
           profilePicUrl = imageResponse.data.imageUrl;
         }
       }
-
-      // Prepare the payload according to your desired structure
-      const payload = {
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        mobileNo: parseInt(formData.mobileNo) || 0,
-        alternateNo: parseInt(formData.AlternateNumber) || 0,
-        emailId: formData.emailId,
-        gender: formData.gender,
-        buildingName: formData.buildingName,
-        locality: formData.locality,
-        latitude: currentLocation?.latitude || formData.latitude,
-        longitude: currentLocation?.longitude || formData.longitude,
-        street: formData.street,
-        pincode: parseInt(formData.pincode) || 0,
-        currentLocation: formData.currentLocation,
-        nearbyLocation: formData.nearbyLocation,
-        location: formData.currentLocation,
-        housekeepingRole: formData.housekeepingRole,
-        diet: formData.diet,
-        cookingSpeciality: formData.cookingSpeciality,
-        timeslot: formData.timeslot,
-        expectedSalary: 0,
-        experience: parseInt(formData.experience) || 0,
-        username: formData.emailId,
-        password: formData.password,
-        privacy: formData.privacy,
-        keyFacts: formData.keyFacts,
-        permanentAddress: {
-          field1: formData.permanentAddress.apartment,
-          field2: formData.permanentAddress.street,
-          ctArea: formData.permanentAddress.city,
-          pinNo: formData.permanentAddress.pincode,
-          state: formData.permanentAddress.state,
-          country: formData.permanentAddress.country
-        },
-        correspondenceAddress: {
-          field1: formData.correspondenceAddress.apartment,
-          field2: formData.correspondenceAddress.street,
-          ctArea: formData.correspondenceAddress.city,
-          pinNo: formData.correspondenceAddress.pincode,
-          state: formData.correspondenceAddress.state,
-          country: formData.correspondenceAddress.country
-        },
-        active: true,
-        kyc: formData.kyc,
-        dob: formData.dob
-      };
+ // Prepare the payload with conditional cookingSpeciality
+const payload = {
+  firstName: formData.firstName,
+  middleName: formData.middleName,
+  lastName: formData.lastName,
+  mobileNo: parseInt(formData.mobileNo) || 0,
+  alternateNo: parseInt(formData.AlternateNumber) || 0,
+  emailId: formData.emailId,
+  gender: formData.gender,
+  buildingName: formData.buildingName,
+  locality: formData.locality,
+  latitude: currentLocation?.latitude || formData.latitude,
+  longitude: currentLocation?.longitude || formData.longitude,
+  street: formData.street,
+  pincode: parseInt(formData.pincode) || 0,
+  currentLocation: formData.currentLocation,
+  nearbyLocation: formData.nearbyLocation,
+  location: formData.currentLocation,
+  housekeepingRole: formData.housekeepingRole,
+  diet: formData.diet,
+  ...(formData.housekeepingRole === "COOK" && { 
+    cookingSpeciality: formData.cookingSpeciality 
+  }),
+  timeslot: formData.timeslot,
+  expectedSalary: 0,
+  experience: parseInt(formData.experience) || 0,
+  username: formData.emailId,
+  password: formData.password,
+  privacy: formData.privacy,
+  keyFacts: formData.keyFacts,
+  permanentAddress: {
+    field1: formData.permanentAddress.apartment,
+    field2: formData.permanentAddress.street,
+    ctArea: formData.permanentAddress.city,
+    pinNo: formData.permanentAddress.pincode,
+    state: formData.permanentAddress.state,
+    country: formData.permanentAddress.country
+  },
+  correspondenceAddress: {
+    field1: formData.correspondenceAddress.apartment,
+    field2: formData.correspondenceAddress.street,
+    ctArea: formData.correspondenceAddress.city,
+    pinNo: formData.correspondenceAddress.pincode,
+    state: formData.correspondenceAddress.state,
+    country: formData.correspondenceAddress.country
+  },
+  active: true,
+  kyc: formData.kyc,
+  dob: formData.dob
+};
 
       const response = await axiosInstance.post(
         "/api/serviceproviders/serviceprovider/add",
