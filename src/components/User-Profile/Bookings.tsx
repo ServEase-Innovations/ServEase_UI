@@ -22,6 +22,7 @@ import WalletDialog from './Wallet';
 import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
 import { useAppUser } from 'src/context/AppUserContext';
+import VacationManagementDialog from './VacationManagement';
 
 interface Task {
   taskType: string;
@@ -195,7 +196,9 @@ const Booking: React.FC = () => {
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
-  
+  const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
+const [selectedBookingForVacationManagement, setSelectedBookingForVacationManagement] = useState<Booking | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -446,7 +449,14 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
     setSelectedBookingForLeave(booking);
     setHolidayDialogOpen(true);
   };
-
+const handleModifyVacationClick = (booking: Booking) => {
+  setSelectedBookingForVacationManagement(booking);
+  setVacationManagementDialogOpen(true);
+};
+const handleVacationSuccess = async () => {
+  setOpenSnackbar(true);
+  await refreshBookings();
+};
   const handleApplyLeaveClick = (booking: Booking) => {
     setSelectedBookingForLeave(booking);
     setHolidayDialogOpen(true);
@@ -543,132 +553,169 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
     { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
   ];
 
-  const renderActionButtons = (booking: Booking) => {
-    const modificationDisabled = isModificationDisabled(booking);
-    const modificationTooltip = getModificationTooltip(booking);
+const renderActionButtons = (booking: Booking) => {
+  const modificationDisabled = isModificationDisabled(booking);
+  const modificationTooltip = getModificationTooltip(booking);
+  const hasExistingVacation = hasVacation(booking);
 
-    switch (booking.taskStatus) {
-      case 'NOT_STARTED':
-        return (
-          <>
+  switch (booking.taskStatus) {
+    case 'NOT_STARTED':
+      return (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+            Call Provider
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Message
+          </Button>
+
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+            onClick={() => handleCancelClick(booking)}
+          >
+            <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Cancel Booking
+          </Button>
+
+          {booking.bookingType === "MONTHLY" && (
             <Button
               variant="outline"
               size="sm"
               className="flex-1 min-w-0 justify-center 
                          text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
                          w-1/3 sm:w-auto"
+              onClick={() => handleModifyClick(booking)}
+              disabled={modificationDisabled}
+              title={modificationTooltip}
             >
-              <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-              Call Provider
+              <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+              {modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}
             </Button>
+          )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-            >
-              <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Message
-            </Button>
+          {booking.bookingType === "MONTHLY" && (
+            <>
+              {hasExistingVacation ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => handleModifyVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                  Modify Vacation
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto"
+                  onClick={() => handleVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                  Add Vacation
+                </Button>
+              )}
+            </>
+          )}
+        </>
+      );
 
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-              onClick={() => handleCancelClick(booking)}
-            >
-              <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Cancel Booking
-            </Button>
+    case 'IN_PROGRESS':
+      return (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+            Call Provider
+          </Button>
 
-            {booking.bookingType === "MONTHLY" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
-                onClick={() => handleModifyClick(booking)}
-                disabled={modificationDisabled}
-                title={modificationTooltip}
-              >
-                <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                {modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}
-              </Button>
-            )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Message
+          </Button>
 
-            {booking.bookingType === "MONTHLY" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
-                onClick={() => handleVacationClick(booking)}
-                disabled={hasVacation(booking) || isRefreshing}
-              >
-                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
-              </Button>
-            )}
-          </>
-        );
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+            onClick={() => handleCancelClick(booking)}
+          >
+            <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Cancel Booking
+          </Button>
 
-      case 'IN_PROGRESS':
-        return (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-            >
-              <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-              Call Provider
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-            >
-              <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Message
-            </Button>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
-              onClick={() => handleCancelClick(booking)}
-            >
-              <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Cancel Booking
-            </Button>
-
-            {booking.bookingType === "MONTHLY" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
-                onClick={() => handleVacationClick(booking)}
-                disabled={hasVacation(booking) || isRefreshing}
-              >
-                {hasVacation(booking) ? "Vacation Added" : "Add Vacation"}
-              </Button>
-            )}
-          </>
-        );
+          {booking.bookingType === "MONTHLY" && (
+            <>
+              {hasExistingVacation ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => handleModifyVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                  Modify Vacation
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto"
+                  onClick={() => handleVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                  Add Vacation
+                </Button>
+              )}
+            </>
+          )}
+        </>
+      );
 
       case 'COMPLETED':
         return (
@@ -1176,7 +1223,16 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
         booking={selectedBookingForLeave}
         onLeaveSubmit={handleLeaveSubmit}
       />
-      
+      <VacationManagementDialog
+  open={vacationManagementDialogOpen}
+  onClose={() => {
+    setVacationManagementDialogOpen(false);
+    setSelectedBookingForVacationManagement(null);
+  }}
+  booking={selectedBookingForVacationManagement}
+  customerId={customerId}
+  onSuccess={handleVacationSuccess}
+/>
       <ModifyBookingDialog
         open={modifyDialogOpen}
         onClose={() => {
