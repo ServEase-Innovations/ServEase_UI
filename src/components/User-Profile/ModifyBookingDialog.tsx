@@ -1,10 +1,20 @@
 /* eslint-disable */
 import React, { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
-import { Typography, IconButton, Dialog, DialogContent, DialogActions } from "@mui/material";
+import {
+  Typography,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider, DateTimePicker, TimePicker } from "@mui/x-date-pickers";
+import {
+  LocalizationProvider,
+  DateTimePicker,
+  TimePicker,
+} from "@mui/x-date-pickers";
 import { Button } from "../Button/button";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
@@ -80,12 +90,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isVacationDialogOpen, setIsVacationDialogOpen] = useState(false);
-
   const [selectedSection, setSelectedSection] = useState<
     "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
   >("OPTIONS");
-
-  // State to control calendar open state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
@@ -97,243 +104,163 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     return date.isBefore(min, "day") || date.isAfter(max, "day");
   };
 
-  // Extract the actual booked time from the booking
   const getBookedTime = () => {
     if (!booking) return dayjs();
-    
-    // Parse the time slot from the booking
-    const [time, period] = booking.timeSlot.split(' ');
-    const [hoursStr, minutesStr] = time.split(':');
+    const [time, period] = booking.timeSlot.split(" ");
+    const [hoursStr, minutesStr] = time.split(":");
     let hours = parseInt(hoursStr, 10);
     const minutes = parseInt(minutesStr, 10);
-    
-    // Convert to 24-hour format
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-    
-    // Create a dayjs object with the booked time
-    const bookedDate = dayjs(booking.startDate);
-    return bookedDate.set('hour', hours).set('minute', minutes).set('second', 0);
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+    return dayjs(booking.startDate)
+      .set("hour", hours)
+      .set("minute", minutes)
+      .set("second", 0);
   };
 
-  // --- MODIFICATION RESTRICTION CHECKS ---
-
-  // Check if modification is allowed (at least 30 minutes before start time)
   const isModificationTimeAllowed = (startDate: string, timeSlot: string): boolean => {
     const now = dayjs();
-    
-    // Parse the time slot
-    const [time, period] = timeSlot.split(' ');
-    const [hoursStr, minutesStr] = time.split(':');
+    const [time, period] = timeSlot.split(" ");
+    const [hoursStr, minutesStr] = time.split(":");
     let hours = parseInt(hoursStr, 10);
     const minutes = parseInt(minutesStr, 10);
-    
-    // Convert to 24-hour format
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-    
-    // Create booking datetime
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
     const bookingDateTime = dayjs(startDate)
-      .set('hour', hours)
-      .set('minute', minutes)
-      .set('second', 0);
-    
-    // Check if current time is at least 30 minutes before booking time
-    return now.isBefore(bookingDateTime.subtract(30, 'minute'));
+      .set("hour", hours)
+      .set("minute", minutes)
+      .set("second", 0);
+    return now.isBefore(bookingDateTime.subtract(30, "minute"));
   };
 
   const isBookingAlreadyModified = (booking: Booking | null): boolean => {
     if (!booking) return false;
-    
-    // Check for specific modification types
-    const hasExplicitModifications = booking.modifications && 
-      booking.modifications.length > 0 && 
-      booking.modifications.some(mod => 
-        mod.action === "Date Rescheduled" || 
-        mod.action === "Time Rescheduled" ||
-        mod.action === "Modified" || 
-        mod.action?.includes("Modified") ||
-        mod.action?.includes("modified") ||
-        mod.action === "Rescheduled" ||
-        mod.action?.includes("Reschedule")
-      );
-    
-    return !!hasExplicitModifications;
+    const modifications = booking.modifications ?? [];
+    return modifications.some((mod) =>
+      ["Date Rescheduled", "Time Rescheduled", "Modified", "Rescheduled"].some(
+        (kw) => mod.action?.includes(kw)
+      )
+    );
   };
 
-  // Get modification status message
   const getModificationStatusMessage = (booking: Booking | null): string => {
     if (!booking) return "";
-    
-    if (isBookingAlreadyModified(booking)) {
+    if (isBookingAlreadyModified(booking))
       return "This booking has already been modified and cannot be modified again.";
-    }
-    
-    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) {
+    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot))
       return "Modification is only allowed at least 30 minutes before the scheduled time.";
-    }
-    
     return "";
   };
 
-  // Check if modification is completely disabled
   const isModificationDisabled = (booking: Booking | null): boolean => {
     if (!booking) return true;
-    
-    return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || 
-           isBookingAlreadyModified(booking);
+    return (
+      !isModificationTimeAllowed(booking.startDate, booking.timeSlot) ||
+      isBookingAlreadyModified(booking)
+    );
   };
 
-  // Calculate time until booking starts for display
   const getTimeUntilBooking = (booking: Booking | null): string => {
     if (!booking) return "";
-    
     const bookedTime = getBookedTime();
     const now = dayjs();
-    const diffMinutes = bookedTime.diff(now, 'minute');
-    
-    if (diffMinutes <= 0) {
-      return "Booking has already started or passed";
-    }
-    
+    const diffMinutes = bookedTime.diff(now, "minute");
+    if (diffMinutes <= 0) return "Booking has already started or passed";
     const hours = Math.floor(diffMinutes / 60);
     const minutes = diffMinutes % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m until booking starts`;
-    }
-    return `${minutes}m until booking starts`;
+    return hours > 0
+      ? `${hours}h ${minutes}m until booking starts`
+      : `${minutes}m until booking starts`;
   };
 
-  // Get last modification details for display
   const getLastModificationDetails = (booking: Booking | null): string => {
-    if (!booking || !booking.modifications || booking.modifications.length === 0) return "";
-    
-    const lastMod = booking.modifications[booking.modifications.length - 1];
-    
-    if (lastMod.action === "Date Rescheduled" && lastMod.changes) {
-      if (lastMod.changes.new_start_date && lastMod.changes.new_end_date) {
-        return `Last rescheduled to ${lastMod.changes.new_start_date}`;
-      } else if (lastMod.changes.start_date) {
-        return `Last rescheduled from ${lastMod.changes.start_date.from} to ${lastMod.changes.start_date.to}`;
-      }
-    } else if (lastMod.action === "Time Rescheduled" && lastMod.changes) {
-      if (lastMod.changes.new_start_time) {
-        return `Last time changed to ${lastMod.changes.new_start_time}`;
-      } else if (lastMod.changes.start_time) {
-        return `Last time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
-      }
-    }
-    
+    const modifications = booking?.modifications ?? [];
+    if (modifications.length === 0) return "";
+    const lastMod = modifications[modifications.length - 1];
+    if (lastMod.changes?.start_date)
+      return `Last rescheduled from ${lastMod.changes.start_date.from} to ${lastMod.changes.start_date.to}`;
+    if (lastMod.changes?.start_time)
+      return `Last time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
     return `Last modified: ${lastMod.action}`;
   };
 
- const handleSubmit = async () => {
-  if (!startDate || !booking) return;
+  /** ✅ handleSubmit — sends correct payload depending on modification type **/
+  const handleSubmit = async () => {
+    if (!startDate || !booking) return;
 
-  // Restriction checks
-  if (isModificationDisabled(booking)) {
-    setError(getModificationStatusMessage(booking));
-    return;
-  }
-
-  setIsLoading(true);
-  setError(null);
-
-  try {
-    const isDateModification = selectedSection === "BOOKING_DATE";
-    const isTimeModification = selectedSection === "BOOKING_TIME";
-    const now = dayjs().toISOString(); // modification timestamp
-
-    // ✅ Prepare modification entry
-    const modificationEntry: any = {
-      date: now,
-      refund: 0,
-      penalty: 0,
-      changes: {},
-    };
-
-    if (isDateModification) {
-      modificationEntry.action = "Date Rescheduled";
-
-      // Old and new date ranges
-      const oldStart = booking.startDate;
-      const oldEnd = booking.endDate;
-
-      let newEnd = startDate;
-      if (booking.bookingType === "MONTHLY") newEnd = startDate.add(1, "month");
-      else if (booking.bookingType === "SHORT_TERM")
-        newEnd = endDate || startDate.add(1, "day");
-
-      modificationEntry.changes = {
-        start_date: { from: oldStart, to: startDate.format("YYYY-MM-DD") },
-        end_date: { from: oldEnd, to: newEnd.format("YYYY-MM-DD") },
-      };
+    if (isModificationDisabled(booking)) {
+      setError(getModificationStatusMessage(booking));
+      return;
     }
 
-    if (isTimeModification) {
-      modificationEntry.action = "Time Rescheduled";
+    setIsLoading(true);
+    setError(null);
 
-      // Old and new start time
-      const oldTime = booking.timeSlot.split(" ")[0]; // e.g. "06:00"
-      const newTime = startDate.format("HH:mm");
+    try {
+      const isDateModification = selectedSection === "BOOKING_DATE";
+      const isTimeModification = selectedSection === "BOOKING_TIME";
 
-      modificationEntry.changes = {
-        start_time: { from: oldTime, to: newTime },
+      // Base payload (common)
+      let updatePayload: any = {
+        modified_by_id: customerId,
+        modified_by_role: "CUSTOMER", // change if admin modifies
       };
+
+      if (isDateModification) {
+        updatePayload = {
+          ...updatePayload,
+          start_date: startDate.format("YYYY-MM-DD"),
+          end_date:
+            booking.bookingType === "MONTHLY"
+              ? startDate.add(1, "month").format("YYYY-MM-DD")
+              : endDate
+              ? endDate.format("YYYY-MM-DD")
+              : startDate.add(1, "day").format("YYYY-MM-DD"),
+        };
+      }
+
+      if (isTimeModification) {
+        updatePayload = {
+          ...updatePayload,
+          start_time: startDate.format("HH:mm:ss"),
+        };
+      }
+
+      console.log("📦 Sending Payload:", updatePayload);
+
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
+        updatePayload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (customerId !== null) await refreshBookings();
+
+      onSave({
+        startDate: updatePayload.start_date || booking.startDate,
+        endDate: updatePayload.end_date || booking.endDate,
+        timeSlot:
+          updatePayload.start_time
+            ? dayjs().set("hour", startDate.hour()).set("minute", startDate.minute()).format("hh:mm A")
+            : booking.timeSlot,
+      });
+
+      setSuccess(
+        isDateModification
+          ? "Booking date rescheduled successfully!"
+          : "Booking time rescheduled successfully!"
+      );
+      setOpenSnackbar(true);
+      setTimeout(() => onClose(), 1500);
+    } catch (error) {
+      console.error("❌ Error modifying booking:", error);
+      setError("Failed to modify booking. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // ✅ Build final update payload
-    const updatePayload = {
-      startDate: startDate.format("YYYY-MM-DD"),
-      endDate:
-        booking.bookingType === "MONTHLY"
-          ? startDate.add(1, "month").format("YYYY-MM-DD")
-          : endDate
-          ? endDate.format("YYYY-MM-DD")
-          : startDate.add(1, "day").format("YYYY-MM-DD"),
-      timeSlot: startDate.format("HH:mm"),
-      modifications: [modificationEntry], // 👈 attach modification array
-    };
-
-    console.log("Update Payload Sent to BE:", updatePayload);
-
-    // Send to backend
-    const response = await PaymentInstance.put(
-      `/api/engagements/${booking.id}`,
-      updatePayload,
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    // Refresh bookings after update
-    if (customerId !== null) await refreshBookings();
-
-    // Update UI instantly
-    onSave({
-      startDate: updatePayload.startDate,
-      endDate: updatePayload.endDate,
-      timeSlot: updatePayload.timeSlot,
-    });
-
-    const successMessage =
-      isDateModification
-        ? "Booking date rescheduled successfully!"
-        : "Booking time rescheduled successfully!";
-
-    setSuccess(successMessage);
-    setOpenSnackbar(true);
-
-    // Close dialog after a short delay
-    setTimeout(() => onClose(), 1500);
-  } catch (error) {
-    console.error("Error modifying booking:", error);
-    setError("Failed to modify booking. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-
+  /** Reset states on open **/
   useEffect(() => {
     if (open && booking) {
       const bookedTime = getBookedTime();
@@ -346,14 +273,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     }
   }, [open, booking]);
 
-  // Auto-open calendar when BOOKING_DATE section is selected
   useEffect(() => {
-    if (selectedSection === "BOOKING_DATE" && open) {
-      // Small delay to ensure the component is rendered
-      setTimeout(() => {
-        setIsCalendarOpen(true);
-      }, 100);
-    }
+    if (selectedSection === "BOOKING_DATE" && open)
+      setTimeout(() => setIsCalendarOpen(true), 100);
   }, [selectedSection, open]);
 
   if (!open || !booking) return null;
@@ -364,43 +286,35 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const lastModificationDetails = getLastModificationDetails(booking);
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogHeader className="flex justify-between items-center">
-        <Typography variant="h6" component="span">
-          Modify Booking
-        </Typography>
+        <Typography variant="h6">Modify Booking</Typography>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogHeader>
 
       <DialogContent dividers>
-        {/* Booking Information */}
         <div className="mb-4 p-3 bg-blue-50 rounded-md">
           <Typography variant="body2" className="font-medium text-gray-700">
             Booking #{booking.id} - {booking.service_type}
           </Typography>
           <Typography variant="body2" className="text-gray-600">
-            Scheduled: {dayjs(booking.startDate).format('MMM D, YYYY')} at {booking.timeSlot}
+            Scheduled: {dayjs(booking.startDate).format("MMM D, YYYY")} at{" "}
+            {booking.timeSlot}
           </Typography>
           <Typography variant="body2" className="text-gray-600">
             {timeUntilBooking}
           </Typography>
-          {booking.modifications && booking.modifications.length > 0 && (
+
+          {(booking.modifications?.length ?? 0) > 0 && (
             <div className="mt-2">
               <Typography variant="body2" className="text-amber-600 font-medium">
-                This booking has been modified {booking.modifications.length} time(s)
+                This booking has been modified {(booking.modifications?.length ?? 0)} time(s)
               </Typography>
-              {lastModificationDetails && (
-                <Typography variant="body2" className="text-amber-600 text-sm">
-                  {lastModificationDetails}
-                </Typography>
-              )}
+              <Typography variant="body2" className="text-amber-600 text-sm">
+                {lastModificationDetails}
+              </Typography>
             </div>
           )}
         </div>
@@ -416,10 +330,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </div>
         )}
 
-        {/* Options */}
         {selectedSection === "OPTIONS" && (
           <div className="flex flex-col gap-3">
-            {booking?.hasVacation && (
+            {/* {booking?.hasVacation && (
               <Button
                 onClick={() => setIsVacationDialogOpen(true)}
                 variant="outlined"
@@ -428,32 +341,27 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
               >
                 Manage Vacation
               </Button>
-            )}
+            )} */}
 
-            {booking.bookingType === "MONTHLY" && (
-              <>
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  onClick={() => setSelectedSection("BOOKING_DATE")} 
-                  disabled={modificationDisabled || isLoading}
-                  title={modificationDisabled ? statusMessage : "Reschedule the booking date"}
-                >
-                  Reschedule Date
-                  {modificationDisabled && " (Not Available)"}
-                </Button>
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  onClick={() => setSelectedSection("BOOKING_TIME")} 
-                  disabled={modificationDisabled || isLoading}
-                  title={modificationDisabled ? statusMessage : "Reschedule the booking time"}
-                >
-                  Reschedule Time
-                  {modificationDisabled && " (Not Available)"}
-                </Button>
-              </>
-            )}
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setSelectedSection("BOOKING_DATE")}
+              disabled={modificationDisabled || isLoading}
+              title={modificationDisabled ? statusMessage : "Reschedule Date"}
+            >
+              Reschedule Date
+            </Button>
+
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setSelectedSection("BOOKING_TIME")}
+              disabled={modificationDisabled || isLoading}
+              title={modificationDisabled ? statusMessage : "Reschedule Time"}
+            >
+              Reschedule Time
+            </Button>
 
             {modificationDisabled && (
               <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
@@ -463,13 +371,11 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
           </div>
         )}
 
-        {/* Reschedule Date */}
         {selectedSection === "BOOKING_DATE" && (
           <div className="space-y-4">
             <Typography variant="body2" className="text-gray-600">
-              Select a new date for your booking. The calendar will open automatically.
+              Select a new date for your booking.
             </Typography>
-            
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DateTimePicker
                 label="Select New Date"
@@ -477,94 +383,82 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                 onChange={(newValue) => {
                   if (newValue) {
                     const originalTime = dayjs(booking.startDate);
-                    const updated = newValue.set("hour", originalTime.hour()).set("minute", originalTime.minute());
+                    const updated = newValue
+                      .set("hour", originalTime.hour())
+                      .set("minute", originalTime.minute());
                     setStartDate(updated);
                   }
                 }}
                 onClose={() => setIsCalendarOpen(false)}
                 open={isCalendarOpen}
-                views={['year', 'month', 'day']}
+                views={["year", "month", "day"]}
                 minDate={today}
                 maxDate={maxDate90Days}
                 shouldDisableDate={shouldDisableStartDate}
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
                     size: "small",
-                    onClick: () => setIsCalendarOpen(true)
+                    onClick: () => setIsCalendarOpen(true),
                   },
-                  actionBar: {
-                    actions: ['accept', 'cancel', 'clear']
-                  }
                 }}
               />
             </LocalizationProvider>
           </div>
         )}
 
-        {/* Reschedule Time */}
         {selectedSection === "BOOKING_TIME" && (
-          <>
-            <div className="p-4 space-y-4">
-              <div className="mb-4">
-                <Typography variant="body2" className="text-gray-600 mb-2">
-                  Current Booked Time: <strong>{booking.timeSlot}</strong>
-                </Typography>
-              </div>
-
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <TimePicker
-                  label="Select New Time"
-                  value={startDate}
-                  onChange={(newValue) => {
-                    if (newValue) {
-                      const originalDate = dayjs(booking.startDate);
-                      const updated = originalDate
-                        .set("hour", newValue.hour())
-                        .set("minute", newValue.minute());
-                      setStartDate(updated);
-                    }
-                  }}
-                  ampm={true}
-                  slotProps={{
-                    textField: { fullWidth: true, size: "small" },
-                  }}
-                />
-              </LocalizationProvider>
-            </div>
-          </>
+          <div className="p-4 space-y-4">
+            <Typography variant="body2" className="text-gray-600">
+              Current Time: <strong>{booking.timeSlot}</strong>
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <TimePicker
+                label="Select New Time"
+                value={startDate}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    const updated = dayjs(booking.startDate)
+                      .set("hour", newValue.hour())
+                      .set("minute", newValue.minute());
+                    setStartDate(updated);
+                  }
+                }}
+                ampm
+                slotProps={{
+                  textField: { fullWidth: true, size: "small" },
+                }}
+              />
+            </LocalizationProvider>
+          </div>
         )}
-
       </DialogContent>
 
       {(selectedSection === "BOOKING_DATE" || selectedSection === "BOOKING_TIME") && (
         <DialogActions className="justify-between p-4">
-          <Button 
-            onClick={() => setSelectedSection("OPTIONS")} 
-            variant="outlined"
-            disabled={isLoading}
-          >
+          <Button onClick={() => setSelectedSection("OPTIONS")} variant="outlined">
             Back
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isLoading || modificationDisabled}
             variant="contained"
             className="flex items-center gap-2"
-            title={modificationDisabled ? statusMessage : "Save changes"}
           >
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Saving...
               </>
+            ) : selectedSection === "BOOKING_DATE" ? (
+              "Save Date"
             ) : (
-              selectedSection === "BOOKING_DATE" ? 'Save Date' : 'Save Time'
+              "Save Time"
             )}
           </Button>
         </DialogActions>
       )}
-      
+
       <VacationManagementDialog
         open={isVacationDialogOpen}
         onClose={() => setIsVacationDialogOpen(false)}
