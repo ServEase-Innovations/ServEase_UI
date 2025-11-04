@@ -1,41 +1,36 @@
 /* eslint-disable */
 import React, { useState, useEffect } from "react";
+import dayjs, { Dayjs } from "dayjs";
 import {
+  Typography,
+  IconButton,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
-  Typography,
   Box,
-  IconButton,
+  Alert,
 } from "@mui/material";
-import dayjs, { Dayjs } from "dayjs";
-import PaymentInstance from "src/services/paymentInstance";
-import CloseIcon from '@mui/icons-material/Close';
-
-// MUI X date pickers
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import CloseIcon from "@mui/icons-material/Close";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { Button } from "../Button/button";
+import PaymentInstance from "src/services/paymentInstance";
 
-interface VacationDetails {
-  leave_start_date?: string;
-  leave_end_date?: string;
-  total_days?: number;
-  refund_amount?: number;
+interface VacationBooking {
+  id: number;
+  vacationDetails?: {
+    leave_start_date?: string;
+    leave_end_date?: string;
+    total_days?: number;
+  };
 }
 
 interface VacationManagementDialogProps {
   open: boolean;
   onClose: () => void;
-  booking: {
-    id: number;
-    vacationDetails?: VacationDetails;
-  };
+  booking: VacationBooking | null;
   customerId: number | null;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
 const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
@@ -45,197 +40,239 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   customerId,
   onSuccess,
 }) => {
+  const today = dayjs();
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [selectedEndDate, setSelectedEndDate] = useState<Dayjs | null>(null);
 
-  const details = booking?.vacationDetails;
-  const startDate = details?.leave_start_date
-    ? dayjs(details.leave_start_date)
-    : null;
-  const endDate = details?.leave_end_date ? dayjs(details.leave_end_date) : null;
-
-  const today = dayjs();
-
-  // Total vacation days and max modifiable days (half)
-  const totalVacationDays = endDate && startDate ? endDate.diff(startDate, "day") + 1 : 0;
-  const maxModifiableDays = Math.floor(totalVacationDays / 2);
-
-  // Initialize selected end date to the current vacation end
-useEffect(() => {
-  // Only set initial selectedEndDate once on mount or when booking changes
-  if (booking?.vacationDetails?.leave_end_date) {
-    setSelectedEndDate(dayjs(booking.vacationDetails.leave_end_date));
-  }
-}, [booking?.vacationDetails?.leave_end_date]);
-
-
-  // Cancel vacation completely
-  const handleCancelVacation = async () => {
-    if (!booking || !customerId) return;
-
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await PaymentInstance.delete(
-        `/api/customer/${customerId}/leaves/${booking.id}`,
-        {
-          data: {
-            engagement_id: booking.id,
-            cancellation_reason: "Customer requested cancellation",
-          },
-        }
-      );
-
-      if (response.data.success) {
-        setSuccess("Vacation cancelled successfully!");
-        if (onSuccess) onSuccess();
-        setTimeout(onClose, 2000);
-      } else {
-        setError("Failed to cancel vacation. Please try again.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err.response?.data?.message || "Failed to cancel vacation. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
+  // Calculate total days between start and end date
+  const calculateTotalDays = (): number => {
+    if (!startDate || !endDate) return 0;
+    return endDate.diff(startDate, 'day') + 1;
   };
 
-  // Modify vacation (shorten)
-  const handleModifyVacation = async () => {
-    if (!booking || !customerId || !selectedEndDate || !startDate) return;
+  const totalDays = calculateTotalDays();
 
-    const daysSelected = selectedEndDate.diff(startDate, "day") + 1;
-    if (daysSelected > maxModifiableDays) {
-      setError(`You can only modify up to ${maxModifiableDays} day(s) of vacation.`);
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (open && booking) {
+      if (booking.vacationDetails?.leave_start_date && booking.vacationDetails?.leave_end_date) {
+        setStartDate(dayjs(booking.vacationDetails.leave_start_date));
+        setEndDate(dayjs(booking.vacationDetails.leave_end_date));
+      } else {
+        setStartDate(null);
+        setEndDate(null);
+      }
+      setError(null);
+      setSuccess(null);
+    }
+  }, [open, booking]);
+
+  const handleApplyVacation = async () => {
+    if (!startDate || !endDate || !booking) {
+      setError("Please select both start and end dates");
+      return;
+    }
+
+    if (startDate.isBefore(today, 'day')) {
+      setError("Vacation start date cannot be in the past");
+      return;
+    }
+
+    if (endDate.isBefore(startDate)) {
+      setError("Vacation end date must be after start date");
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
+      const payload = {
+        vacation_start_date: startDate.format("YYYY-MM-DD"),
+        vacation_end_date: endDate.format("YYYY-MM-DD"),
+        modified_by_id: customerId,
+        modified_by_role: "CUSTOMER",
+      };
+
+      console.log("📦 Applying vacation:", payload);
+
       const response = await PaymentInstance.put(
-        `/api/customer/${customerId}/leaves/${booking.id}`,
-        {
-          engagement_id: booking.id,
-          new_end_date: selectedEndDate.format("YYYY-MM-DD"),
-        }
+        `/api/engagements/${booking.id}`,
+        payload,
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      if (response.data.success) {
-        setSuccess("Vacation updated successfully!");
-        if (onSuccess) onSuccess();
-        setTimeout(onClose, 2000);
-      } else {
-        setError("Failed to update vacation. Please try again.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err.response?.data?.message || "Failed to update vacation. Please try again."
-      );
+      setSuccess("Vacation applied successfully!");
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error("❌ Error applying vacation:", error);
+      setError("Failed to apply vacation. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!startDate || !endDate) return null;
+  const handleCancelVacation = async () => {
+    if (!booking) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        cancel_vacation: true,
+        modified_by_id: customerId,
+        modified_by_role: "CUSTOMER",
+      };
+
+      console.log("📦 Canceling vacation:", payload);
+
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      setSuccess("Vacation cancelled successfully!");
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error("❌ Error canceling vacation:", error);
+      setError("Failed to cancel vacation. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const hasExistingVacation = booking?.vacationDetails?.leave_start_date && 
+                             booking?.vacationDetails?.leave_end_date;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-     <DialogHeader className="flex justify-between items-center">
-  <Typography variant="h6" component="span">
-    Manage Vacation
-  </Typography>
-  <IconButton
-    onClick={onClose}
-    size="small"
-    sx={{ color: "#fff" }} // white color
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogHeader>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }} className="flex justify-between items-center">
+        <Typography variant="h6">Manage Vacation</Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </Box>
 
-      <DialogContent dividers>
-        <Box>
-          <Typography variant="subtitle1" gutterBottom>
-            Vacation Details
+      <DialogContent dividers sx={{ p: 3 }}>
+        {/* Existing Vacation Info */}
+        {hasExistingVacation && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2" fontWeight="medium">
+              Current Vacation Period
+            </Typography>
+            <Typography variant="body2">
+              {dayjs(booking.vacationDetails?.leave_start_date).format("MMM D, YYYY")} 
+              {" to "}
+              {dayjs(booking.vacationDetails?.leave_end_date).format("MMM D, YYYY")}
+            </Typography>
+            <Typography variant="body2">
+              Total days: {booking.vacationDetails?.total_days}
+            </Typography>
+          </Alert>
+        )}
+
+        {/* Alerts */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
+
+        {/* Vacation Date Selection */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body1" fontWeight="medium" sx={{ mb: 2 }}>
+            {hasExistingVacation ? "Modify Vacation Dates" : "Apply for Vacation"}
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Start: {startDate.format("MMM D, YYYY")} <br />
-            End: {endDate.format("MMM D, YYYY")} <br />
-            Total Days: {totalVacationDays}
-          </Typography>
+          
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <DatePicker
+                label="Vacation Start Date"
+                value={startDate}
+                onChange={setStartDate}
+                minDate={today}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: "small",
+                  },
+                }}
+              />
+              <DatePicker
+                label="Vacation End Date"
+                value={endDate}
+                onChange={setEndDate}
+                minDate={startDate || today}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: "small",
+                  },
+                }}
+              />
+            </Box>
+          </LocalizationProvider>
+
+          {totalDays > 0 && (
+            <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+              Total vacation days: <strong>{totalDays}</strong>
+            </Typography>
+          )}
         </Box>
 
-        {error && (
-          <Box mt={2} p={2} bgcolor="error.light" borderRadius={2}>
-            <Typography color="error">{error}</Typography>
-          </Box>
-        )}
-
-        {success && (
-          <Box mt={2} p={2} bgcolor="success.light" borderRadius={2}>
-            <Typography color="success.contrastText">{success}</Typography>
-          </Box>
-        )}
-
-        {/* Modify vacation section */}
-        <Box mt={3}>
-          <Typography variant="subtitle2" gutterBottom>
-            Modify Vacation End Date
+        {/* Vacation Policy Info */}
+        <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            <strong>Vacation Policy:</strong> During vacation period, services will be paused and 
+            applicable refunds will be processed to your wallet. A penalty may apply for modifications 
+            to existing vacation periods.
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Select a new end date (you can shorten vacation up to {maxModifiableDays} day(s)).
-          </Typography>
-
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateCalendar
-              value={selectedEndDate}
-              onChange={(date) => {
-                if (!date) return;
-                const daysSelected = date.diff(startDate, "day") + 1;
-                if (daysSelected > maxModifiableDays) {
-                  setSelectedEndDate(startDate.add(maxModifiableDays - 1, "day"));
-                } else {
-                  setSelectedEndDate(date);
-                }
-              }}
-              shouldDisableDate={(date) =>
-                date.isBefore(today, "day") || date.isAfter(endDate, "day")
-              }
-            />
-          </LocalizationProvider>
         </Box>
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} disabled={isLoading}>
-          Close
-        </Button>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        {hasExistingVacation && (
+          <Button
+            onClick={handleCancelVacation}
+            variant="outlined"
+            color="error"
+            disabled={isLoading}
+          >
+            Cancel Vacation
+          </Button>
+        )}
         <Button
-          color="error"
+          onClick={handleApplyVacation}
           variant="contained"
-          onClick={handleCancelVacation}
-          disabled={isLoading}
+          disabled={isLoading || !startDate || !endDate}
+          className="flex items-center gap-2"
         >
-          {isLoading ? "Cancelling..." : "Cancel Vacation"}
-        </Button>
-        <Button
-          color="primary"
-          variant="contained"
-          onClick={handleModifyVacation}
-          disabled={!selectedEndDate || isLoading}
-        >
-          {isLoading ? "Updating..." : "Update Vacation"}
+          {isLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              {hasExistingVacation ? "Updating..." : "Applying..."}
+            </>
+          ) : hasExistingVacation ? (
+            "Update Vacation"
+          ) : (
+            "Apply Vacation"
+          )}
         </Button>
       </DialogActions>
     </Dialog>

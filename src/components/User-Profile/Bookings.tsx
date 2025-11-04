@@ -41,6 +41,8 @@ interface Booking {
   date: string;
   startDate: string;
   endDate: string;
+  start_time: string; // Add this
+  end_time: string;   // Add this
   bookingType: string;
   monthlyAmount: number;
   paymentMode: string;
@@ -282,6 +284,8 @@ const Booking: React.FC = () => {
             date: effectiveStartDate,
             startDate: effectiveStartDate,
             endDate: effectiveEndDate,
+            start_time: item.start_time, 
+            end_time: item.end_time,    
             bookingType: item.booking_type,
             monthlyAmount: item.monthlyAmount,
             paymentMode: item.paymentMode,
@@ -310,7 +314,31 @@ const Booking: React.FC = () => {
         })
       : [];
   };
+// Add this utility function at the top of your file or in a separate utils file
+const formatTimeToAMPM = (timeString: string): string => {
+  if (!timeString) return '';
+  
+  try {
+    // Handle both "HH:mm:ss" and "HH:mm" formats
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const minute = parseInt(minutes, 10);
+    
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12; // Convert 0 to 12, 13 to 1, etc.
+    const displayMinute = minute.toString().padStart(2, '0');
+    
+    return `${displayHour}:${displayMinute} ${period}`;
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeString; // Return original if parsing fails
+  }
+};
 
+// You can also create a function to format time range
+const formatTimeRange = (startTime: string, endTime: string): string => {
+  return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
+};
   const hasVacation = (booking: Booking): boolean => {
     return booking.hasVacation || false;
   };
@@ -883,10 +911,10 @@ const Booking: React.FC = () => {
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>{booking.timeSlot}</span>
-                        </div>
+                       <div className="flex items-center gap-2 text-sm">
+  <Clock className="h-4 w-4 text-muted-foreground" />
+ <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
+</div>
                         
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="h-4 w-4 text-muted-foreground" />

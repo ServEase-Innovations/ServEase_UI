@@ -219,12 +219,13 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         };
       }
 
-      if (isTimeModification) {
-        updatePayload = {
-          ...updatePayload,
-          start_time: startDate.format("HH:mm:ss"),
-        };
-      }
+       if (isTimeModification) {
+      updatePayload = {
+        ...updatePayload,
+        start_time: startDate.format("HH:mm:ss"),
+        end_time: startDate.add(1, "hour").format("HH:mm:ss"), // 👈 automatically +1 hour
+      };
+    }
 
       console.log("📦 Sending Payload:", updatePayload);
 
