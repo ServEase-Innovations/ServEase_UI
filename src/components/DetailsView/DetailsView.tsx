@@ -228,8 +228,39 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       top: "40%"
     }}
   >
-    <img src="no-data.png" alt="No Providers Found" />
-    <p> No providers found near you</p>
+          <h3 style={{
+            fontSize: "18px",
+            fontWeight: "600",
+            color: "#333",
+            marginBottom: "10px"
+          }}>
+            Service Not Available in Your Area
+          </h3>
+          <p style={{
+            fontSize: "14px",
+            color: "#666",
+            lineHeight: "1.5",
+            maxWidth: "300px",
+            marginBottom: "20px"
+          }}>
+            Currently, we are unable to provide services in your location. 
+            We hope to be available in your area soon.
+          </p>
+          <button
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer"
+            }}
+            onClick={() => window.history.back()}
+          >
+            Go Back
+          </button>
   </div>
 )}
 

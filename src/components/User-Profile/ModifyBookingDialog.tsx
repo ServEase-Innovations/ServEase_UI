@@ -460,26 +460,6 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
         </DialogActions>
       )}
 
-      <VacationManagementDialog
-        open={isVacationDialogOpen}
-        onClose={() => setIsVacationDialogOpen(false)}
-        booking={{
-          id: booking.id,
-          vacationDetails: booking.vacationDetails
-            ? {
-                leave_start_date: booking.vacationDetails.start_date,
-                leave_end_date: booking.vacationDetails.end_date,
-                total_days: booking.vacationDetails.leave_days,
-              }
-            : undefined,
-        }}
-        customerId={customerId}
-        onSuccess={async () => {
-          await refreshBookings();
-          setIsVacationDialogOpen(false);
-          setOpenSnackbar(true);
-        }}
-      />
     </Dialog>
   );
 };

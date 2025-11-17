@@ -11,13 +11,14 @@ import {
   IconButton,
   Typography
 } from '@mui/material';
-import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider, DateTimePicker, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from 'dayjs';
 import { Button } from "../Button/button";
 import CloseIcon from '@mui/icons-material/Close';
 import ConfirmationDialog from './ConfirmationDialog';
 import { getServiceTitle } from '../Common/Booking/BookingUtils';
+import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 
 interface Booking {
   id: number;
@@ -105,73 +106,98 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Apply Holiday
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DateTimePicker
-                label="Start Date"
-                value={leaveStartDate}
-                onChange={(newValue) => {
-                  setLeaveStartDate(newValue);
-                  setLeaveEndDate(null); // reset end date when start date changes
-                }}
-                shouldDisableDate={disableDates}
-                minDate={minDate}
-                maxDate={maxDate}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-              <DateTimePicker
-                label="End Date"
-                value={leaveEndDate}
-                onChange={(newValue) => setLeaveEndDate(newValue)}
-                shouldDisableDate={disableDates}
-                // ✅ End date must be at least +9 days from start
-                minDate={leaveStartDate ? leaveStartDate.add(9, 'day') : minDate}
-                maxDate={maxDate}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-            </LocalizationProvider>
+     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+  
+  {/* ✅ Custom DialogHeader */}
+  <DialogHeader
+  >
+    <Typography variant="h6" fontWeight="600">
+      Apply Holiday
+    </Typography>
 
-            {/* ✅ Professional helper message */}
-            <Typography variant="body2" color="textSecondary">
-              📌 Note: Holiday applications must be for a minimum of 10 days.  
-              You can only select an end date that is at least 9 days after your start date.
-            </Typography>
+    {/* ✅ White Close Button */}
+    <IconButton
+      aria-label="close"
+      onClick={onClose}
+      sx={{
+        position: "absolute",
+        right: 12,
+        top: 12,
+        color: "white",
+        width: 32,
+        height: 32,
+       
+      }}
+    >
+      <CloseIcon sx={{ fontSize: 18 }} />
+    </IconButton>
+  </DialogHeader>
 
-            {booking && (
-              <div className="text-sm text-muted-foreground">
-                <p>Your booked period: {dayjs(booking.startDate).format('DD/MM/YYYY')} to {dayjs(booking.endDate).format('DD/MM/YYYY')}</p>
-                <p>Service Type: {booking.service_type}</p>
-                <p>Booking Type: {booking.bookingType}</p>
-              </div>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} color="secondary" disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            color="primary"
-            variant="contained"
-            disabled={isSubmitting || !leaveStartDate || !leaveEndDate}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
+  {/* Dialog Content */}
+  <DialogContent>
+    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        
+        {/* Start Date */}
+       <DatePicker
+          label="Start Date"
+          value={leaveStartDate}
+          onChange={(newValue) => {
+            setLeaveStartDate(newValue);
+            setLeaveEndDate(null);
+          }}
+          shouldDisableDate={disableDates}
+          minDate={minDate}
+          maxDate={maxDate}
+          slotProps={{ textField: { fullWidth: true } }}
+        />
+
+        {/* End Date */}
+       <DatePicker
+          label="End Date"
+          value={leaveEndDate}
+          onChange={(newValue) => setLeaveEndDate(newValue)}
+          shouldDisableDate={disableDates}
+          minDate={leaveStartDate ? leaveStartDate.add(9, "day") : minDate}
+          maxDate={maxDate}
+          slotProps={{ textField: { fullWidth: true } }}
+        />
+
+      </LocalizationProvider>
+
+      {/* Note */}
+      <Typography variant="body2" color="textSecondary">
+        📌 Note: Holiday applications must be for a minimum of 10 days.  
+        You can only select an end date that is at least 9 days after your start date.
+      </Typography>
+
+      {/* Booking Info */}
+      {booking && (
+        <div className="text-sm text-muted-foreground">
+          <p>Your booked period: {dayjs(booking.startDate).format('DD/MM/YYYY')} to {dayjs(booking.endDate).format('DD/MM/YYYY')}</p>
+          <p>Service Type: {booking.service_type}</p>
+          <p>Booking Type: {booking.bookingType}</p>
+        </div>
+      )}
+    </Box>
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={onClose} color="secondary" disabled={isSubmitting}>
+      Cancel
+    </Button>
+
+    <Button
+      onClick={handleSubmit}
+      color="primary"
+      variant="contained"
+      disabled={isSubmitting || !leaveStartDate || !leaveEndDate}
+    >
+      Submit
+    </Button>
+  </DialogActions>
+
+</Dialog>
 
       <ConfirmationDialog
         open={showConfirmation}
