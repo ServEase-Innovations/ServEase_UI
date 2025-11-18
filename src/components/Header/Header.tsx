@@ -481,15 +481,21 @@ export const Header: React.FC<ChildComponentProps> = ({
 
 const handleBookingSave = () => {
   let timeRange = "";
+  let timeSlot = "";
 
+  // Apply your new logic
   if (selectedRadioButtonValue === "Date") {
-    timeRange = startTime?.format("HH:mm") || "";
+    // For "Date" → send startTime-endTime for both
+    timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
   } else if (selectedRadioButtonValue === "Short term") {
-    timeRange = `${startTime?.format("HH:mm") || ""} - ${
-      endTime?.format("HH:mm") || ""
-    }`;
-  } else {
+    // For "Short term" → timeRange = startTime only, but timeSlot = full range
     timeRange = startTime?.format("HH:mm") || "";
+    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+  } else {
+    // For "Monthly" → both are just startTime
+    timeRange = startTime?.format("HH:mm") || "";
+    timeSlot = startTime?.format("HH:mm") || "";
   }
 
   // Create booking object
@@ -500,14 +506,19 @@ const handleBookingSave = () => {
       : startDate
       ? startDate.split("T")[0]
       : "",
-    timeRange: timeRange,
+    timeRange: timeRange,  
     bookingPreference: selectedRadioButtonValue,
     housekeepingRole: selectedType,
+
+    // NEW → include these extra fields
+    startTime: startTime?.format("HH:mm") || "",
+    endTime: endTime?.format("HH:mm") || "",
+    timeSlot: timeSlot
   };
 
   console.log("Booking details:", booking);
 
-  // Dispatch booking to Redux store using the renamed import
+  // Dispatch
   dispatch(addBooking(booking));
 
   // Same condition check as in homepage
@@ -519,6 +530,7 @@ const handleBookingSave = () => {
 
   setDialogOpen(false);
 };
+
   const handleSave = () => {
     if (!dataFromMap) {
       console.error("No location data selected from map");

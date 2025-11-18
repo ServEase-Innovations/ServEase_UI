@@ -4,7 +4,7 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axiosInstance from "src/services/axiosInstance";
 import { ClipLoader } from "react-spinners";
-import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, X, Check, AlertCircle } from "lucide-react";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
@@ -80,6 +80,12 @@ interface CustomerDetails {
   email: string;
 }
 
+interface ValidationState {
+  loading: boolean;
+  error: string;
+  isAvailable: boolean | null;
+}
+
 const ProfileScreen = () => {
   const { user: auth0User, isAuthenticated } = useAuth0();
   const { appUser } = useAppUser();
@@ -115,6 +121,18 @@ const ProfileScreen = () => {
 
   const [countryCode, setCountryCode] = useState("+91");
   const [altCountryCode, setAltCountryCode] = useState("+91");
+
+  // Validation states
+  const [contactValidation, setContactValidation] = useState<ValidationState>({
+    loading: false,
+    error: '',
+    isAvailable: null
+  });
+  const [altContactValidation, setAltContactValidation] = useState<ValidationState>({
+    loading: false,
+    error: '',
+    isAvailable: null
+  });
 
   const toggleAddress = (id: string) => {
     setExpandedAddressIds((prev) =>
@@ -326,13 +344,182 @@ const ProfileScreen = () => {
   };
 
   const formatMobileNumber = (number: string | null) => {
-    if (!number || number === "null" || number === "undefined") return "Not provided";
+    if (!number || number === "null" || number === "undefined") return "";
     return number;
   };
 
   const getAvailableAddressTypes = () => {
     if (userRole === "SERVICE_PROVIDER") return ["Permanent", "Correspondence"];
     return ["Home", "Work", "Other"];
+  };
+
+  // Mobile number validation functions
+  const validateMobileFormat = (number: string): boolean => {
+    const mobilePattern = /^[0-9]{10}$/;
+    return mobilePattern.test(number);
+  };
+
+  const checkMobileAvailability = async (number: string, isAlternate: boolean = false): Promise<boolean> => {
+    if (!number || !validateMobileFormat(number)) {
+      return false;
+    }
+
+    const setValidation = isAlternate ? setAltContactValidation : setContactValidation;
+    
+    setValidation({
+      loading: true,
+      error: '',
+      isAvailable: null
+    });
+
+    try {
+      const endpoint = isAlternate 
+        ? `/api/serviceproviders/check-alternate/${encodeURIComponent(number)}`
+        : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
+      
+      const response = await axiosInstance.get(endpoint);
+      
+      const isAvailable = response.data.available !== false;
+      
+      setValidation({
+        loading: false,
+        error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
+        isAvailable
+      });
+
+      return isAvailable;
+    } catch (error: any) {
+      console.error('Error validating mobile number:', error);
+      
+      let errorMessage = `Error checking ${isAlternate ? 'alternate' : 'mobile'} number`;
+      if (error.response?.status === 409) {
+        errorMessage = `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      setValidation({
+        loading: false,
+        error: errorMessage,
+        isAvailable: false
+      });
+
+      return false;
+    }
+  };
+
+  const useDebouncedValidation = () => {
+    const timeouts = {
+      contact: null as NodeJS.Timeout | null,
+      alternate: null as NodeJS.Timeout | null
+    };
+
+    return (number: string, isAlternate: boolean = false) => {
+      const timeoutKey = isAlternate ? 'alternate' : 'contact';
+      
+      if (timeouts[timeoutKey]) {
+        clearTimeout(timeouts[timeoutKey]!);
+      }
+
+      timeouts[timeoutKey] = setTimeout(() => {
+        checkMobileAvailability(number, isAlternate);
+      }, 500);
+    };
+  };
+
+  const debouncedValidation = useDebouncedValidation();
+
+  const handleContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setUserData(prev => ({ ...prev, contactNumber: value }));
+
+    if (value.length === 10) {
+      debouncedValidation(value, false);
+      
+      if (userData.altContactNumber === value) {
+        setAltContactValidation(prev => ({
+          ...prev,
+          error: 'Alternate number cannot be same as contact number',
+          isAvailable: false
+        }));
+      } else if (userData.altContactNumber && altContactValidation.error === 'Alternate number cannot be same as contact number') {
+        setAltContactValidation(prev => ({
+          ...prev,
+          error: '',
+          isAvailable: null
+        }));
+        if (validateMobileFormat(userData.altContactNumber)) {
+          debouncedValidation(userData.altContactNumber, true);
+        }
+      }
+    } else {
+      setContactValidation({
+        loading: false,
+        error: value ? 'Please enter a valid 10-digit mobile number' : '',
+        isAvailable: null
+      });
+    }
+  };
+
+  const handleAltContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setUserData(prev => ({ ...prev, altContactNumber: value }));
+
+    if (value && value.length === 10) {
+      if (value === userData.contactNumber) {
+        setAltContactValidation({
+          loading: false,
+          error: 'Alternate number cannot be same as contact number',
+          isAvailable: false
+        });
+      } else {
+        debouncedValidation(value, true);
+      }
+    } else {
+      setAltContactValidation({
+        loading: false,
+        error: value ? 'Please enter a valid 10-digit mobile number' : '',
+        isAvailable: null
+      });
+    }
+  };
+
+  const areNumbersUnique = (): boolean => {
+    if (!userData.contactNumber || !userData.altContactNumber) return true;
+    return userData.contactNumber !== userData.altContactNumber;
+  };
+
+  const validateAllFields = async (): Promise<boolean> => {
+    if (!validateMobileFormat(userData.contactNumber)) {
+      alert("Please enter a valid 10-digit contact number");
+      return false;
+    }
+
+    if (userData.altContactNumber && !validateMobileFormat(userData.altContactNumber)) {
+      alert("Please enter a valid 10-digit alternate contact number");
+      return false;
+    }
+
+    if (!areNumbersUnique()) {
+      alert("Contact number and alternate contact number must be different");
+      return false;
+    }
+
+    const isContactAvailable = await checkMobileAvailability(userData.contactNumber, false);
+    if (!isContactAvailable) {
+      alert("Contact number is not available");
+      return false;
+    }
+
+    if (userData.altContactNumber) {
+      const isAltContactAvailable = await checkMobileAvailability(userData.altContactNumber, true);
+      if (!isAltContactAvailable) {
+        alert("Alternate contact number is not available");
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleAddAddress = async () => {
@@ -440,6 +627,14 @@ const ProfileScreen = () => {
   };
 
   const handleSave = async () => {
+    // Validate mobile numbers before saving
+    if (isEditing) {
+      const isValid = await validateAllFields();
+      if (!isValid) {
+        return;
+      }
+    }
+
     setIsSaving(true);
 
     try {
@@ -488,7 +683,7 @@ const ProfileScreen = () => {
           firstName: userData.firstName,
           lastName: userData.lastName,
           mobileNo: userData.contactNumber?.replace("+", "") || null,
-          altMobileNo: userData.altContactNumber?.replace("+", "") || null,
+          alternateNo: userData.altContactNumber?.replace("+", "") || null,
           email: appUser?.email || auth0User?.email || "",
         };
 
@@ -512,6 +707,10 @@ const ProfileScreen = () => {
     setIsEditing(false);
     setShowAddAddress(false);
     
+    // Reset validation states
+    setContactValidation({ loading: false, error: '', isAvailable: null });
+    setAltContactValidation({ loading: false, error: '', isAvailable: null });
+    
     if (userRole === "SERVICE_PROVIDER" && appUser?.serviceProviderId) {
       fetchServiceProviderData(appUser.serviceProviderId);
     } else if (userRole === "CUSTOMER" && appUser?.customerid) {
@@ -526,6 +725,20 @@ const ProfileScreen = () => {
     } else {
       return appUser?.customerid || "N/A";
     }
+  };
+
+  const isFormValid = (): boolean => {
+    const basicValidation = validateMobileFormat(userData.contactNumber) &&
+      contactValidation.isAvailable !== false &&
+      (userData.altContactNumber === '' || validateMobileFormat(userData.altContactNumber)) &&
+      areNumbersUnique();
+
+    const altNumberValidation = userData.altContactNumber === '' || 
+      (validateMobileFormat(userData.altContactNumber) && 
+       altContactValidation.isAvailable !== false &&
+       areNumbersUnique());
+
+    return basicValidation && altNumberValidation;
   };
 
   const ProfileSkeleton = () => (
@@ -612,7 +825,6 @@ const ProfileScreen = () => {
 
   return (
     <div className="w-full">
-      {/* Fixed MobileNumberDialog - removed internal open state management */}
       <MobileNumberDialog 
         open={showMobileDialog}
         onClose={() => setShowMobileDialog(false)}
@@ -762,37 +974,66 @@ const ProfileScreen = () => {
                   </span>
                 )}
               </label>
-              <div className="flex">
-                {isEditing ? (
-                  <select
-                    className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-white"
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                  >
-                    <option value="+91">+91 (IN)</option>
-                    <option value="+1">+1 (US)</option>
-                    <option value="+44">+44 (UK)</option>
-                  </select>
-                ) : (
-                  <div className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-gray-100">
-                    {countryCode}
+              <div className="relative">
+                <div className="flex">
+                  {isEditing ? (
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-white"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                    >
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+1">+1 (US)</option>
+                      <option value="+44">+44 (UK)</option>
+                    </select>
+                  ) : (
+                    <div className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-gray-100">
+                      {countryCode}
+                    </div>
+                  )}
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-r-md text-sm"
+                    name="contactNumber"
+                    value={formatMobileNumber(userData.contactNumber)}
+                    onChange={handleContactNumberChange}
+                    readOnly={!isEditing}
+                    placeholder="Enter 10-digit number"
+                    style={{ 
+                      backgroundColor: isEditing ? "white" : "#f9fafb",
+                      borderColor: contactValidation.error ? "#ef4444" : "#d1d5db"
+                    }}
+                    type="tel"
+                    maxLength={10}
+                  />
+                </div>
+                
+                {/* Validation Status Icons */}
+                {isEditing && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    {contactValidation.loading && (
+                      <ClipLoader size={16} color="#3b82f6" />
+                    )}
+                    {contactValidation.isAvailable && !contactValidation.loading && (
+                      <Check size={16} className="text-green-500" />
+                    )}
+                    {contactValidation.isAvailable === false && !contactValidation.loading && (
+                      <AlertCircle size={16} className="text-red-500" />
+                    )}
                   </div>
                 )}
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-r-md text-sm"
-                  name="contactNumber"
-                  value={formatMobileNumber(userData.contactNumber)}
-                  onChange={handleInputChange}
-                  readOnly={!isEditing}
-                  placeholder="No contact number provided"
-                  style={{ 
-                    backgroundColor: isEditing ? "white" : "#f9fafb",
-                    borderColor: !hasValidMobileNumbers() && userRole === "CUSTOMER" ? "#ef4444" : "#d1d5db"
-                  }}
-                  type="tel"
-                />
               </div>
-              {userRole === "CUSTOMER" && !hasValidMobileNumbers() && (
+              
+              {/* Validation Messages */}
+              {contactValidation.error && (
+                <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>
+              )}
+              {userData.contactNumber && userData.contactNumber.length !== 10 && isEditing && (
+                <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
+              )}
+              {contactValidation.isAvailable && (
+                <p className="text-green-500 text-xs mt-1">Contact number is available</p>
+              )}
+              {userRole === "CUSTOMER" && !hasValidMobileNumbers() && !isEditing && (
                 <p className="text-red-500 text-xs mt-1">
                   Mobile number is required for bookings and notifications
                 </p>
@@ -803,33 +1044,65 @@ const ProfileScreen = () => {
               <label className="block text-sm font-semibold text-gray-600 mb-2">
                 Alternative Contact Number
               </label>
-              <div className="flex">
-                {isEditing ? (
-                  <select
-                    className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-white"
-                    value={altCountryCode}
-                    onChange={(e) => setAltCountryCode(e.target.value)}
-                  >
-                    <option value="+91">+91 (IN)</option>
-                    <option value="+1">+1 (US)</option>
-                    <option value="+44">+44 (UK)</option>
-                  </select>
-                ) : (
-                  <div className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-gray-100">
-                    {altCountryCode}
+              <div className="relative">
+                <div className="flex">
+                  {isEditing ? (
+                    <select
+                      className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-white"
+                      value={altCountryCode}
+                      onChange={(e) => setAltCountryCode(e.target.value)}
+                    >
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+1">+1 (US)</option>
+                      <option value="+44">+44 (UK)</option>
+                    </select>
+                  ) : (
+                    <div className="px-3 py-2 border border-gray-300 rounded-l-md text-sm bg-gray-100">
+                      {altCountryCode}
+                    </div>
+                  )}
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-r-md text-sm"
+                    name="altContactNumber"
+                    value={formatMobileNumber(userData.altContactNumber)}
+                    onChange={handleAltContactNumberChange}
+                    readOnly={!isEditing}
+                    placeholder="Enter 10-digit number"
+                    style={{ 
+                      backgroundColor: isEditing ? "white" : "#f9fafb",
+                      borderColor: altContactValidation.error ? "#ef4444" : "#d1d5db"
+                    }}
+                    type="tel"
+                    maxLength={10}
+                  />
+                </div>
+                
+                {/* Validation Status Icons */}
+                {isEditing && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    {altContactValidation.loading && (
+                      <ClipLoader size={16} color="#3b82f6" />
+                    )}
+                    {altContactValidation.isAvailable && !altContactValidation.loading && (
+                      <Check size={16} className="text-green-500" />
+                    )}
+                    {altContactValidation.isAvailable === false && !altContactValidation.loading && (
+                      <AlertCircle size={16} className="text-red-500" />
+                    )}
                   </div>
                 )}
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-r-md text-sm"
-                  name="altContactNumber"
-                  value={formatMobileNumber(userData.altContactNumber)}
-                  onChange={handleInputChange}
-                  readOnly={!isEditing}
-                  placeholder="No alternative number"
-                  style={{ backgroundColor: isEditing ? "white" : "#f9fafb" }}
-                  type="tel"
-                />
               </div>
+              
+              {/* Validation Messages */}
+              {altContactValidation.error && (
+                <p className="text-red-500 text-xs mt-1">{altContactValidation.error}</p>
+              )}
+              {userData.altContactNumber && userData.altContactNumber.length !== 10 && isEditing && (
+                <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
+              )}
+              {altContactValidation.isAvailable && (
+                <p className="text-green-500 text-xs mt-1">Alternate number is available</p>
+              )}
             </div>
           </div>
 
@@ -1035,9 +1308,9 @@ const ProfileScreen = () => {
                   Cancel
                 </button>
                 <button
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px]"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px] disabled:bg-gray-400 disabled:cursor-not-allowed"
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={isSaving || !isFormValid()}
                 >
                   {isSaving ? (
                     <>
