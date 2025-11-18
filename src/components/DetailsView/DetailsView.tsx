@@ -257,7 +257,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
               fontWeight: "500",
               cursor: "pointer"
             }}
-            onClick={() => window.history.back()}
+           onClick={() => sendDataToParent("")}
           >
             Go Back
           </button>

@@ -649,29 +649,7 @@ const ProfileScreen = () => {
           </div>
 
           <div className="flex items-center justify-center w-full md:w-auto">
-            {isEditing ? (
-              <div className="flex space-x-2">
-                <button
-                  className="px-5 py-2 rounded-md font-semibold shadow-md bg-gray-500 text-white"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <Button
-                  className="px-5 py-2 rounded-md font-semibold shadow-md bg-blue-600 text-white flex items-center justify-center"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <ClipLoader size={16} color="white" className="mr-2" />
-                      Saving...
-                    </>
-                  ) : "Save Changes"}
-                </Button>
-              </div>
-            ) : (
+            {!isEditing && (
               <button
                 className="px-5 py-2 rounded-md font-semibold shadow-md bg-blue-600 text-white"
                 onClick={() => setIsEditing(true)}
@@ -707,7 +685,7 @@ const ProfileScreen = () => {
             <div className="flex flex-wrap gap-4 mb-6">
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Username
+                  User Name
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
@@ -1045,18 +1023,19 @@ const ProfileScreen = () => {
             </div>
           )}
 
+          {/* Action Buttons - Now only at the bottom */}
           {isEditing && (
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
               <div className="flex space-x-4">
                 <button
-                  className="px-6 py-2 bg-gray-500 text-white rounded-md font-medium"
+                  className="px-6 py-2 bg-gray-500 text-white rounded-md font-medium hover:bg-gray-600 transition-colors"
                   onClick={handleCancel}
                   disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium flex items-center"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px]"
                   onClick={handleSave}
                   disabled={isSaving}
                 >
