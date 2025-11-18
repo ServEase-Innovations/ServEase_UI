@@ -40,6 +40,7 @@ interface ProviderDetailsProps {
   experience?: string;
   otherServices?: string;
   availableTimeSlots?: string[];
+  sendDataToParent?: (data: string) => void;
 }
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
@@ -405,6 +406,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           open={open} 
           handleClose={handleClose} 
           providerDetails={providerDetailsData} 
+          sendDataToParent={props.sendDataToParent} 
         />
       }
       
@@ -413,6 +415,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           open={open} 
           handleClose={handleClose} 
           providerDetails={providerDetailsData} 
+          sendDataToParent={props.sendDataToParent} 
         />
       }
       
@@ -421,6 +424,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           open={open} 
           handleClose={handleClose} 
           providerDetails={providerDetailsData} 
+          sendDataToParent={props.sendDataToParent} 
         />
       }
     </>

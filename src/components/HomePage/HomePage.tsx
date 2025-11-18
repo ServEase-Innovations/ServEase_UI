@@ -97,26 +97,37 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
 
 const handleSave = () => {
   let timeRange = "";
+  let timeSlot = "";
 
   if (selectedRadioButtonValue === "Date") {
-    // Single date booking → single time
-    timeRange = startTime?.format("HH:mm") || "";
+    // For "Date" preference → send startTime-endTime for timeRange
+    timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
   } else if (selectedRadioButtonValue === "Short term") {
-    // Short term booking → start - end
-    timeRange = `${startTime?.format("HH:mm") || ""} - ${endTime?.format("HH:mm") || ""}`;
-  } else {
-    // Monthly booking → single time
+    // For "Short term" → send just startTime for timeRange
     timeRange = startTime?.format("HH:mm") || "";
+    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+  } else {
+    // For "Monthly" → send just startTime for timeRange
+    timeRange = startTime?.format("HH:mm") || "";
+    timeSlot = startTime?.format("HH:mm") || "";
   }
 
-  const booking: Bookingtype & { startTime?: string; endTime?: string } = {
+  const booking: Bookingtype & { 
+    startTime?: string; 
+    endTime?: string;
+    timeSlot?: string;
+  } = {
     startDate: startDate ? startDate.split("T")[0] : "",
     endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
-    timeRange: timeRange,
+    timeRange: timeRange, // "05:35-09:35" for Date, "05:35" for others
     bookingPreference: selectedRadioButtonValue,
     housekeepingRole: selectedType,
-    // ✅ Store times in HH:mm format
+    // ✅ Store individual times
+    startTime: startTime?.format("HH:mm") || "",
     endTime: endTime?.format("HH:mm") || "",
+    // ✅ timeSlot will have time range when applicable
+    timeSlot: timeSlot
   };
 
   console.log("Booking details:", {
@@ -124,8 +135,10 @@ const handleSave = () => {
     endDate: booking.endDate,
     startTime: booking.startTime,
     endTime: booking.endTime,
-    timeSlot: booking.timeRange,
+    timeRange: booking.timeRange, // "05:35-09:35" for Date, "05:35" for others
+    timeSlot: booking.timeSlot,   // "05:35-09:35" for Date/Short term, "05:35" for Monthly
     bookingPreference: booking.bookingPreference,
+    housekeepingRole: booking.housekeepingRole
   });
 
   if (selectedRadioButtonValue === "Date") {
@@ -502,18 +515,21 @@ useEffect(() => {
     <CookServicesDialog
         open={openServiceDialog}
         handleClose={() => setOpenServiceDialog(false)}
+        sendDataToParent={sendDataToParent}
     />
 )}
 {selectedType === "MAID" && (
     <MaidServiceDialog
         open={openServiceDialog}
         handleClose={() => setOpenServiceDialog(false)}
+        sendDataToParent={sendDataToParent}
     />
 )}
 {selectedType === "NANNY" && (
     <NannyServicesDialog
         open={openServiceDialog}
         handleClose={() => setOpenServiceDialog(false)}
+         sendDataToParent={sendDataToParent}
     />
 )}
             <BookingDialog

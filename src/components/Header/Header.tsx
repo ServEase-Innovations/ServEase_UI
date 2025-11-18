@@ -668,62 +668,82 @@ const handleBookingSave = () => {
         </div>
 
         {/* Navigation Links */}
-        {!isMobile && (
-          <nav className="flex items-center gap-6 text-white font-medium">
-            {/* Home Tab */}
-            <button
-              onClick={() => handleClick("")} // This will trigger the onLogoClick functionality
-              className="hover:text-gray-200 transition"
-            >
-              Home
-            </button>
+     {!isMobile && (
+  <nav className="flex items-center gap-6 text-white font-medium">
+    {/* Home Tab */}
+    <button
+      onClick={() => handleClick("")}
+      className="hover:text-gray-200 transition"
+    >
+      Home
+    </button>
 
-            {/* Services Dropdown */}
-            <div className="relative" ref={serviceDropdownRef}>
-              <button
-                onClick={() => setServiceDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-1 hover:text-gray-200 transition"
+    {/* Services Dropdown */}
+    <div className="relative" ref={serviceDropdownRef}>
+      <button
+        onClick={() => setServiceDropdownOpen((prev) => !prev)}
+        className="flex items-center gap-1 hover:text-gray-200 transition"
+      >
+        Our Services
+        <ChevronDown className="w-4 h-4" />
+      </button>
+
+      {serviceDropdownOpen && (
+        <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+          {["Home Cook", "Cleaning Help", "Caregiver"].map(
+            (service, idx) => (
+              <li
+                key={idx}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedService(service);
+                  setServiceDropdownOpen(false);
+                  handleServiceClick(service);
+                }}
               >
-                Our Services {/* Always show "Our Services" */}
-                <ChevronDown className="w-4 h-4" />
-              </button>
+                {service}
+              </li>
+            )
+          )}
+        </ul>
+      )}
+    </div>
 
-              {serviceDropdownOpen && (
-                <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-                  {["Home Cook", "Cleaning Help", "Caregiver"].map(
-                    (service, idx) => (
-                      <li
-                        key={idx}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => {
-                          setSelectedService(service); // Still track selection internally
-                          setServiceDropdownOpen(false);
-                          handleServiceClick(service);
-                        }}
-                      >
-                        {service}
-                      </li>
-                    )
-                  )}
-                </ul>
-              )}
-            </div>
+    {/* My Bookings Tab - Conditionally shown for authenticated CUSTOMER users */}
+    {isAuthenticated && appUser?.role === "CUSTOMER" && (
+      <button
+        onClick={() => handleClick(BOOKINGS)}
+        className="hover:text-gray-200 transition"
+      >
+        My Bookings
+      </button>
+    )}
 
-            <button
-              onClick={() => handleClick("ABOUT")}
-              className="hover:text-gray-200"
-            >
-              About Us
-            </button>
+    {/* Dashboard Tab - Conditionally shown for authenticated SERVICE_PROVIDER users */}
+    {isAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+      <button
+        onClick={() => handleClick(DASHBOARD)}
+        className="hover:text-gray-200 transition"
+      >
+        Dashboard
+      </button>
+    )}
 
-            <button
-              onClick={() => handleClick("CONTACT")}
-              className="hover:text-gray-200"
-            >
-              Contact Us
-            </button>
-          </nav>
-        )}
+    <button
+      onClick={() => handleClick("ABOUT")}
+      className="hover:text-gray-200"
+    >
+      About Us
+    </button>
+
+    <button
+      onClick={() => handleClick("CONTACT")}
+      className="hover:text-gray-200"
+    >
+      Contact Us
+    </button>
+  </nav>
+)}
 
         {/* Move these dialog components outside the navigation */}
         <BookingDialog
@@ -746,18 +766,21 @@ const handleBookingSave = () => {
           <CookServicesDialog
             open={openServiceDialog}
             handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
           />
         )}
         {selectedType === "MAID" && (
           <MaidServiceDialog
             open={openServiceDialog}
             handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
           />
         )}
         {selectedType === "NANNY" && (
           <NannyServicesDialog
             open={openServiceDialog}
             handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
           />
         )}
         {/* Right Side Content */}

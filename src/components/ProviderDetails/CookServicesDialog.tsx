@@ -1,26 +1,23 @@
 /* eslint-disable */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
-import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, DialogTitle, DialogActions, Tooltip, IconButton, Checkbox, FormControlLabel, Typography, Box, CircularProgress, Snackbar, Alert } from '@mui/material';
-import Login from '../Login/Login';
+import { Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import axiosInstance from '../../services/axiosInstance';
 import { usePricingFilterService } from '../../utils/PricingFilter';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
-import { addToCart, removeFromCart, updateCartItem } from '../../features/addToCart/addToSlice';
+import { addToCart, removeFromCart } from '../../features/addToCart/addToSlice';
 import { MealPackage } from '../../types/mealPackage';
-import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, SelectButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton, CloseButton } from './CookServicesDialog.styles';
+import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton, CloseButton } from './CookServicesDialog.styles';
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
-
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -43,20 +40,18 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const users = useSelector((state: any) => state.user?.value);
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const [packages, setPackages] = useState<PackagesState>({});
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user, loginWithRedirect, isAuthenticated } = useAuth0();
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-  const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
+  const { getBookingType, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
-  const currentLocation = users?.customerDetails?.currentLocation;
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
 
-  // Calculate price based on number of persons
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
     if (persons <= 3) return basePrice;
     if (persons > 3 && persons <= 6) return basePrice + basePrice * 0.2 * (persons - 3);
@@ -69,7 +64,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     return priceFor9 + priceFor9 * 0.05 * (persons - 9);
   };
 
-  // Initialize packages
   useEffect(() => {
     const updatedCookServices = getFilteredPricing("cook");
     
@@ -106,7 +100,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     setPackages(initialPackages);
   }, [pricing, bookingType]);
 
-  // Helper functions
   const getPreparationTime = (category: string): string => {
     switch(category) {
       case 'breakfast': return '30 mins preparation';
@@ -134,7 +127,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     }
   };
 
-  // Person change handler
   const handlePersonChange = (packageName: string, operation: 'increment' | 'decrement') => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
@@ -155,7 +147,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  // Toggle cart item
   const toggleCart = (packageName: string) => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
@@ -192,14 +183,11 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  // Prepare cart for checkout (clear old and add new)
   const prepareCartForCheckout = () => {
-    // Clear all existing cart items
     dispatch(removeFromCart({ type: 'meal' }));
     dispatch(removeFromCart({ type: 'maid' }));
     dispatch(removeFromCart({ type: 'nanny' }));
 
-    // Add only the currently selected packages
     Object.entries(packages).forEach(([packageName, pkg]) => {
       if (pkg.selected) {
         dispatch(addToCart({
@@ -216,7 +204,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
   };
 
-  // Open cart dialog handler
   const handleOpenCartDialog = () => {
     const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
     if (selectedPackages.length === 0) {
@@ -228,28 +215,27 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     setCartDialogOpen(true);
   };
 
-  // Checkout handler (Razorpay payment)
   const handleCheckout = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const selectedPackages = Object.entries(packages)
-      .filter(([_, pkg]) => pkg.selected)
-      .map(([name, pkg]) => ({
-        taskType: name.charAt(0).toUpperCase() + name.slice(1),
-        persons: pkg.persons,
-        price: pkg.calculatedPrice,
+      const selectedPackages = Object.entries(packages)
+        .filter(([_, pkg]) => pkg.selected)
+        .map(([name, pkg]) => ({
+          taskType: name.charAt(0).toUpperCase() + name.slice(1),
+          persons: pkg.persons,
+          price: pkg.calculatedPrice,
+        }));
+
+      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+      const customerId = user?.customerid || "guest-id";
+
+      const responsibilities = selectedPackages.map(pkg => ({
+        taskType: pkg.taskType,
+        persons: pkg.persons
       }));
 
-    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-    const customerId = user?.customerid || "guest-id";
-
-    const responsibilities = selectedPackages.map(pkg => ({
-      taskType: pkg.taskType,
-      persons: pkg.persons
-    }));
-
-    const payload: BookingPayload = {
+   const payload: BookingPayload = {
   customerid: customerId,
   serviceproviderid: providerDetails?.serviceproviderId
     ? Number(providerDetails.serviceproviderId)
@@ -262,52 +248,64 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   service_type: "COOK",
   base_amount: baseTotal,
   payment_mode: "razorpay",
-  start_time: bookingType?.timeRange || "",
+  start_time: bookingType?.startTime || "",
+  // ✅ FIXED: Use consistent booking preference check
   ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
     end_time: bookingType?.endTime || "",
   }),
 };
+      const result = await BookingService.bookAndPay(payload);
 
-    const result = await BookingService.bookAndPay(payload);
-    console.log("Final result:", result);
+      setBookingSuccessDetails({
+        providerName: providerFullName,
+        serviceType: 'Home Cook Service',
+        totalAmount: baseTotal,
+        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        persons: selectedPackages.reduce((sum, pkg) => sum + pkg.persons, 0),
+        message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+      });
+      
+      setCartDialogOpen(false);
+      handleClose();
+      setSuccessDialogOpen(true);
 
-    // ✅ Success snackbar
-    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
+    } catch (error: any) {
+      let backendMessage = "Failed to initiate payment";
+      if (error?.response?.data) {
+        if (typeof error.response.data === "string") {
+          backendMessage = error.response.data;
+        } else if (error.response.data.error) {
+          backendMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          backendMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        backendMessage = error.message;
+      }
 
+      setSnackbarMessage(backendMessage);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
     if (sendDataToParent) {
       sendDataToParent(BOOKINGS);
     }
+    
     handleClose();
     setCartDialogOpen(false);
-
-  } catch (error: any) {
-    console.error("Checkout error:", error);
-
-    // ✅ Extract backend error properly
-    let backendMessage = "Failed to initiate payment";
-    if (error?.response?.data) {
-      if (typeof error.response.data === "string") {
-        backendMessage = error.response.data;
-      } else if (error.response.data.error) {
-        backendMessage = error.response.data.error; // 👈 your case
-      } else if (error.response.data.message) {
-        backendMessage = error.response.data.message;
-      }
-    } else if (error.message) {
-      backendMessage = error.message;
-    }
-
-    setSnackbarMessage(backendMessage);
-    setSnackbarSeverity("error");
-    setSnackbarOpen(true);
-
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
     if (!bookingPreference) return 'MONTHLY';
@@ -317,7 +315,6 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     return 'MONTHLY';
   };
 
-  // Render package sections
   const renderPackageSections = () => {
     return Object.entries(packages).map(([packageName, pkg]) => {
       const categoryColor = getCategoryColor(packageName);
@@ -462,22 +459,30 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         </StyledDialogContent>
       </StyledDialog>
 
-  <CartDialog
-  open={cartDialogOpen}
-  handleClose={() => setCartDialogOpen(false)}
-  handleCookCheckout={handleCheckout}
-/>
-<Snackbar
-  open={snackbarOpen}
-  autoHideDuration={4000}
-  onClose={() => setSnackbarOpen(false)}
-  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
->
-  <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
-    {snackbarMessage}
-  </Alert>
-</Snackbar>
-
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleCookCheckout={handleCheckout}
+      />
+      
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

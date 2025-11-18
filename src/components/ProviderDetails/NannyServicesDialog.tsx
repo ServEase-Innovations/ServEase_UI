@@ -58,6 +58,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
+import { BOOKINGS } from '../../Constants/pagesConstants';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -120,7 +122,8 @@ const getPackagePrice = (
 const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({ 
   open, 
   handleClose, 
-  providerDetails
+  providerDetails,
+  sendDataToParent
 }) => {
   const [activeTab, setActiveTab] = useState<'baby' | 'elderly'>('baby');
   const [packages, setPackages] = useState<PackagesState>({});
@@ -131,6 +134,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
@@ -356,6 +361,23 @@ useEffect(() => {
       .join(', ');
   };
 
+  // Handle success dialog close
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  // Navigation function for "View My Bookings" button
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    
+    handleClose();
+    setCartDialogOpen(false);
+  };
+console.log("dataaa",bookingType?.endTime);
   const handleCheckout = async () => {
   try {
     setLoading(true);
@@ -387,46 +409,47 @@ useEffect(() => {
       careType: activeTab,
     }));
 
-   const payload: BookingPayload = {
+  const payload: BookingPayload = {
   customerid: customerId,
   serviceproviderid: providerDetails?.serviceproviderId
     ? Number(providerDetails.serviceproviderId)
     : 0,
   start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
   end_date: bookingType?.endDate || "",
-  start_time: bookingType?.timeRange || '',
+  start_time: bookingType?.startTime || '',
   responsibilities: { tasks: responsibilities },
   booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
   taskStatus: "NOT_STARTED",
   service_type: "NANNY",
   base_amount: baseTotal,
   payment_mode: "razorpay",
-  ...(bookingType?.bookingPreference === "ON_DEMAND" && {
+  // Fix: Use consistent booking preference check
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
     end_time: bookingType?.endTime || "",
   }),
 };
 
-
-    console.log("Final Nanny Payload:", payload);
-
     const result = await BookingService.bookAndPay(payload);
 
-    // ✅ Show success message
-    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
-
-    // clear cart + close
-    dispatch(removeFromCart({ type: 'meal' }));
-    dispatch(removeFromCart({ type: 'maid' }));
-    dispatch(removeFromCart({ type: 'nanny' }));
-    handleClose();
+    // ✅ Set success details and show success dialog instead of snackbar
+    setBookingSuccessDetails({
+      providerName: providerFullName,
+      serviceType: 'Caregiver Service',
+      totalAmount: baseTotal,
+      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      persons: selectedPackages.length,
+      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+    });
+    
+    // Close ALL dialogs and open success dialog
     setCartDialogOpen(false);
+    handleClose();
+    setSuccessDialogOpen(true);
 
   } catch (err: any) {
     console.error("Checkout error:", err);
 
-    // ✅ Extract proper backend message
+    // ✅ Still use snackbar for errors
     let backendMessage = "Payment failed. Please try again.";
     if (err?.response?.data) {
       if (typeof err.response.data === "string") {
@@ -665,6 +688,15 @@ useEffect(() => {
         open={cartDialogOpen}
         handleClose={() => setCartDialogOpen(false)}
         handleNannyCheckout={handleCheckout}
+      />
+
+      {/* Booking Success Dialog - Same as other dialogs */}
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
       />
       
      <Snackbar

@@ -69,6 +69,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -198,7 +199,8 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
-
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
 
   // Normalize pricing source (prefer hook -> store -> empty)
   const maidPricingRows: MaidPricingRow[] = useMemo(() => {
@@ -380,7 +382,6 @@ const prefCandidates = rowsSub.filter(
   (r) => String(r.Type || '').toLowerCase().includes(prefStr)
 );
 
-
   const candidates = prefCandidates.length ? prefCandidates : rowsSub;
 
   // Prefer exact size label match
@@ -445,7 +446,6 @@ const prefCandidates = rowsSub.filter(
   }
 };
 
-
   const getPackageDescription = (packageName: string): string => {
     switch(packageName) {
       case 'utensilCleaning': return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
@@ -488,7 +488,6 @@ const getAddOnPrice = (addOnName: string): number => {
     default: return 1000;
   }
 };
-
 
   const getAddOnDescription = (addOnName: string): string => {
     switch(addOnName) {
@@ -681,6 +680,23 @@ const getAddOnPrice = (addOnName: string): number => {
     setCartDialogOpen(true);
   };
 
+  // Handle success dialog close
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  // Navigation function for "View My Bookings" button
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    
+    handleClose();
+    setCartDialogOpen(false);
+  };
+
 const handleCheckout = async () => {
   try {
     setLoading(true);
@@ -721,37 +737,39 @@ const payload: BookingPayload = {
     : 0,
   start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
   end_date: bookingType?.endDate || "",
-  start_time: bookingType?.timeRange || "",
+  start_time: bookingType?.startTime || "",
   responsibilities,
   booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
   taskStatus: "NOT_STARTED",
   service_type: "MAID",
   base_amount: baseTotal,
   payment_mode: "razorpay",
-  ...(bookingType?.bookingPreference === "ON_DEMAND" && {
+  // ✅ FIXED: Use consistent booking preference check
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
     end_time: bookingType?.endTime || "",
   }),
 };
-
-
-    console.log("Final Maid Payload:", payload);
-
     const result = await BookingService.bookAndPay(payload);
 
-    setSnackbarMessage(result?.verifyResult?.message || "Booking & Payment Successful ✅");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
-
-    if (sendDataToParent) {
-      sendDataToParent(BOOKINGS);
-    }
-    handleClose();
+    // ✅ Set success details and show success dialog instead of snackbar
+    setBookingSuccessDetails({
+      providerName: providerFullName,
+      serviceType: 'Cleaning Help Service',
+      totalAmount: baseTotal,
+      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      persons: 1, // For maid service, we can use 1 as default or calculate based on services
+      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+    });
+    
+    // Close ALL dialogs and open success dialog
     setCartDialogOpen(false);
+    handleClose();
+    setSuccessDialogOpen(true);
 
   } catch (error: any) {
     console.error("Checkout error:", error);
 
-    // ✅ Extract proper backend error
+    // ✅ Still use snackbar for errors
     let backendMessage = "Failed to initiate payment";
     if (error?.response?.data) {
       if (typeof error.response.data === "string") {
@@ -773,7 +791,6 @@ const payload: BookingPayload = {
     setLoading(false);
   }
 };
-
 
   return (
     <>
@@ -797,11 +814,6 @@ const payload: BookingPayload = {
 </CloseButton>
 
             </DialogHeader>
-
-            {/* <TabsContainer>
-              <TabButton active={activeTab === 'regular'} onClick={() => handleTabChange('regular')}>Regular Services</TabButton>
-              <TabButton active={activeTab === 'premium'} onClick={() => handleTabChange('premium')}>Premium Services</TabButton>
-            </TabsContainer> */}
 
             <PackagesContainer>
               {/* Utensil Cleaning */}
@@ -1039,21 +1051,30 @@ const payload: BookingPayload = {
       </StyledDialog>
 
       <CartDialog
-  open={cartDialogOpen}
-  handleClose={() => setCartDialogOpen(false)}
-  handleMaidCheckout={handleCheckout}
-/>
-<Snackbar
-  open={snackbarOpen}
-  autoHideDuration={4000}
-  onClose={() => setSnackbarOpen(false)}
-  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
->
-  <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
-    {snackbarMessage}
-  </Alert>
-</Snackbar>
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleMaidCheckout={handleCheckout}
+      />
 
+      {/* Booking Success Dialog - Same as CookServicesDialog */}
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
