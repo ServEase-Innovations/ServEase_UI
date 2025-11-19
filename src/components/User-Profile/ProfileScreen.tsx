@@ -4,11 +4,13 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axiosInstance from "src/services/axiosInstance";
 import { ClipLoader } from "react-spinners";
-import { ChevronDown, ChevronUp, Plus, X, Check, AlertCircle, Edit3, PenTool } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, X, Check, AlertCircle, Edit3 } from "lucide-react";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
+import { FaHome, FaLocationArrow } from "react-icons/fa";
+import { HiBuildingOffice } from "react-icons/hi2";
 
 interface Address {
   id: string;
@@ -17,7 +19,6 @@ interface Address {
   city: string;
   country: string;
   postalCode: string;
-  isPrimary: boolean;
   rawData?: {
     formattedAddress: string;
     latitude: number;
@@ -132,8 +133,7 @@ const ProfileScreen = () => {
     street: "",
     city: "",
     country: "",
-    postalCode: "",
-    isPrimary: false
+    postalCode: ""
   });
 
   const [countryCode, setCountryCode] = useState("+91");
@@ -155,6 +155,17 @@ const ProfileScreen = () => {
 
   // Track which fields have been validated
   const [validatedFields, setValidatedFields] = useState<Set<string>>(new Set());
+
+  // Function to handle user preference selection (like Header component)
+  const handleUserPreference = (preference?: string) => {
+    console.log("User preference selected: ", preference);
+
+    if (!preference) {
+      setNewAddress(prev => ({ ...prev, type: "Other", customType: "" }));
+    } else {
+      setNewAddress(prev => ({ ...prev, type: preference, customType: "" }));
+    }
+  };
 
   const toggleAddress = (id: string) => {
     setExpandedAddressIds((prev) =>
@@ -192,6 +203,120 @@ const ProfileScreen = () => {
     } catch (error) {
       console.error("❌ Error fetching customer details:", error);
       return null;
+    }
+  };
+
+  // Function to save address to user-settings API (same as Header component)
+  const saveAddressToUserSettings = async (addressData: any) => {
+    if (!userId || userRole !== "CUSTOMER") return;
+
+    try {
+      // First, get current user settings
+      const response = await utilsInstance.get(`/user-settings/${userId}`);
+      const currentSettings = response.data;
+
+      let existingLocations = [];
+      
+      if (Array.isArray(currentSettings) && currentSettings.length > 0) {
+        existingLocations = currentSettings[0].savedLocations || [];
+      } else {
+        // If no settings exist, create new one
+        await utilsInstance.post("/user-settings", {
+          customerId: userId,
+          savedLocations: []
+        });
+      }
+
+      // Create the new location object in the same format as Header component
+      const addressType = addressData.type === "Other" && addressData.customType 
+        ? addressData.customType 
+        : addressData.type;
+
+      const newLocation = {
+        name: addressType,
+        location: {
+          address: [{
+            formatted_address: addressData.street,
+            address_components: [
+              { long_name: addressData.city, types: ["locality"] },
+              { long_name: addressData.country, types: ["country"] },
+              { long_name: addressData.postalCode, types: ["postal_code"] },
+            ],
+            geometry: {
+              location: {
+                lat: addressData.rawData?.latitude || 0,
+                lng: addressData.rawData?.longitude || 0
+              }
+            },
+            place_id: addressData.rawData?.placeId || `manual_${Date.now()}`
+          }],
+          lat: addressData.rawData?.latitude || 0,
+          lng: addressData.rawData?.longitude || 0
+        }
+      };
+
+      // Add the new location to existing locations
+      const updatedLocations = [...existingLocations, newLocation];
+
+      // Prepare payload in the same format as Header component
+      const payload = {
+        customerId: userId,
+        savedLocations: updatedLocations
+      };
+
+      // Update user settings
+      await utilsInstance.put(`/user-settings/${userId}`, payload);
+      
+      console.log("✅ Address saved successfully to user settings");
+      return true;
+    } catch (error) {
+      console.error("❌ Failed to save address to user settings:", error);
+      throw error;
+    }
+  };
+
+  // Function to update addresses in user-settings API
+  const updateAddressesInUserSettings = async (updatedAddresses: Address[]) => {
+    if (!userId || userRole !== "CUSTOMER") return;
+
+    try {
+      const savedLocations = updatedAddresses.map((addr) => {
+        const addressType = addr.type;
+
+        return {
+          name: addressType,
+          location: {
+            address: [{
+              formatted_address: addr.street,
+              address_components: [
+                { long_name: addr.city, types: ["locality"] },
+                { long_name: addr.country, types: ["country"] },
+                { long_name: addr.postalCode, types: ["postal_code"] },
+              ],
+              geometry: {
+                location: {
+                  lat: addr.rawData?.latitude || 0,
+                  lng: addr.rawData?.longitude || 0
+                }
+              },
+              place_id: addr.rawData?.placeId || `manual_${Date.now()}`
+            }],
+            lat: addr.rawData?.latitude || 0,
+            lng: addr.rawData?.longitude || 0
+          }
+        };
+      });
+
+      const payload = {
+        customerId: userId,
+        savedLocations: savedLocations
+      };
+
+      await utilsInstance.put(`/user-settings/${userId}`, payload);
+      console.log("✅ Addresses updated successfully in user settings");
+    } catch (error) {
+      console.error("❌ Failed to update addresses in user settings:", error);
+      throw error;
     }
   };
 
@@ -247,82 +372,81 @@ const ProfileScreen = () => {
   }, [isAuthenticated, appUser]);
 
   const fetchCustomerAddresses = async (customerId: number) => {
-  try {
-    const response = await utilsInstance.get(`/user-settings/${customerId}`);
-    const data = response.data;
+    try {
+      const response = await utilsInstance.get(`/user-settings/${customerId}`);
+      const data = response.data;
 
-    if (Array.isArray(data) && data.length > 0) {
-      const allSavedLocations = data.flatMap(doc => doc.savedLocations || []);
+      if (Array.isArray(data) && data.length > 0) {
+        const allSavedLocations = data.flatMap(doc => doc.savedLocations || []);
 
-      // Use a Map to deduplicate addresses by location coordinates
-      const uniqueAddresses = new Map();
-      
-      allSavedLocations
-        .filter((loc: any) => loc.location?.address?.[0]?.formatted_address)
-        .forEach((loc: any, idx: number) => {
-          const primaryAddress = loc.location.address[0];
-          const addressComponents = primaryAddress.address_components || [];
-          
-          const getComponent = (type: string) => {
-            const component = addressComponents.find((c: any) => c.types.includes(type));
-            return component?.long_name || "";
-          };
+        // Use a Map to deduplicate addresses by location coordinates
+        const uniqueAddresses = new Map();
+        
+        allSavedLocations
+          .filter((loc: any) => loc.location?.address?.[0]?.formatted_address)
+          .forEach((loc: any, idx: number) => {
+            const primaryAddress = loc.location.address[0];
+            const addressComponents = primaryAddress.address_components || [];
+            
+            const getComponent = (type: string) => {
+              const component = addressComponents.find((c: any) => c.types.includes(type));
+              return component?.long_name || "";
+            };
 
-          // Create a unique key based on coordinates or formatted address
-          const locationKey = loc.location.lat && loc.location.lng 
-            ? `${loc.location.lat},${loc.location.lng}`
-            : primaryAddress.formatted_address;
+            // Create a unique key based on coordinates or formatted address
+            const locationKey = loc.location.lat && loc.location.lng 
+              ? `${loc.location.lat},${loc.location.lng}`
+              : primaryAddress.formatted_address;
 
-          // Only add if this location doesn't exist yet
-          if (!uniqueAddresses.has(locationKey)) {
-            uniqueAddresses.set(locationKey, {
-              id: loc._id || idx.toString(),
-              type: loc.name || "Other",
-              street: primaryAddress.formatted_address,
-              city: getComponent("locality") || 
-                    getComponent("administrative_area_level_3") || 
-                    getComponent("administrative_area_level_4") || 
-                    "",
-              country: getComponent("country") || "",
-              postalCode: getComponent("postal_code") || "",
-              isPrimary: loc.isPrimary || idx === 0,
-              rawData: {
-                formattedAddress: primaryAddress.formatted_address,
-                latitude: loc.location.lat,
-                longitude: loc.location.lng,
-                placeId: primaryAddress.place_id
-              }
-            });
-          } else {
-            console.log(`Duplicate address found: ${primaryAddress.formatted_address}`);
-          }
-        });
+            // Only add if this location doesn't exist yet
+            if (!uniqueAddresses.has(locationKey)) {
+              uniqueAddresses.set(locationKey, {
+                id: loc._id || `addr_${idx}`,
+                type: loc.name || "Other",
+                street: primaryAddress.formatted_address,
+                city: getComponent("locality") || 
+                      getComponent("administrative_area_level_3") || 
+                      getComponent("administrative_area_level_4") || 
+                      "",
+                country: getComponent("country") || "",
+                postalCode: getComponent("postal_code") || "",
+                rawData: {
+                  formattedAddress: primaryAddress.formatted_address,
+                  latitude: loc.location.lat,
+                  longitude: loc.location.lng,
+                  placeId: primaryAddress.place_id
+                }
+              });
+            } else {
+              console.log(`Duplicate address found: ${primaryAddress.formatted_address}`);
+            }
+          });
 
-      const mappedAddresses = Array.from(uniqueAddresses.values());
-      
-      setAddresses(mappedAddresses);
-      setOriginalData(prev => ({
-        ...prev,
-        addresses: mappedAddresses
-      }));
-      console.log("Deduplicated addresses:", mappedAddresses);
-    } else {
-      console.log("No address data found");
+        const mappedAddresses = Array.from(uniqueAddresses.values());
+        
+        setAddresses(mappedAddresses);
+        setOriginalData(prev => ({
+          ...prev,
+          addresses: mappedAddresses
+        }));
+        console.log("Deduplicated addresses:", mappedAddresses);
+      } else {
+        console.log("No address data found");
+        setAddresses([]);
+        setOriginalData(prev => ({
+          ...prev,
+          addresses: []
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch customer addresses:", err);
       setAddresses([]);
       setOriginalData(prev => ({
         ...prev,
         addresses: []
       }));
     }
-  } catch (err) {
-    console.error("Failed to fetch customer addresses:", err);
-    setAddresses([]);
-    setOriginalData(prev => ({
-      ...prev,
-      addresses: []
-    }));
-  }
-};
+  };
   
   const fetchServiceProviderData = async (serviceProviderId: number) => {
     try {
@@ -362,7 +486,6 @@ const ProfileScreen = () => {
           city: permAddr.ctArea || data.locality || data.currentLocation || "",
           country: permAddr.country || "India",
           postalCode: permAddr.pinNo || (data.pincode ? data.pincode.toString() : ""),
-          isPrimary: true,
         });
       }
 
@@ -380,7 +503,6 @@ const ProfileScreen = () => {
           city: corrAddr.ctArea || data.locality || data.currentLocation || "",
           country: corrAddr.country || "India",
           postalCode: corrAddr.pinNo || (data.pincode ? data.pincode.toString() : ""),
-          isPrimary: false,
         });
       }
 
@@ -392,7 +514,6 @@ const ProfileScreen = () => {
           city: data.nearbyLocation || data.currentLocation || "",
           country: "India",
           postalCode: data.pincode ? data.pincode.toString() : "",
-          isPrimary: true,
         };
         addresses.push(serviceProviderAddress);
       }
@@ -408,13 +529,13 @@ const ProfileScreen = () => {
   };
 
   const hasValidMobileNumbers = () => {
-  if (userRole !== "CUSTOMER") return true;
-  
-  return customerData?.mobileNo && 
-         customerData.mobileNo !== null && 
-         customerData.mobileNo !== "" &&
-         customerData.mobileNo !== "null";
-};
+    if (userRole !== "CUSTOMER") return true;
+    
+    return customerData?.mobileNo && 
+           customerData.mobileNo !== null && 
+           customerData.mobileNo !== "" &&
+           customerData.mobileNo !== "null";
+  };
 
   const formatMobileNumber = (number: string | null) => {
     if (!number || number === "null" || number === "undefined") return "";
@@ -615,7 +736,6 @@ const ProfileScreen = () => {
           addr.city !== originalAddr.city ||
           addr.country !== originalAddr.country ||
           addr.postalCode !== originalAddr.postalCode ||
-          addr.isPrimary !== originalAddr.isPrimary ||
           addr.type !== originalAddr.type
         );
       });
@@ -675,55 +795,39 @@ const ProfileScreen = () => {
         ? newAddress.customType 
         : newAddress.type;
 
-      const addressToAdd = {
-        ...newAddress,
-        id: Date.now().toString(),
-        type: addressType
+      const addressToAdd: Address = {
+        type: addressType,
+        street: newAddress.street,
+        city: newAddress.city,
+        country: newAddress.country,
+        postalCode: newAddress.postalCode,
+        id: `addr_${Date.now()}`,
+        rawData: {
+          formattedAddress: newAddress.street,
+          latitude: 0,
+          longitude: 0,
+          placeId: `manual_${Date.now()}`
+        }
       };
 
-      let updatedAddresses;
-      if (newAddress.isPrimary) {
-        updatedAddresses = addresses.map((addr) => ({ ...addr, isPrimary: false }));
-        updatedAddresses.push(addressToAdd);
-      } else {
-        updatedAddresses = [...addresses, addressToAdd];
-      }
-
+      const updatedAddresses = [...addresses, addressToAdd];
       setAddresses(updatedAddresses);
 
+      // Save to user-settings API (same as Header component)
       if (userRole === "CUSTOMER" && userId) {
         try {
-          const payload = {
-            customerId: userId,
-            savedLocations: [{
-              name: addressToAdd.type,
-              location: {
-                address: [{
-                  formatted_address: addressToAdd.street,
-                  address_components: [
-                    { long_name: addressToAdd.city, types: ["locality"] },
-                    { long_name: addressToAdd.country, types: ["country"] },
-                    { long_name: addressToAdd.postalCode, types: ["postal_code"] },
-                  ],
-                  geometry: {
-                    location: {
-                      lat: 0,
-                      lng: 0
-                    }
-                  }
-                }],
-                lat: 0,
-                lng: 0
-              },
-              isPrimary: addressToAdd.isPrimary,
-            }],
-          };
-
-          await utilsInstance.post("/user-settings", payload);
+          await saveAddressToUserSettings(addressToAdd);
+          
+          // Refresh addresses from API to ensure consistency
+          await fetchCustomerAddresses(userId);
+          
           console.log("✅ Address saved successfully");
         } catch (err) {
           console.error("❌ Failed to save new address:", err);
           alert("Could not save address. Try again.");
+          // Revert local state if API call fails
+          setAddresses(addresses);
+          return;
         }
       }
 
@@ -733,31 +837,33 @@ const ProfileScreen = () => {
         street: "",
         city: "",
         country: "",
-        postalCode: "",
-        isPrimary: false,
+        postalCode: ""
       });
       setShowAddAddress(false);
+    } else {
+      alert("Please fill in all address fields");
     }
   };
 
-  const setPrimaryAddress = (id: string) => {
-    const updatedAddresses = addresses.map(addr => ({
-      ...addr,
-      isPrimary: addr.id === id
-    }));
-    setAddresses(updatedAddresses);
-  };
-
-  const removeAddress = (id: string) => {
+  const removeAddress = async (id: string) => {
     if (addresses.length <= 1) return;
     
     const updatedAddresses = addresses.filter(addr => addr.id !== id);
     
-    if (updatedAddresses.length > 0 && !updatedAddresses.some(addr => addr.isPrimary)) {
-      updatedAddresses[0].isPrimary = true;
-    }
-    
     setAddresses(updatedAddresses);
+
+    // Also remove from user-settings API
+    if (userRole === "CUSTOMER" && userId) {
+      try {
+        await updateAddressesInUserSettings(updatedAddresses);
+        console.log("✅ Address removed from user settings");
+      } catch (error) {
+        console.error("❌ Failed to remove address from user settings:", error);
+        // Revert local state if API call fails
+        setAddresses(addresses);
+        alert("Could not remove address. Try again.");
+      }
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -766,17 +872,8 @@ const ProfileScreen = () => {
   };
 
   const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-    setNewAddress(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  const handleEditAddress = (id: string, field: string, value: string | boolean) => {
-    setAddresses(prev => 
-      prev.map(addr => 
-        addr.id === id ? { ...addr, [field]: value } : addr
-      )
-    );
+    const { name, value } = e.target;
+    setNewAddress(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
@@ -865,6 +962,11 @@ const ProfileScreen = () => {
         );
         
         await fetchCustomerDetails(userId);
+        
+        // Update addresses in user-settings if they changed
+        if (JSON.stringify(addresses) !== JSON.stringify(originalData.addresses)) {
+          await updateAddressesInUserSettings(addresses);
+        }
       }
 
       // Reset validation states and tracked fields
@@ -1051,14 +1153,14 @@ const ProfileScreen = () => {
 
           <div className="flex items-center justify-center w-full md:w-auto">
             {!isEditing && (
-             <button
-  className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
-  onClick={handleEditStart}
-  title="Edit Profile"
->
-  <Edit3 size={16} />
-  Edit
-</button>
+              <button
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
+                onClick={handleEditStart}
+                title="Edit Profile"
+              >
+                <Edit3 size={16} />
+                Edit
+              </button>
             )}
           </div>
         </div>
@@ -1093,8 +1195,8 @@ const ProfileScreen = () => {
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={appUser?.nickname || userName || "User"}
-                   readOnly
-  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
+                  readOnly
+                  style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
                 />
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -1105,7 +1207,7 @@ const ProfileScreen = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={appUser?.email || auth0User?.email || "No email available"}
                   readOnly
-  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
+                  style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
                 />
               </div>
             </div>
@@ -1145,7 +1247,7 @@ const ProfileScreen = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={getUserIdDisplay()}
                   readOnly
-                   style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
+                  style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
                 />
               </div>
             </div>
@@ -1322,40 +1424,71 @@ const ProfileScreen = () => {
             {showAddAddress && isEditing && (
               <div className="border border-blue-200 rounded-lg p-4 mb-4 bg-blue-50">
                 <h4 className="font-medium text-gray-700 mb-3">Add New Address</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <select
-                    name="type"
-                    value={newAddress.type}
-                    onChange={handleAddressInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  >
-                    {getAvailableAddressTypes().map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                  
-                  {/* Show custom type input when "Other" is selected */}
-                  {newAddress.type === "Other" && (
+                
+                {/* Address Type Selection - Same as Header */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Save As
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleUserPreference("Home")}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+                        newAddress.type === "Home" 
+                          ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                          : "bg-white text-gray-700 border border-gray-300"
+                      }`}
+                    >
+                      <FaHome size={14} />
+                      Home
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUserPreference("Work")}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+                        newAddress.type === "Work" 
+                          ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                          : "bg-white text-gray-700 border border-gray-300"
+                      }`}
+                    >
+                      <HiBuildingOffice size={14} />
+                      Work
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUserPreference()}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+                        newAddress.type === "Other" 
+                          ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                          : "bg-white text-gray-700 border border-gray-300"
+                      }`}
+                    >
+                      <FaLocationArrow size={14} />
+                      Other
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Custom Type Input for "Other" */}
+                {newAddress.type === "Other" && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Location Name
+                    </label>
                     <input
                       type="text"
                       name="customType"
-                      placeholder="Enter address name "
+                      placeholder="Enter location name"
                       value={newAddress.customType}
                       onChange={handleAddressInputChange}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
-                  )}
-                  
-                  {/* <div className="flex items-center md:col-span-2">
-                    <input
-                      type="checkbox"
-                      name="isPrimary"
-                      checked={newAddress.isPrimary}
-                      onChange={handleAddressInputChange}
-                      className="mr-2"
-                    />
-                    <label className="text-sm text-gray-600">Set as primary address</label>
-                  </div> */}
+                  </div>
+                )}
+
+                {/* Address Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     type="text"
                     name="street"
@@ -1363,6 +1496,7 @@ const ProfileScreen = () => {
                     value={newAddress.street}
                     onChange={handleAddressInputChange}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm md:col-span-2"
+                    required
                   />
                   <input
                     type="text"
@@ -1371,6 +1505,7 @@ const ProfileScreen = () => {
                     value={newAddress.city}
                     onChange={handleAddressInputChange}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    required
                   />
                   <input
                     type="text"
@@ -1379,6 +1514,7 @@ const ProfileScreen = () => {
                     value={newAddress.country}
                     onChange={handleAddressInputChange}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    required
                   />
                   <input
                     type="text"
@@ -1387,21 +1523,23 @@ const ProfileScreen = () => {
                     value={newAddress.postalCode}
                     onChange={handleAddressInputChange}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    required
                   />
                 </div>
+                
                 <div className="flex justify-end space-x-2 mt-3">
-                  <button
+                  <Button
                     onClick={() => setShowAddAddress(false)}
-                    className="px-3 py-1 text-gray-600 text-sm"
+        
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleAddAddress}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                    disabled={!newAddress.street || !newAddress.city || !newAddress.country || !newAddress.postalCode}
                   >
-                    Add Address
-                  </button>
+                    Save Address
+                  </Button>
                 </div>
               </div>
             )}
@@ -1416,12 +1554,11 @@ const ProfileScreen = () => {
                   return (
                     <div
                       key={address.id}
-                      className={`border ${address.isPrimary ? 'border-blue-300 bg-blue-50' : 'border-gray-200'} rounded-lg transition-all duration-300 overflow-hidden p-4`}
+                      className="border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden p-4"
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium text-gray-800">{address.type}</span>
-                          {/* Removed Primary badge */}
                         </div>
                         <div className="flex space-x-1">
                           {userRole === "CUSTOMER" && (
@@ -1449,14 +1586,9 @@ const ProfileScreen = () => {
                           {address.city}, {address.country} {address.postalCode}
                         </p>
 
-                        {isEditing && (
-                          <div className="mt-3 space-y-2">
-                            {/* Removed "Set as Primary" button */}
-                            {userRole === "SERVICE_PROVIDER" && (
-                              <div className="text-xs text-gray-500 mt-2">
-                                Service provider addresses are managed separately
-                              </div>
-                            )}
+                        {userRole === "SERVICE_PROVIDER" && (
+                          <div className="text-xs text-gray-500 mt-2">
+                            Service provider addresses are managed separately
                           </div>
                         )}
                       </div>
@@ -1507,7 +1639,6 @@ const ProfileScreen = () => {
                   Cancel
                 </Button>
                 <Button
-    
                   onClick={handleSave}
                   disabled={isSaving || !isFormValid() || !hasChanges()}
                 >
