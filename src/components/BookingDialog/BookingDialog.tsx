@@ -249,9 +249,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           right: 7,
           top: 7,
           color: 'white',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
           '&:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(47, 179, 255, 0.41)',
           },
           zIndex: 1300,
           width: isMobile ? 32 : 40,
