@@ -4,7 +4,7 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import axiosInstance from "src/services/axiosInstance";
 import { ClipLoader } from "react-spinners";
-import { ChevronDown, ChevronUp, Plus, X, Check, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, X, Check, AlertCircle, Edit3, PenTool } from "lucide-react";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
@@ -76,7 +76,7 @@ interface CustomerDetails {
   firstName: string;
   lastName: string;
   mobileNo: string | null;
-  altMobileNo: string | null;
+  alternateNo: string | null;
   email: string;
 }
 
@@ -84,6 +84,12 @@ interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
+  formatError: boolean;
+}
+
+interface OriginalData {
+  userData: UserData;
+  addresses: Address[];
 }
 
 const ProfileScreen = () => {
@@ -107,11 +113,22 @@ const ProfileScreen = () => {
     contactNumber: "",
     altContactNumber: ""
   });
+
+  const [originalData, setOriginalData] = useState<OriginalData>({
+    userData: {
+      firstName: "",
+      lastName: "",
+      contactNumber: "",
+      altContactNumber: ""
+    },
+    addresses: []
+  });
   
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
     type: "Home",
+    customType: "",
     street: "",
     city: "",
     country: "",
@@ -126,13 +143,18 @@ const ProfileScreen = () => {
   const [contactValidation, setContactValidation] = useState<ValidationState>({
     loading: false,
     error: '',
-    isAvailable: null
+    isAvailable: null,
+    formatError: false
   });
   const [altContactValidation, setAltContactValidation] = useState<ValidationState>({
     loading: false,
     error: '',
-    isAvailable: null
+    isAvailable: null,
+    formatError: false
   });
+
+  // Track which fields have been validated
+  const [validatedFields, setValidatedFields] = useState<Set<string>>(new Set());
 
   const toggleAddress = (id: string) => {
     setExpandedAddressIds((prev) =>
@@ -153,10 +175,17 @@ const ProfileScreen = () => {
         console.warn("⚠️ Customer mobile number is missing (null/empty).");
       }
 
-      setUserData(prev => ({
-        ...prev,
+      const updatedUserData = {
+        firstName: customer.firstName || "",
+        lastName: customer.lastName || "",
         contactNumber: customer.mobileNo || "",
-        altContactNumber: customer.altMobileNo || ""
+        altContactNumber: customer.alternateNo ? customer.alternateNo.toString() : ""
+      };
+
+      setUserData(updatedUserData);
+      setOriginalData(prev => ({
+        ...prev,
+        userData: updatedUserData
       }));
 
       return customer;
@@ -184,10 +213,16 @@ const ProfileScreen = () => {
 
         if (name) {
           const nameParts = name.split(" ");
-          setUserData(prev => ({
-            ...prev,
+          const initialUserData = {
             firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || ""
+            lastName: nameParts.slice(1).join(" ") || "",
+            contactNumber: "",
+            altContactNumber: ""
+          };
+          setUserData(initialUserData);
+          setOriginalData(prev => ({
+            ...prev,
+            userData: initialUserData
           }));
         }
 
@@ -212,25 +247,35 @@ const ProfileScreen = () => {
   }, [isAuthenticated, appUser]);
 
   const fetchCustomerAddresses = async (customerId: number) => {
-    try {
-      const response = await utilsInstance.get(`/user-settings/${customerId}`);
-      const data = response.data;
+  try {
+    const response = await utilsInstance.get(`/user-settings/${customerId}`);
+    const data = response.data;
 
-      if (Array.isArray(data) && data.length > 0) {
-        const allSavedLocations = data.flatMap(doc => doc.savedLocations || []);
+    if (Array.isArray(data) && data.length > 0) {
+      const allSavedLocations = data.flatMap(doc => doc.savedLocations || []);
 
-        const mappedAddresses: Address[] = allSavedLocations
-          .filter((loc: any) => loc.location?.address?.[0]?.formatted_address)
-          .map((loc: any, idx: number) => {
-            const primaryAddress = loc.location.address[0];
-            const addressComponents = primaryAddress.address_components || [];
-            
-            const getComponent = (type: string) => {
-              const component = addressComponents.find((c: any) => c.types.includes(type));
-              return component?.long_name || "";
-            };
+      // Use a Map to deduplicate addresses by location coordinates
+      const uniqueAddresses = new Map();
+      
+      allSavedLocations
+        .filter((loc: any) => loc.location?.address?.[0]?.formatted_address)
+        .forEach((loc: any, idx: number) => {
+          const primaryAddress = loc.location.address[0];
+          const addressComponents = primaryAddress.address_components || [];
+          
+          const getComponent = (type: string) => {
+            const component = addressComponents.find((c: any) => c.types.includes(type));
+            return component?.long_name || "";
+          };
 
-            return {
+          // Create a unique key based on coordinates or formatted address
+          const locationKey = loc.location.lat && loc.location.lng 
+            ? `${loc.location.lat},${loc.location.lng}`
+            : primaryAddress.formatted_address;
+
+          // Only add if this location doesn't exist yet
+          if (!uniqueAddresses.has(locationKey)) {
+            uniqueAddresses.set(locationKey, {
               id: loc._id || idx.toString(),
               type: loc.name || "Other",
               street: primaryAddress.formatted_address,
@@ -247,20 +292,37 @@ const ProfileScreen = () => {
                 longitude: loc.location.lng,
                 placeId: primaryAddress.place_id
               }
-            };
-          });
+            });
+          } else {
+            console.log(`Duplicate address found: ${primaryAddress.formatted_address}`);
+          }
+        });
 
-        setAddresses(mappedAddresses);
-        console.log("Mapped addresses:", mappedAddresses);
-      } else {
-        console.log("No address data found");
-        setAddresses([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch customer addresses:", err);
+      const mappedAddresses = Array.from(uniqueAddresses.values());
+      
+      setAddresses(mappedAddresses);
+      setOriginalData(prev => ({
+        ...prev,
+        addresses: mappedAddresses
+      }));
+      console.log("Deduplicated addresses:", mappedAddresses);
+    } else {
+      console.log("No address data found");
       setAddresses([]);
+      setOriginalData(prev => ({
+        ...prev,
+        addresses: []
+      }));
     }
-  };
+  } catch (err) {
+    console.error("Failed to fetch customer addresses:", err);
+    setAddresses([]);
+    setOriginalData(prev => ({
+      ...prev,
+      addresses: []
+    }));
+  }
+};
   
   const fetchServiceProviderData = async (serviceProviderId: number) => {
     try {
@@ -271,10 +333,17 @@ const ProfileScreen = () => {
       const data = response.data;
       setServiceProviderData(data);
 
-      setUserData(prev => ({
-        ...prev,
+      const updatedUserData = {
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
         contactNumber: data.mobileNo ? data.mobileNo.toString() : "",
         altContactNumber: data.alternateNo ? data.alternateNo.toString() : ""
+      };
+
+      setUserData(updatedUserData);
+      setOriginalData(prev => ({
+        ...prev,
+        userData: updatedUserData
       }));
 
       const addresses: Address[] = [];
@@ -329,19 +398,23 @@ const ProfileScreen = () => {
       }
 
       setAddresses(addresses);
+      setOriginalData(prev => ({
+        ...prev,
+        addresses: addresses
+      }));
     } catch (error) {
       console.error("Failed to fetch service provider data:", error);
     }
   };
 
   const hasValidMobileNumbers = () => {
-    if (userRole !== "CUSTOMER") return true;
-    
-    return customerData?.mobileNo && 
-           customerData.mobileNo !== null && 
-           customerData.mobileNo !== "" &&
-           customerData.mobileNo !== "null";
-  };
+  if (userRole !== "CUSTOMER") return true;
+  
+  return customerData?.mobileNo && 
+         customerData.mobileNo !== null && 
+         customerData.mobileNo !== "" &&
+         customerData.mobileNo !== "null";
+};
 
   const formatMobileNumber = (number: string | null) => {
     if (!number || number === "null" || number === "undefined") return "";
@@ -365,16 +438,19 @@ const ProfileScreen = () => {
     }
 
     const setValidation = isAlternate ? setAltContactValidation : setContactValidation;
+    const fieldName = isAlternate ? 'altContactNumber' : 'contactNumber';
     
     setValidation({
       loading: true,
       error: '',
-      isAvailable: null
+      isAvailable: null,
+      formatError: false
     });
 
     try {
+      // Use alternateNo parameter for alternative contact number
       const endpoint = isAlternate 
-        ? `/api/serviceproviders/check-alternate/${encodeURIComponent(number)}`
+        ? `/api/serviceproviders/check-alternateNo/${encodeURIComponent(number)}`
         : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
       
       const response = await axiosInstance.get(endpoint);
@@ -384,8 +460,18 @@ const ProfileScreen = () => {
       setValidation({
         loading: false,
         error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
-        isAvailable
+        isAvailable,
+        formatError: false
       });
+
+      // Mark this field as validated
+      if (isAvailable) {
+        setValidatedFields(prev => {
+          const newSet = new Set(prev);
+          newSet.add(fieldName);
+          return newSet;
+        });
+      }
 
       return isAvailable;
     } catch (error: any) {
@@ -401,7 +487,8 @@ const ProfileScreen = () => {
       setValidation({
         loading: false,
         error: errorMessage,
-        isAvailable: false
+        isAvailable: false,
+        formatError: false
       });
 
       return false;
@@ -436,17 +523,26 @@ const ProfileScreen = () => {
     if (value.length === 10) {
       debouncedValidation(value, false);
       
+      // Clear format error when we have exactly 10 digits
+      setContactValidation(prev => ({
+        ...prev,
+        formatError: false,
+        error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
+      }));
+      
       if (userData.altContactNumber === value) {
         setAltContactValidation(prev => ({
           ...prev,
           error: 'Alternate number cannot be same as contact number',
-          isAvailable: false
+          isAvailable: false,
+          formatError: false
         }));
       } else if (userData.altContactNumber && altContactValidation.error === 'Alternate number cannot be same as contact number') {
         setAltContactValidation(prev => ({
           ...prev,
           error: '',
-          isAvailable: null
+          isAvailable: null,
+          formatError: false
         }));
         if (validateMobileFormat(userData.altContactNumber)) {
           debouncedValidation(userData.altContactNumber, true);
@@ -456,7 +552,8 @@ const ProfileScreen = () => {
       setContactValidation({
         loading: false,
         error: value ? 'Please enter a valid 10-digit mobile number' : '',
-        isAvailable: null
+        isAvailable: null,
+        formatError: !!value && value.length !== 10
       });
     }
   };
@@ -466,11 +563,19 @@ const ProfileScreen = () => {
     setUserData(prev => ({ ...prev, altContactNumber: value }));
 
     if (value && value.length === 10) {
+      // Clear format error when we have exactly 10 digits
+      setAltContactValidation(prev => ({
+        ...prev,
+        formatError: false,
+        error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
+      }));
+
       if (value === userData.contactNumber) {
         setAltContactValidation({
           loading: false,
           error: 'Alternate number cannot be same as contact number',
-          isAvailable: false
+          isAvailable: false,
+          formatError: false
         });
       } else {
         debouncedValidation(value, true);
@@ -479,7 +584,8 @@ const ProfileScreen = () => {
       setAltContactValidation({
         loading: false,
         error: value ? 'Please enter a valid 10-digit mobile number' : '',
-        isAvailable: null
+        isAvailable: null,
+        formatError: !!value && value.length !== 10
       });
     }
   };
@@ -489,33 +595,73 @@ const ProfileScreen = () => {
     return userData.contactNumber !== userData.altContactNumber;
   };
 
+  // Check if any field has been modified
+  const hasChanges = (): boolean => {
+    // Check user data changes
+    const userDataChanged = 
+      userData.firstName !== originalData.userData.firstName ||
+      userData.lastName !== originalData.userData.lastName ||
+      userData.contactNumber !== originalData.userData.contactNumber ||
+      userData.altContactNumber !== originalData.userData.altContactNumber;
+
+    // Check address changes (simplified check)
+    const addressesChanged = 
+      addresses.length !== originalData.addresses.length ||
+      addresses.some((addr, index) => {
+        const originalAddr = originalData.addresses[index];
+        if (!originalAddr) return true;
+        return (
+          addr.street !== originalAddr.street ||
+          addr.city !== originalAddr.city ||
+          addr.country !== originalAddr.country ||
+          addr.postalCode !== originalAddr.postalCode ||
+          addr.isPrimary !== originalAddr.isPrimary ||
+          addr.type !== originalAddr.type
+        );
+      });
+
+    return userDataChanged || addressesChanged || showAddAddress;
+  };
+
   const validateAllFields = async (): Promise<boolean> => {
-    if (!validateMobileFormat(userData.contactNumber)) {
-      alert("Please enter a valid 10-digit contact number");
-      return false;
-    }
+    // Only validate fields that have changed and are mobile numbers
+    const contactNumberChanged = userData.contactNumber !== originalData.userData.contactNumber;
+    const altContactNumberChanged = userData.altContactNumber !== originalData.userData.altContactNumber;
 
-    if (userData.altContactNumber && !validateMobileFormat(userData.altContactNumber)) {
-      alert("Please enter a valid 10-digit alternate contact number");
-      return false;
-    }
-
-    if (!areNumbersUnique()) {
-      alert("Contact number and alternate contact number must be different");
-      return false;
-    }
-
-    const isContactAvailable = await checkMobileAvailability(userData.contactNumber, false);
-    if (!isContactAvailable) {
-      alert("Contact number is not available");
-      return false;
-    }
-
-    if (userData.altContactNumber) {
-      const isAltContactAvailable = await checkMobileAvailability(userData.altContactNumber, true);
-      if (!isAltContactAvailable) {
-        alert("Alternate contact number is not available");
+    if (contactNumberChanged) {
+      if (!validateMobileFormat(userData.contactNumber)) {
+        alert("Please enter a valid 10-digit contact number");
         return false;
+      }
+
+      // Only check availability if not already validated
+      if (!validatedFields.has('contactNumber')) {
+        const isContactAvailable = await checkMobileAvailability(userData.contactNumber, false);
+        if (!isContactAvailable) {
+          alert("Contact number is not available");
+          return false;
+        }
+      }
+    }
+
+    if (altContactNumberChanged && userData.altContactNumber) {
+      if (!validateMobileFormat(userData.altContactNumber)) {
+        alert("Please enter a valid 10-digit alternate contact number");
+        return false;
+      }
+
+      if (!areNumbersUnique()) {
+        alert("Contact number and alternate contact number must be different");
+        return false;
+      }
+
+      // Only check availability if not already validated
+      if (!validatedFields.has('altContactNumber')) {
+        const isAltContactAvailable = await checkMobileAvailability(userData.altContactNumber, true);
+        if (!isAltContactAvailable) {
+          alert("Alternate contact number is not available");
+          return false;
+        }
       }
     }
 
@@ -524,9 +670,15 @@ const ProfileScreen = () => {
 
   const handleAddAddress = async () => {
     if (newAddress.street && newAddress.city && newAddress.country && newAddress.postalCode) {
+      // Use custom type if "Other" is selected and customType is provided
+      const addressType = newAddress.type === "Other" && newAddress.customType 
+        ? newAddress.customType 
+        : newAddress.type;
+
       const addressToAdd = {
         ...newAddress,
         id: Date.now().toString(),
+        type: addressType
       };
 
       let updatedAddresses;
@@ -577,6 +729,7 @@ const ProfileScreen = () => {
 
       setNewAddress({
         type: "Home",
+        customType: "",
         street: "",
         city: "",
         country: "",
@@ -627,50 +780,60 @@ const ProfileScreen = () => {
   };
 
   const handleSave = async () => {
-    // Validate mobile numbers before saving
-    if (isEditing) {
-      const isValid = await validateAllFields();
-      if (!isValid) {
-        return;
-      }
+    // Validate only changed mobile numbers before saving
+    const isValid = await validateAllFields();
+    if (!isValid) {
+      return;
     }
 
     setIsSaving(true);
 
     try {
       if (userRole === "SERVICE_PROVIDER" && userId) {
+        // Only include changed fields in the payload
+        const payload: any = {
+          serviceproviderId: userId,
+        };
+
+        // Add only changed fields
+        if (userData.firstName !== originalData.userData.firstName) {
+          payload.firstName = userData.firstName;
+        }
+        if (userData.lastName !== originalData.userData.lastName) {
+          payload.lastName = userData.lastName;
+        }
+        if (userData.contactNumber !== originalData.userData.contactNumber) {
+          payload.mobileNo = userData.contactNumber?.replace("+", "") || null;
+        }
+        if (userData.altContactNumber !== originalData.userData.altContactNumber) {
+          payload.alternateNo = userData.altContactNumber?.replace("+", "") || null;
+        }
+
+        // Only include address data if addresses changed
         const permanentAddress = addresses.find(addr => addr.type === "Permanent");
         const correspondenceAddress = addresses.find(addr => addr.type === "Correspondence");
 
-        const payload = {
-          serviceproviderId: userId,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          mobileNo: userData.contactNumber?.replace("+", "") || null,
-          alternateNo: userData.altContactNumber?.replace("+", "") || null,
-          buildingName: permanentAddress?.street || "",
-          street: permanentAddress?.street || "",
-          locality: permanentAddress?.city || "",
-          pincode: permanentAddress?.postalCode || null,
-          currentLocation: permanentAddress?.city || "",
-          nearbyLocation: permanentAddress?.city || "",
-          permanentAddress: permanentAddress ? {
+        if (permanentAddress) {
+          payload.permanentAddress = {
             field1: permanentAddress.street.split(' ')[0] || "",
             field2: permanentAddress.street || "",
             ctArea: permanentAddress.city || "",
             pinNo: permanentAddress.postalCode || "",
             state: "West Bengal",
             country: permanentAddress.country || "India"
-          } : null,
-          correspondenceAddress: correspondenceAddress ? {
+          };
+        }
+
+        if (correspondenceAddress) {
+          payload.correspondenceAddress = {
             field1: correspondenceAddress.street.split(' ')[0] || "",
             field2: correspondenceAddress.street || "",
             ctArea: correspondenceAddress.city || "",
             pinNo: correspondenceAddress.postalCode || "",
             state: "West Bengal",
             country: correspondenceAddress.country || "India"
-          } : null
-        };
+          };
+        }
 
         await axiosInstance.put(
           `/api/serviceproviders/update/serviceprovider/${userId}`,
@@ -678,14 +841,23 @@ const ProfileScreen = () => {
         );
         await fetchServiceProviderData(userId);
       } else if (userRole === "CUSTOMER" && userId) {
-        const payload = {
+        // Only include changed fields in the payload
+        const payload: any = {
           customerid: userId,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          mobileNo: userData.contactNumber?.replace("+", "") || null,
-          alternateNo: userData.altContactNumber?.replace("+", "") || null,
-          email: appUser?.email || auth0User?.email || "",
         };
+
+        if (userData.firstName !== originalData.userData.firstName) {
+          payload.firstName = userData.firstName;
+        }
+        if (userData.lastName !== originalData.userData.lastName) {
+          payload.lastName = userData.lastName;
+        }
+        if (userData.contactNumber !== originalData.userData.contactNumber) {
+          payload.mobileNo = userData.contactNumber?.replace("+", "") || null;
+        }
+        if (userData.altContactNumber !== originalData.userData.altContactNumber) {
+          payload.alternateNo = userData.altContactNumber?.replace("+", "") || null;
+        }
 
         await axiosInstance.put(
           `/api/customer/update-customer/${userId}`,
@@ -694,6 +866,12 @@ const ProfileScreen = () => {
         
         await fetchCustomerDetails(userId);
       }
+
+      // Reset validation states and tracked fields
+      setValidatedFields(new Set());
+      setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save data:", error);
@@ -707,16 +885,23 @@ const ProfileScreen = () => {
     setIsEditing(false);
     setShowAddAddress(false);
     
-    // Reset validation states
-    setContactValidation({ loading: false, error: '', isAvailable: null });
-    setAltContactValidation({ loading: false, error: '', isAvailable: null });
+    // Reset to original data
+    setUserData(originalData.userData);
+    setAddresses([...originalData.addresses]);
     
-    if (userRole === "SERVICE_PROVIDER" && appUser?.serviceProviderId) {
-      fetchServiceProviderData(appUser.serviceProviderId);
-    } else if (userRole === "CUSTOMER" && appUser?.customerid) {
-      fetchCustomerDetails(appUser.customerid);
-      fetchCustomerAddresses(appUser.customerid);
-    }
+    // Reset validation states
+    setValidatedFields(new Set());
+    setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+    setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+  };
+
+  const handleEditStart = () => {
+    // Store current state as original data when starting to edit
+    setOriginalData({
+      userData: { ...userData },
+      addresses: [...addresses]
+    });
+    setIsEditing(true);
   };
 
   const getUserIdDisplay = () => {
@@ -728,17 +913,21 @@ const ProfileScreen = () => {
   };
 
   const isFormValid = (): boolean => {
-    const basicValidation = validateMobileFormat(userData.contactNumber) &&
-      contactValidation.isAvailable !== false &&
-      (userData.altContactNumber === '' || validateMobileFormat(userData.altContactNumber)) &&
-      areNumbersUnique();
+    // Check if contact number is valid (if changed)
+    const contactNumberChanged = userData.contactNumber !== originalData.userData.contactNumber;
+    const altContactNumberChanged = userData.altContactNumber !== originalData.userData.altContactNumber;
 
-    const altNumberValidation = userData.altContactNumber === '' || 
-      (validateMobileFormat(userData.altContactNumber) && 
-       altContactValidation.isAvailable !== false &&
-       areNumbersUnique());
+    const contactValid = !contactNumberChanged || 
+      (validateMobileFormat(userData.contactNumber) && 
+       contactValidation.isAvailable !== false);
 
-    return basicValidation && altNumberValidation;
+    const altContactValid = !altContactNumberChanged || 
+      (userData.altContactNumber === '' || 
+       (validateMobileFormat(userData.altContactNumber) && 
+        altContactValidation.isAvailable !== false &&
+        areNumbersUnique()));
+
+    return contactValid && altContactValid;
   };
 
   const ProfileSkeleton = () => (
@@ -862,12 +1051,14 @@ const ProfileScreen = () => {
 
           <div className="flex items-center justify-center w-full md:w-auto">
             {!isEditing && (
-              <button
-                className="px-5 py-2 rounded-md font-semibold shadow-md bg-blue-600 text-white"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Profile
-              </button>
+             <button
+  className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
+  onClick={handleEditStart}
+  title="Edit Profile"
+>
+  <Edit3 size={16} />
+  Edit
+</button>
             )}
           </div>
         </div>
@@ -902,7 +1093,8 @@ const ProfileScreen = () => {
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={appUser?.nickname || userName || "User"}
-                  readOnly
+                   readOnly
+  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
                 />
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -913,6 +1105,7 @@ const ProfileScreen = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={appUser?.email || auth0User?.email || "No email available"}
                   readOnly
+  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
                 />
               </div>
             </div>
@@ -928,7 +1121,7 @@ const ProfileScreen = () => {
                   value={userData.firstName}
                   onChange={handleInputChange}
                   readOnly={!isEditing}
-                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
                 />
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -941,7 +1134,7 @@ const ProfileScreen = () => {
                   value={userData.lastName}
                   onChange={handleInputChange}
                   readOnly={!isEditing}
-                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
                 />
               </div>
               <div className="flex-1 min-w-[200px]">
@@ -952,6 +1145,7 @@ const ProfileScreen = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={getUserIdDisplay()}
                   readOnly
+                   style={{ backgroundColor: isEditing ? 'white' : '#f9fafb', cursor: isEditing ? 'text' : 'not-allowed' }}
                 />
               </div>
             </div>
@@ -1000,7 +1194,8 @@ const ProfileScreen = () => {
                     placeholder="Enter 10-digit number"
                     style={{ 
                       backgroundColor: isEditing ? "white" : "#f9fafb",
-                      borderColor: contactValidation.error ? "#ef4444" : "#d1d5db"
+                      borderColor: contactValidation.error ? "#ef4444" : "#d1d5db",
+                      cursor: isEditing ? 'text' : 'not-allowed'
                     }}
                     type="tel"
                     maxLength={10}
@@ -1027,7 +1222,7 @@ const ProfileScreen = () => {
               {contactValidation.error && (
                 <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>
               )}
-              {userData.contactNumber && userData.contactNumber.length !== 10 && isEditing && (
+              {contactValidation.formatError && isEditing && (
                 <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
               )}
               {contactValidation.isAvailable && (
@@ -1070,7 +1265,8 @@ const ProfileScreen = () => {
                     placeholder="Enter 10-digit number"
                     style={{ 
                       backgroundColor: isEditing ? "white" : "#f9fafb",
-                      borderColor: altContactValidation.error ? "#ef4444" : "#d1d5db"
+                      borderColor: altContactValidation.error ? "#ef4444" : "#d1d5db",
+                      cursor: isEditing ? 'text' : 'not-allowed'
                     }}
                     type="tel"
                     maxLength={10}
@@ -1097,7 +1293,7 @@ const ProfileScreen = () => {
               {altContactValidation.error && (
                 <p className="text-red-500 text-xs mt-1">{altContactValidation.error}</p>
               )}
-              {userData.altContactNumber && userData.altContactNumber.length !== 10 && isEditing && (
+              {altContactValidation.formatError && isEditing && (
                 <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
               )}
               {altContactValidation.isAvailable && (
@@ -1137,7 +1333,20 @@ const ProfileScreen = () => {
                       <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
-                  <div className="flex items-center">
+                  
+                  {/* Show custom type input when "Other" is selected */}
+                  {newAddress.type === "Other" && (
+                    <input
+                      type="text"
+                      name="customType"
+                      placeholder="Enter address name "
+                      value={newAddress.customType}
+                      onChange={handleAddressInputChange}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                  )}
+                  
+                  {/* <div className="flex items-center md:col-span-2">
                     <input
                       type="checkbox"
                       name="isPrimary"
@@ -1146,7 +1355,7 @@ const ProfileScreen = () => {
                       className="mr-2"
                     />
                     <label className="text-sm text-gray-600">Set as primary address</label>
-                  </div>
+                  </div> */}
                   <input
                     type="text"
                     name="street"
@@ -1212,9 +1421,7 @@ const ProfileScreen = () => {
                       <div className="flex justify-between items-start">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium text-gray-800">{address.type}</span>
-                          {address.isPrimary && (
-                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Primary</span>
-                          )}
+                          {/* Removed Primary badge */}
                         </div>
                         <div className="flex space-x-1">
                           {userRole === "CUSTOMER" && (
@@ -1244,14 +1451,7 @@ const ProfileScreen = () => {
 
                         {isEditing && (
                           <div className="mt-3 space-y-2">
-                            {!address.isPrimary && (
-                              <button
-                                onClick={() => setPrimaryAddress(address.id)}
-                                className="text-blue-600 text-sm hover:text-blue-800"
-                              >
-                                Set as Primary
-                              </button>
-                            )}
+                            {/* Removed "Set as Primary" button */}
                             {userRole === "SERVICE_PROVIDER" && (
                               <div className="text-xs text-gray-500 mt-2">
                                 Service provider addresses are managed separately
@@ -1300,17 +1500,16 @@ const ProfileScreen = () => {
           {isEditing && (
             <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
               <div className="flex space-x-4">
-                <button
-                  className="px-6 py-2 bg-gray-500 text-white rounded-md font-medium hover:bg-gray-600 transition-colors"
+                <Button
                   onClick={handleCancel}
                   disabled={isSaving}
                 >
                   Cancel
-                </button>
-                <button
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                </Button>
+                <Button
+    
                   onClick={handleSave}
-                  disabled={isSaving || !isFormValid()}
+                  disabled={isSaving || !isFormValid() || !hasChanges()}
                 >
                   {isSaving ? (
                     <>
@@ -1318,7 +1517,7 @@ const ProfileScreen = () => {
                       Saving...
                     </>
                   ) : "Save Changes"}
-                </button>
+                </Button>
               </div>
             </div>
           )}

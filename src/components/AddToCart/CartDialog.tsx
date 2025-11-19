@@ -9,6 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Button } from '../../components/Button/button';
 import { useEffect, useState } from 'react';
 import { TermsCheckboxes } from '../Common/TermsCheckboxes/TermsCheckboxes';
+import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 
 interface CartDialogProps {
   open: boolean;
@@ -110,19 +111,7 @@ const [allTermsAccepted, setAllTermsAccepted] = useState(false);
         border: '1px solid #e0e0e0'
       }
     }}>
-     <DialogTitle sx={{ 
-  backgroundColor: '#f8f9fa',
-  borderBottom: '1px solid #e9ecef',
-  fontWeight: '600',
-  fontSize: '1.25rem',
-  py: 2,
-  px: 3,
-  color: '#2d3748',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  position: 'relative'
-}}>
+     <DialogHeader>
   Your Order Summary
   <IconButton
     aria-label="close"
@@ -131,7 +120,7 @@ const [allTermsAccepted, setAllTermsAccepted] = useState(false);
       position: 'absolute',
       right: 8,
       top: 8,
-      color: '#718096',
+      color: '#fafafaff',
       '&:hover': {
         backgroundColor: 'rgba(0, 0, 0, 0.04)'
       }
@@ -139,7 +128,7 @@ const [allTermsAccepted, setAllTermsAccepted] = useState(false);
   >
     <CloseIcon />
   </IconButton>
-</DialogTitle>
+</DialogHeader>
       
       <DialogContent sx={{ p: 0, backgroundColor: '#f8f9fa' }}>
         {allCartItems.length === 0 ? (
