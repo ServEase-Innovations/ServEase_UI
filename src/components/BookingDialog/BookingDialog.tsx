@@ -15,6 +15,7 @@ import {
   useTheme,
   useMediaQuery,
   Typography,
+  IconButton,
 } from "@mui/material";
 import { LocalizationProvider, DateTimePicker, DesktopDateTimePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -23,6 +24,7 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import CloseIcon from "@mui/icons-material/Close";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -84,6 +86,16 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
   const prefers24Hour = !new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
   }).formatToParts(new Date()).some((part) => part.type === "dayPeriod");
+    // Reset all date states when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setStartDate(null);
+      setEndDate(null);
+      setStartTime(null);
+      setEndTime(null);
+      setLastSelectedDate(null);
+    }
+  }, [open, setStartDate, setEndDate, setStartTime, setEndTime]);
 
   const updateStartDate = (newValue: Dayjs | null) => {
     if (!newValue) return;
@@ -219,6 +231,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           width: "95%",
           maxWidth: "500px",
           margin: "auto",
+          position: "relative",
           [theme.breakpoints.down('sm')]: {
             margin: '16px',
             width: 'calc(100% - 32px)',
@@ -227,6 +240,27 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
         } 
       }}
     >
+      {/* Close Button */}
+      <IconButton
+        aria-label="close"
+        onClick={onClose}
+        sx={{
+          position: 'absolute',
+          right: 7,
+          top: 7,
+          color: 'white',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          },
+          zIndex: 1300,
+          width: isMobile ? 32 : 40,
+          height: isMobile ? 32 : 40,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
+      </IconButton>
+
       <DialogHeader
         className={`${isMobile ? "text-[1.1rem] px-4 pt-4 pb-2" : "text-[1.25rem] px-6 pt-6 pb-4"}`}
       >
@@ -299,176 +333,165 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           {selectedOption === "Date" && (
             <Box>
               <DemoContainer components={["DesktopDateTimePicker"]} sx={{ width: "100%", mb: 2 }}>
-  <DesktopDateTimePicker
-  label="Select Start Date"
-  ampm={!prefers24Hour}
-  value={startDate ? dayjs(startDate) : null}
-  onChange={(newValue) => {
-    if (!newValue) return;
-    // Directly update start date/time as user changes it
-    updateStartDate(newValue);
-  }}
-  minDateTime={dayjs().add(30, "minute")}
-  maxDate={maxDate21Days}
-  shouldDisableTime={(value, view) => {
-    const hour = value.hour();
-    const minute = value.minute();
+                <DesktopDateTimePicker
+                  label="Select Start Date"
+                  ampm={!prefers24Hour}
+                  value={startDate ? dayjs(startDate) : null}
+                  onChange={(newValue) => {
+                    if (!newValue) return;
+                    // Directly update start date/time as user changes it
+                    updateStartDate(newValue);
+                  }}
+                  minDateTime={dayjs().add(30, "minute")}
+                  maxDate={maxDate21Days}
+                  shouldDisableTime={(value, view) => {
+                    const hour = value.hour();
+                    const minute = value.minute();
 
-    if (view === "hours") {
-      return hour < 5 || hour > 21;
-    }
+                    if (view === "hours") {
+                      return hour < 5 || hour > 21;
+                    }
 
-    if (view === "minutes") {
-      return minute % 5 !== 0;
-    }
+                    if (view === "minutes") {
+                      return minute % 5 !== 0;
+                    }
 
-    return false;
-  }}
-  minutesStep={5}
-  format={prefers24Hour ? "MM/DD/YYYY HH:mm" : "MM/DD/YYYY hh:mm A"}
-  slotProps={{
-    textField: {
-      fullWidth: true,
-      placeholder: "MM/DD/YYYY",
-      error: false,
-      size: isMobile ? "small" : "medium",
-    },
-    actionBar: { actions: ["accept"] }, // optional, you can remove if direct update
-    popper: {
-      placement: isMobile ? "bottom-start" : "top-start",
-      modifiers: [
-        {
-          name: "offset",
-          options: {
-            offset: isMobile ? [0, -10] : [0, 0],
-          },
-        },
-      ],
-    },
-  }}
-/>
-</DemoContainer>
-
+                    return false;
+                  }}
+                  minutesStep={5}
+                  format={prefers24Hour ? "MM/DD/YYYY HH:mm" : "MM/DD/YYYY hh:mm A"}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      placeholder: "MM/DD/YYYY",
+                      error: false,
+                      size: isMobile ? "small" : "medium",
+                    },
+                    actionBar: { actions: ["accept"] },
+                    popper: {
+                      placement: isMobile ? "bottom-start" : "top-start",
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: isMobile ? [0, -10] : [0, 0],
+                          },
+                        },
+                      ],
+                    },
+                  }}
+                />
+              </DemoContainer>
 
               {/* Duration Selector Section */}
               {startDate && startTime && (
-              <Box sx={{ 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '8px', 
-                p: isMobile ? 2 : 3,
-                mb: 2,
-                backgroundColor: '#fafafa'
-              }}>
-                {/* Header */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 600 }}>
-                    Confirm Your Booking
-                  </Typography>
+                <Box sx={{ 
+                  border: '1px solid #e0e0e0', 
+                  borderRadius: '8px', 
+                  p: isMobile ? 2 : 3,
+                  mb: 2,
+                  backgroundColor: '#fafafa'
+                }}>
+                  {/* Header */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 600 }}>
+                      Confirm Your Booking
+                    </Typography>
+                  </Box>
+
+                  {/* Booking Details */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
+                      Booking Details
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+                      Start Date: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : 'Not selected'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+                      Start Time: {startTime ? startTime.format('h:mm A') : 'Not selected'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontSize: isMobile ? '0.8rem' : '0.875rem', 
+                      color: 'primary.main',
+                      mt: 1,
+                      fontStyle: 'italic'
+                    }}>
+                      Your service is set to start on {startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___'} at {startTime ? startTime.format('h:mm A') : '___'}.
+                    </Typography>
+                  </Box>
+
+                  {/* Service Duration */}
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
+                      Service Duration
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontSize: isMobile ? '0.8rem' : '0.875rem', 
+                      color: 'text.secondary',
+                      mb: 2
+                    }}>
+                      If you need more time, adjust your service duration below.
+                    </Typography>
+
+                    {/* Duration Selector */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      p: 2,
+                      mb: 2
+                    }}>
+                      <Button 
+                        variant="outlined" 
+                        size="small"
+                        onClick={() => {
+                          if (startTime && endTime) {
+                            const currentDuration = endTime.diff(startTime, 'hour');
+                            if (currentDuration > 1) {
+                              const newEnd = startTime.add(currentDuration - 1, 'hour');
+                              setEndTime(newEnd);
+                              setEndDate(newEnd.toISOString());
+                            }
+                          }
+                        }}
+                        disabled={!startTime || !endTime || endTime.diff(startTime, 'hour') <= 1}
+                        sx={{ minWidth: '40px', height: '40px' }}
+                      >
+                        -
+                      </Button>
+
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 600 }}>
+                          {startTime && endTime ? endTime.diff(startTime, 'hour') : 1} hour{startTime && endTime && endTime.diff(startTime, 'hour') > 1 ? 's' : ''}
+                        </Typography>
+                      </Box>
+
+                      <Button 
+                        variant="outlined" 
+                        size="small"
+                        onClick={() => {
+                          if (startTime && endTime) {
+                            const currentDuration = endTime.diff(startTime, 'hour');
+                            const newEnd = startTime.add(currentDuration + 1, 'hour');
+                            if (newEnd.hour() < 22) { // max 10 PM
+                              setEndTime(newEnd);
+                              setEndDate(newEnd.toISOString());
+                            }
+                          }
+                        }}
+                        disabled={!startTime || !endTime || endTime.hour() >= 21}
+                        sx={{ minWidth: '40px', height: '40px' }}
+                      >
+                        +
+                      </Button>
+                    </Box>
+                  </Box>
                 </Box>
+              )}
 
-                {/* Booking Details */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                    Booking Details
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                    Start Date: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : 'Not selected'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                    Start Time: {startTime ? startTime.format('h:mm A') : 'Not selected'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ 
-                    fontSize: isMobile ? '0.8rem' : '0.875rem', 
-                    color: 'primary.main',
-                    mt: 1,
-                    fontStyle: 'italic'
-                  }}>
-                    Your service is set to start on {startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___'} at {startTime ? startTime.format('h:mm A') : '___'}.
-                  </Typography>
-                </Box>
-
-                {/* Service Duration */}
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                    Service Duration
-                  </Typography>
-                  <Typography variant="body2" sx={{ 
-                    fontSize: isMobile ? '0.8rem' : '0.875rem', 
-                    color: 'text.secondary',
-                    mb: 2
-                  }}>
-                    If you need more time, adjust your service duration below.
-                  </Typography>
-
-                  {/* Duration Selector */}
-<Box sx={{ 
-  display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'space-between',
-  backgroundColor: 'white',
-  border: '1px solid #ddd',
-  borderRadius: '8px',
-  p: 2,
-  mb: 2
-}}>
-  <Button 
-    variant="outlined" 
-    size="small"
-    onClick={() => {
-      if (startTime && endTime) {
-        const currentDuration = endTime.diff(startTime, 'hour');
-        if (currentDuration > 1) {
-          const newEnd = startTime.add(currentDuration - 1, 'hour');
-          setEndTime(newEnd);
-          setEndDate(newEnd.toISOString());
-        }
-      }
-    }}
-    disabled={!startTime || !endTime || endTime.diff(startTime, 'hour') <= 1}
-    sx={{ minWidth: '40px', height: '40px' }}
-  >
-    -
-  </Button>
-
-  <Box sx={{ textAlign: 'center' }}>
-    <Typography variant="h6" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 600 }}>
-      {startTime && endTime ? endTime.diff(startTime, 'hour') : 1} hour{startTime && endTime && endTime.diff(startTime, 'hour') > 1 ? 's' : ''}
-    </Typography>
-  </Box>
-
-  <Button 
-    variant="outlined" 
-    size="small"
-    onClick={() => {
-      if (startTime && endTime) {
-        const currentDuration = endTime.diff(startTime, 'hour');
-        const newEnd = startTime.add(currentDuration + 1, 'hour');
-        if (newEnd.hour() < 22) { // max 10 PM
-          setEndTime(newEnd);
-          setEndDate(newEnd.toISOString());
-        }
-      }
-    }}
-    disabled={!startTime || !endTime || endTime.hour() >= 21}
-    sx={{ minWidth: '40px', height: '40px' }}
-  >
-    +
-  </Button>
-</Box>
-
-
-                  {/* Estimated Cost */}
-                  {/* <Typography variant="body2" sx={{ 
-                    fontSize: isMobile ? '0.9rem' : '1rem', 
-                    fontWeight: 600,
-                    textAlign: 'center',
-                    color: 'primary.main'
-                  }}>
-                    Estimated Cost: ₹{getEstimatedCost()}
-                  </Typography> */}
-                </Box>
-              </Box>
-)}
               {/* Relax Message */}
               <Box sx={{ 
                 textAlign: 'center', 
