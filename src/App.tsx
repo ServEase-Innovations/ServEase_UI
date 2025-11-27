@@ -52,6 +52,11 @@ function App() {
   const [toastOpen, setToastOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [showMobileDialog, setShowMobileDialog] = useState(false);
+
+  console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
+  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL);
+
+
   
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
