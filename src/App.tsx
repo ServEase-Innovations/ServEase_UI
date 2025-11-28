@@ -40,6 +40,7 @@ import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import TnC from "./TermsAndConditions/TnC";
 import axiosInstance from "./services/axiosInstance";
 import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
+import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
@@ -52,7 +53,8 @@ function App() {
   const [toastOpen, setToastOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [showMobileDialog, setShowMobileDialog] = useState(false);
-  
+  const [isAppLoading, setIsAppLoading] = useState(true);
+
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
@@ -224,12 +226,17 @@ useEffect(() => {
   
 
 
-   const getPricingData = () => {
-    utilsInstance.get('/records').then(function (response) {
-      console.log(response.data);
+ const getPricingData = () => {
+  utilsInstance.get('/records')
+    .then((response) => {
       dispatch(add(response.data));
-    }).catch(function (error) { console.log(error) });
-  };
+      setIsAppLoading(false); // stop loader
+    })
+    .catch((error) => {
+      console.log(error);
+      setIsAppLoading(false); // still remove loader on error
+    });
+};
 
     // Determine if footer should be shown
   const shouldShowFooter = () => {
@@ -294,7 +301,9 @@ useEffect(() => {
       </ServiceProviderContext.Provider>
     );
   };
-
+ if (isAppLoading) {
+    return <LoadingScreen />;
+  }
   return (
   <div className="bg-gray-50 text-gray-800">
     <Header

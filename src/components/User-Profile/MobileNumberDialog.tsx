@@ -19,7 +19,9 @@ interface MobileNumberDialogProps {
   open: boolean;
   onClose: () => void;
   customerId: number;
-  onSuccess?: () => void;
+  mobileNo?: string;
+  alternativeMobileNo?: string;
+  onSuccess: () => void;
 }
 
 interface ValidationState {
@@ -50,15 +52,17 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     isAvailable: null
   });
 
+  // Initialize with existing user data if available
   useEffect(() => {
-    if (open) {
-      // Reset form when dialog opens
-      setContactNumber("");
-      setAltContactNumber("");
+    if (open && appUser) {
+      setContactNumber(appUser.mobileNo || "");
+      setAltContactNumber(appUser.alternateNo || "");
+      
+      // Reset validation states
       setContactValidation({ loading: false, error: '', isAvailable: null });
       setAltContactValidation({ loading: false, error: '', isAvailable: null });
     }
-  }, [open]);
+  }, [open, appUser]);
 
   const validateMobileFormat = (number: string): boolean => {
     const mobilePattern = /^[0-9]{10}$/;
@@ -114,20 +118,24 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }
   };
 
+  // Custom hook for debounced validation
   const useDebouncedValidation = () => {
-    const timeouts = {
-      contact: null as NodeJS.Timeout | null,
-      alternate: null as NodeJS.Timeout | null
-    };
+    const timeouts = React.useRef<{
+      contact: NodeJS.Timeout | null;
+      alternate: NodeJS.Timeout | null;
+    }>({
+      contact: null,
+      alternate: null
+    });
 
     return (number: string, isAlternate: boolean = false) => {
       const timeoutKey = isAlternate ? 'alternate' : 'contact';
       
-      if (timeouts[timeoutKey]) {
-        clearTimeout(timeouts[timeoutKey]!);
+      if (timeouts.current[timeoutKey]) {
+        clearTimeout(timeouts.current[timeoutKey]!);
       }
 
-      timeouts[timeoutKey] = setTimeout(() => {
+      timeouts.current[timeoutKey] = setTimeout(() => {
         checkMobileAvailability(number, isAlternate);
       }, 500);
     };
@@ -248,7 +256,8 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       if (contactNumber) payload.mobileNo = contactNumber;
       if (altContactNumber) payload.alternateNo = altContactNumber;
 
-      console.log(" Sending update payload:", payload);
+      console.log("📤 Sending update payload:", payload);
+      console.log("👤 Current appUser before update:", appUser);
 
       const response = await axiosInstance.put(
         `/api/customer/update-customer/${appUser.customerid}`,
@@ -257,24 +266,25 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
       console.log("✅ API Response:", response.data);
       
-      setAppUser((prevUser: any) => ({
-        ...prevUser,
-        mobileNo: contactNumber,
-        alternateNo: altContactNumber || null,
-      }));
-
-      console.log("✅ Updated appUser with mobile numbers:", {
+      // Update the appUser context with mobile numbers
+      const updatedUser = {
         ...appUser,
         mobileNo: contactNumber,
         alternateNo: altContactNumber || null,
-      });
+      };
+      
+      setAppUser(updatedUser);
+
+      console.log("✅ Updated appUser with mobile numbers:", updatedUser);
+      console.log("📱 Stored mobile numbers - Contact:", contactNumber, "Alternate:", altContactNumber || "None");
 
       alert("Mobile number(s) updated successfully!");
       onClose();
       if (onSuccess) onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error updating mobile numbers:", error);
-      alert("Something went wrong while updating!");
+      const errorMessage = error.response?.data?.message || "Something went wrong while updating!";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

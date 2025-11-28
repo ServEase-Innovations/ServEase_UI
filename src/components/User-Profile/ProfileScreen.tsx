@@ -571,7 +571,7 @@ const ProfileScreen = () => {
     try {
       // Use alternateNo parameter for alternative contact number
       const endpoint = isAlternate 
-        ? `/api/serviceproviders/check-alternateNo/${encodeURIComponent(number)}`
+        ? `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`
         : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
       
       const response = await axiosInstance.get(endpoint);
