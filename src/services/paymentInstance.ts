@@ -2,8 +2,8 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const PaymentInstance = axios.create({
-  baseURL: "https://payments-j5id.onrender.com", 
-  // baseURL: process.env.REACT_PAYMENT_URL,
+  // baseURL: "https://payments-j5id.onrender.com", 
+  baseURL: process.env.REACT_APP_SOCKET_URL,
   // Or your payment-specific base URL
   
   // You can add payment-specific default config here

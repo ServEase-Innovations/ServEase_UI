@@ -23,6 +23,7 @@ import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
 import { useAppUser } from 'src/context/AppUserContext';
 import VacationManagementDialog from './VacationManagement';
+import ServicesDialog from '../ServicesDialog/ServicesDialog';
 
 interface Task {
   taskType: string;
@@ -208,6 +209,8 @@ const [selectedBookingForVacationManagement, setSelectedBookingForVacationManage
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  // Add this with other state declarations
+  const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -1031,13 +1034,13 @@ const renderActionButtons = (booking: Booking) => {
             </div>
           ) : (
             <Card className="text-center py-8">
-              <CardContent>
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
-                <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
-                <Button>Book a Service</Button>
-              </CardContent>
-            </Card>
+            <CardContent>
+              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
+              <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
+              <Button onClick={() => setServicesDialogOpen(true)}>Book a Service</Button>
+            </CardContent>
+          </Card>
           )}
         </section>
 
@@ -1270,6 +1273,18 @@ const renderActionButtons = (booking: Booking) => {
         onClose={() => setWalletDialogOpen(false)}
       />
       
+      {/* Add this with your other dialog components */}
+<ServicesDialog
+  open={servicesDialogOpen}
+  onClose={() => setServicesDialogOpen(false)}
+  onServiceSelect={(serviceType) => {
+    // Handle service selection
+    console.log('Selected service type:', serviceType);
+    // You can navigate to booking form or handle the selection
+    // Example: router.push(`/book?service=${serviceType}`);
+  }}
+/>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
