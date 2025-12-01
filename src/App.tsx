@@ -55,6 +55,12 @@ function App() {
   const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
+
+  console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
+  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL);
+
+
+  
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 

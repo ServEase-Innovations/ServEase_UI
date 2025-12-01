@@ -802,7 +802,15 @@ const payload: BookingPayload = {
       >
         <StyledDialogContent>
           <DialogContainer>
-            <DialogHeader>
+            <DialogHeader style={{
+               position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}>
               <h1>🧹Maid Service</h1>
              <CloseButton
   aria-label="close"

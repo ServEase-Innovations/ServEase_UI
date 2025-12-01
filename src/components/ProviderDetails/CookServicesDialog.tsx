@@ -404,14 +404,26 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
+        
       >
         <StyledDialogContent>
           <DialogContainer>
-            <DialogHeader>
+            <DialogHeader style={{
+                position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
               <h1>👩‍🍳Home Cook</h1>
-              <CloseButton aria-label="close" onClick={handleClose} size="small">
-                <CloseIcon />
-              </CloseButton>
+              <CloseButton 
+               aria-label="close" 
+              onClick={handleClose} 
+              size="small">
+              <CloseIcon sx={{ color: 'white' }} />
+            </CloseButton>
             </DialogHeader>         
             <PackagesContainer>
               {renderPackageSections()}

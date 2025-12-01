@@ -616,7 +616,16 @@ console.log("dataaa",bookingType?.endTime);
       <StyledDialog open={open} onClose={handleClose}>
         <StyledDialogContent>
           <DialogContainer>
-            <DialogHeader className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
+            <DialogHeader  style={{
+               position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+            className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
               <h1>❤️ Caregiver Service</h1>
               <CloseButton aria-label="close" onClick={handleClose} size="small">
                 <CloseIcon style={{ color: 'white' }} />
