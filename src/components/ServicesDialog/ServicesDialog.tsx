@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from 'react';
-import { Dialog, DialogContent, IconButton, useMediaQuery } from '@mui/material';
+import { 
+  Dialog, 
+  DialogContent, 
+  IconButton, 
+  useMediaQuery, 
+  Typography, 
+  Box, 
+  Card, 
+  CardContent, 
+  alpha,
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import BookingDialog from '../BookingDialog/BookingDialog';
@@ -10,14 +20,16 @@ import NannyServicesDialog from '../ProviderDetails/NannyServicesDialog';
 import { Dayjs } from 'dayjs';
 import { useDispatch } from 'react-redux';
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
+import { Button } from '../Button/button';
 
 interface ServiceOption {
   id: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
-  color: string;
-  gradient: string;
+  icon: string; // Changed from React.ReactNode to string for image paths
+  iconColor: string;
+  bgColor: string;
+  accentColor: string;
 }
 
 interface ServicesDialogProps {
@@ -49,34 +61,54 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
 
   const [openServiceDialog, setOpenServiceDialog] = useState(false);
 
+  // Using the blue theme from the header - Applied Cleaning Help theme to all
+  const themeColors = {
+    headerBg: 'rgb(14, 48, 92)', // Dark blue from original header
+    primary: '#2FB3FF', // Light blue for accents (from hover color)
+    textPrimary: 'rgb(14, 48, 92)',
+    textSecondary: '#64748B',
+    border: '#E2E8F0',
+    background: '#FFFFFF'
+  };
+
+  // Using Cleaning Help colors for all services
+  const cleaningHelpColors = {
+    iconColor: '#2FB3FF',
+    bgColor: '#EFF6FF',
+    accentColor: '#2FB3FF'
+  };
+
   const serviceOptions: ServiceOption[] = [
     {
       id: 'home-cook',
       title: 'Home Cook',
-      description: 'Skilled and hygienic cooks who specialize in home-style meals.',
-      icon: '👩‍🍳',
-      color: 'text-green-600',
-      gradient: 'from-green-50 to-green-100'
+      description: 'Verified cooks for hygienic, home-style meals',
+      icon: '../CookNew.png',
+      iconColor: cleaningHelpColors.iconColor,
+      bgColor: cleaningHelpColors.bgColor,
+      accentColor: cleaningHelpColors.accentColor
     },
     {
       id: 'cleaning-help',
       title: 'Cleaning Help',
-      description: 'Reliable maids for daily, deep, or special occasion cleaning.',
-      icon: '🧹',
-      color: 'text-blue-600',
-      gradient: 'from-blue-50 to-blue-100'
+      description: 'Trained maids for thorough home cleaning',
+      icon: '../MaidNew.png',
+      iconColor: cleaningHelpColors.iconColor,
+      bgColor: cleaningHelpColors.bgColor,
+      accentColor: cleaningHelpColors.accentColor
     },
     {
       id: 'caregiver',
       title: 'Caregiver',
-      description: 'Trained support for children, seniors, or patients at home.',
-      icon: '❤️',
-      color: 'text-red-600',
-      gradient: 'from-red-50 to-red-100'
+      description: 'Compassionate caregivers for children & elderly',
+      icon: '../NannyNew.png',
+      iconColor: cleaningHelpColors.iconColor,
+      bgColor: cleaningHelpColors.bgColor,
+      accentColor: cleaningHelpColors.accentColor
     },
   ];
 
-  const handleServiceClick = (serviceId: string) => {
+  const handleServiceSelect = (serviceId: string) => {
     let serviceType: 'COOK' | 'MAID' | 'NANNY' = 'COOK';
     let serviceName = '';
 
@@ -147,11 +179,39 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
 
   return (
     <>
-      {/* Services Dialog */}
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      {/* Services Dialog - Using the original header style */}
+      <Dialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        {/* Original Header Style */}
         <DialogHeader>
-          <div className="flex items-center justify-between w-full relative">
-            <p className="text-muted-foreground mt-2">Select Your Service</p>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            width: '100%', 
+            position: 'relative',
+            padding: '16px 24px'
+          }}>
+            <Typography 
+              sx={{ 
+                color: 'white',
+                opacity: 0.9,
+                fontSize: '14px',
+                mt: 0.5
+              }}
+            >
+              Select Your Service
+            </Typography>
 
             <IconButton
               aria-label="close"
@@ -171,33 +231,194 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
             >
               <CloseIcon sx={{ fontSize: isMobile ? 20 : 24 }} />
             </IconButton>
-          </div>
+          </Box>
         </DialogHeader>
 
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-6 text-center" style={{ color: 'rgb(14, 48, 92)' }}>
-              All Services
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <DialogContent sx={{ 
+          padding: { xs: '20px', md: '24px' },
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <Box sx={{ mt: 4 }}>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+              gap: 3
+            }}>
               {serviceOptions.map((service) => (
-                <div
+                <Card
                   key={service.id}
-                  className="rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer hover:border-primary/50"
-                  onClick={() => handleServiceClick(service.id)}
+                  sx={{
+                    borderRadius: '12px',
+                    borderLeft: `2px solid ${service.accentColor}`,
+                    backgroundColor: `${alpha(service.accentColor, 0.04)}`,
+                    overflow: 'hidden',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    cursor: 'pointer',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                      transform: 'translateY(-4px)',
+                    }
+                  }}
+                  onClick={() => handleServiceSelect(service.id)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="text-2xl">{service.icon}</div>
-                    <div>
-                      <h5 className="font-medium">{service.title}</h5>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                 <CardContent sx={{ 
+  padding: '24px',
+  width: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  textAlign: 'center',
+  flexGrow: 1,
+  '&:last-child': { paddingBottom: '16px' }
+}}>
+  {/* Circular Image Container */}
+  <Box
+    sx={{
+      backgroundColor: '#2FB3FF20',
+      borderRadius: '50%',
+      width: '140px',
+      height: '140px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '20px',
+      border: `4px solid ${alpha('#2FB3FF', 0.3)}`,
+      overflow: 'hidden',
+      transition: 'transform 0.3s, border-color 0.3s',
+      position: 'relative',
+      boxShadow: '0 4px 12px rgba(47, 179, 255, 0.15)',
+      '&:hover': {
+        transform: 'scale(1.1)',
+        borderColor: alpha('#2FB3FF', 0.6),
+        boxShadow: '0 6px 20px rgba(47, 179, 255, 0.25)',
+      }
+    }}
+  >
+    {/* Image container with circular clip */}
+    <Box
+      sx={{
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '50%',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      <img
+        src={service.icon}
+        alt={service.title}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '100%', // Override the 71% max-width
+          height: '100%',
+          minWidth: '100%',
+          minHeight: '100%',
+          objectFit: 'cover',
+          maxWidth: '100% !important', // Force override
+          filter: 'brightness(1.05) contrast(1.05)',
+        }}
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          target.parentElement!.innerHTML = `
+            <div style="
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: linear-gradient(135deg, #2FB3FF, #0984e3);
+              color: white;
+              font-size: 24px;
+              font-weight: bold;
+              border-radius: 50%;
+            ">
+              ${service.title.charAt(0)}
             </div>
-          </div>
+          `;
+        }}
+      />
+    </Box>
+    
+    {/* Subtle glow effect */}
+    <Box
+      sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, transparent 30%, rgba(47, 179, 255, 0.1) 100%)',
+        pointerEvents: 'none',
+      }}
+    />
+  </Box>
+                    
+                    {/* Title and Description */}
+                    <Box sx={{ width: '100%', mb: 2 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+    fontWeight: 600,
+    fontSize: '16px',
+    color: 'rgba(21, 57, 104, 1)', // Changed from service.accentColor to rgb(14, 48, 92)
+    mb: 1
+  }}
+                      >
+                        {service.title}
+                      </Typography>
+                      
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: themeColors.textSecondary,
+                          fontSize: '13px',
+                          lineHeight: 1.5,
+                          mb: 2
+                        }}
+                      >
+                        {service.description}
+                      </Typography>
+                    </Box>
+
+                    {/* Select Service Button */}
+                    <Button
+                      variant="contained"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click from also triggering
+                        handleServiceSelect(service.id);
+                      }}
+                      sx={{
+                        mt: 'auto',
+                        backgroundColor: service.accentColor,
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        padding: '8px 24px',
+                        textTransform: 'none',
+                        '&:hover': {
+                          backgroundColor: service.accentColor,
+                          opacity: 0.9,
+                          boxShadow: `0 4px 12px ${alpha(service.accentColor, 0.3)}`,
+                        }
+                      }}
+                    >
+                      Select Service
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          </Box>
         </DialogContent>
       </Dialog>
 
