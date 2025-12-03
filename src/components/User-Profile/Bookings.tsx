@@ -177,7 +177,7 @@ const getModificationDetails = (booking: Booking): string => {
   return `Last modified: ${lastMod.action}`;
 };
 
-const Booking: React.FC = () => {
+const Booking:  React.FC<any> = ({ handleDataFromChild }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
@@ -1277,6 +1277,7 @@ const renderActionButtons = (booking: Booking) => {
 <ServicesDialog
   open={servicesDialogOpen}
   onClose={() => setServicesDialogOpen(false)}
+  sendDataToParent={(data) => handleDataFromChild(data)}
   onServiceSelect={(serviceType) => {
     // Handle service selection
     console.log('Selected service type:', serviceType);

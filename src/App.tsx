@@ -286,7 +286,7 @@ useEffect(() => {
         </div>
       );
       } else if (selection === BOOKINGS) {
-      return <Booking />;
+      return <Booking handleDataFromChild={handleDataFromChild} /> ;
     } else if (selection === DASHBOARD) {
       return <Dashboard />;
     } else if (selection === PROFILE) {
