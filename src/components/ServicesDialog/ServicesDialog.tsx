@@ -37,10 +37,7 @@ export interface ServicesDialogProps {
   open: boolean;
   onClose: () => void;
   onServiceSelect?: (serviceType: string) => void;
-  sendDataToParent?: (data: string, type?: string) => void;
-  // Add these optional props
-  bookingType?: string;
-  setBookingType?: React.Dispatch<React.SetStateAction<string | undefined>>;
+  sendDataToParent?: (data: string) => void;
 }
 
 const ServicesDialog: React.FC<ServicesDialogProps> = ({
@@ -48,8 +45,6 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
   onClose,
   onServiceSelect,
   sendDataToParent,
-  bookingType, // Add this
-  setBookingType // Add this
 }) => {
   const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width:600px)");
@@ -194,7 +189,7 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
       if (sendDataToParent) {
         sendDataToParent(DETAILS);
       } else {
-        console.error("ERROR: sendDataToParent is undefined!");
+        console.error("sendDataToParent is undefined in handleBookingSave");
       }
     }
   };

@@ -58,10 +58,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       checkoutItem(data); // Send data to the parent component
     }
   };
-
-  useEffect(() => {
-    performSearch();
-  }, [selectedProviderType , location]);
+useEffect(() => {
+  performSearch();
+}, [selectedProviderType, location, bookingType]);
 
   // useEffect(() => {
   //   console.log("Selected ...", selected);
