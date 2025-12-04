@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Header } from "./components/Header/Header";
@@ -41,13 +41,14 @@ import TnC from "./TermsAndConditions/TnC";
 import axiosInstance from "./services/axiosInstance";
 import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
+
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
   const [handleDropDownValue, setDropDownValue] = useState<string | undefined>(); 
   const [checkoutData, setCheckoutData] = useState<any>();
   const [selectedBookingType, setSelectedBookingType] = useState<string | undefined>();
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
-  const [currentSection, setCurrentSection] = useState<string>("HOME"); // Changed from 'page' to 'currentSection'
+  const [currentSection, setCurrentSection] = useState<string>("HOME");
   const [notificationReceived, setNotificationReceived] = useState(false);
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
@@ -55,16 +56,16 @@ function App() {
   const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
+  // Ref to track if mobile number check has been done
+  const hasCheckedMobileRef = useRef(false);
 
   console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
   console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL);
 
-
-  
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
-   const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
+  const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
     console.log("Data received from child component:", data);
     
     if (type === 'section') {
@@ -73,6 +74,7 @@ function App() {
       setSelection(data);
     }
   };
+
   const {
     loginWithRedirect,
     logout,
@@ -83,27 +85,24 @@ function App() {
   } = useAuth0();
 
   const handleAccept = async (engagementId: number) => {
-  try {
-    const payload = {
-      providerId: appUser?.serviceProviderId, // ✅ send only serviceProviderId
-    };
+    try {
+      const payload = {
+        providerId: appUser?.serviceProviderId,
+      };
 
-    const res = await PaymentInstance.patch(
-      `/api/engagements/${engagementId}/accept`,
-      payload
-    );
+      const res = await PaymentInstance.patch(
+        `/api/engagements/${engagementId}/accept`,
+        payload
+      );
 
-    console.log("✅ Engagement accepted:", res.data);
-  } catch (err) {
-    console.error("❌ Failed to accept engagement", err);
-  }
-};
+      console.log("✅ Engagement accepted:", res.data);
+    } catch (err) {
+      console.error("❌ Failed to accept engagement", err);
+    }
+  };
 
-  
-  // handler for reject
   const handleReject = (engagementId: number) => {
     console.log("❌ Engagement rejected:", engagementId);
-    // Optionally send a reject API call
   };
 
   const handleCheckoutItems = (item: any) => {
@@ -125,126 +124,134 @@ function App() {
     console.log(e);
     setServiceProvidersData(e);
   };
-  
-  
-// In your App component
-const handleAboutClick = () => {
-  setCurrentSection("ABOUT");
-  setSelection(undefined); // Clear any service selection
-};
 
-const handleContactClick = () => {
-  setCurrentSection("CONTACT");
-  setSelection(undefined); // Clear any service selection
-};
-
-const handlePrivacyPolicyClick = () => {
-  setCurrentSection("PRIVACY_POLICY");
-  setSelection(undefined);
-};
-const handleTermsClick = () => {
-  setCurrentSection("TERMS_CONDITIONS");
-};
-
-const handleBackToHome = () => {
-  setCurrentSection("HOME");
-  setSelection(undefined); // Clear any service selection
-};
-
-// Add this new function for logo click
-const handleLogoClick = () => {
-  setCurrentSection("HOME");
-  setSelection(undefined); // Clear any service selection
-};
- const { appUser } = useAppUser();
-useEffect(() => {
-  if (!appUser || appUser?.role?.toUpperCase() !== "CUSTOMER") return;
-
-  const fetchCustomerDetails = async () => {
-    try {
-      const response = await axiosInstance.get(`/api/customer/get-customer-by-id/${appUser.customerid}`);
-      const customer = response.data;
-
-      if (!customer?.mobileNo) {
-        setShowMobileDialog(true); // only opens once per customer load
-      }
-    } catch (error) {
-      console.error(error);
-    }
+  const handleAboutClick = () => {
+    setCurrentSection("ABOUT");
+    setSelection(undefined);
   };
 
-  fetchCustomerDetails();
-}, [appUser]); // only runs when appUser changes
+  const handleContactClick = () => {
+    setCurrentSection("CONTACT");
+    setSelection(undefined);
+  };
 
-  useEffect(() => {
-    getPricingData();
-  });
+  const handlePrivacyPolicyClick = () => {
+    setCurrentSection("PRIVACY_POLICY");
+    setSelection(undefined);
+  };
 
+  const handleTermsClick = () => {
+    setCurrentSection("TERMS_CONDITIONS");
+  };
+
+  const handleBackToHome = () => {
+    setCurrentSection("HOME");
+    setSelection(undefined);
+  };
+
+  const handleLogoClick = () => {
+    setCurrentSection("HOME");
+    setSelection(undefined);
+  };
+
+  const { appUser } = useAppUser();
   const [socket, setSocket] = useState<Socket | null>(null);
 
- 
+  // Effect for fetching pricing data (runs only once on mount)
+  useEffect(() => {
+    const fetchPricingData = async () => {
+      try {
+        const response = await utilsInstance.get('/records');
+        dispatch(add(response.data));
+        setIsAppLoading(false);
+      } catch (error) {
+        console.error("Failed to fetch pricing data:", error);
+        setIsAppLoading(false);
+      }
+    };
 
+    fetchPricingData();
+  }, [dispatch]); // Empty dependency array means this runs once on mount
+
+  // Effect for checking customer mobile number (runs when appUser changes)
+  useEffect(() => {
+    // Skip if not a customer or already checked
+    if (!appUser || 
+        appUser?.role?.toUpperCase() !== "CUSTOMER" || 
+        hasCheckedMobileRef.current) {
+      return;
+    }
+
+    const fetchCustomerDetails = async () => {
+      try {
+        const response = await axiosInstance.get(
+          `/api/customer/get-customer-by-id/${appUser.customerid}`
+        );
+        const customer = response.data;
+
+        if (!customer?.mobileNo) {
+          setShowMobileDialog(true);
+        }
+        
+        // Mark as checked to prevent future calls
+        hasCheckedMobileRef.current = true;
+      } catch (error) {
+        console.error("Failed to fetch customer details:", error);
+        hasCheckedMobileRef.current = true;
+      }
+    };
+
+    fetchCustomerDetails();
+  }, [appUser]);
+
+  // Effect for socket connection (runs when isAuthenticated or appUser changes)
   useEffect(() => {
     if (!isAuthenticated || !appUser) {
       console.log("⏳ Waiting for user authentication...");
       return;
     }
-  
+
     console.log("🔎 Full user object:", appUser);
-  
+
     if (appUser?.role?.toUpperCase() === "SERVICE_PROVIDER") {
       console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
-  
+
       const socketUrl =
         process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
-  
+
       const newSocket = io(socketUrl, {
         transports: ["websocket"],
         withCredentials: true,
       });
-  
+
       newSocket.on("connect", () => {
         console.log("✅ Connected to server:", newSocket.id);
         newSocket.emit("join", { providerId: appUser.serviceProviderId });
       });
-  
+
       newSocket.on("new-engagement", (data) => {
         console.log("📩 New engagement received:", data);
         setActiveToast(data.engagement);
       });
-  
+
       newSocket.on("disconnect", () => {
         console.log("❌ Disconnected from server");
       });
-  
+
       newSocket.on("connect_error", (err) => {
         console.error("❌ Connection error:", err.message);
       });
-  
+
       setSocket(newSocket);
-  
+
       return () => {
         console.log("🔌 Closing socket connection...");
         newSocket.disconnect();
       };
     }
   }, [isAuthenticated, appUser]);
-  
 
-
- const getPricingData = () => {
-  utilsInstance.get('/records')
-    .then((response) => {
-      dispatch(add(response.data));
-      setIsAppLoading(false); // stop loader
-    })
-    .catch((error) => {
-      console.log(error);
-      setIsAppLoading(false); // still remove loader on error
-    });
-};
-
-    // Determine if footer should be shown
+  // Determine if footer should be shown
   const shouldShowFooter = () => {
     const noFooterPages = [
       LOGIN, ADMIN, DASHBOARD,
@@ -262,17 +269,16 @@ useEffect(() => {
     if (currentSection === "CONTACT") {
       return <ContactUs onBack={handleBackToHome} />;
     }
-      // Add this new condition for Privacy Policy
-  if (currentSection === "PRIVACY_POLICY") {
-    return <PrivacyPolicy />;
-  }
-  // Add this new condition for Terms and Conditions
-  if (currentSection === "TERMS_CONDITIONS") {
-    return <TnC />;
-  }
-
     
-  // Render service-related pages when selection exists
+    if (currentSection === "PRIVACY_POLICY") {
+      return <PrivacyPolicy />;
+    }
+    
+    if (currentSection === "TERMS_CONDITIONS") {
+      return <TnC />;
+    }
+
+    // Render service-related pages when selection exists
     if (selection === DETAILS) {
       return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
     } else if (selection === CONFIRMATION) {
@@ -285,8 +291,8 @@ useEffect(() => {
           <Login sendDataToParent={handleDataFromChild} />
         </div>
       );
-      } else if (selection === BOOKINGS) {
-      return <Booking handleDataFromChild={handleDataFromChild} /> ;
+    } else if (selection === BOOKINGS) {
+      return <Booking handleDataFromChild={handleDataFromChild} />;
     } else if (selection === DASHBOARD) {
       return <Dashboard />;
     } else if (selection === PROFILE) {
@@ -307,36 +313,42 @@ useEffect(() => {
       </ServiceProviderContext.Provider>
     );
   };
- if (isAppLoading) {
+
+  if (isAppLoading) {
     return <LoadingScreen />;
   }
+
   return (
-  <div className="bg-gray-50 text-gray-800">
-    <Header
-        sendDataToParent={(data) => handleDataFromChild(data)} // Only one argument
+    <div className="bg-gray-50 text-gray-800">
+      <Header
+        sendDataToParent={(data) => handleDataFromChild(data)}
         onAboutClick={handleAboutClick}
         onContactClick={handleContactClick}
-        onLogoClick={handleLogoClick} bookingType={""}    />
+        onLogoClick={handleLogoClick} 
+        bookingType={""}
+      />
 
       {/* Render the current content */}
       {renderContent()}
- {showMobileDialog && appUser?.customerid && (
-  <MobileNumberDialog
-    open={showMobileDialog}
-    onClose={() => setShowMobileDialog(false)}
-    customerId={appUser.customerid}
-    onSuccess={() => {
-      console.log("Mobile number updated successfully!");
-      setShowMobileDialog(false);
-    }}
-  />
-)}
+
+      {showMobileDialog && appUser?.customerid && (
+        <MobileNumberDialog
+          open={showMobileDialog}
+          onClose={() => setShowMobileDialog(false)}
+          customerId={appUser.customerid}
+          onSuccess={() => {
+            console.log("Mobile number updated successfully!");
+            setShowMobileDialog(false);
+          }}
+        />
+      )}
 
       <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
- <ChatbotButton 
-  open={chatOpen} 
-  onToggle={() => setChatOpen(prev => !prev)} 
-/>
+      <ChatbotButton 
+        open={chatOpen} 
+        onToggle={() => setChatOpen(prev => !prev)} 
+      />
+
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 
@@ -346,15 +358,15 @@ useEffect(() => {
           onTermsClick={handleTermsClick}
         />
       )}
-       {activeToast && (
-  <BookingRequestToast
-    engagement={activeToast}
-    onAccept={handleAccept}
-    onReject={handleReject}
-    onClose={() => setActiveToast(null)}
-  />
-)}
 
+      {activeToast && (
+        <BookingRequestToast
+          engagement={activeToast}
+          onAccept={handleAccept}
+          onReject={handleReject}
+          onClose={() => setActiveToast(null)}
+        />
+      )}
     </div>
   );
 }
