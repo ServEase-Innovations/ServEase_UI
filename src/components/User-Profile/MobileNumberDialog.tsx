@@ -8,6 +8,9 @@ import {
   DialogActions,
   InputAdornment,
   CircularProgress,
+  Snackbar,
+  Alert,
+  AlertColor,
 } from "@mui/material";
 import { Button } from "../Button/button";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
@@ -28,6 +31,12 @@ interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
+}
+
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: AlertColor;
 }
 
 const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
@@ -52,6 +61,12 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     isAvailable: null
   });
 
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
   // Initialize with existing user data if available
   useEffect(() => {
     if (open && appUser) {
@@ -63,6 +78,18 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       setAltContactValidation({ loading: false, error: '', isAvailable: null });
     }
   }, [open, appUser]);
+
+  const showSnackbar = (message: string, severity: AlertColor = 'info') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
 
   const validateMobileFormat = (number: string): boolean => {
     const mobilePattern = /^[0-9]{10}$/;
@@ -205,30 +232,30 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
   const validateAllFields = async (): Promise<boolean> => {
     if (!validateMobileFormat(contactNumber)) {
-      alert("Please enter a valid 10-digit contact number");
+      showSnackbar("Please enter a valid 10-digit contact number", "error");
       return false;
     }
 
     if (altContactNumber && !validateMobileFormat(altContactNumber)) {
-      alert("Please enter a valid 10-digit alternate contact number");
+      showSnackbar("Please enter a valid 10-digit alternate contact number", "error");
       return false;
     }
 
     if (!areNumbersUnique()) {
-      alert("Contact number and alternate contact number must be different");
+      showSnackbar("Contact number and alternate contact number must be different", "error");
       return false;
     }
 
     const isContactAvailable = await checkMobileAvailability(contactNumber, false);
     if (!isContactAvailable) {
-      alert("Contact number is not available");
+      showSnackbar("Contact number is not available", "error");
       return false;
     }
 
     if (altContactNumber) {
       const isAltContactAvailable = await checkMobileAvailability(altContactNumber, true);
       if (!isAltContactAvailable) {
-        alert("Alternate contact number is not available");
+        showSnackbar("Alternate contact number is not available", "error");
         return false;
       }
     }
@@ -247,7 +274,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     try {
       if (!appUser?.customerid) {
         console.error("❌ Customer ID not found in appUser");
-        alert("Customer ID not found!");
+        showSnackbar("Customer ID not found!", "error");
         setLoading(false);
         return;
       }
@@ -278,13 +305,17 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       console.log("✅ Updated appUser with mobile numbers:", updatedUser);
       console.log("📱 Stored mobile numbers - Contact:", contactNumber, "Alternate:", altContactNumber || "None");
 
-      alert("Mobile number(s) updated successfully!");
-      onClose();
-      if (onSuccess) onSuccess();
+      showSnackbar("Mobile number(s) updated successfully!", "success");
+      
+      // Close dialog after successful update
+      setTimeout(() => {
+        onClose();
+        if (onSuccess) onSuccess();
+      }, 1500); // Wait for user to see the success message
     } catch (error: any) {
       console.error("❌ Error updating mobile numbers:", error);
       const errorMessage = error.response?.data?.message || "Something went wrong while updating!";
-      alert(errorMessage);
+      showSnackbar(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -305,127 +336,145 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
-        <DialogTitle className="text-xl font-semibold text-white">
-          Update Contact Numbers
-        </DialogTitle>
-        <button
-          onClick={onClose}
-          className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-      </DialogHeader>
-
-      <DialogContent className="max-w-md p-6">
-        <div className="flex flex-col gap-4 mt-4">
-          <div>
-            <p className="text-sm text-black-500 ">
-              Please enter your mobile and alternative contact numbers to continue.
-            </p>
-            <label className="text-sm font-medium text-gray-700">
-              Contact Number *
-            </label>
-            <Input
-              placeholder="10-digit mobile number"
-              value={contactNumber}
-              onChange={handleContactNumberChange}
-              className="mt-1 w-full"
-              inputProps={{ maxLength: 10 }}
-              error={!!contactValidation.error || (contactNumber.length > 0 && contactNumber.length !== 10)}
-              endAdornment={
-                contactValidation.loading ? (
-                  <InputAdornment position="end">
-                    <CircularProgress size={20} />
-                  </InputAdornment>
-                ) : contactValidation.isAvailable ? (
-                  <InputAdornment position="end">
-                    <CheckIcon color="success" size={20} />
-                  </InputAdornment>
-                ) : contactValidation.isAvailable === false ? (
-                  <InputAdornment position="end">
-                    <X color="error" size={20} />
-                  </InputAdornment>
-                ) : null
-              }
-            />
-            {contactValidation.error && (
-              <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>
-            )}
-            {contactNumber && contactNumber.length !== 10 && (
-              <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
-            )}
-            {contactValidation.isAvailable && (
-              <p className="text-green-500 text-xs mt-1">Contact number is available</p>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              Alternative Contact Number
-            </label>
-            <Input
-              placeholder="10-digit mobile number"
-              value={altContactNumber}
-              onChange={handleAltContactNumberChange}
-              className="mt-1 w-full"
-              inputProps={{ maxLength: 10 }}
-              error={!!altContactValidation.error || (altContactNumber.length > 0 && altContactNumber.length !== 10)}
-              endAdornment={
-                altContactValidation.loading ? (
-                  <InputAdornment position="end">
-                    <CircularProgress size={20} />
-                  </InputAdornment>
-                ) : altContactValidation.isAvailable ? (
-                  <InputAdornment position="end">
-                    <CheckIcon color="success" size={20} />
-                  </InputAdornment>
-                ) : altContactValidation.isAvailable === false ? (
-                  <InputAdornment position="end">
-                    <X color="error" size={20} />
-                  </InputAdornment>
-                ) : null
-              }
-            />
-            {altContactValidation.error && (
-              <p className="text-red-500 text-xs mt-1">{altContactValidation.error}</p>
-            )}
-            {altContactNumber && altContactNumber.length !== 10 && (
-              <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
-            )}
-            {altContactValidation.isAvailable && (
-              <p className="text-green-500 text-xs mt-1">Alternate number is available</p>
-            )}
-          </div>
-
-          {!areNumbersUnique() && contactNumber && altContactNumber && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-              <p className="text-red-700 text-sm">
-                ⚠️ Contact number and alternate contact number must be different
-              </p>
-            </div>
-          )}
-        </div>
-
-        <DialogActions className="mt-6">
-          <Button
+    <>
+      <Dialog open={open} onClose={onClose}>
+        <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
+          <DialogTitle className="text-xl font-semibold text-white">
+            Update Contact Numbers
+          </DialogTitle>
+          <button
             onClick={onClose}
-            className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+            className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
+            aria-label="Close"
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !isFormValid()}
-            className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {loading ? "Updating..." : "Submit"}
-          </Button>
-        </DialogActions>
-      </DialogContent>
-    </Dialog>
+            &times;
+          </button>
+        </DialogHeader>
+
+        <DialogContent className="max-w-md p-6">
+          <div className="flex flex-col gap-4 mt-4">
+            <div>
+              <p className="text-sm text-black-500 ">
+                Please enter your mobile and alternative contact numbers to continue.
+              </p>
+              <label className="text-sm font-medium text-gray-700">
+                Contact Number *
+              </label>
+              <Input
+                placeholder="10-digit mobile number"
+                value={contactNumber}
+                onChange={handleContactNumberChange}
+                className="mt-1 w-full"
+                inputProps={{ maxLength: 10 }}
+                error={!!contactValidation.error || (contactNumber.length > 0 && contactNumber.length !== 10)}
+                endAdornment={
+                  contactValidation.loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : contactValidation.isAvailable ? (
+                    <InputAdornment position="end">
+                      <CheckIcon color="success" size={20} />
+                    </InputAdornment>
+                  ) : contactValidation.isAvailable === false ? (
+                    <InputAdornment position="end">
+                      <X color="error" size={20} />
+                    </InputAdornment>
+                  ) : null
+                }
+              />
+              {contactValidation.error && (
+                <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>
+              )}
+              {contactNumber && contactNumber.length !== 10 && (
+                <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
+              )}
+              {contactValidation.isAvailable && (
+                <p className="text-green-500 text-xs mt-1">Contact number is available</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Alternative Contact Number
+              </label>
+              <Input
+                placeholder="10-digit mobile number"
+                value={altContactNumber}
+                onChange={handleAltContactNumberChange}
+                className="mt-1 w-full"
+                inputProps={{ maxLength: 10 }}
+                error={!!altContactValidation.error || (altContactNumber.length > 0 && altContactNumber.length !== 10)}
+                endAdornment={
+                  altContactValidation.loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : altContactValidation.isAvailable ? (
+                    <InputAdornment position="end">
+                      <CheckIcon color="success" size={20} />
+                    </InputAdornment>
+                  ) : altContactValidation.isAvailable === false ? (
+                    <InputAdornment position="end">
+                      <X color="error" size={20} />
+                    </InputAdornment>
+                  ) : null
+                }
+              />
+              {altContactValidation.error && (
+                <p className="text-red-500 text-xs mt-1">{altContactValidation.error}</p>
+              )}
+              {altContactNumber && altContactNumber.length !== 10 && (
+                <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
+              )}
+              {altContactValidation.isAvailable && (
+                <p className="text-green-500 text-xs mt-1">Alternate number is available</p>
+              )}
+            </div>
+
+            {!areNumbersUnique() && contactNumber && altContactNumber && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-red-700 text-sm">
+                  ⚠️ Contact number and alternate contact number must be different
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogActions className="mt-6">
+            <Button
+              onClick={onClose}
+              className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !isFormValid()}
+              className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? "Updating..." : "Submit"}
+            </Button>
+          </DialogActions>
+        </DialogContent>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        sx={{ marginTop: "60px" }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
