@@ -65,15 +65,24 @@ function App() {
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
-  const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
-    console.log("Data received from child component:", data);
-    
-    if (type === 'section') {
-      setCurrentSection(data);
-    } else {
-      setSelection(data);
-    }
-  };
+ const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
+  console.log("Data received from child component:", data);
+  
+  // If it's a service selection (like DETAILS), set the selection
+  if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD) {
+    setSelection(data);
+    // Clear any section state when navigating to service pages
+    setCurrentSection("HOME");
+  } else if (type === 'section') {
+    // If it's a section change (like ABOUT, CONTACT)
+    setCurrentSection(data);
+    // Clear selection when going to about/contact
+    setSelection(undefined);
+  } else {
+    // For other cases
+    setSelection(data);
+  }
+};
 
   const {
     loginWithRedirect,
@@ -320,13 +329,14 @@ function App() {
 
   return (
     <div className="bg-gray-50 text-gray-800">
-      <Header
-        sendDataToParent={(data) => handleDataFromChild(data)}
-        onAboutClick={handleAboutClick}
-        onContactClick={handleContactClick}
-        onLogoClick={handleLogoClick} 
-        bookingType={""}
-      />
+         <Header
+
+  sendDataToParent={(data) => handleDataFromChild(data)}
+  onAboutClick={handleAboutClick}
+  onContactClick={handleContactClick}
+  onLogoClick={handleLogoClick} 
+  bookingType={""}
+/>
 
       {/* Render the current content */}
       {renderContent()}
