@@ -61,6 +61,7 @@ interface Booking {
   modifiedDate: string;
   responsibilities: Responsibilities;
   hasVacation?: boolean;
+  start_epoch ?: number;
   vacationDetails?: {
     leave_type?: string;
     total_days?: number;
@@ -99,23 +100,14 @@ const getServiceIcon = (type: string) => {
 };
 
 // Modification restriction functions
-const isModificationTimeAllowed = (startDate: string, timeSlot: string): boolean => {
-  const now = dayjs();
-  const [time, period] = timeSlot.split(' ');
-  const [hoursStr, minutesStr] = time.split(':');
-  let hours = parseInt(hoursStr, 10);
-  const minutes = parseInt(minutesStr, 10);
-  
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  
-  const bookingDateTime = dayjs(startDate)
-    .set('hour', hours)
-    .set('minute', minutes)
-    .set('second', 0);
-  
-  return now.isBefore(bookingDateTime.subtract(30, 'minute'));
+const isModificationTimeAllowed = (startEpoch: any): boolean => {
+  console.log("Start epoch ", startEpoch )
+  const now = dayjs().unix(); // current time in seconds
+  const cutoff = startEpoch - 30 * 60; // 30 minutes before booking start
+
+  return now < cutoff;
 };
+
 
 const isBookingAlreadyModified = (booking: Booking | null): boolean => {
   if (!booking) return false;
@@ -138,7 +130,7 @@ const isBookingAlreadyModified = (booking: Booking | null): boolean => {
 const isModificationDisabled = (booking: Booking | null): boolean => {
   if (!booking) return true;
   
-  return !isModificationTimeAllowed(booking.startDate, booking.timeSlot) || 
+  return !isModificationTimeAllowed(booking.start_epoch) || 
          isBookingAlreadyModified(booking);
 };
 
@@ -148,7 +140,7 @@ const getModificationTooltip = (booking: Booking | null): string => {
   if (isBookingAlreadyModified(booking)) {
     return "This booking has already been modified and cannot be modified again.";
   }
-  if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot)) {
+  if (!isModificationTimeAllowed(booking.start_epoch)) {
     return "Modification is only allowed at least 30 minutes before the scheduled time.";
   }
   return "Modify this booking";
@@ -273,15 +265,19 @@ const [selectedBookingForVacationManagement, setSelectedBookingForVacationManage
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
-          const hasVacation = item?.vacation?.leave_days > 0;
+          console.log("Mapping booking item:", item);
+          const hasVacation = item?.vacations?.length > 0;
           const modifications = item.modifications || [];
           const hasModifications = modifications.length > 0;
+
+          console.log("has hasVacation:", hasVacation);
 
           // Use the current dates from API (which should reflect modifications)
           const effectiveStartDate = item.start_date;
           const effectiveEndDate = item.end_date;
 
           return {
+            start_epoch : item.start_epoch,
             id: item.engagement_id,
             customerId: item.customerId,
             serviceProviderId: item.serviceProviderId,
