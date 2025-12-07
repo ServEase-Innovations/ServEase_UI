@@ -1,4 +1,4 @@
-name: CI/CD Deploy React App to AWS EC2
+name: CI/CD Deploy React App (serveaso_ui)
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Detect Target Environment
+      - name: Detect Deployment Environment
         id: env
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -29,26 +29,33 @@ jobs:
             BRANCH="${GITHUB_REF##*/}"
           fi
 
-          echo "Selected env = $BRANCH"
-
-          TARGET_PATH="/home/ubuntu/react-frontend"
+          echo "Selected Environment = $BRANCH"
 
           if [[ "$BRANCH" == "dev" ]]; then
             echo "host=${{ secrets.DEV_HOST }}" >> $GITHUB_OUTPUT
             echo "ssh_user=${{ secrets.DEV_USER }}" >> $GITHUB_OUTPUT
-            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            echo "path=/home/ubuntu/serveaso_ui" >> $GITHUB_OUTPUT
+            echo "env_content<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ secrets.DEV_UI_ENV }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             { echo "ssh_key<<EOF"; echo "${{ secrets.DEV_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
 
           elif [[ "$BRANCH" == "qa" ]]; then
             echo "host=${{ secrets.QA_HOST }}" >> $GITHUB_OUTPUT
             echo "ssh_user=${{ secrets.QA_USER }}" >> $GITHUB_OUTPUT
-            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            echo "path=/home/ubuntu/serveaso_ui" >> $GITHUB_OUTPUT
+            echo "env_content<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ secrets.QA_UI_ENV }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             { echo "ssh_key<<EOF"; echo "${{ secrets.QA_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
 
           else
             echo "host=${{ secrets.PROD_HOST }}" >> $GITHUB_OUTPUT
             echo "ssh_user=${{ secrets.PROD_USER }}" >> $GITHUB_OUTPUT
-            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            echo "path=/home/ubuntu/serveaso_ui" >> $GITHUB_OUTPUT
+            echo "env_content<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ secrets.PROD_UI_ENV }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
             { echo "ssh_key<<EOF"; echo "${{ secrets.PROD_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
           fi
 
@@ -57,26 +64,31 @@ jobs:
         with:
           ssh-private-key: ${{ steps.env.outputs.ssh_key }}
 
-      # Install Node for building React app
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build React App
         run: CI=false npm run build
 
-      - name: Upload Build to EC2
+      - name: Upload build folder to EC2
         run: |
           rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
-          --delete \
-          ./build/ ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }}:${{ steps.env.outputs.path }}/
+            ./build/ \
+            ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }}:${{ steps.env.outputs.path }}/
 
-      - name: Restart Nginx (optional)
+      - name: Write .env file on EC2 (Optional)
         run: |
           ssh -o StrictHostKeyChecking=no \
           ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }} \
-          "sudo systemctl restart nginx || true"
+          "echo '${{ steps.env.outputs.env_content }}' > ${{ steps.env.outputs.path }}/.env"
+
+      - name: Restart NGINX
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+          ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }} \
+          "sudo systemctl restart nginx"
