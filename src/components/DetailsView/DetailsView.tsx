@@ -197,7 +197,11 @@ useEffect(() => {
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
   serviceProviderData.map((provider, index) => (
     <div key={index} style={{ paddingTop: '1%' }}>
-      <ProviderDetails {...provider} />
+       <ProviderDetails 
+        {...provider} 
+        selectedProvider={handleSelectedProvider}
+        sendDataToParent={sendDataToParent} // Pass it here!
+      />
     </div>
   ))
 ) : loading === true ? (
