@@ -1,0 +1,82 @@
+name: CI/CD Deploy React App to AWS EC2
+
+on:
+  push:
+    branches: [ "dev", "qa", "prod" ]
+
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Select environment"
+        type: choice
+        required: true
+        options: [dev, qa, prod]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Detect Target Environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BRANCH="${{ github.event.inputs.env }}"
+          else
+            BRANCH="${GITHUB_REF##*/}"
+          fi
+
+          echo "Selected env = $BRANCH"
+
+          TARGET_PATH="/home/ubuntu/react-frontend"
+
+          if [[ "$BRANCH" == "dev" ]]; then
+            echo "host=${{ secrets.DEV_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ secrets.DEV_USER }}" >> $GITHUB_OUTPUT
+            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            { echo "ssh_key<<EOF"; echo "${{ secrets.DEV_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
+
+          elif [[ "$BRANCH" == "qa" ]]; then
+            echo "host=${{ secrets.QA_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ secrets.QA_USER }}" >> $GITHUB_OUTPUT
+            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            { echo "ssh_key<<EOF"; echo "${{ secrets.QA_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
+
+          else
+            echo "host=${{ secrets.PROD_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ secrets.PROD_USER }}" >> $GITHUB_OUTPUT
+            echo "path=$TARGET_PATH" >> $GITHUB_OUTPUT
+            { echo "ssh_key<<EOF"; echo "${{ secrets.PROD_KEY }}"; echo "EOF"; } >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ steps.env.outputs.ssh_key }}
+
+      # Install Node for building React app
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build React App
+        run: npm run build
+
+      - name: Upload Build to EC2
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+          --delete \
+          ./build/ ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }}:${{ steps.env.outputs.path }}/
+
+      - name: Restart Nginx (optional)
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+          ${{ steps.env.outputs.ssh_user }}@${{ steps.env.outputs.host }} \
+          "sudo systemctl restart nginx || true"
