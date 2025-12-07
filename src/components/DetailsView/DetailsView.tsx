@@ -200,7 +200,7 @@ useEffect(() => {
        <ProviderDetails 
         {...provider} 
         selectedProvider={handleSelectedProvider}
-        sendDataToParent={sendDataToParent} // Pass it here!
+        sendDataToParent={sendDataToParent} 
       />
     </div>
   ))
