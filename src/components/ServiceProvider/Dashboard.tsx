@@ -214,20 +214,22 @@ const formatBookingForCard = (booking: any) => {
     .filter(Boolean)
     .join(" ");
 
-  return {
-    id: booking.id.toString(),
-    bookingId: booking.id.toString(),
-    clientName,
-    service: getServiceTitle(booking.serviceType || booking.service_type),
-    date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-    time: timeRange,
-    location: booking.address || "Address not provided",
-    status: booking.taskStatus === "COMPLETED" ? "completed" : 
-            booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
-    amount: `₹${booking.monthlyAmount}`,
-    bookingData: booking,
-    responsibilities: booking.responsibilities || {},
-  };
+    return {
+      id: booking.id?.toString() || booking.bookingid?.toString(),
+      bookingId: booking.bookingid || booking.id, // <-- FIXED
+      engagement_id: booking.engagementid?.toString() || booking.id?.toString(),
+      clientName,
+      service: getServiceTitle(booking.serviceType || booking.service_type),
+      date: startDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      time: timeRange,
+      location: booking.address || "Address not provided",
+      status: booking.taskStatus === "COMPLETED" ? "completed" : 
+              booking.taskStatus === "IN_PROGRESS" ? "in-progress" : "upcoming",
+      amount: `₹${booking.monthlyAmount}`,
+      bookingData: booking,
+      responsibilities: booking.responsibilities || {},
+    };
+    
 };
 
 export default function Dashboard() {

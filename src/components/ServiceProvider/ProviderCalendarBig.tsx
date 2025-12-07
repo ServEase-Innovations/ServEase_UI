@@ -47,37 +47,41 @@ export default function ProviderCalendarBig({
         const res = await PaymentInstance.get(
           `/api/service-providers/${providerId}/calendar?month=${month}`
         );
-
         const entries: CalendarEntry[] = res.data.calendar || [];
 
-        const evts = entries.map((e) => {
-          // Backend date is ISO string => convert to Date first
-          const baseDate = new Date(e.date);
+        console.log("Fetched calendar entries:", entries);
 
-          // Parse start & end times
-          const [sh, sm, ss] = e.start_time.split(":").map(Number);
-          const [eh, em, es] = e.end_time.split(":").map(Number);
-
-          const start = new Date(baseDate);
-          start.setHours(sh, sm, ss);
-
-          const end = new Date(baseDate);
-          end.setHours(eh, em, es);
-
-          return {
-            id: e.id,
-            engagement_id: e.engagement_id,
-            title:
-              e.status === "BOOKED"
-                ? `Booked #${e.engagement_id}`
-                : e.status === "AVAILABLE"
-                ? "Available"
-                : "Unavailable",
-            start,
-            end,
-            status: e.status,
+          // Allow HH:mm or HH:mm:ss
+          const normalizeTime = (t: string) => {
+            if (!t) return "00:00:00";
+            const parts = t.split(":");
+            if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
+            return t; // already HH:mm:ss
           };
-        });
+          
+          const evts = entries
+            .filter((e) => e.status === "BOOKED") // Only booked slots
+            .map((e) => {
+              const baseDate = new Date(e.date);
+          
+              const [sh, sm, ss] = normalizeTime(e.start_time).split(":").map(Number);
+              const [eh, em, es] = normalizeTime(e.end_time).split(":").map(Number);
+          
+              const start = new Date(baseDate);
+              start.setHours(sh, sm, ss);
+          
+              const end = new Date(baseDate);
+              end.setHours(eh, em, es);
+          
+              return {
+                id: e.id,
+                engagement_id: e.engagement_id,
+                title: `Engagement #${e.engagement_id}`,
+                start,
+                end,
+                status: e.status,
+              };
+            });
 
         setEvents(evts);
       } catch (err) {
