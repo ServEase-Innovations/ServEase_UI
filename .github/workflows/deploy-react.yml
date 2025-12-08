@@ -22,17 +22,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------
-      # Checkout Correct Branch
-      # -------------------------
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
-      # -------------------------
-      # Determine Environment
-      # -------------------------
       - name: Determine Environment
         id: env
         run: |
@@ -44,71 +38,45 @@ jobs:
             BRANCH="${GITHUB_REF##*/}"
           fi
 
-          echo "env=$ENV" >> $GITHUB_OUTPUT
-          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Using Environment: $ENV"
+          echo "Using Branch: $BRANCH"
 
+          # Assign environment-specific values
           if [[ "$ENV" == "dev" ]]; then
             echo "envFile=.env.dev" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_DEV_HOST }}" >> $GITHUB_OUTPUT
-            echo "ssh_key=${{ secrets.DEV_KEY }}" >> $GITHUB_OUTPUT
 
           elif [[ "$ENV" == "qa" ]]; then
             echo "envFile=.env.qa" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_QA_HOST }}" >> $GITHUB_OUTPUT
-            echo "ssh_key=${{ secrets.QA_KEY }}" >> $GITHUB_OUTPUT
 
           else
             echo "envFile=.env.prod" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_PROD_HOST }}" >> $GITHUB_OUTPUT
-            echo "ssh_key=${{ secrets.PROD_KEY }}" >> $GITHUB_OUTPUT
           fi
 
-      # -------------------------
-      # Install Node
-      # -------------------------
       - name: Install Node
         uses: actions/setup-node@v4
         with:
           node-version: "18"
 
-      # -------------------------
-      # Install Dependencies
-      # -------------------------
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      # -------------------------
-      # Ensure env-cmd Installed Globally
-      # -------------------------
-      - name: Ensure env-cmd Installed
-        run: npm install -g env-cmd
-
-      # -------------------------
-      # Build React App
-      # -------------------------
       - name: Build React App
         run: env-cmd -f ${{ steps.env.outputs.envFile }} npm run build
 
-      # -------------------------
-      # Setup SSH Agent WITH ENV-BASED KEY
-      # -------------------------
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ steps.env.outputs.ssh_key }}
+           ssh-private-key: ${{ steps.env.outputs.ssh_key }}
 
-      # -------------------------
-      # Deploy to EC2
-      # -------------------------
       - name: Deploy to EC2
         run: |
           rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no" \
             build/ ubuntu@${{ steps.env.outputs.server }}:/var/www/serveaso_ui/
 
-      # -------------------------
-      # Restart NGINX
-      # -------------------------
       - name: Restart NGINX
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.env.outputs.server }} \
