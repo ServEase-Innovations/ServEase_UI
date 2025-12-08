@@ -1,4 +1,5 @@
 // Login.tsx
+/* eslint-disable */
 import React, { useState } from "react";
 import Registration from "../Registration/Registration";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";

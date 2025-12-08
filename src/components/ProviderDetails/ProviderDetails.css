@@ -3,8 +3,16 @@
 /* Container Styles */
 .container-provider {
   padding: 20px;
-  position: relative; /* This allows absolute positioning within this container */
+  margin-top: 10px;
 }
+
+@media (max-width: 768px) {
+  .container-provider {
+    margin-top: 20px; /* header is taller on mobile */
+  }
+}
+
+
 
 /* Position the + and - toggle at the top-right */
 .expand-toggle {

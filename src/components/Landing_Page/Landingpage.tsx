@@ -42,30 +42,30 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
   const { selectedBookingType, setSelectedBookingType } = useContext(ServiceProviderContext);
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    const requestNotificationPermission = async () => {
-      try {
-        if ('serviceWorker' in navigator && 'Notification' in window) {
-          const permission = await Notification.requestPermission();
-          setNotificationPermission(permission);
+  // useEffect(() => {
+  //   const requestNotificationPermission = async () => {
+  //     try {
+  //       if ('serviceWorker' in navigator && 'Notification' in window) {
+  //         const permission = await Notification.requestPermission();
+  //         setNotificationPermission(permission);
           
-          if (permission === 'granted') {
-            await subscribeUser();
-          }
-        }
-      } catch (error) {
-        console.error('Error requesting notification permission:', error);
-      }
-    };
+  //         if (permission === 'granted') {
+  //           await subscribeUser();
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Error requesting notification permission:', error);
+  //     }
+  //   };
 
-    // Only request permission if it hasn't been granted or denied yet
-    if (notificationPermission === 'default') {
-      requestNotificationPermission();
-    } else if (notificationPermission === 'granted') {
-      // If already granted, subscribe the user
-      subscribeUser();
-    }
-  }, [notificationPermission]);
+  //   // Only request permission if it hasn't been granted or denied yet
+  //   if (notificationPermission === 'default') {
+  //     requestNotificationPermission();
+  //   } else if (notificationPermission === 'granted') {
+  //     // If already granted, subscribe the user
+  //     subscribeUser();
+  //   }
+  // }, [notificationPermission]);
 
   const handleStartDateChange = (newDate: any) => {
     setStartDate(newDate ? newDate.format('YYYY-MM-DD') : null);
@@ -153,31 +153,31 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
     return true;
   };
 
-  const subscribeUser = async () => {
-    try {
-      const register = await navigator.serviceWorker.ready;
+  // const subscribeUser = async () => {
+  //   try {
+  //     const register = await navigator.serviceWorker.ready;
 
-      const existingSubscription = await register.pushManager.getSubscription();
-      if (existingSubscription) {
-        await existingSubscription.unsubscribe();
-      }
+  //     const existingSubscription = await register.pushManager.getSubscription();
+  //     if (existingSubscription) {
+  //       await existingSubscription.unsubscribe();
+  //     }
 
-      const subscription = await register.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-      });
+  //     const subscription = await register.pushManager.subscribe({
+  //       userVisibleOnly: true,
+  //       applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+  //     });
 
-      await fetch('http://localhost:4000/subscribe', {
-        method: 'POST',
-        body: JSON.stringify(subscription),
-        headers: { 'Content-Type': 'application/json' },
-      });
+  //     await fetch('http://localhost:4000/subscribe', {
+  //       method: 'POST',
+  //       body: JSON.stringify(subscription),
+  //       headers: { 'Content-Type': 'application/json' },
+  //     });
 
-      console.log('User subscribed:', subscription);
-    } catch (error) {
-      console.error('Error subscribing user:', error);
-    }
-  };
+  //     console.log('User subscribed:', subscription);
+  //   } catch (error) {
+  //     console.error('Error subscribing user:', error);
+  //   }
+  // };
 
   const triggerNotification = async () => {
     try {

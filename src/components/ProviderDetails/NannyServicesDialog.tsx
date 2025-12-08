@@ -1,15 +1,65 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
-import axios from 'axios';
+/* eslint-disable */
+import React, { useEffect, useState, useCallback } from 'react';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
-import { BookingDetails } from '../../types/engagementRequest';
-import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { useEffect, useState } from 'react';
-import Login from '../Login/Login';
+import { CircularProgress, Dialog, DialogContent, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import { addToCart, clearCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
+import { isNannyCartItem, NannyCartItem } from '../../types/cartSlice';
+import {
+  StyledDialog,
+  StyledDialogContent,
+  DialogContainer,
+  DialogHeader,
+  TabContainer,
+  TabButton,
+  TabIndicator,
+  PackagesContainer,
+  PackageCard,
+  PackageHeader,
+  PackageTitle,
+  RatingContainer,
+  RatingValue,
+  ReviewsText,
+  PriceContainer,
+  PriceValue,
+  CareType,
+  PersonsControl,
+  PersonsLabel,
+  PersonsInput,
+  DecrementButton,
+  IncrementButton,
+  PersonsValue,
+  DescriptionList,
+  DescriptionItem,
+  DescriptionBullet,
+  ButtonsContainer,
+  CartButton,
+  CloseButton,
+  FooterContainer,
+  FooterText,
+  FooterButtons,
+  FooterPrice,
+  LoginButton,
+  CheckoutButton,
+  VoucherContainer,
+  VoucherTitle,
+  VoucherInputContainer,
+  VoucherInput,
+  VoucherButton,
+  AgeInfoText
+} from './CookServicesDialog.styles';
+import { useAuth0 } from "@auth0/auth0-react";
+import CloseIcon from '@mui/icons-material/Close';
+import { CartDialog } from '../AddToCart/CartDialog';
+import axios from 'axios';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
+import { usePricingFilterService } from 'src/utils/PricingFilter';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
+import { BOOKINGS } from '../../Constants/pagesConstants';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -18,6 +68,57 @@ interface NannyServicesDialogProps {
   sendDataToParent?: (data: string) => void;
 }
 
+type NannyPackage = {
+  selected: boolean;
+  age: number;
+  calculatedPrice: number;
+  description: string[];
+  rating: number;
+  reviews: string;
+  category: string;
+  jobDescription: string;
+  remarks: string;
+  bookingType: "On_demand" | "REGULAR";
+  inCart: boolean;
+};
+
+type PackagesState = Record<string, NannyPackage>;
+
+// ✅ Helper to check DB "Numbers/Size" conditions
+const matchAgeToSize = (numbersSize: string, age: number): boolean => {
+  if (!numbersSize) return false;
+  if (numbersSize.startsWith("<=")) {
+    const limit = parseInt(numbersSize.replace("<=", "").trim(), 10);
+    return age <= limit;
+  }
+  if (numbersSize.startsWith(">")) {
+    const limit = parseInt(numbersSize.replace(">", "").trim(), 10);
+    return age > limit;
+  }
+  return false;
+};
+
+// ✅ Compute price dynamically from DB
+const getPackagePrice = (
+  allServices: any[],
+  category: string,
+  bookingType: "On_demand" | "REGULAR",
+  age: number
+) => {
+  const matched = allServices.find(service => {
+    return (
+      service.Categories.toLowerCase() === category.toLowerCase() &&
+      matchAgeToSize(service["Numbers/Size"], age)
+    );
+  });
+
+  if (!matched) return 0;
+
+  return bookingType === "On_demand"
+    ? matched["Price /Day (INR)"]
+    : matched["Price /Month (INR)"];
+};
+
 const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({ 
   open, 
   handleClose, 
@@ -25,1017 +126,604 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   sendDataToParent
 }) => {
   const [activeTab, setActiveTab] = useState<'baby' | 'elderly'>('baby');
-  const [babyPackages, setBabyPackages] = useState({
-    day: { age: 3, selected: false },
-    night: { age: 3, selected: false },
-    fullTime: { age: 3, selected: false }
-  });
-  const [elderlyPackages, setElderlyPackages] = useState({
-    day: { age: 65, selected: false },
-    night: { age: 65, selected: false },
-    fullTime: { age: 65, selected: false }
-  });
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
+  const [packages, setPackages] = useState<PackagesState>({});
+  const [allServices, setAllServices] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
 
+  const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const user = useSelector((state: any) => state.user?.value);
+  const { isAuthenticated, user, loginWithRedirect } = useAuth0();
   const dispatch = useDispatch();
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
+  const allCartItems = useSelector(selectCartItems);
+  const nannyCartItems = allCartItems.filter(isNannyCartItem);
+  const users = useSelector((state: any) => state.user?.value);
+  const currentLocation = users?.customerDetails?.currentLocation;
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
 
-  useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
-    }
-  }, [user]);
+  const toggleCart = useCallback((key: string, pkg: NannyPackage) => {
+    // Detect package type from key
+    const packageType = key.includes("day") ? "day" 
+                      : key.includes("night") ? "night" 
+                      : "fullTime";
 
-  const handleLogin = () => setLoginOpen(true);
-  const handleLoginClose = () => setLoginOpen(false);
-  const handleBookingPage = () => setLoginOpen(false);
+    // Detect care type from category instead of splitting key
+    const careType = pkg.category.toLowerCase().includes("baby") 
+      ? "baby" 
+      : "elderly";
 
-  const handleBabyAgeChange = (packageType: string, value: number) => {
-    setBabyPackages(prev => ({
-      ...prev,
-      [packageType]: {
-        ...prev[packageType as keyof typeof prev],
-        age: Math.max(0, prev[packageType as keyof typeof prev].age + value)
-      }
-    }));
-  };
+    const cartItem: NannyCartItem = {
+      id: key.toUpperCase(),
+      type: "nanny",
+      careType: careType,
+      packageType: packageType,
+      age: pkg.age,
+      price: pkg.calculatedPrice,
+      description: pkg.description.join(", "),
+      providerId: providerDetails?.serviceproviderId || '',
+      providerName: providerFullName,
+      activeTab: activeTab // Add current active tab
+    };
 
-  const handleElderlyAgeChange = (packageType: string, value: number) => {
-    setElderlyPackages(prev => ({
-      ...prev,
-      [packageType]: {
-        ...prev[packageType as keyof typeof prev],
-        age: Math.max(0, prev[packageType as keyof typeof prev].age + value)
-      }
-    }));
-  };
+    // Check if this item is already in the cart
+    const isAlreadyInCart = nannyCartItems.some(item => 
+      item.id === cartItem.id
+    );
 
-  const togglePackageSelection = (packageType: string, isBaby: boolean) => {
-    if (isBaby) {
-      setBabyPackages(prev => ({
+    if (isAlreadyInCart) {
+      // Remove from cart
+      dispatch(removeFromCart({ id: cartItem.id, type: 'nanny' }));
+      setPackages(prev => ({
         ...prev,
-        [packageType]: {
-          ...prev[packageType as keyof typeof prev],
-          selected: !prev[packageType as keyof typeof prev].selected
+        [key]: {
+          ...prev[key],
+          inCart: false,
+          selected: false
         }
       }));
     } else {
-      setElderlyPackages(prev => ({
+      // Clear other nanny services from different tabs
+      const itemsToRemove = nannyCartItems.filter(item => 
+        item.type === 'nanny' && item.activeTab !== activeTab
+      );
+      
+      itemsToRemove.forEach(item => {
+        dispatch(removeFromCart({ id: item.id, type: 'nanny' }));
+      });
+
+      // Also clear other service types
+      dispatch(removeFromCart({ type: 'meal' }));
+      dispatch(removeFromCart({ type: 'maid' }));
+      
+      // Add to cart
+      dispatch(addToCart(cartItem));
+      setPackages(prev => ({
         ...prev,
-        [packageType]: {
-          ...prev[packageType as keyof typeof prev],
-          selected: !prev[packageType as keyof typeof prev].selected
+        [key]: {
+          ...prev[key],
+          inCart: true,
+          selected: true
         }
       }));
     }
+  }, [activeTab, dispatch, nannyCartItems, providerDetails, providerFullName]);
+
+useEffect(() => {
+  const updatedNannyServices = getFilteredPricing("nanny");
+  if (!updatedNannyServices || updatedNannyServices.length === 0) {
+    if (Object.keys(packages).length > 0) setPackages({});
+    return;
+  }
+
+  const newPackages: PackagesState = {};
+  const isOnDemand = bookingType?.bookingPreference?.toLowerCase() === "date";
+  const bookingTypeLabel: "On_demand" | "REGULAR" = isOnDemand ? "On_demand" : "REGULAR";
+
+  updatedNannyServices.forEach((service: any) => {
+    const key = `${service.Categories.toLowerCase()}_${service["Type"].toLowerCase()}_${bookingTypeLabel.toLowerCase()}`;
+    const defaultAge = service.Categories.toLowerCase().includes("baby") ? 1 : 60;
+    newPackages[key] = {
+      ...packages[key], // Use current packages to preserve selected/inCart
+      age: packages[key]?.age || defaultAge,
+      calculatedPrice: getPackagePrice(
+        updatedNannyServices,
+        service.Categories,
+        bookingTypeLabel,
+        packages[key]?.age || defaultAge
+      ),
+      description: service["Job Description"]?.split("\n").filter(Boolean) || [],
+      rating: 4.7,
+      reviews: "(1M reviews)",
+      category: service.Categories,
+      jobDescription: service["Job Description"],
+      remarks: service["Remarks/Conditions"] || "",
+      bookingType: bookingTypeLabel,
+      selected: packages[key]?.selected || false,
+      inCart: packages[key]?.inCart || false
+    };
+  });
+
+  // Only update if something actually changed
+  const prevStr = JSON.stringify(packages);
+  const newStr = JSON.stringify(newPackages);
+  if (prevStr !== newStr) setPackages(newPackages);
+
+}, [bookingType, packages, getFilteredPricing]);
+
+
+  // 3. Clear cart items when switching tabs
+  useEffect(() => {
+    // Only run this when the tab actually changes and we have cart items
+    if (nannyCartItems.length === 0) return;
+    
+    const itemsToRemove = nannyCartItems.filter(
+      item => item.type === "nanny" && item.activeTab !== activeTab
+    );
+
+    if (itemsToRemove.length === 0) return;
+
+    itemsToRemove.forEach(item => {
+      dispatch(removeFromCart({ id: item.id, type: "nanny" }));
+    });
+
+    // Update packages state without causing infinite loop
+    setPackages(prev => {
+      const updated = { ...prev };
+      itemsToRemove.forEach(item => {
+        const packageKey = item.id.toLowerCase();
+        if (updated[packageKey]) {
+          updated[packageKey] = { 
+            ...updated[packageKey], 
+            inCart: false, 
+            selected: false 
+          };
+        }
+      });
+      return updated;
+    });
+  }, [activeTab, dispatch]);
+
+  const prepareCartForCheckout = () => {
+    // Clear all existing cart items
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
+
+    // Add selected packages to cart
+    Object.entries(packages).forEach(([key, pkg]) => {
+      if (pkg.selected) {
+        const packageType = key.includes("day") ? "day" 
+                          : key.includes("night") ? "night" 
+                          : "fullTime";
+
+        const careType = pkg.category.toLowerCase().includes("baby") 
+          ? "baby" 
+          : "elderly";
+
+        dispatch(addToCart({
+          type: 'nanny',
+          id: key.toUpperCase(),
+          careType: careType,
+          packageType: packageType,
+          age: pkg.age,
+          price: pkg.calculatedPrice,
+          description: pkg.description.join(", "),
+          providerId: providerDetails?.serviceproviderId || '',
+          providerName: providerFullName,
+          activeTab: activeTab
+        }));
+      }
+    });
   };
+
+  // ---- CartDialog controls ----
+  const handleOpenCartDialog = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const selectedCount = Object.values(packages).filter(pkg => pkg.selected).length;
+
+    if (selectedCount === 0) {
+      setError("Please select at least one package");
+      return;
+    }
+
+    prepareCartForCheckout();
+    setCartDialogOpen(true);
+  };
+
+  const handleCloseCartDialog = () => {
+    setCartDialogOpen(false);
+  };
+
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY'; // default
+    
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
+
+  const getSelectedServicesDescription = () => {
+    return Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([name, pkg]) => {
+        const careType = name.split('_')[0];
+        const packageType = name.split('_')[1];
+        return `${careType} care (${packageType}) for age ${pkg.age}`;
+      })
+      .join(', ');
+  };
+
+  // Handle success dialog close
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  // Navigation function for "View My Bookings" button
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    
+    handleClose();
+    setCartDialogOpen(false);
+  };
+console.log("dataaa",bookingType?.endTime);
+  const handleCheckout = async () => {
+  try {
+    setLoading(true);
+
+    // 1. Filter selected packages
+    const selectedPackages = Object.entries(packages)
+      .filter(([_, pkg]) => pkg.selected)
+      .map(([key, pkg]) => ({
+        key,
+        age: pkg.age,
+        price: pkg.calculatedPrice,
+        category: pkg.category,
+        packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+      }));
+
+    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+    if (baseTotal === 0) {
+      setSnackbarMessage("Please select at least one service");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const customerId = user?.customerid || "guest-id";
+
+    const responsibilities = selectedPackages.map(pkg => ({
+      taskType: `${pkg.category} care - ${pkg.packageType} service`,
+      age: pkg.age,
+      careType: activeTab,
+    }));
+
+  const payload: BookingPayload = {
+  customerid: customerId,
+  serviceproviderid: providerDetails?.serviceproviderId
+    ? Number(providerDetails.serviceproviderId)
+    : 0,
+  start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+  end_date: bookingType?.endDate || "",
+  start_time: bookingType?.startTime || '',
+  responsibilities: { tasks: responsibilities },
+  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+  taskStatus: "NOT_STARTED",
+  service_type: "NANNY",
+  base_amount: baseTotal,
+  payment_mode: "razorpay",
+  // Fix: Use consistent booking preference check
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+    end_time: bookingType?.endTime || "",
+  }),
+};
+
+    const result = await BookingService.bookAndPay(payload);
+
+    // ✅ Set success details and show success dialog instead of snackbar
+    setBookingSuccessDetails({
+      providerName: providerFullName,
+      serviceType: 'Caregiver Service',
+      totalAmount: baseTotal,
+      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      persons: selectedPackages.length,
+      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+    });
+    
+    // Close ALL dialogs and open success dialog
+    setCartDialogOpen(false);
+    handleClose();
+    setSuccessDialogOpen(true);
+
+  } catch (err: any) {
+    console.error("Checkout error:", err);
+
+    // ✅ Still use snackbar for errors
+    let backendMessage = "Payment failed. Please try again.";
+    if (err?.response?.data) {
+      if (typeof err.response.data === "string") {
+        backendMessage = err.response.data;
+      } else if (err.response.data.error) {
+        backendMessage = err.response.data.error;
+      } else if (err.response.data.message) {
+        backendMessage = err.response.data.message;
+      }
+    } else if (err.message) {
+      backendMessage = err.message;
+    }
+
+    setSnackbarMessage(backendMessage);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const calculateTotal = () => {
-    let total = 0;
-    if (activeTab === 'baby') {
-      if (babyPackages.day.selected) total += 16000;
-      if (babyPackages.night.selected) total += 20000;
-      if (babyPackages.fullTime.selected) total += 23000;
-    } else {
-      if (elderlyPackages.day.selected) total += 16000;
-      if (elderlyPackages.night.selected) total += 20000;
-      if (elderlyPackages.fullTime.selected) total += 23000;
-    }
-    return total;
+    return Object.entries(packages)
+      .filter(([key, pkg]) => {
+        // Only include packages from current active tab
+        const isCurrentTab = activeTab === 'baby' 
+          ? key.includes('baby') 
+          : key.includes('elderly');
+        
+        return pkg.selected && isCurrentTab;
+      })
+      .reduce((sum, [_, pkg]) => sum + pkg.calculatedPrice, 0);
   };
 
   const getSelectedPackagesCount = () => {
-    if (activeTab === 'baby') {
-      return Object.values(babyPackages).filter(pkg => pkg.selected).length;
-    } else {
-      return Object.values(elderlyPackages).filter(pkg => pkg.selected).length;
-    }
+    return Object.entries(packages)
+      .filter(([key, pkg]) => {
+        const isCurrentTab = activeTab === 'baby' 
+          ? key.includes('baby') 
+          : key.includes('elderly');
+        
+        return pkg.selected && isCurrentTab;
+      })
+      .length;
   };
+
+  const handleAgeChange = useCallback((key: string, increment: number) => {
+    setPackages(prev => {
+      const currentPkg = prev[key];
+      if (!currentPkg) {
+        return prev;
+      }
+
+      const isBaby = key.includes('baby');
+      const minAge = isBaby ? 1 : 60;
+      const maxAge = isBaby ? 6 : 80;
+
+      const newAge = Math.max(minAge, Math.min(maxAge, currentPkg.age + increment));
+      const newPrice = getPackagePrice(
+        allServices,
+        currentPkg.category,
+        currentPkg.bookingType,
+        newAge
+      );
+
+      return {
+        ...prev,
+        [key]: {
+          ...currentPkg,
+          age: newAge,
+          calculatedPrice: newPrice
+        }
+      };
+    });
+  }, [allServices]);
 
   const handleApplyVoucher = () => {
     // Voucher logic here
   };
 
-  const handleCheckout = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // ✅ Rendering Baby & Elderly Tabs with Age Limits
+  const renderPackages = (tab: 'baby' | 'elderly') => {
+    return Object.entries(packages)
+      .filter(([key]) => key.includes(tab))
+      .map(([key, pkg]) => {
+        const packageType = key.split('_')[1];
+        const color = tab === 'baby' ? '#e17055' : '#0984e3';
+        const displayPackageType = packageType.charAt(0).toUpperCase() + packageType.slice(1);
 
-      const totalAmount = calculateTotal();
-      if (totalAmount === 0) {
-        throw new Error('Please select at least one service');
-      }
-
-      const bookingData: BookingDetails = {
-        serviceProviderId: providerDetails?.serviceproviderId ? Number(providerDetails.serviceproviderId) : 0,
-        serviceProviderName: providerFullName,
-        customerId,
-        customerName,
-        address: currentLocation,
-        startDate: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        endDate: bookingType?.endDate || "",
-        engagements: getSelectedServicesDescription(),
-        monthlyAmount: totalAmount,
-        timeslot: bookingType?.timeRange || "",
-        paymentMode: "UPI",
-        bookingType: "NANNY_SERVICES",
-        taskStatus: "NOT_STARTED",
-        responsibilities: []
-      };
-
-      // Try creating order through backend first
-      try {
-        const orderResponse = await createRazorpayOrder(totalAmount);
-        await handlePaymentSuccess(orderResponse.data.orderId, bookingData);
-      } catch (backendError) {
-        console.warn("Backend order creation failed, falling back to client-side", backendError);
-        await createClientSideOrder(totalAmount, bookingData);
-      }
-
-    } catch (err: any) {
-      handlePaymentError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createRazorpayOrder = async (amount: number) => {
-    return await axios.post(
-      "https://utils-dmua.onrender.com/create-order",
-      { 
-        amount: amount * 100,
-        currency: "INR",
-        receipt: `receipt_${Date.now()}`,
-        payment_capture: 1
-      },
-      { 
-        headers: { "Content-Type": "application/json" },
-        timeout: 8000
-      }
-    );
-  };
-
-  const createClientSideOrder = async (amount: number, bookingData: BookingDetails) => {
-    return new Promise((resolve, reject) => {
-      if (typeof window.Razorpay === "undefined") {
-        throw new Error("Razorpay SDK not loaded");
-      }
-
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount: amount * 100,
-        currency: "INR",
-        name: "Serveaso",
-        description: "Nanny Services Booking",
-        handler: async (response: any) => {
-          try {
-            await handlePaymentSuccess(response.razorpay_order_id, bookingData);
-            resolve(response);
-          } catch (err) {
-            reject(err);
-          }
-        },
-        prefill: {
-          name: customerName || "",
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-        modal: {
-          ondismiss: () => {
-            reject(new Error("Payment closed by user"));
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    });
-  };
-
-const handlePaymentSuccess = async (orderId: string, bookingData: BookingDetails) => {
-  try {
-    const bookingResponse = await axiosInstance.post(
-      "/api/serviceproviders/engagement/add",
-      {
-        ...bookingData,
-        paymentReference: orderId
-      },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    if (bookingResponse.status === 201) {
-      // Notification logic inserted here
-      try {
-        const notifyResponse = await fetch(
-          "http://localhost:4000/send-notification",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              title: "Hello from ServEaso!",
-              body: `Your booking for ${bookingData.engagements} has been successfully confirmed!`,
-              url: "http://localhost:3000",
-            }),
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        if (notifyResponse.ok) {
-          console.log("Notification triggered!");
-          alert("Notification sent!");
-        } else {
-          console.error("Notification failed");
-          alert("Failed to send notification");
-        }
-      } catch (error) {
-        console.error("Error sending notification:", error);
-        alert("Error sending notification");
-      }
-
-      if (sendDataToParent) sendDataToParent(BOOKINGS);
-      handleClose();
-      alert("Booking successful! Payment ID: " + orderId);
-    } else {
-      throw new Error("Failed to save booking");
-    }
-  } catch (err) {
-    console.error("Error saving booking:", err);
-    throw new Error("Payment succeeded but booking failed. Please contact support.");
-  }
-};
-
-
-  const handlePaymentError = (err: any) => {
-    console.error("Payment error:", err);
-    const errorMessage = err.response?.data?.message || 
-                        err.message || 
-                        "Payment failed. Please try again later.";
-    setError(errorMessage);
-  };
-
-  const getSelectedServicesDescription = () => {
-    const selectedPackages = activeTab === 'baby' 
-      ? Object.entries(babyPackages).filter(([_, pkg]) => pkg.selected)
-      : Object.entries(elderlyPackages).filter(([_, pkg]) => pkg.selected);
-    
-    return selectedPackages.map(([pkgType, pkg]) => 
-      `${activeTab === 'baby' ? 'Baby' : 'Elderly'} care (${pkgType}) for age ≤${pkg.age}`
-    ).join(', ');
-  };
-  return (    
-    <>
-      <Dialog 
-        style={{padding:'0px', borderRadius: '12px'}}
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-        PaperProps={{
-          style: { width: '500px', borderRadius: '12px' }
-        }}
-      >
-        <DialogContent style={{padding: '0'}}>
-          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '550px', width: '100%'}}>
-            {/* Header */}
-            <div style={{padding: '20px', borderBottom: '1px solid #f0f0f0'}}>
-              <h1 style={{color: '#2d3436', margin: '0 0 15px 0', fontSize: '24px'}}>NANNY SERVICES</h1>
-              
-              <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0' }}>
-                <button 
-                  onClick={() => setActiveTab('baby')}
-                  style={{
-                    flex: 1,
-                    padding: '15px',
-                    backgroundColor: '#fff',
-                    border: 'none',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    color: '#2d3436'
-                  }}
-                >
-                  <div style={{
-                    borderBottom: activeTab === 'baby' ? '2px solid #e17055' : 'none',
-                    width: '50%',
-                    margin: '0 auto'
-                  }}>
-                    Baby Care
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => setActiveTab('elderly')}
-                  style={{
-                    flex: 1,
-                    padding: '15px',
-                    backgroundColor: '#fff',
-                    border: 'none',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    color: '#2d3436'
-                  }}
-                >
-                  <div style={{
-                    borderBottom: activeTab === 'elderly' ? '2px solid #e17055' : 'none',
-                    width: '50%',
-                    margin: '0 auto'
-                  }}>
-                    Elderly Care
-                  </div>
-                </button>
+        return (
+          <PackageCard key={key} selected={pkg.selected}>
+            <PackageHeader>
+              <div>
+                <PackageTitle>{pkg.category} - {displayPackageType}</PackageTitle>
+                <RatingContainer>
+                  <RatingValue color={color}>{pkg.rating}</RatingValue>
+                  <ReviewsText>{pkg.reviews}</ReviewsText>
+                </RatingContainer>
               </div>
-            </div>
-            
-            {/* Package Sections */}
-            <div style={{padding: '20px'}}>
-              {activeTab === 'baby' ? (
-                <>
-                  {/* Baby Care - Day */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    marginBottom: '20px',
-                    backgroundColor: babyPackages.day.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Baby Care - Day</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#e17055', fontWeight: 'bold'}}>4.8</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.5M reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#e17055', fontSize: '18px'}}>₹16,000 - ₹17,600</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Daytime care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleBabyAgeChange('day', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{babyPackages.day.age}</span>
-                        <button 
-                          onClick={() => handleBabyAgeChange('day', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0 20px 20px 0',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{margin: '15px 0'}}>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Professional daytime baby care</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Age-appropriate activities</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Meal preparation and feeding</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => togglePackageSelection('day', true)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: babyPackages.day.selected ? '#e17055' : '#fff',
-                        color: babyPackages.day.selected ? 'white' : '#e17055',
-                        border: '1px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      {babyPackages.day.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                    </button>
-                  </div>
-                  
-                  {/* Baby Care - Night */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    marginBottom: '20px',
-                    backgroundColor: babyPackages.night.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Baby Care - Night</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#00b894', fontWeight: 'bold'}}>4.9</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.2M reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#00b894', fontSize: '18px'}}>₹20,000 - ₹22,000</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Overnight care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleBabyAgeChange('night', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{babyPackages.night.age}</span>
-                        <button 
-                          onClick={() => handleBabyAgeChange('night', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0 20px 20px 0',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{margin: '15px 0'}}>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Professional overnight baby care</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Night feeding and diaper changes</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Sleep routine establishment</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => togglePackageSelection('night', true)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: babyPackages.night.selected ? '#e17055' : '#fff',
-                        color: babyPackages.night.selected ? 'white' : '#e17055',
-                        border: '1px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      {babyPackages.night.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                    </button>
-                  </div>
-                  
-                  {/* 24 Hours In-House Care */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    backgroundColor: babyPackages.fullTime.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>24 Hours In-House Care</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#0984e3', fontWeight: 'bold'}}>4.9</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(980K reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#0984e3', fontSize: '18px'}}>₹23,000 - ₹25,000</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Full-time care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleBabyAgeChange('fullTime', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{babyPackages.fullTime.age}</span>
-                        <button 
-                          onClick={() => handleBabyAgeChange('fullTime', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0 20px 20px 0',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{margin: '15px 0'}}>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Round-the-clock professional care</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>All daily care activities included</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Live-in nanny service</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => togglePackageSelection('fullTime', true)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: babyPackages.fullTime.selected ? '#e17055' : '#fff',
-                        color: babyPackages.fullTime.selected ? 'white' : '#e17055',
-                        border: '1px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      {babyPackages.fullTime.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Elderly Care - Day */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    marginBottom: '20px',
-                    backgroundColor: elderlyPackages.day.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Elderly Care - Day</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#e17055', fontWeight: 'bold'}}>4.7</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.1M reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#e17055', fontSize: '18px'}}>₹16,000 - ₹17,600</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Daytime care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('day', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{elderlyPackages.day.age}</span>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('day', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0 20px 20px 0',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{margin: '15px 0'}}>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Professional daytime elderly care</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Medication management</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Meal preparation and assistance</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => togglePackageSelection('day', false)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: elderlyPackages.day.selected ? '#e17055' : '#fff',
-                        color: elderlyPackages.day.selected ? 'white' : '#e17055',
-                        border: '1px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      {elderlyPackages.day.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                    </button>
-                  </div>
-                  
-                  {/* Elderly Care - Night */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    marginBottom: '20px',
-                    backgroundColor: elderlyPackages.night.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Elderly Care - Night</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#00b894', fontWeight: 'bold'}}>4.8</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(950K reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#00b894', fontSize: '18px'}}>₹20,000 - ₹22,000</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Overnight care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('night', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{elderlyPackages.night.age}</span>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('night', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0 20px 20px 0',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{margin: '15px 0'}}>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Professional overnight elderly care</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Night-time assistance and monitoring</span>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center'}}>
-                        <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                        <span>Sleep comfort and safety</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => togglePackageSelection('night', false)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        backgroundColor: elderlyPackages.night.selected ? '#e17055' : '#fff',
-                        color: elderlyPackages.night.selected ? 'white' : '#e17055',
-                        border: '1px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      {elderlyPackages.night.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                    </button>
-                  </div>
-                  
-                  {/* 24 Hours In-House Elderly Care */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    backgroundColor: elderlyPackages.fullTime.selected ? '#fff8f6' : '#fff'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                      <div>
-                        <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>24 Hours In-House Care</h2>
-                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                          <span style={{color: '#0984e3', fontWeight: 'bold'}}>4.9</span>
-                          <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(850K reviews)</span>
-                        </div>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        <div style={{fontWeight: 'bold', color: '#0984e3', fontSize: '18px'}}>₹23,000 - ₹25,000</div>
-                        <div style={{color: '#636e72', fontSize: '14px'}}>Full-time care</div>
-                      </div>
-                    </div>
-                    
-                    {/* Age Selector */}
-                    <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                      <span style={{marginRight: '15px', color: '#2d3436'}}>Age:</span>
-                      <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('fullTime', -1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderRight: '1px solid #dfe6e9',
-                            borderRadius: '20px 0 0 20px',
-                            cursor: 'pointer',
-                            fontSize: '16px'
-                          }}
-                        >
-                          -
-                        </button>
-                        <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>≤{elderlyPackages.fullTime.age}</span>
-                        <button 
-                          onClick={() => handleElderlyAgeChange('fullTime', 1)}
-                          style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#f5f5f5',
-                            border: 'none',
-                            borderLeft: '1px solid #dfe6e9',
-                            borderRadius: '0',
-                          cursor: 'pointer',
-                          fontSize: '16px'
-                        }}
-                      >
-                                               +
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div style={{margin: '15px 0'}}>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                      <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                      <span>Round-the-clock professional care</span>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                      <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                      <span>All daily care activities included</span>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center'}}>
-                      <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                      <span>Live-in caregiver service</span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={() => togglePackageSelection('fullTime', false)}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      backgroundColor: elderlyPackages.fullTime.selected ? '#e17055' : '#fff',
-                      color: elderlyPackages.fullTime.selected ? 'white' : '#e17055',
-                      border: '1px solid #e17055',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      marginTop: '10px'
-                    }}
-                  >
-                    {elderlyPackages.fullTime.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-          
-          {/* Voucher Section */}
-          <div style={{
-            padding: '15px 20px',
-            borderTop: '1px solid #f0f0f0',
-            borderBottom: '1px solid #f0f0f0',
-            backgroundColor: '#f8f9fa'
-          }}>
-            <h3 style={{color: '#2d3436', margin: '0 0 10px 0', fontSize: '16px'}}>Apply Voucher</h3>
-            <div style={{display: 'flex', gap: '10px'}}>
-              <input
-                type="text"
-                placeholder="Enter voucher code"
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
-              <button 
-                onClick={handleApplyVoucher}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
+              <PriceContainer>
+                <PriceValue color={color}>₹{pkg.calculatedPrice}</PriceValue>
+                <CareType>{pkg.bookingType}</CareType>
+              </PriceContainer>
+            </PackageHeader>
+
+            {/* ✅ Age Control with Limits */}
+            <PersonsControl>
+              <PersonsLabel>Age:</PersonsLabel>
+              <PersonsInput>
+                <DecrementButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAgeChange(key, -1);
+                  }}
+                  disabled={tab === 'baby' ? pkg.age <= 1 : pkg.age <= 60}
+                >-</DecrementButton>
+                <PersonsValue>{pkg.age}</PersonsValue>
+                <IncrementButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAgeChange(key, 1);
+                  }}
+                  disabled={tab === 'baby' ? pkg.age >= 6 : pkg.age >= 80}
+                >+</IncrementButton>
+              </PersonsInput>
+              {tab === 'baby' && pkg.age === 1 && (
+                <AgeInfoText>Age 1 includes babies from 1 to 12 months</AgeInfoText>
+              )}
+              {tab === 'elderly' && pkg.age === 60 && (
+                <AgeInfoText>For seniors aged 60 and above</AgeInfoText>
+              )}
+            </PersonsControl>
+
+            <DescriptionList>
+              {pkg.description.map((item, index) => (
+                <DescriptionItem key={index}>
+                  <DescriptionBullet>•</DescriptionBullet>
+                  <span>{item}</span>
+                </DescriptionItem>
+              ))}
+            </DescriptionList>
+
+            <ButtonsContainer>
+              <CartButton 
+                inCart={pkg.inCart} 
+                color={color} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCart(key, pkg);
                 }}
               >
-                APPLY
-              </button>
-            </div>
-          </div>
+                {pkg.inCart 
+                  ? <><RemoveShoppingCartIcon fontSize="small" /> ADDED TO CART</> 
+                  : <><AddShoppingCartIcon fontSize="small" /> ADD TO CART</>}
+              </CartButton>
+            </ButtonsContainer>
+          </PackageCard>
+        );
+      });
+  };
+
+  return (
+    <>
+      <StyledDialog open={open} onClose={handleClose}>
+        <StyledDialogContent>
+          <DialogContainer>
+            <DialogHeader  style={{
+               position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+            className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
+              <h1>❤️ Caregiver Service</h1>
+              <CloseButton aria-label="close" onClick={handleClose} size="small">
+                <CloseIcon style={{ color: 'white' }} />
+              </CloseButton>
+            </DialogHeader>
+
+            <TabContainer>
+              <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
+                <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
+              </TabButton>
+              <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
+                <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
+              </TabButton>
+            </TabContainer>
+
+            <PackagesContainer>
+              {activeTab === 'baby' ? renderPackages('baby') : renderPackages('elderly')}
+            </PackagesContainer>
+
+            <VoucherContainer>
+              <VoucherTitle>Apply Voucher</VoucherTitle>
+              <VoucherInputContainer>
+                <VoucherInput
+                  type="text"
+                  placeholder="Enter voucher code"
+                />
+                <VoucherButton onClick={handleApplyVoucher}>
+                  APPLY
+                </VoucherButton>
+              </VoucherInputContainer>
+            </VoucherContainer>
+          </DialogContainer>
           
-          {/* Footer with Checkout */}
-          <div
-            style={{
-              position: 'sticky',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: '15px 20px',
-              borderTop: '1px solid #f0f0f0',
-              backgroundColor: '#fff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
-            }}
-          >
+          <FooterContainer>
             <div>
-              <div style={{color: '#636e72', fontSize: '14px'}}>
+              <FooterText>
                 Total for {getSelectedPackagesCount()} service{getSelectedPackagesCount() !== 1 ? 's' : ''}
-              </div>
-              <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>
-                ₹{calculateTotal().toLocaleString()}
-              </div>
+              </FooterText>
+              <FooterPrice>₹{calculateTotal().toLocaleString()}</FooterPrice>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {!loggedInUser && (
+            <FooterButtons>
+              {!isAuthenticated ? (
                 <>
                   <Tooltip title="You need to login to proceed with checkout">
                     <IconButton size="small" style={{ marginRight: '8px' }}>
                       <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <button
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#1976d2',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      width: 'fit-content'
-                    }}
-                    onClick={handleLogin}
-                  >
+                  <LoginButton onClick={() => loginWithRedirect()}>
                     LOGIN TO CONTINUE
-                  </button>
+                  </LoginButton>
                 </>
-              )}
-              
-              {loggedInUser && (
-                <button
-                  style={{
-                    padding: '12px 25px',
-                    backgroundColor: calculateTotal() > 0 ? '#e17055' : '#bdc3c7',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: calculateTotal() > 0 ? 'pointer' : 'not-allowed'
-                  }}
-                  onClick={handleCheckout}
-                  disabled={calculateTotal() === 0}
+              ) : (
+                <CheckoutButton
+                  onClick={handleOpenCartDialog}
+                  disabled={calculateTotal() === 0 || loading}
                 >
-                  CHECKOUT
-                </button>
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                </CheckoutButton>
               )}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+            </FooterButtons>
+          </FooterContainer>
+        </StyledDialogContent>
+      </StyledDialog>
+      
+      {/* CartDialog */}
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleNannyCheckout={handleCheckout}
+      />
 
-    {/* Login Dialog */}
-    <Dialog 
-      style={{padding:'0px'}}
-      open={loginOpen}
-      onClose={handleLoginClose}
-      aria-labelledby="login-dialog-title"
-      aria-describedby="login-dialog-description"
-    >
-      <DialogContent>
-        <Login bookingPage={handleBookingPage}/>
-      </DialogContent>
-    </Dialog>
-  </>
+      {/* Booking Success Dialog - Same as other dialogs */}
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+      
+     <Snackbar
+  open={snackbarOpen}
+  autoHideDuration={6000}
+  onClose={() => setSnackbarOpen(false)}
+  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+>
+  <Alert
+    onClose={() => setSnackbarOpen(false)}
+    severity={snackbarSeverity}
+    sx={{ width: "100%" }}
+  >
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
+
+    </>
   );
 };
 

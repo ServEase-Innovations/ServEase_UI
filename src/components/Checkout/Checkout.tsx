@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+/* eslint-disable */
+
 
 import { Card, Button, Box, Typography, Snackbar, Alert, IconButton, Tooltip, DialogContent, Dialog } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -15,6 +17,7 @@ import Login from "../Login/Login";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { BOOKINGS, CONFIRMATION } from "../../Constants/pagesConstants";
 import { add, remove } from "../../features/cart/cartSlice";
+import { useAppUser } from "src/context/AppUserContext";
 
 
 // Define the structure of each item in selectedItems
@@ -90,13 +93,15 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
     dispatch(add({ grandTotal, selecteditem: updatedCheckout }));
   };
 
+  const { appUser } = useAppUser();
+
   
   useEffect(() => {
    
-      if(user?.role=== 'CUSTOMER'){
+      if(appUser?.role=== 'CUSTOMER'){
         setLoggedInUser(user);
       }
-    }, [user]);
+    }, [appUser]);
 
     const handleBookingPage = (e : string | undefined) =>{
       setOpen(false)
@@ -110,87 +115,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
   };
 
   const handleCheckout = async () => {
-    try {
-      const response = await axios.post(
-        "https://utils-dmua.onrender.com/create-order",
-        { amount: grandTotal }, // Amount in paise
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        const { id: orderId, currency, amount } = response.data;
-
-        // Razorpay options
-        const options = {
-          key: "rzp_test_lTdgjtSRlEwreA", // Replace with your Razorpay key
-          amount: amount,
-          currency: currency,
-          name: "Serveaso",
-          description: "Booking Payment",
-          order_id: orderId,
-          handler: async function (razorpayResponse: any) {
-            alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-
-            console.log("checkout => ", checkout);
-            bookingDetails.serviceProviderId = providerDetails.serviceproviderId;
-            bookingDetails.serviceProviderName=providerFullName;
-            bookingDetails.customerId = customerId;
-            bookingDetails.customerName = customerName;  
-            bookingDetails.address=currentLocation;
-            bookingDetails.startDate = bookingTypeFromSelection?.startDate;
-            bookingDetails.endDate = bookingTypeFromSelection?.endDate;
-            bookingDetails.engagements = checkout.selecteditem[0].Service;
-            bookingDetails.paymentMode = "UPI"; 
-            bookingDetails.taskStatus= "NOT_STARTED";
-            bookingDetails.bookingType = bookingType.bookingPreference;
-            bookingDetails.serviceeType = checkout.selecteditem[0].Service;
-            bookingDetails.timeslot = [bookingType.morningSelection, bookingType.eveningSelection]
-              .filter(Boolean)
-              .join(', '); 
-
-            bookingDetails.monthlyAmount = checkout.price;
-
-            const response = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              bookingDetails,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            if (response.status === 201) {
-              setSnackbarMessage(response.data || "Booking successful!");
-              setSnackbarSeverity("success");
-              setOpenSnackbar(true);
-              sendDataToParent(BOOKINGS)
-              dispatch(remove())
-            }
-          },
-          prefill: {
-            name: customerName || "",
-            email: user?.email || "",
-            contact: user?.mobileNo || "",
-          },
-          theme: {
-            color: "#3399cc",
-          },
-        };
-
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-      }
-    } catch (error) {
-      console.error("Error while creating Razorpay order:", error);
-      setSnackbarMessage("Failed to initiate payment. Please try again.");
-      setSnackbarSeverity("error");
-      setOpenSnackbar(true);
-    }
+   alert("handling payment ....")
   };  
   const grandTotal = checkout?.price ? checkout?.price : 0;
 

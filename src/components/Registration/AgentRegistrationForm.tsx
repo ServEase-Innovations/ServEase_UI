@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   Box,
   TextField,
-  Button,
   Container,
   Grid,
   Typography,
@@ -19,6 +18,9 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff, FileCopy } from "@mui/icons-material";
 import axiosInstance from "../../services/axiosInstance";
+import { Button } from "../Button/button";
+import { ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-material";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
 }
@@ -174,9 +176,34 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
 
   return (
     <Dialog fullWidth maxWidth="sm" open={true}>
-       <Typography variant="h5" align="center" sx={{ marginBottom: .5 }}>
-      Agent Registration
-    </Typography>
+        <DialogHeader
+  style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+>
+  <IconButton
+    aria-label="back"
+    onClick={() => onBackToLogin(true)}
+    sx={{ color: (theme) => theme.palette.grey[500], position: 'absolute', left: 8 }}
+  >
+    <ArrowBackIcon />
+  </IconButton>
+
+  <Typography variant="h5" align="center">
+    Agent Registration
+  </Typography>
+
+  <IconButton
+    aria-label="close"
+    onClick={() => onBackToLogin(true)}
+    sx={{
+      position: 'absolute',
+      right: 8,
+       color: '#fff',
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogHeader>
+
       <DialogContent>
         <Box sx={{ padding: 2 }}>
           <form onSubmit={handleSubmit}>
@@ -283,25 +310,25 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               </Grid>
             </Grid>
 
-            <Box
-              sx={{
-                marginTop: ".5rem",
-                display: "flex",
-                justifyContent: "space-between",
-                height: "100%",
-              }}
-            > <Button
+              <Box
+  sx={{
+    marginTop: "1.5rem",
+    display: "flex",
+    justifyContent: "center", // Changed from "space-between" to "center"
+    height: "100%",
+  }}
+>
+   {/* <Button
                 variant="contained"
                 color="primary"
                 onClick={() => onBackToLogin(true)}
               >
                 Back
-              </Button>
-              <Button type="submit" variant="contained" color="primary">
-                Submit
-              </Button>
-             
-            </Box>
+              </Button> */}
+  <Button type="submit" variant="contained" color="primary">
+    Submit
+  </Button>
+</Box>
           </form>
 
           {/* Referral Code Box */}

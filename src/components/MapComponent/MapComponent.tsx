@@ -8,31 +8,40 @@ interface Location {
   lng: number;
 }
 
-interface MapComponentProps {
-    style: React.CSSProperties;
-    onLocationSelect: (data : string) => void; // Callback to pass the selected location
-  }
+interface SelectedLocation {
+  address: any;
+  lat: number;
+  lng: number;
+}
 
-const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect }) => {
+interface MapComponentProps {
+  style: React.CSSProperties;
+  onLocationSelect: (data: SelectedLocation) => void;
+}
+
+const MapComponent: React.FC<MapComponentProps> = ({ style, onLocationSelect }) => {
   const [userLocation, setUserLocation] = useState<Location | null>(null);
-  const [clickedLocation, setClickedLocation] = useState<Location | null>(null); // Location to mark on the map
-  const [address, setAddress] = useState<string>(''); // To store the fetched address/pincode
+  const [clickedLocation, setClickedLocation] = useState<Location | null>(null);
+  const [address, setAddress] = useState<string>('');
 
   const defaultCenter: Location = {
-    lat: 40.748817, // Default to Bangalore
-    lng: -73.985428, // Default to Bangalore
+    lat: 12.9716, // Default to Bangalore
+    lng: 77.5946,
   };
 
-
-
-  // Initialize map location when the user selects a place
-  const handlePlaceSelect = (place: google.maps.places.PlaceResult, lat: number, lng: number) => {
-
-    setClickedLocation({ lat, lng }); // Set clicked location for marker
-    reverseGeocode(lat, lng); // Reverse geocode to fetch the address for the selected location
+  // Handle place selection from autocomplete
+  const handlePlaceSelect = (place: google.maps.places.PlaceResult) => {
+    if (place.geometry && place.geometry.location) {
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      setClickedLocation({ lat, lng });
+      reverseGeocode(lat, lng);
+    } else {
+      console.warn("Selected place has no geometry");
+    }
   };
 
-  // Function to perform reverse geocoding and fetch the address/pincode
+  // Reverse geocode lat/lng to get a human-readable address
   const reverseGeocode = (lat: number, lng: number) => {
     const geocoder = new google.maps.Geocoder();
     const latLng = new google.maps.LatLng(lat, lng);
@@ -40,22 +49,28 @@ const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect })
     geocoder
       .geocode({ location: latLng })
       .then((response) => {
-        if (response.results[0]) {
-          setAddress(response.results[0].formatted_address);
+        if (response.results && response.results.length > 0) {
+          const formatted = response.results[0].formatted_address;
+          setAddress(formatted);
+
+          // ✅ Send only the clean object
+          onLocationSelect({
+            address: response.results,
+            lat,
+            lng,
+          });
         } else {
           setAddress('No address found for this location.');
         }
-        
-
-        onLocationSelect(response.results[0].formatted_address)
       })
       .catch((error) => {
+        console.error('Geocode error:', error);
         setAddress('Error fetching address.');
       });
   };
 
+  // Detect user location on mount
   useEffect(() => {
-    // If geolocation is available, get the user's current position
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -63,32 +78,28 @@ const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect })
           setUserLocation({ lat: latitude, lng: longitude });
         },
         () => {
-          setUserLocation(defaultCenter); // Fallback location
+          setUserLocation(defaultCenter); // fallback
         }
       );
     } else {
-      setUserLocation(defaultCenter); // Fallback if geolocation is unsupported
+      setUserLocation(defaultCenter);
     }
   }, []);
 
-  // Handle map click to place a marker
+  // Handle map clicks
   const handleMapClick = (e: google.maps.MapMouseEvent) => {
     const lat = e.latLng?.lat() ?? 0;
     const lng = e.latLng?.lng() ?? 0;
-
-    // Update clickedLocation state with the new lat/lng
     setClickedLocation({ lat, lng });
-
-    // Reverse geocode to fetch the address for the clicked location
     reverseGeocode(lat, lng);
   };
 
   return (
     <div style={{ height: '100%', width: '100%' }}>
-      {/* Google Places Autocomplete Component */}
+      {/* Autocomplete Search */}
       <GooglePlacesAutocomplete onSelectPlace={handlePlaceSelect} />
 
-      {/* Google Map Container */}
+      {/* Map */}
       <div style={{ height: 'calc(100% - 80px)', width: '100%' }}>
         <GoogleMap
           mapContainerStyle={{
@@ -98,14 +109,13 @@ const MapComponent : React.FC<MapComponentProps> = ({ style, onLocationSelect })
           }}
           center={clickedLocation || userLocation || defaultCenter}
           zoom={12}
-          onClick={handleMapClick} // Add click handler for the map
+          onClick={handleMapClick}
         >
-          {/* Mark clicked location on the map */}
           {clickedLocation && <Marker position={clickedLocation} />}
         </GoogleMap>
       </div>
 
-      {/* Display the fetched address */}
+      {/* Address Display */}
       <div style={{ padding: '10px' }}>
         <strong>Address: </strong>
         <span>{address}</span>

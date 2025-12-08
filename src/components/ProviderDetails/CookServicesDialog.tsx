@@ -1,38 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
-
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
-import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
-import Login from '../Login/Login';
+import { Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import axiosInstance from '../../services/axiosInstance';
 import { usePricingFilterService } from '../../utils/PricingFilter';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import { addToCart, removeFromCart } from '../../features/addToCart/addToSlice';
+import { MealPackage } from '../../types/mealPackage';
+import { StyledDialog, StyledDialogContent, DialogContainer, DialogHeader, PackagesContainer, PackageCard, PackageHeader, PackageTitle, RatingContainer, RatingValue, ReviewsText, PriceContainer, PriceValue, PreparationTime, PersonsControl, PersonsLabel, PersonsInput, DecrementButton, IncrementButton, PersonsValue, AdditionalCharges, DescriptionList, DescriptionItem, DescriptionBullet, ButtonsContainer, CartButton, VoucherContainer, VoucherTitle, VoucherInputContainer, VoucherInput, VoucherButton, FooterContainer, FooterText, FooterPrice, FooterButtons, LoginButton, CheckoutButton, CloseButton } from './CookServicesDialog.styles';
+import { Button } from "../Button/button";
+import { useAuth0 } from "@auth0/auth0-react";
+import CloseIcon from '@mui/icons-material/Close';
+import { CartDialog } from '../AddToCart/CartDialog';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 
 interface CookServicesDialogProps {
   open: boolean;
   handleClose: () => void;
   providerDetails?: EnhancedProviderDetails;
   sendDataToParent?: (data: string) => void;
-}
-
-interface MealPackage {
-  selected: boolean;
-  persons: number;
-  basePrice: number;
-  calculatedPrice: number;
-  maxPersons: number;
-  description: string[];
-  preparationTime: string;
-  rating: number;
-  reviews: string;
-  category: string;
-  jobDescription: string;
-  remarks: string;
 }
 
 interface PackagesState {
@@ -45,116 +36,69 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   providerDetails,
   sendDataToParent
 }) => {
-  
-  const user = useSelector((state: any) => state.user?.value);
+  const dispatch = useDispatch();
+  const users = useSelector((state: any) => state.user?.value);
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
-  
   const [packages, setPackages] = useState<PackagesState>({});
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
-
-  const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
-
-const bookingType = getBookingType();
-
-
-
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user, loginWithRedirect, isAuthenticated } = useAuth0();
   const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-
-  const bookingDetails: BookingDetails = {
-    serviceProviderId: 0,
-    serviceProviderName: "",
-    customerId: 0,
-    customerName: "", 
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: "",
-    engagements: "",
-    address: "",
-    timeslot: "",
-    monthlyAmount: 0,
-    paymentMode: "UPI",
-    bookingType: "MEAL_PACKAGE",
-    taskStatus: "NOT_STARTED", 
-    responsibilities: [],
-  };
+  const { getBookingType, getFilteredPricing } = usePricingFilterService();
+  const bookingType = getBookingType();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
 
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
-    if (persons <= 3) {
-      return basePrice;
-    } else if (persons > 3 && persons <= 6) {
-      const extraPeople = persons - 3;
-      return basePrice + basePrice * 0.2 * extraPeople;
-    } else if (persons > 6 && persons <= 9) {
+    if (persons <= 3) return basePrice;
+    if (persons > 3 && persons <= 6) return basePrice + basePrice * 0.2 * (persons - 3);
+    if (persons > 6 && persons <= 9) {
       const priceFor6 = basePrice + basePrice * 0.2 * 3;
-      const extraPeople = persons - 6;
-      return priceFor6 + priceFor6 * 0.1 * extraPeople;
-    } else if (persons > 9) {
-      const priceFor6 = basePrice + basePrice * 0.2 * 3;
-      const priceFor9 = priceFor6 + priceFor6 * 0.1 * 3;
-      const extraPeople = persons - 9;
-      return priceFor9 + priceFor9 * 0.05 * extraPeople;
+      return priceFor6 + priceFor6 * 0.1 * (persons - 6);
     }
-    return basePrice;
+    const priceFor6 = basePrice + basePrice * 0.2 * 3;
+    const priceFor9 = priceFor6 + priceFor6 * 0.1 * 3;
+    return priceFor9 + priceFor9 * 0.05 * (persons - 9);
   };
 
-const cookServices = useMemo(() => getFilteredPricing("cook"), [getFilteredPricing]);
-
-useEffect(() => {
-  const updatedCookServices = getFilteredPricing("cook");
-  
-  if (!updatedCookServices || updatedCookServices.length === 0) {
-    setPackages({});
-    return;
-  }
-
-  const initialPackages: PackagesState = {};
-
-  updatedCookServices.forEach((service: any) => {
-    const category = service.Categories.toLowerCase();
-    const maxPersons = parseInt(service["Numbers/Size"].replace('<=', '')) || 3;
-    let  basePrice = 0;
-    if(bookingType?.bookingPreference?.toLowerCase() === "date") {
-      basePrice = service["Price /Day (INR)"];
-    } else {
-      basePrice = service["Price /Month (INR)"];
-    }
-   
-
-    initialPackages[category] = {
-      selected: false,
-      persons: 1,
-      basePrice,
-      calculatedPrice: calculatePriceForPersons(basePrice, 1),
-      maxPersons,
-      description: service["Job Description"]
-        .split('\n')
-        .filter((line: string) => line.trim() !== ''),
-      preparationTime: getPreparationTime(category),
-      rating: 4.84,
-      reviews: getReviewsText(category),
-      category: service.Categories,
-      jobDescription: service["Job Description"],
-      remarks: service["Remarks/Conditions"],
-    };
-  });
-
-  setPackages(initialPackages);
-  console.log("Updated packages:", initialPackages);
-}, [pricing, bookingType]);
-
-
-  
-
   useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
+    const updatedCookServices = getFilteredPricing("cook");
+    
+    if (!updatedCookServices || updatedCookServices.length === 0) {
+      setPackages({});
+      return;
     }
-  }, [user]);
+
+    const initialPackages: PackagesState = {};
+    updatedCookServices.forEach((service: any) => {
+      const category = service.Categories.toLowerCase();
+      const maxPersons = parseInt(service["Numbers/Size"].replace('<=', '')) || 3;
+      const basePrice = bookingType?.bookingPreference?.toLowerCase() === "date" 
+        ? service["Price /Day (INR)"] 
+        : service["Price /Month (INR)"];
+
+      initialPackages[category] = {
+        selected: false,
+        persons: 1,
+        basePrice,
+        calculatedPrice: basePrice,
+        maxPersons,
+        description: service["Job Description"].split('\n').filter((line: string) => line.trim() !== ''),
+        preparationTime: getPreparationTime(category),
+        rating: 4.84,
+        reviews: getReviewsText(category),
+        category: service.Categories,
+        jobDescription: service["Job Description"],
+        remarks: service["Remarks/Conditions"],
+        inCart: false
+      };
+    });
+
+    setPackages(initialPackages);
+  }, [pricing, bookingType]);
 
   const getPreparationTime = (category: string): string => {
     switch(category) {
@@ -183,30 +127,14 @@ useEffect(() => {
     }
   };
 
-  const handleLogin = () => {
-    setLoginOpen(true);
-  };
-
-  const handleLoginClose = () => {
-    setLoginOpen(false);
-  };
-
-  const handleBookingPage = () => {
-    setLoginOpen(false);
-  };
-
   const handlePersonChange = (packageName: string, operation: 'increment' | 'decrement') => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
       if (!currentPackage) return prev;
 
       let newValue = currentPackage.persons;
-      
-      if (operation === 'increment') {
-        newValue += 1;
-      } else if (operation === 'decrement' && newValue > 1) {
-        newValue -= 1;
-      }
+      if (operation === 'increment') newValue += 1;
+      else if (operation === 'decrement' && newValue > 1) newValue -= 1;
       
       return {
         ...prev,
@@ -219,278 +147,247 @@ useEffect(() => {
     });
   };
 
-  const togglePackageSelection = (packageName: string) => {
+  const toggleCart = (packageName: string) => {
     setPackages(prev => {
       const currentPackage = prev[packageName];
       if (!currentPackage) return prev;
+
+      const newInCartState = !currentPackage.inCart;
+      
+      if (newInCartState) {
+        dispatch(addToCart({
+          type: 'meal',
+          id: packageName.toUpperCase(),
+          mealType: packageName.toUpperCase(),
+          persons: currentPackage.persons,
+          price: currentPackage.calculatedPrice,
+          description: currentPackage.description.join(', '),
+          basePrice: currentPackage.basePrice,
+          maxPersons: currentPackage.maxPersons
+        }));
+      } else {
+        dispatch(removeFromCart({
+          id: packageName.toUpperCase(),
+          type: 'meal'
+        }));
+      }
 
       return {
         ...prev,
         [packageName]: {
           ...currentPackage,
-          selected: !currentPackage.selected
+          inCart: newInCartState,
+          selected: newInCartState
         }
       };
     });
   };
 
-  const handleApplyVoucher = () => {
-    // Voucher logic here
+  const prepareCartForCheckout = () => {
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
+
+    Object.entries(packages).forEach(([packageName, pkg]) => {
+      if (pkg.selected) {
+        dispatch(addToCart({
+          type: 'meal',
+          id: packageName.toUpperCase(),
+          mealType: packageName.toUpperCase(),
+          persons: pkg.persons,
+          price: pkg.calculatedPrice,
+          description: pkg.description.join(', '),
+          basePrice: pkg.basePrice,
+          maxPersons: pkg.maxPersons
+        }));
+      }
+    });
   };
 
- const handleCheckout = async () => {
-  try {
-    const selectedPackages = Object.entries(packages)
-      .filter(([_, pkg]) => pkg.selected)
-      .map(([name, pkg]) => ({
-        mealType: name.toUpperCase(),
-        persons: pkg.persons,
-        price: pkg.calculatedPrice,
-      }));
-
+  const handleOpenCartDialog = () => {
+    const selectedPackages = Object.entries(packages).filter(([_, pkg]) => pkg.selected);
     if (selectedPackages.length === 0) {
       alert("Please select at least one package");
       return;
     }
 
-    const totalAmount = selectedPackages.reduce(
-      (sum, pkg) => sum + pkg.price,
-      0
-    );
+    prepareCartForCheckout();
+    setCartDialogOpen(true);
+  };
 
-    const response = await axios.post(
-      "https://utils-dmua.onrender.com/create-order",
-      { amount: totalAmount * 100 },
-      { headers: { "Content-Type": "application/json" } }
-    );
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
 
-    if (response.status === 200 && response.data.success) {
-      const orderId = response.data.orderId;
-      const amount = totalAmount * 100;
-      const currency = "INR";
+      const selectedPackages = Object.entries(packages)
+        .filter(([_, pkg]) => pkg.selected)
+        .map(([name, pkg]) => ({
+          taskType: name.charAt(0).toUpperCase() + name.slice(1),
+          persons: pkg.persons,
+          price: pkg.calculatedPrice,
+        }));
 
-      if (typeof window.Razorpay === "undefined") {
-        alert("Razorpay SDK not loaded.");
-        return;
+      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+      const customerId = user?.customerid || "guest-id";
+
+      const responsibilities = selectedPackages.map(pkg => ({
+        taskType: pkg.taskType,
+        persons: pkg.persons
+      }));
+
+   const payload: BookingPayload = {
+  customerid: customerId,
+  serviceproviderid: providerDetails?.serviceproviderId
+    ? Number(providerDetails.serviceproviderId)
+    : 0,
+  start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+  end_date: bookingType?.endDate || "",
+  responsibilities: { tasks: responsibilities },
+  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+  taskStatus: "NOT_STARTED",
+  service_type: "COOK",
+  base_amount: baseTotal,
+  payment_mode: "razorpay",
+  start_time: bookingType?.startTime || "",
+  // ✅ FIXED: Use consistent booking preference check
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+    end_time: bookingType?.endTime || "",
+  }),
+};
+      const result = await BookingService.bookAndPay(payload);
+
+      setBookingSuccessDetails({
+        providerName: providerFullName,
+        serviceType: 'Home Cook Service',
+        totalAmount: baseTotal,
+        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        persons: selectedPackages.reduce((sum, pkg) => sum + pkg.persons, 0),
+        message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+      });
+      
+      setCartDialogOpen(false);
+      handleClose();
+      setSuccessDialogOpen(true);
+
+    } catch (error: any) {
+      let backendMessage = "Failed to initiate payment";
+      if (error?.response?.data) {
+        if (typeof error.response.data === "string") {
+          backendMessage = error.response.data;
+        } else if (error.response.data.error) {
+          backendMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          backendMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        backendMessage = error.message;
       }
 
-      bookingDetails.serviceProviderId = providerDetails?.serviceproviderId
-        ? Number(providerDetails.serviceproviderId)
-        : null;
-      bookingDetails.serviceProviderName = providerFullName;
-      bookingDetails.customerId = customerId;
-      bookingDetails.customerName = customerName;
-      bookingDetails.address = currentLocation;
-      bookingDetails.startDate =
-        bookingType?.startDate || new Date().toISOString().split("T")[0];
-      bookingDetails.endDate = bookingType?.endDate || "";
+      setSnackbarMessage(backendMessage);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
 
-      bookingDetails.engagements = selectedPackages
-        .map((pkg) => `${pkg.mealType} for ${pkg.persons} persons`)
-        .join(", ");
-      bookingDetails.monthlyAmount = totalAmount;
-      bookingDetails.timeslot = bookingType.timeRange;
-
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount,
-        currency,
-        name: "Serveaso",
-        description: "Meal Package Booking",
-        order_id: orderId,
-        handler: async function (razorpayResponse: any) {
-          alert(
-            `Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`
-          );
-
-          try {
-            const bookingResponse = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              bookingDetails,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            if (bookingResponse.status === 201) {
-              // Notification logic inserted here
-              try {
-                const notifyResponse = await fetch(
-                  "http://localhost:4000/send-notification",
-                  {
-                    method: "POST",
-                    body: JSON.stringify({
-                      title: "Hello from ServEaso!",
-                      body: `Your booking for ${bookingDetails.engagements} has been successfully confirmed!`,
-                      url: "http://localhost:3000",
-                    }),
-                    headers: { "Content-Type": "application/json" },
-                  }
-                );
-
-                if (notifyResponse.ok) {
-                  console.log("Notification triggered!");
-                  alert("Notification sent!");
-                } else {
-                  console.error("Notification failed");
-                  alert("Failed to send notification");
-                }
-              } catch (error) {
-                console.error("Error sending notification:", error);
-                alert("Error sending notification");
-              }
-
-              if (sendDataToParent) {
-                sendDataToParent(BOOKINGS);
-              }
-              handleClose();
-            }
-          } catch (error) {
-            console.error("Error saving booking:", error);
-          }
-        },
-        prefill: {
-          name: customerName || "",
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.log("error => ", error);
-    alert("Failed to initiate payment. Please try again.");
-  }
-};
+  };
 
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    
+    handleClose();
+    setCartDialogOpen(false);
+  };
+
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY';
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
 
   const renderPackageSections = () => {
     return Object.entries(packages).map(([packageName, pkg]) => {
       const categoryColor = getCategoryColor(packageName);
-      
+
       return (
-        <div 
-          key={packageName}
-          style={{
-            border: '1px solid #dfe6e9',
-            borderRadius: '10px',
-            padding: '15px',
-            marginBottom: '20px',
-            backgroundColor: pkg.selected ? `${categoryColor}10` : '#fff',
-            borderLeft: pkg.selected ? `3px solid ${categoryColor}` : '1px solid #dfe6e9'
-          }}
-        >
-          <div style={{display: 'flex', justifyContent: 'space-between'}}>
+        <PackageCard key={packageName} selected={pkg.selected} color={categoryColor}>
+          <PackageHeader>
             <div>
-              <h2 style={{color: '#2d3436', margin: '0 0 5px 0', textTransform: 'capitalize'}}>
-                {packageName}
-              </h2>
-              <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                <span style={{color: categoryColor, fontWeight: 'bold'}}>{pkg.rating}</span>
-                <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>
-                  {pkg.reviews}
-                </span>
-              </div>
+              <PackageTitle>{packageName}</PackageTitle>
+              <RatingContainer>
+                <RatingValue color={categoryColor}>{pkg.rating}</RatingValue>
+                <ReviewsText>{pkg.reviews}</ReviewsText>
+              </RatingContainer>
             </div>
-            <div style={{textAlign: 'right'}}>
-              <div style={{fontWeight: 'bold', color: categoryColor, fontSize: '18px'}}>
-                ₹{pkg.calculatedPrice.toFixed(2)}
-              </div>
-              <div style={{color: '#636e72', fontSize: '14px'}}>
-                {pkg.preparationTime}
-              </div>
-            </div>
-          </div>
+            <PriceContainer>
+              <PriceValue color={categoryColor}>₹{pkg.calculatedPrice.toFixed(2)}</PriceValue>
+              <PreparationTime>{pkg.preparationTime}</PreparationTime>
+            </PriceContainer>
+          </PackageHeader>
           
-          <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-            <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-            <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-              <button 
+          <PersonsControl>
+            <PersonsLabel>Persons:</PersonsLabel>
+            <PersonsInput>
+              <DecrementButton 
                 onClick={(e) => {
                   e.stopPropagation();
                   handlePersonChange(packageName, 'decrement');
                 }}
-                style={{
-                  padding: '5px 10px',
-                  backgroundColor: '#f5f5f5',
-                  border: 'none',
-                  borderRight: '1px solid #dfe6e9',
-                  borderRadius: '20px 0 0 20px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
                 disabled={pkg.persons <= 1}
               >
                 -
-              </button>
-              <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                {pkg.persons}
-              </span>
-              <button 
+              </DecrementButton>
+              <PersonsValue>{pkg.persons}</PersonsValue>
+              <IncrementButton 
                 onClick={(e) => {
                   e.stopPropagation();
                   handlePersonChange(packageName, 'increment');
                 }}
-                style={{
-                  padding: '5px 10px',
-                  backgroundColor: '#f5f5f5',
-                  border: 'none',
-                  borderLeft: '1px solid #dfe6e9',
-                  borderRadius: '0 20px 20px 0',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
                 disabled={pkg.persons >= 15}
               >
                 +
-              </button>
-            </div>
+              </IncrementButton>
+            </PersonsInput>
             {pkg.persons > pkg.maxPersons && (
-              <span style={{color: '#e17055', fontSize: '12px', marginLeft: '10px'}}>
-                *Additional charges applied
-              </span>
+              <AdditionalCharges>*Additional charges applied</AdditionalCharges>
             )}
-          </div>
+          </PersonsControl>
           
-          <div style={{margin: '15px 0'}}>
+          <DescriptionList>
             {pkg.description.map((item, index) => (
               item.trim() && (
-                <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                  <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
+                <DescriptionItem key={index}>
+                  <DescriptionBullet>•</DescriptionBullet>
                   <span>{item.trim()}</span>
-                </div>
+                </DescriptionItem>
               )
             ))}
-          </div>
+          </DescriptionList>
           
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePackageSelection(packageName);
-            }}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: pkg.selected ? categoryColor : '#fff',
-              color: pkg.selected ? '#fff' : categoryColor,
-              border: `1px solid ${pkg.selected ? categoryColor : '#dfe6e9'}`,
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              marginTop: '10px',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {pkg.selected ? 'SELECTED' : 'SELECT PACKAGE'}
-          </button>
-        </div>
+          <ButtonsContainer>
+            <CartButton 
+              inCart={pkg.inCart}
+              color={categoryColor}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleCart(packageName);
+              }}
+            >
+              {pkg.inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+              {pkg.inCart ? 'ADDED TO CART' : 'ADD TO CART'}
+            </CartButton>
+          </ButtonsContainer>
+        </PackageCard>
       );
     });
   };
@@ -502,145 +399,102 @@ useEffect(() => {
 
   return (
     <>
-      <Dialog 
-        style={{padding:'0px', borderRadius: '12px'}}
+      <StyledDialog
         open={open}
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
-        PaperProps={{
-          style: { width: '500px', borderRadius: '12px' }
-        }}
+        
       >
-        <DialogContent style={{padding: '0'}}>
-          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '550px', width: '100%'}}>
-            <div style={{padding: '20px', borderBottom: '1px solid #f0f0f0'}}>
-              <h1 style={{color: '#2d3436', margin: '0', fontSize: '24px'}}>MEAL PACKAGES</h1>
-            </div>
-            
-            <div style={{padding: '20px'}}>
-              {renderPackageSections()}
-            </div>
-            
-            <div style={{
-              padding: '15px 20px',
-              borderTop: '1px solid #f0f0f0',
-              borderBottom: '1px solid #f0f0f0',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <h3 style={{color: '#2d3436', margin: '0 0 10px 0', fontSize: '16px'}}>Apply Voucher</h3>
-              <div style={{display: 'flex', gap: '10px'}}>
-                <input
-                  type="text"
-                  placeholder="Enter voucher code"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <button 
-                  onClick={handleApplyVoucher}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#27ae60',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}>
-                  APPLY
-                </button>
-              </div>
-            </div>
-            
-            <div
-              style={{
+        <StyledDialogContent>
+          <DialogContainer>
+            <DialogHeader style={{
                 position: 'sticky',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: '15px 20px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#fff',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
-              }}
-            >
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+              <h1>👩‍🍳Home Cook</h1>
+              <CloseButton 
+               aria-label="close" 
+              onClick={handleClose} 
+              size="small">
+              <CloseIcon sx={{ color: 'white' }} />
+            </CloseButton>
+            </DialogHeader>         
+            <PackagesContainer>
+              {renderPackageSections()}
+            </PackagesContainer>
+            
+            <VoucherContainer>
+              <VoucherTitle>Apply Voucher</VoucherTitle>
+              <VoucherInputContainer>
+                <VoucherInput type="text" placeholder="Enter voucher code" />
+                <VoucherButton >APPLY</VoucherButton>
+              </VoucherInputContainer>
+            </VoucherContainer>
+            
+            <FooterContainer>
               <div>
-                <div style={{color: '#636e72', fontSize: '14px'}}>
+                <FooterText>
                   Total for {totalItems} item{totalItems !== 1 ? 's' : ''} ({totalPersons} person{totalPersons !== 1 ? 's' : ''})
-                </div>
-                <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>₹{totalPrice.toFixed(2)}</div>
+                </FooterText>
+                <FooterPrice>₹{totalPrice.toFixed(2)}</FooterPrice>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {!loggedInUser && (
+              <FooterButtons>
+                {!isAuthenticated && (
                   <>
                     <Tooltip title="You need to login to proceed with checkout">
                       <IconButton size="small" style={{ marginRight: '8px' }}>
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <button
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#1976d2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        width: 'fit-content'
-                      }}
-                      onClick={handleLogin}
-                    >
+                    <LoginButton onClick={() => loginWithRedirect()}>
                       LOGIN TO CONTINUE
-                    </button>
+                    </LoginButton>
                   </>
                 )}
-                
-                {loggedInUser && (
-                  <button
-                    style={{
-                      padding: '12px 25px',
-                      backgroundColor: totalItems > 0 ? '#e17055' : '#bdc3c7',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      cursor: totalItems > 0 ? 'pointer' : 'not-allowed'
-                    }}
-                    onClick={handleCheckout}
+                {isAuthenticated && (
+                  <CheckoutButton
+                    onClick={handleOpenCartDialog}
                     disabled={totalItems === 0}
                   >
-                    CHECKOUT
-                  </button>
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                  </CheckoutButton>
                 )}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+              </FooterButtons>
+            </FooterContainer>
+          </DialogContainer>
+        </StyledDialogContent>
+      </StyledDialog>
 
-      <Dialog 
-        style={{padding:'0px'}}
-        open={loginOpen}
-        onClose={handleLoginClose}
-        aria-labelledby="login-dialog-title"
-        aria-describedby="login-dialog-description"
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleCookCheckout={handleCheckout}
+      />
+      
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <DialogContent>
-          <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

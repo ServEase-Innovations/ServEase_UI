@@ -2,40 +2,38 @@
 /* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Tab,
-  Tabs,
-  Typography,
-  Paper,
-  Card,
-  CardContent,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  DialogActions,
-  Snackbar,
-  Alert,
-  MenuItem,
-} from '@mui/material';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
+import _ from 'lodash';
+import { Button } from '../../components/Button/button';
+import { Badge } from '../../components/Common/Badge/Badge';
+import { Separator } from '../../components/Common/Separator/Separator';
 import axiosInstance from '../../services/axiosInstance';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store/userStore';
-import { update } from "../../features/bookingType/bookingTypeSlice";
-import ProviderDetails from '../ProviderDetails/ProviderDetails';
+import { useAuth0 } from '@auth0/auth0-react';
+import UserHoliday from './UserHoliday';
+import { Alert, Snackbar } from '@mui/material';
+import ModifyBookingDialog from './ModifyBookingDialog';
+import dayjs from 'dayjs';
+import { ClipLoader } from 'react-spinners';
+import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
+import ConfirmationDialog from './ConfirmationDialog';
+import AddReviewDialog from './AddReviewDialog';
+import WalletDialog from './Wallet';
+import axios from 'axios';
+import PaymentInstance from 'src/services/paymentInstance';
+import { useAppUser } from 'src/context/AppUserContext';
+import VacationManagementDialog from './VacationManagement';
+import ServicesDialog from '../ServicesDialog/ServicesDialog';
 
-type UserState = {
-  value?: {
-    serviceeType?: string;
-    customerDetails?: {
-      customerId: number;
-      firstName: string;
-      lastName: string;
-    };
-  } | null;
-};
+interface Task {
+  taskType: string;
+  [key: string]: any;
+}
+
+interface Responsibilities {
+  tasks: Task[];
+  add_ons?: Task[];
+}
 
 interface Booking {
   id: number;
@@ -45,6 +43,8 @@ interface Booking {
   date: string;
   startDate: string;
   endDate: string;
+  start_time: string; // Add this
+  end_time: string;   // Add this
   bookingType: string;
   monthlyAmount: number;
   paymentMode: string;
@@ -53,452 +53,1245 @@ interface Booking {
   serviceProviderName: string;
   taskStatus: string;
   bookingDate: string;
-  engagements: string;
-  serviceeType: string;
-  serviceType: string;
+  service_type: string;
   childAge: string;
   experience: string;
   noOfPersons: string;
   mealType: string;
-  responsibilities: string;
+  modifiedDate: string;
+  responsibilities: Responsibilities;
+  hasVacation?: boolean;
+  start_epoch ?: number;
+  vacationDetails?: {
+    leave_type?: string;
+    total_days?: number;
+    refund_amount?: number;
+    end_date?: string;
+    start_date?: string;
+  };
+  modifications: Array<{
+    date: string;
+    action: string;
+    changes?: {
+      new_start_date?: string;
+      new_end_date?: string;
+      new_start_time?: string;
+      start_date?: { from: string; to: string };
+      end_date?: { from: string; to: string };
+      start_time?: { from: string; to: string };
+    };
+    refund?: number;
+    penalty?: number;
+  }>;
 }
 
-const Booking: React.FC = () => {
+const getServiceIcon = (type: string) => {
+  const iconClass = "text-2xl";
+  switch (type) {
+    case 'maid':
+      return <span className={`${iconClass} text-orange-500`}>🧹</span>;
+    case 'cleaning':
+      return <span className={`${iconClass} text-pink-500`}>🧹</span>;
+    case 'nanny':
+      return <span className={`${iconClass} text-red-500`}>❤️</span>;
+    default:
+      return <span className={iconClass}>👩‍🍳</span>;
+  }
+};
+
+// Modification restriction functions
+const isModificationTimeAllowed = (startEpoch: any): boolean => {
+  console.log("Start epoch ", startEpoch )
+  const now = dayjs().unix(); // current time in seconds
+  const cutoff = startEpoch - 30 * 60; // 30 minutes before booking start
+
+  return now < cutoff;
+};
+
+
+const isBookingAlreadyModified = (booking: Booking | null): boolean => {
+  if (!booking) return false;
+  
+  const hasExplicitModifications = booking.modifications && 
+    booking.modifications.length > 0 && 
+    booking.modifications.some(mod => 
+      mod.action === "Date Rescheduled" || 
+      mod.action === "Time Rescheduled" ||
+      mod.action === "Modified" || 
+      mod.action?.includes("Modified") ||
+      mod.action?.includes("modified") ||
+      mod.action === "Rescheduled" ||
+      mod.action?.includes("Reschedule")
+    );
+  
+  return !!hasExplicitModifications;
+};
+
+const isModificationDisabled = (booking: Booking | null): boolean => {
+  if (!booking) return true;
+  
+  return !isModificationTimeAllowed(booking.start_epoch) || 
+         isBookingAlreadyModified(booking);
+};
+
+const getModificationTooltip = (booking: Booking | null): string => {
+  if (!booking) return "";
+  
+  if (isBookingAlreadyModified(booking)) {
+    return "This booking has already been modified and cannot be modified again.";
+  }
+  if (!isModificationTimeAllowed(booking.start_epoch)) {
+    return "Modification is only allowed at least 30 minutes before the scheduled time.";
+  }
+  return "Modify this booking";
+};
+
+// Get detailed modification information for display
+const getModificationDetails = (booking: Booking): string => {
+  if (!booking.modifications || booking.modifications.length === 0) return "";
+  
+  const lastMod = booking.modifications[booking.modifications.length - 1];
+  
+  if (lastMod.action === "Date Rescheduled" && lastMod.changes) {
+    if (lastMod.changes.new_start_date && lastMod.changes.new_end_date) {
+      return `Date rescheduled to ${lastMod.changes.new_start_date}`;
+    } else if (lastMod.changes.start_date) {
+      return `Date changed from ${dayjs(lastMod.changes.start_date.from).format('MMM D, YYYY')} to ${dayjs(lastMod.changes.start_date.to).format('MMM D, YYYY')}`;
+    }
+  } else if (lastMod.action === "Time Rescheduled" && lastMod.changes) {
+    if (lastMod.changes.new_start_time) {
+      return `Time rescheduled to ${lastMod.changes.new_start_time}`;
+    } else if (lastMod.changes.start_time) {
+      return `Time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
+    }
+  }
+  
+  return `Last modified: ${lastMod.action}`;
+};
+
+const Booking:  React.FC<any> = ({ handleDataFromChild }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
-  const user = useSelector((state: RootState) => state.user as UserState);
-  const customerId = user?.value?.customerDetails?.customerId ?? null;
-  const [openDialog, setOpenDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
+  const [customerId, setCustomerId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
+  const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
+  
+  const [openDialog, setOpenDialog] = useState(false);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
+  const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
+const [selectedBookingForVacationManagement, setSelectedBookingForVacationManagement] = useState<Booking | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [openSnackbar, setOpenSnackbar] = useState(false);
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  // Add this with other state declarations
+  const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
+  
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    open: boolean;
+    type: 'cancel' | 'modify' | 'vacation' | null;
+    booking: Booking | null;
+    message: string;
+    title: string;
+    severity: 'info' | 'warning' | 'error' | 'success';
+  }>({
+    open: false,
+    type: null,
+    booking: null,
+    message: '',
+    title: '',
+    severity: 'info'
+  });
 
-  // Fetch available time slots for a service provider
-  const generateTimeSlots = async (serviceProviderId: number): Promise<string[]> => {
-    try {
-      const response = await axiosInstance.get(
-        `/api/serviceproviders/get/engagement/by/serviceProvider/${serviceProviderId}`
+  const { user: auth0User, isAuthenticated } = useAuth0();
+
+  // Function to refresh bookings data
+  const refreshBookings = async (id?: string) => {
+    const effectiveId = id || customerId;
+    if (effectiveId !== null && effectiveId !== undefined) {
+      console.log("Fetching bookings for customerId:", effectiveId);
+
+      const response = await PaymentInstance.get(
+        `/api/customers/${effectiveId}/engagements`
       );
 
-      const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-        id: engagement.id ?? Math.random(),
-        availableTimeSlots: engagement.availableTimeSlots || [],
-      }));
+      const { past = [], ongoing = [], upcoming = [], cancelled = [] } = response.data || {};
 
-      const fullTimeSlots: string[] = Array.from({ length: 15 }, (_, i) =>
-        `${(i + 6).toString().padStart(2, "0")}:00`
-      );
-      
-
-      const processedSlots = engagementData.map(entry => {
-        const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-        const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-
-        return {
-          id: entry.id,
-          uniqueAvailableTimeSlots,
-          missingTimeSlots,
-        };
-      });
-
-      const uniqueMissingSlots: string[] = Array.from(
-        new Set(processedSlots.flatMap(slot => slot.missingTimeSlots))
-      ).sort() as string[];
-
-      setUniqueMissingSlots(uniqueMissingSlots);
-
-      return fullTimeSlots.filter(slot => !uniqueMissingSlots.includes(slot));
-    } catch (error) {
-      console.error("Error fetching engagement data:", error);
-      return [];
+      setPastBookings(mapBookingData(past));
+      setCurrentBookings(mapBookingData(ongoing));
+      setFutureBookings(mapBookingData(upcoming));
     }
   };
+
+  const { appUser } = useAppUser();
 
   useEffect(() => {
-    if (customerId !== null) {
-      const page = 0; // Default page
-      const size = 100; // Default size
+    if (isAuthenticated && appUser?.customerid) {
+      setIsLoading(true);
+      setCustomerId(appUser.customerid);
+      fetchBookings(appUser.customerid);
+    } else {
+      setIsLoading(false);
+    }
+  }, [appUser, isAuthenticated]);
+  
+  const fetchBookings = async (id: string) => {
+    try {
+      await refreshBookings(id);
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      axiosInstance
-        .get(`api/serviceproviders/get-sp-booking-history?page=${page}&size=${size}`)
-        .then((response) => {
-          const { past = [], current = [], future = [] } = response.data || {};
-          console.log('Past Bookings:', past);
-          const mapBookingData = (data: any[]) =>
-            Array.isArray(data)
-              ? data
-                  .filter((item) => item.customerId === customerId)
-                  .map((item) => {
-                    console.log("Service Provider ID:", item.serviceProviderId);
+  const mapBookingData = (data: any[]) => {
+    return Array.isArray(data)
+      ? data.map((item) => {
+          console.log("Mapping booking item:", item);
+          const hasVacation = item?.vacations?.length > 0;
+          const modifications = item.modifications || [];
+          const hasModifications = modifications.length > 0;
 
-                    return {
-                      id: item.id,
-                      customerId: item.customerId,
-                      serviceProviderId: item.serviceProviderId,
-                      name: item.customerName,
-                      serviceeType: item.serviceeType,
-                      timeSlot: item.timeslot,
-                      date: new Date(item.startDate).toLocaleDateString(),
-                      startDate: item.startDate,
-                      endDate: item.endDate,
-                      bookingType: item.bookingType,
-                      monthlyAmount: item.monthlyAmount,
-                      paymentMode: item.paymentMode,
-                      address: item.address,
-                      customerName: item.customerName,
-                      serviceProviderName: item.serviceProviderName,
-                      taskStatus: item.taskStatus,
-                      engagements: item.engagements,
-                      bookingDate: item.bookingDate,
-                      serviceType: item.serviceType,
-                      childAge: item.childAge,
-                      experience: item.experience,
-                      noOfPersons: item.noOfPersons,
-                      mealType: item.mealType,
-                      responsibilities: item.responsibilities,
-                    };
-                  })
-              : [];
+          console.log("has hasVacation:", hasVacation);
 
-          setPastBookings(mapBookingData(past));
-          console.log('Past :', setPastBookings);
-          setCurrentBookings(mapBookingData(current));
-          setFutureBookings(mapBookingData(future));
+          // Use the current dates from API (which should reflect modifications)
+          const effectiveStartDate = item.start_date;
+          const effectiveEndDate = item.end_date;
+
+          return {
+            start_epoch : item.start_epoch,
+            id: item.engagement_id,
+            customerId: item.customerId,
+            serviceProviderId: item.serviceProviderId,
+            name: item.customerName,
+            timeSlot: item.start_time,
+            date: effectiveStartDate,
+            startDate: effectiveStartDate,
+            endDate: effectiveEndDate,
+            start_time: item.start_time, 
+            end_time: item.end_time,    
+            bookingType: item.booking_type,
+            monthlyAmount: item.monthlyAmount,
+            paymentMode: item.paymentMode,
+            address: item.address || 'No address specified',
+            customerName: item.customerName,
+            serviceProviderName: item.serviceProviderName === "undefined undefined" ? "Not Assigned" : item.serviceProviderName,
+            taskStatus: item.task_status,
+            engagements: item.engagements,
+            bookingDate: item.created_at,
+            service_type: item.service_type?.toLowerCase() || 'other',
+            childAge: item.childAge,
+            experience: item.experience,
+            noOfPersons: item.noOfPersons,
+            mealType: item.mealType,
+            modifiedDate: hasModifications
+              ? modifications[modifications.length - 1]?.date || item.created_at
+              : item.created_at,
+            responsibilities: item.responsibilities,
+            customerHolidays: item.customerHolidays || [],
+            hasVacation: hasVacation,
+            vacationDetails: hasVacation && item.vacation?.leave_days > 0 
+              ? item.vacation 
+              : null,
+            modifications: modifications
+          };
         })
-        .catch((error) => {
-          console.error("Error fetching booking details:", error);
-        });
-    }
-  }, [customerId]);
+      : [];
+  };
+// Add this utility function at the top of your file or in a separate utils file
+const formatTimeToAMPM = (timeString: string): string => {
+  if (!timeString) return '';
+  
+  try {
+    // Handle both "HH:mm:ss" and "HH:mm" formats
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const minute = parseInt(minutes, 10);
+    
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12; // Convert 0 to 12, 13 to 1, etc.
+    const displayMinute = minute.toString().padStart(2, '0');
+    
+    return `${displayHour}:${displayMinute} ${period}`;
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeString; // Return original if parsing fails
+  }
+};
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setSelectedTab(newValue);
+// You can also create a function to format time range
+const formatTimeRange = (startTime: string, endTime: string): string => {
+  return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
+};
+  const hasVacation = (booking: Booking): boolean => {
+    return booking.hasVacation || false;
   };
 
-  const handleModifyBooking = async (booking: Booking) => {
-    setSelectedBooking(booking);
-    setSelectedTimeSlot(booking.timeSlot);
-
-    // Fetch available time slots for the service provider
-    const availableSlots = await generateTimeSlots(booking.serviceProviderId);
-    setTimeSlots(availableSlots);
-
-    setOpenDialog(true);
+  const filterBookings = (bookings: Booking[], term: string) => {
+    if (!term) return bookings;
+    
+    return bookings.filter(booking => 
+      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
+      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
+    );
   };
 
-  const handleDialogClose = () => {
-    setOpenDialog(false);
-    setSelectedBooking(null);
+  const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
+    const statusOrder: Record<string, number> = {
+      'NOT_STARTED': 2,
+      'IN_PROGRESS': 1,
+      'COMPLETED': 3,
+      'CANCELLED': 4
+    };
+
+    return [...bookings].sort((a, b) => {
+      const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
+      if (statusComparison !== 0) return statusComparison;
+      return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+    });
   };
 
-  const handleTimeSlotChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedTimeSlot(event.target.value as string);
+  const showConfirmation = (
+    type: 'cancel' | 'modify' | 'vacation',
+    booking: Booking,
+    title: string,
+    message: string,
+    severity: 'info' | 'warning' | 'error' | 'success' = 'info'
+  ) => {
+    setConfirmationDialog({
+      open: true,
+      type,
+      booking,
+      message,
+      title,
+      severity
+    });
   };
 
-  const handleSave = async () => {
-    if (selectedBooking && selectedTimeSlot) {
-      const updatePayload = {
-        id: selectedBooking.id,
-        serviceProviderId: selectedBooking.serviceProviderId,
-        customerId: customerId,
-        startDate: selectedBooking.startDate,
-        endDate: selectedBooking.endDate,
-        engagements: selectedBooking.engagements,
-        timeslot: selectedTimeSlot, // Updated time slot
-        monthlyAmount: selectedBooking.monthlyAmount,
-        paymentMode: selectedBooking.paymentMode,
-        bookingType: selectedBooking.bookingType,
-        bookingDate: selectedBooking.bookingDate,
-        responsibilities: selectedBooking.responsibilities,
-        serviceType: selectedBooking.serviceType,
-        mealType: selectedBooking.mealType,
-        noOfPersons: selectedBooking.noOfPersons,
-        experience: selectedBooking.experience,
-        childAge: selectedBooking.childAge,
-        serviceeType: selectedBooking.serviceeType,
-        customerName: selectedBooking.customerName,
-        serviceProviderName: selectedBooking.serviceProviderName,
-        address: selectedBooking.address,
-        taskStatus: selectedBooking.taskStatus,
-      };
+  const handleConfirmAction = async () => {
+    const { type, booking } = confirmationDialog;
+    if (!booking) return;
 
-      try {
-        const response = await axiosInstance.put(
-          `/api/serviceproviders/update/engagement/${selectedBooking.id}`,
-          updatePayload
-        );
+    setActionLoading(true);
 
-        console.log("Update Response:", response.data);
-
-        // Update state to reflect the change
-        setCurrentBookings((prev) =>
-          prev.map((b) =>
-            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
-          )
-        );
-        setFutureBookings((prev) =>
-          prev.map((b) =>
-            b.id === selectedBooking.id ? { ...b, timeSlot: selectedTimeSlot } : b
-          )
-        );
-
-        setOpenDialog(false);
-        setSelectedBooking(null);
-        setOpenSnackbar(true);
-      } catch (error: any) {
-        console.error("Error updating task status:", error);
-        if (error.response) {
-          console.error("Full error response:", error.response.data);
-        } else if (error.message) {
-          console.error("Error message:", error.message);
-        } else {
-          console.error("Unknown error occurred");
-        }
+    try {
+      switch (type) {
+        case 'cancel':
+          await handleCancelBooking(booking);
+          break;
+        case 'modify':
+          setModifyDialogOpen(true);
+          setSelectedBooking(booking);
+          break;
+        case 'vacation':
+          setSelectedBookingForLeave(booking);
+          setHolidayDialogOpen(true);
+          break;
       }
+    } catch (error) {
+      console.error("Error performing action:", error);
+    } finally {
+      setActionLoading(false);
+      setConfirmationDialog(prev => ({ ...prev, open: false }));
     }
+  };
+
+  const handleCancelClick = (booking: Booking) => {
+    showConfirmation(
+      'cancel',
+      booking,
+      'Cancel Booking',
+      `Are you sure you want to cancel your ${getServiceTitle(booking.service_type)} booking? This action cannot be undone.`,
+      'warning'
+    );
+  };
+
+  const handleReviewSubmitted = (bookingId: number) => {
+    setReviewedBookings(prev => [...prev, bookingId]);
+  };
+
+  const hasReview = (booking: Booking): boolean => {
+    return reviewedBookings.includes(booking.id);
+  };
+
+  const handleLeaveReviewClick = (booking: Booking) => {
+    setSelectedReviewBooking(booking);
+    setReviewDialogOpen(true);
+  };
+
+  const handleModifyClick = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setModifyDialogOpen(true);
+  };
+
+  const handleVacationClick = (booking: Booking) => {
+    setSelectedBookingForLeave(booking);
+    setHolidayDialogOpen(true);
+  };
+const handleModifyVacationClick = (booking: Booking) => {
+  setSelectedBookingForVacationManagement(booking);
+  setVacationManagementDialogOpen(true);
+};
+const handleVacationSuccess = async () => {
+  setOpenSnackbar(true);
+  await refreshBookings();
+};
+  const handleApplyLeaveClick = (booking: Booking) => {
+    setSelectedBookingForLeave(booking);
+    setHolidayDialogOpen(true);
   };
 
   const handleCancelBooking = async (booking: Booking) => {
-    const updatedStatus = "CANCELLED";
-
-    const updatePayload = {
-      id: booking.id,
-      serviceProviderId: booking.serviceProviderId,
-      customerId: customerId, // Fixed: Use `booking.customerId` instead of `customerId`
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      engagements: booking.engagements,
-      timeslot: booking.timeSlot, // Fixed: Match field name (not timeSlot)
-      monthlyAmount: booking.monthlyAmount,
-      paymentMode: booking.paymentMode,
-      bookingType: booking.bookingType,
-      bookingDate: booking.bookingDate,
-      responsibilities: booking.responsibilities,
-      serviceType: booking.serviceType,
-      mealType: booking.mealType,
-      noOfPersons: booking.noOfPersons,
-      experience: booking.experience,
-      childAge: booking.childAge,
-      serviceeType: booking.serviceeType, // Kept as it is since it exists in your JSON
-      customerName: booking.customerName,
-      serviceProviderName: booking.serviceProviderName,
-      address: booking.address,
-      taskStatus: updatedStatus, // Updated task status
-    };
-
     try {
-      console.log(`Updating engagement with ID ${booking.id} to status ${updatedStatus}`);
-      const response = await axiosInstance.put(
-        `/api/serviceproviders/update/engagement/${booking.id}`,
-        updatePayload
+      setActionLoading(true);
+      
+      const response = await PaymentInstance.put(
+        `/api/engagements/${booking.id}`,
+        {
+          task_status: "CANCELLED"
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
-      console.log("Update Response:", response.data);
-
-      // Update state to reflect the change
+      await refreshBookings();
+      setOpenSnackbar(true);
+      
+    } catch (error: any) {
+      console.error("Error cancelling engagement:", error);
       setCurrentBookings((prev) =>
         prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
         )
       );
       setFutureBookings((prev) =>
         prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: updatedStatus } : b
+          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
         )
       );
-    } catch (error: any) {
-      console.error("Error updating task status:", error);
-      if (error.response) {
-        console.error("Full error response:", error.response.data);
-      } else if (error.message) {
-        console.error("Error message:", error.message);
-      } else {
-        console.error("Unknown error occurred");
-      }
+    } finally {
+      setActionLoading(false);
     }
-    setOpenSnackbar(true);
   };
 
-  const renderBookings = (bookings: Booking[]) => (
-    <Box display="flex" flexDirection="column" gap={2} width="100%">
-      {bookings.length > 0 ? (
-        bookings.map((booking) => (
-          <Card key={booking.id} elevation={3} sx={{ width: '100%' }}>
-            <CardContent>
-              {booking.taskStatus === "CANCELLED" && (
-                <Typography
-                  variant="body2"
-                  color="white"
-                  sx={{
-                    backgroundColor: "rgba(255, 0, 0, 0.5)",
-                    color: "rgba(255, 255, 255, 0.9)",
-                    padding: "8px 16px",
-                    borderRadius: "4px",
-                    fontWeight: "bold",
-                    marginBottom: "16px",
-                    textAlign: "center",
-                  }}
-                  gutterBottom
-                >
-                  Task Status: CANCELLED
-                </Typography>
-              )}
+  const handleSaveModifiedBooking = async (updatedData: {
+    startDate: string;
+    endDate: string;
+    timeSlot: string;
+  }) => {
+    setModifyDialogOpen(false);
+  };
 
-              <Typography variant="h6" gutterBottom>
-                Service Provider: {booking.serviceProviderName}
-              </Typography>
+  const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
+    if (!selectedBookingForLeave || !customerId) {
+      throw new Error("Missing required information for leave application");
+    }
 
-              <Typography variant="body2" color="textSecondary">
-                Service Type: {booking.serviceeType}
-              </Typography>
+    try {
+      setIsRefreshing(true);
+      
+      await PaymentInstance.put(
+        `api/engagements/${selectedBookingForLeave.id}`,
+        {
+          modified_by_role: appUser.role,
+          vacation_start_date: startDate,
+          vacation_end_date: endDate,
+          modified_by_id : customerId,
+        }
+      );
 
-              <Typography variant="body2" color="textSecondary">
-                Start Date: {booking.startDate}
-              </Typography>
+      setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
+      await refreshBookings();
+      setOpenSnackbar(true);
+      setHolidayDialogOpen(false);
+    } catch (error) {
+      console.error("Error applying leave:", error);
+      throw error;
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
-              <Typography variant="body2" color="textSecondary">
-                End Date: {booking.endDate}
-              </Typography>
+  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
+  
+  const filteredByStatus = statusFilter === 'ALL' 
+    ? upcomingBookings 
+    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
+  
+  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
+  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
 
-              <Typography variant="body2" color="textSecondary">
-                Payment Mode: {booking.paymentMode}
-              </Typography>
+  const statusTabs = [
+    { value: 'ALL', label: 'All', count: upcomingBookings.length },
+    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
+    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
+    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
+  ];
 
-              <Typography variant="body2" color="textSecondary">
-                Booking Date: {booking.bookingDate}
-              </Typography>
+const renderActionButtons = (booking: Booking) => {
+  const modificationDisabled = isModificationDisabled(booking);
+  const modificationTooltip = getModificationTooltip(booking);
+  const hasExistingVacation = hasVacation(booking);
 
-              {booking.taskStatus !== "CANCELLED" && (
-                <>
-                  <Typography variant="body2" color="textSecondary">
-                    Time Slot: {booking.timeSlot}
-                  </Typography>
+  switch (booking.taskStatus) {
+    case 'NOT_STARTED':
+      return (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+            Call Provider
+          </Button>
 
-                  <Typography variant="body2" color="textSecondary">
-                    Booking Type: {booking.bookingType}
-                  </Typography>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Message
+          </Button>
 
-                  <Typography variant="body2" color="textSecondary">
-                    Monthly Amount: ₹{booking.monthlyAmount}
-                  </Typography>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+            onClick={() => handleCancelClick(booking)}
+          >
+            <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Cancel Booking
+          </Button>
 
-                  <Typography variant="body2" color="textSecondary">
-                    Address: {booking.address}
-                  </Typography>
+          {booking.bookingType === "MONTHLY" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-0 justify-center 
+                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                         w-1/3 sm:w-auto"
+              onClick={() => handleModifyClick(booking)}
+              disabled={modificationDisabled}
+              title={modificationTooltip}
+            >
+              <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+              {modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}
+            </Button>
+          )}
 
-                  <Typography variant="body2" color="textSecondary">
-                    Task Status: {booking.taskStatus}
-                  </Typography>
-                </>
-              )}
-              <Box display="flex" justifyContent="space-between" marginTop={2}>
+          {booking.bookingType === "MONTHLY" && (
+            <>
+              {hasExistingVacation ? (
                 <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleModifyBooking(booking)}
-                  style={{
-                    padding: "8px 16px",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => handleModifyVacationClick(booking)}
+                  disabled={isRefreshing}
                 >
-                  Modify
+                  <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                  Modify Vacation
                 </Button>
-                {booking.taskStatus !== "CANCELLED" && (
-                  <button
-                    onClick={() => handleCancelBooking(booking)}
-                    style={{
-                      backgroundColor: "red",
-                      color: "white",
-                      padding: "8px 16px",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        ))
-      ) : (
-        <Typography textAlign="center" color="textSecondary">
-          No bookings found.
-        </Typography>
-      )}
-    </Box>
-  );
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto"
+                  onClick={() => handleVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                  Add Vacation
+                </Button>
+              )}
+            </>
+          )}
+        </>
+      );
+
+    case 'IN_PROGRESS':
+      return (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <Phone className="h-4 w-4 mr-1 sm:mr-2" />
+            Call Provider
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Message
+          </Button>
+
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+            onClick={() => handleCancelClick(booking)}
+          >
+            <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            Cancel Booking
+          </Button>
+
+          {booking.bookingType === "MONTHLY" && (
+            <>
+              {hasExistingVacation ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => handleModifyVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                  Modify Vacation
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 min-w-0 justify-center 
+                             text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                             w-1/3 sm:w-auto"
+                  onClick={() => handleVacationClick(booking)}
+                  disabled={isRefreshing}
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                  Add Vacation
+                </Button>
+              )}
+            </>
+          )}
+        </>
+      );
+
+      case 'COMPLETED':
+        return (
+          <>
+            {hasReview(booking) ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-0 justify-center 
+                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                           w-1/3 sm:w-auto"
+                disabled={true}
+              >
+                <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                Review Submitted
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 min-w-0 justify-center 
+                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                           w-1/3 sm:w-auto"
+                onClick={() => handleLeaveReviewClick(booking)}
+              >
+                <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                Leave Review
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 min-w-0 justify-center 
+                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                         w-1/3 sm:w-auto"
+            >
+              Book Again
+            </Button>
+          </>
+        );
+
+      case 'CANCELLED':
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 min-w-0 justify-center 
+                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
+                       w-1/3 sm:w-auto"
+          >
+            Book Again
+          </Button>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-      <Paper elevation={3} sx={{ padding: 4, width: '100%', maxWidth: 800 }}>
-        <Typography variant="h5" gutterBottom textAlign="center">
-          My Bookings
-        </Typography>
-        <Tabs
-          value={selectedTab}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          centered
-        >
-          <Tab label="Current Bookings" />
-          <Tab label="Past Bookings" />
-          <Tab label="Future Bookings" />
-        </Tabs>
-        <Box sx={{ marginTop: 2 }}>
-          {selectedTab === 0 && renderBookings(currentBookings)}
-          {selectedTab === 1 && renderBookings(pastBookings)}
-          {selectedTab === 2 && renderBookings(futureBookings)}
-        </Box>
-      </Paper>
+    <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
+      {/* Header */}  
+      <div
+        className="py-8"
+        style={{
+          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+          color: "rgb(14, 48, 92)",
+        }}
+      >
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+          <div className="hidden md:block"></div>
 
-      {/* Dialog for modifying bookings */}
-      <Dialog open={openDialog} onClose={handleDialogClose}>
-        <DialogTitle>Modify Booking</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" gutterBottom>
-            Change the time slot for your booking:
-          </Typography>
-          <TextField
-            select
-            fullWidth
-            value={selectedTimeSlot}
-            onChange={handleTimeSlotChange}
+          <div className="text-center md:text-center mt-6 md:mt-0">
+            <h1 className="text-2xl md:text-3xl font-bold mt-6 md:mt-0" style={{ color: "rgb(14, 48, 92)" }}>
+              My Bookings
+            </h1>
+            <p className="mt-1 text-sm md:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
+              Manage your househelp service appointments
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end w-full md:w-auto gap-2 mt-[-1.5rem] md:mt-0">
+            <div className="relative flex-1 md:flex-none">
+              <input
+                type="text"
+                placeholder="Search bookings..."
+                className="w-full md:w-64 px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center">
+              <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
+              onClick={() => setWalletDialogOpen(true)}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="rgb(14, 48, 92)"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                  />
+                </svg>
+              </button>
+              <span className="mt-1 text-sm" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        {isLoading && (
+          <div 
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-white/90 backdrop-blur-sm" 
+            style={{ top: '75px' }}
           >
-            {timeSlots.map((slot) => (
-              <MenuItem key={slot} value={slot}>
-                {slot}
-              </MenuItem>
-            ))}
-          </TextField>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose} color="secondary">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} color="primary">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <div className="flex-1 flex flex-col items-center justify-center w-full">
+              <ClipLoader color="#3b82f6" size={50} />
+              <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
+            </div>
+          </div>
+        )}
 
-      {/* Snackbar for notifications */}
+        <section className="mb-8">
+          <div 
+            className="flex items-center gap-3 mb-6 p-2 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary"
+          >
+            <AlertCircle className="h-6 w-6 text-primary" />
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+              </p>
+            </div>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              {upcomingBookings.length}
+            </Badge>
+          </div>
+
+          {/* Status Tabs */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    statusFilter === tab.value
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {tab.label} 
+                  <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {upcomingBookings.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredUpcomingBookings.map((booking) => (
+                <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {getServiceIcon(booking.service_type)}
+                        <div>
+                          <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
+                          <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex gap-2">
+                          {getBookingTypeBadge(booking.bookingType)}
+                          {getStatusBadge(booking.taskStatus)}
+                          {booking.modifications && booking.modifications.length > 0 && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Modified
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-2">
+                          Booking Date:{" "}
+                          {new Date(booking.bookingDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric"
+                          })}
+                          {booking.modifications && booking.modifications.length > 0 && (
+                            <>
+                              <br />
+                              Last Modified:{" "}
+                              {new Date(booking.modifications[booking.modifications.length - 1].date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              })}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {new Date(booking.startDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <span className="ml-2 text-xs text-green-600 font-medium">
+                                (Rescheduled)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        
+                       <div className="flex items-center gap-2 text-sm">
+  <Clock className="h-4 w-4 text-muted-foreground" />
+ <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
+</div>
+                        
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{booking.address}</span>
+                        </div>
+
+                        {/* Show modification details if available */}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <p className="font-medium">{booking.serviceProviderName}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-2">
+                          <p className="font-medium text-sm mb-1">Responsibilities:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
+                              ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
+                            ].map((item: any, index: number) => {
+                              const { task, isAddon } = item;
+
+                              const taskLabel =
+                                typeof task === "object" && task !== null
+                                  ? Object.entries(task)
+                                      .filter(([key]) => key !== "taskType")
+                                      .map(([key, value]) => `${value} ${key}`)
+                                      .join(", ")
+                                  : "";
+
+                              const taskName = typeof task === "object" ? task.taskType : task;
+
+                              return (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {isAddon ? "Add-ons - " : ""}
+                                  {taskName} {taskLabel && `- ${taskLabel}`}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {renderActionButtons(booking)}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+            <CardContent>
+              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
+              <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
+              <Button onClick={() => setServicesDialogOpen(true)}>Book a Service</Button>
+            </CardContent>
+          </Card>
+          )}
+        </section>
+
+        <section>
+          <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
+            <History className="h-6 w-6 text-muted-foreground" />
+            <div className="flex-1">
+              <h2 className="text-2xl font-semibold text-card-foreground">Past Bookings</h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
+              </p>
+            </div>
+            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+              {pastBookings.length}
+            </Badge>
+          </div>
+
+          {pastBookings.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPastBookings.map((booking) => (
+                <Card key={booking.id} className="shadow-card">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {getServiceIcon(booking.service_type)}
+                        <div>
+                          <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
+                          <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {getBookingTypeBadge(booking.bookingType)}
+                        {getStatusBadge(booking.taskStatus)}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            Modified
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {new Date(booking.startDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <span className="ml-2 text-xs text-green-600 font-medium">
+                                (Rescheduled)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>{booking.startDate} ({booking.endDate})</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{booking.address}</span>
+                        </div>
+
+                        {/* Show modification details if available */}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <p className="font-medium">{booking.serviceProviderName}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm text-muted-foreground">{booking['providerRating'] || 4.5}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">{booking.monthlyAmount}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {booking.taskStatus === "COMPLETED" && (
+                        <>
+                          {hasReview(booking) ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 min-w-0 justify-center 
+                                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                                         w-1/3 sm:w-auto"
+                              disabled={true}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                              Review Submitted
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 min-w-0 justify-center 
+                                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                                         w-1/3 sm:w-auto"
+                              onClick={() => handleLeaveReviewClick(booking)}
+                            >
+                              <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                              Leave Review
+                            </Button>
+                          )}
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 min-w-0 justify-center 
+                                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                                       w-1/3 sm:w-auto"
+                          >
+                            Book Again
+                          </Button>
+                        </>
+                      )}
+
+                      {booking.taskStatus === "CANCELLED" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-0 justify-center 
+                                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                                     w-1/3 sm:w-auto"
+                        >
+                          Book Again
+                        </Button>
+                      )}
+
+                      {booking.taskStatus === "NOT_STARTED" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-0 justify-center 
+                                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
+                                     w-1/3 sm:w-auto"
+                        >
+                          Book Again
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-medium text-lg mb-2">No Past Bookings</h3>
+                <p className="text-muted-foreground">Your completed and cancelled bookings will appear here.</p>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      </div>
+
+      {/* Dialogs */}
+      <UserHoliday 
+        open={holidayDialogOpen}
+        onClose={() => setHolidayDialogOpen(false)}
+        booking={selectedBookingForLeave}
+        onLeaveSubmit={handleLeaveSubmit}
+      />
+      <VacationManagementDialog
+  open={vacationManagementDialogOpen}
+  onClose={() => {
+    setVacationManagementDialogOpen(false);
+    setSelectedBookingForVacationManagement(null);
+  }}
+  booking={selectedBookingForVacationManagement}
+  customerId={customerId}
+  onSuccess={handleVacationSuccess}
+/>
+      <ModifyBookingDialog
+        open={modifyDialogOpen}
+        onClose={() => {
+          setModifyDialogOpen(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        timeSlots={timeSlots}
+        onSave={handleSaveModifiedBooking}
+        customerId={customerId}
+        refreshBookings={refreshBookings}
+        setOpenSnackbar={setOpenSnackbar}
+      />
+
+      <ConfirmationDialog
+        open={confirmationDialog.open}
+        onClose={() => setConfirmationDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={handleConfirmAction}
+        title={confirmationDialog.title}
+        message={confirmationDialog.message}
+        confirmText={confirmationDialog.type === 'cancel' ? 'Yes, Cancel' : 'Confirm'}
+        loading={actionLoading}
+        severity={confirmationDialog.severity}
+      />
+      
+      <AddReviewDialog
+        open={reviewDialogOpen}
+        onClose={() => setReviewDialogOpen(false)}
+        booking={selectedReviewBooking}
+        onReviewSubmitted={handleReviewSubmitted}
+      />
+      
+      <WalletDialog 
+        open={walletDialogOpen}
+        onClose={() => setWalletDialogOpen(false)}
+      />
+      
+      {/* Add this with your other dialog components */}
+<ServicesDialog
+  open={servicesDialogOpen}
+  onClose={() => setServicesDialogOpen(false)}
+  sendDataToParent={(data) => handleDataFromChild(data)}
+  onServiceSelect={(serviceType) => {
+    // Handle service selection
+    console.log('Selected service type:', serviceType);
+    // You can navigate to booking form or handle the selection
+    // Example: router.push(`/book?service=${serviceType}`);
+  }}
+/>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
         onClose={() => setOpenSnackbar(false)}
       >
-        <Alert severity="success">Booking updated successfully!</Alert>
+        <Alert onClose={() => setOpenSnackbar(false)} severity="success">
+          Operation completed successfully!
+        </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

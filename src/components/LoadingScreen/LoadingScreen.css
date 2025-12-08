@@ -1,0 +1,65 @@
+/* Fullscreen background */
+.loading-wrapper {
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(180deg, #054a9b, #01346f);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Content wrapper */
+.loading-content {
+  text-align: center;
+  color: white;
+}
+
+/* Bigger Logo + Less Gap */
+.logo-img {
+  width: 260px;              /* increased size from 180 → 260 */
+  margin-bottom: -75px;       /* reduced gap (was 30px) */
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Wave Loader Track */
+.wave-loader {
+  width: 240px;
+  height: 8px;
+  background: rgb(255, 255, 255);
+  border-radius: 20px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Wave Animation */
+.wave {
+  width: 110px;
+  height: 100%;
+  background: #6bc2ff;
+  border-radius: 20px;
+  filter: blur(6px);
+  box-shadow: 0 0 20px #4aa8ff;
+  animation: waveMove 1.6s ease-in-out infinite;
+}
+
+/* Text */
+.loading-text {
+  margin-top: 12px;     /* reduced for cleaner look */
+  color: #dceaff;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* Animations */
+@keyframes waveMove {
+  0% { transform: translateX(-130px) scaleY(0.8); }
+  50% { transform: translateX(70px) scaleY(1.5); }
+  100% { transform: translateX(260px) scaleY(0.8); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

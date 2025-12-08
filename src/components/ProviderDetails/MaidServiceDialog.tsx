@@ -1,14 +1,75 @@
 /* eslint-disable */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
+import { Dialog, DialogContent, Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import Login from '../Login/Login';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import axiosInstance from '../../services/axiosInstance';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
+import { addToCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
+import { isMaidCartItem } from '../../types/cartSlice';
+import { CartDialog } from '../AddToCart/CartDialog';
+import {
+  StyledDialog,
+  StyledDialogContent,
+  DialogContainer,
+  DialogHeader,
+  TabsContainer,
+  TabButton,
+  PackagesContainer,
+  PackageCard,
+  PackageHeader,
+  PackageTitle,
+  RatingContainer,
+  RatingValue,
+  ReviewsText,
+  PriceContainer,
+  PriceValue,
+  PreparationTime,
+  PersonsControl,
+  PersonsLabel,
+  PersonsInput,
+  DecrementButton,
+  IncrementButton,
+  PersonsValue,
+  DescriptionList,
+  DescriptionItem,
+  DescriptionBullet,
+  ButtonsContainer,
+  CartButton,
+  SelectButton,
+  AddOnsContainer,
+  AddOnsTitle,
+  AddOnsGrid,
+  AddOnCard,
+  AddOnHeader,
+  AddOnTitle,
+  AddOnPrice,
+  AddOnDescription,
+  AddOnButton,
+  VoucherContainer,
+  VoucherTitle,
+  VoucherInputContainer,
+  VoucherInput,
+  VoucherButton,
+  FooterContainer,
+  FooterText,
+  FooterPrice,
+  FooterButtons,
+  LoginButton,
+  CheckoutButton,
+  CloseButton
+} from './CookServicesDialog.styles';
+import { useAuth0 } from "@auth0/auth0-react";
+import CloseIcon from '@mui/icons-material/Close';
+import { usePricingFilterService } from 'src/utils/PricingFilter';
+import { BookingPayload, BookingService } from 'src/services/bookingService';
+import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -17,97 +78,189 @@ interface MaidServiceDialogProps {
   sendDataToParent?: (data: string) => void;
 }
 
+// --- Pricing helper ---
+const getBasePrice = (service: any, bookingType: any) => {
+const basePrice =
+bookingType?.bookingPreference?.toLowerCase() === 'date'
+? service?.["Price /Day (INR)"]
+: service?.["Price /Month (INR)"];
+return basePrice || 0;
+};
+// --- Types that mirror the pricing dataset ---
+interface MaidPricingRow {
+  _id?: string;
+  Service?: string; // e.g. "Maid"
+  Type?: string;    // e.g. "On Demand" | "Monthly" | etc.
+  Categories?: string; // e.g. "Utensil Cleaning"
+  'Sub-Categories'?: string; // e.g. "People" | "House Size" | "Bathrooms"
+  'Numbers/Size'?: string; // e.g. "<=3", "4-6", "2BHK"
+  'Price /Day (INR)'?: number;
+  'Price /Month (INR)'?: number;
+  'Price /Visit (INR)'?: number;
+  'Price /Week (INR)'?: number;
+  'Job Description'?: string;
+}
+
+type HouseSize = '1BHK' | '2BHK' | '3BHK' | '4BHK+';
+
+type PackageState = {
+  utensilCleaning: { persons: number; selected: boolean };
+  sweepingMopping: { houseSize: HouseSize; selected: boolean };
+  bathroomCleaning: { bathrooms: number; selected: boolean };
+};
+
+const monthlyFromDaily = (daily?: number) => (daily ? Math.round(daily * 26) : 0); // business days heuristic
+const monthlyFromWeekly = (weekly?: number) => (weekly ? Math.round(weekly * 4) : 0);
+const monthlyFromVisit = (perVisit?: number, visitsPerMonth = 8) => (perVisit ? Math.round(perVisit * visitsPerMonth) : 0); // fallback
+
+// checks if a numeric value satisfies a textual range like "<=3", ">=7", "4-6"
+const matchesNumericBand = (band: string, value: number) => {
+  const s = band.trim();
+  if (/^<=\s*\d+$/i.test(s)) return value <= parseInt(s.replace(/[^\d]/g, ''), 10);
+  if (/^>=\s*\d+$/i.test(s)) return value >= parseInt(s.replace(/[^\d]/g, ''), 10);
+  const range = s.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (range) {
+    const min = parseInt(range[1], 10);
+    const max = parseInt(range[2], 10);
+    return value >= min && value <= max;
+  }
+  // If band is a single number, compare directly
+  if (/^\d+$/.test(s)) return value === parseInt(s, 10);
+  return false;
+};
+
 const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({ 
   open, 
   handleClose, 
   providerDetails,
   sendDataToParent
 }) => {
-  const [activeTab, setActiveTab] = useState('regular');
-  const [packageStates, setPackageStates] = useState({
+  const [activeTab, setActiveTab] = useState<'regular' | 'premium'>('regular');
+  const allCartItems = useSelector(selectCartItems);
+  const maidCartItems = allCartItems.filter(isMaidCartItem);
+  const [loading, setLoading] = useState(false);
+
+  const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
+    const initialCartItems: Record<string, boolean> = {
+      utensilCleaning: false,
+      sweepingMopping: false,
+      bathroomCleaning: false,
+      bathroomDeepCleaning: false,
+      normalDusting: false,
+      deepDusting: false,
+      utensilDrying: false,
+      clothesDrying: false
+    };
+
+    maidCartItems.forEach(item => {
+      if (item.serviceType === 'package' || item.serviceType === 'addon') {
+        initialCartItems[item.name] = true;
+      }
+    });
+    return initialCartItems;
+  });
+
+  const [packageStates, setPackageStates] = useState<PackageState>({
     utensilCleaning: {
       persons: 3,
-      selected: false
+      selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'utensilCleaning')
     },
     sweepingMopping: {
       houseSize: '2BHK',
-      selected: false
+      selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'sweepingMopping')
     },
     bathroomCleaning: {
       bathrooms: 2,
-      selected: false
+      selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'bathroomCleaning')
     }
   });
+
   const [addOns, setAddOns] = useState({
-    bathroomDeepCleaning: false,
-    normalDusting: false,
-    deepDusting: false,
-    utensilDrying: false,
-    clothesDrying: false
+    bathroomDeepCleaning: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'bathroomDeepCleaning'),
+    normalDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'normalDusting'),
+    deepDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'deepDusting'),
+    utensilDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'utensilDrying'),
+    clothesDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'clothesDrying')
   });
+  
   const [loginOpen, setLoginOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<any>(null);
+  const dispatch = useDispatch();
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const user = useSelector((state: any) => state.user?.value);
-  const dispatch = useDispatch();
-  const customerId = user?.customerDetails?.customerId || null;
-  const currentLocation = user?.customerDetails?.currentLocation;
-  const firstName = user?.customerDetails?.firstName;
-  const lastName = user?.customerDetails?.lastName;
-  const customerName = `${firstName} ${lastName}`;
-  const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
-  const pricing = useSelector((state: any) => state.pricing?.groupedServices);
- const maidServices =
-    pricing?.maid?.filter((service: any) => service.Type === "Regular" || service.Type === "Regular Add-on") || [];
-  console.log("maidServices",maidServices);
-  maidServices.forEach((service: any) => {
-  console.log("Category:", service.Categories);
-  console.log("Number/Size:", service["Numbers/Size"]);
-  console.log("Price /Month (INR):", service["Price /Month (INR)"]);
-  console.log("----------");
-});
+  const users = useSelector((state: any) => state.user?.value);
+  const currentLocation = users?.customerDetails?.currentLocation;
 
-  const bookingDetails: BookingDetails = {
+  const { getPricingData, getFilteredPricing } = usePricingFilterService();
+  const providerFullName = `${providerDetails?.firstName || ''} ${providerDetails?.lastName || ''}`.trim();
+  const pricing = useSelector((state: any) => state.pricing?.groupedServices);
+  const filtered = getFilteredPricing('maid');
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+
+  // Normalize pricing source (prefer hook -> store -> empty)
+  const maidPricingRows: MaidPricingRow[] = useMemo(() => {
+    const asArray = (data: any): MaidPricingRow[] => {
+      if (!data) return [];
+      if (Array.isArray(data)) return data as MaidPricingRow[];
+      // Some stores keep it grouped by category; flatten if needed
+      if (typeof data === 'object') {
+        const flat: MaidPricingRow[] = [];
+        Object.values(data).forEach((v: any) => {
+          if (Array.isArray(v)) flat.push(...(v as MaidPricingRow[]));
+        });
+        return flat;
+      }
+      return [];
+    };
+    const a = asArray(filtered);
+    if (a.length) return a;
+    return asArray(pricing);
+  }, [filtered, pricing]);
+
+  const { user, loginWithRedirect, isAuthenticated } = useAuth0();
+
+  const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
+    if (!bookingPreference) return 'MONTHLY';
+    const pref = bookingPreference.toLowerCase();
+    if (pref === 'date') return 'ON_DEMAND';
+    if (pref === 'short term') return 'SHORT_TERM';
+    return 'MONTHLY';
+  };
+
+  const bookingDetailsTemplate: BookingDetails = {
     serviceProviderId: 0,
-    serviceProviderName: "",
+    serviceProviderName: '',
     customerId: 0,
-    customerName: "", 
+    customerName: '', 
     startDate: new Date().toISOString().split('T')[0],
-    endDate: "",
-    engagements: "",
-    address: "",
-    timeslot: "",
+    endDate: '',
+    engagements: '',
+    address: ' Durgapur, West Bengal 713205, India',
+    timeslot: '',
     monthlyAmount: 0,
-    paymentMode: "UPI",
-    bookingType: "MAID_SERVICE",
-    taskStatus: "NOT_STARTED", 
+    paymentMode: 'UPI',
+    bookingType: getBookingTypeFromPreference(bookingType?.bookingPreference),
+    taskStatus: 'NOT_STARTED', 
     responsibilities: [],
+    serviceType: 'MAID',
   };
 
   useEffect(() => {
-    if (user?.role === 'CUSTOMER') {
-      setLoggedInUser(user);
+    if (isAuthenticated && user) {
+      console.log('User Info:', user);
+      console.log('Name:', user.name);
+      console.log('Customer ID:', (user as any).customerid);
     }
-  }, [user]);
+  }, [isAuthenticated, user]);
 
-  const handleLogin = () => {
-    setLoginOpen(true);
-  };
+  const handleTabChange = (tab: 'regular' | 'premium') => setActiveTab(tab);
 
-  const handleLoginClose = () => {
-    setLoginOpen(false);
-  };
-
-  const handleBookingPage = () => {
-    setLoginOpen(false);
-  };
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
-  const handlePersonChange = (operation: string) => {
+  const handlePersonChange = (operation: 'increment' | 'decrement') => {
     setPackageStates(prev => ({
       ...prev,
       utensilCleaning: {
@@ -119,10 +272,9 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     }));
   };
 
-  const handleHouseSizeChange = (operation: string) => {
-    const sizes = ['1BHK', '2BHK', '3BHK', '4BHK+'];
+  const handleHouseSizeChange = (operation: 'increment' | 'decrement') => {
+    const sizes: HouseSize[] = ['1BHK', '2BHK', '3BHK', '4BHK+'];
     const currentIndex = sizes.indexOf(packageStates.sweepingMopping.houseSize);
-    
     setPackageStates(prev => ({
       ...prev,
       sweepingMopping: {
@@ -134,7 +286,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     }));
   };
 
-  const handleBathroomChange = (operation: string) => {
+  const handleBathroomChange = (operation: 'increment' | 'decrement') => {
     setPackageStates(prev => ({
       ...prev,
       bathroomCleaning: {
@@ -146,36 +298,265 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     }));
   };
 
-  const handlePackageSelect = (packageName: string) => {
+  useEffect(() => {
+    if (!open) return;
+    // Sync cart items from Redux
+    const updatedCartItems: Record<string, boolean> = {
+      utensilCleaning: false,
+      sweepingMopping: false,
+      bathroomCleaning: false,
+      bathroomDeepCleaning: false,
+      normalDusting: false,
+      deepDusting: false,
+      utensilDrying: false,
+      clothesDrying: false
+    };
+
+    maidCartItems.forEach(item => {
+      if (item.serviceType === 'package' || item.serviceType === 'addon') {
+        updatedCartItems[item.name] = true;
+      }
+    });
+
+    setCartItems(updatedCartItems);
+
+    // Sync package states
     setPackageStates(prev => ({
-      ...prev,
-      [packageName]: {
-        ...prev[packageName],
-        selected: !prev[packageName].selected
+      utensilCleaning: {
+        ...prev.utensilCleaning,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'utensilCleaning')
+      },
+      sweepingMopping: {
+        ...prev.sweepingMopping,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'sweepingMopping')
+      },
+      bathroomCleaning: {
+        ...prev.bathroomCleaning,
+        selected: maidCartItems.some(item => item.serviceType === 'package' && item.name === 'bathroomCleaning')
       }
     }));
-  };
+
+    // Sync add-ons
+    setAddOns({
+      bathroomDeepCleaning: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'bathroomDeepCleaning'),
+      normalDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'normalDusting'),
+      deepDusting: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'deepDusting'),
+      utensilDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'utensilDrying'),
+      clothesDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'clothesDrying')
+    });
+  }, [open, maidCartItems]);
 
   const handleAddOnSelect = (addOnName: string) => {
-    setAddOns(prev => ({
+    setAddOns(prev => ({ ...prev, [addOnName]: !prev[addOnName as keyof typeof prev] }));
+  };
+
+  // ------- DYNAMIC PRICING HELPERS -------
+ const findRow = (
+  category: string,
+  subCategory?: string,
+  sizeLabelOrBand?: string,
+  numericForBand?: number,
+  preferOnDemand: boolean = false  // <--- add this
+): MaidPricingRow | undefined => {
+  if (!maidPricingRows.length) return undefined;
+
+  // base rows for the category
+  const rows = maidPricingRows.filter(
+    (r) =>
+      String(r.Service || '').toLowerCase() === 'maid' &&
+      String(r.Categories || '').toLowerCase() === category.toLowerCase()
+  );
+
+  if (!rows.length) return undefined;
+
+  // filter by sub-category if provided
+  const rowsSub = subCategory
+    ? rows.filter((r) => String(r['Sub-Categories'] || '').toLowerCase() === subCategory.toLowerCase())
+    : rows;
+
+  if (!rowsSub.length) return undefined;
+
+  // prefer rows based on booking type
+  const prefStr = preferOnDemand ? 'on demand' : 'regular';
+const prefCandidates = rowsSub.filter(
+  (r) => String(r.Type || '').toLowerCase().includes(prefStr)
+);
+
+  const candidates = prefCandidates.length ? prefCandidates : rowsSub;
+
+  // Prefer exact size label match
+  if (sizeLabelOrBand) {
+    const exact = candidates.find(
+      (r) => String(r['Numbers/Size'] || '').toLowerCase() === String(sizeLabelOrBand).toLowerCase()
+    );
+    if (exact) return exact;
+
+    if (numericForBand) {
+      const bandHit = candidates.find(
+        (r) =>
+          r['Numbers/Size'] &&
+          matchesNumericBand(String(r['Numbers/Size']), numericForBand)
+      );
+      if (bandHit) return bandHit;
+    }
+  }
+
+  return candidates[0];
+};
+
+  const priceToMonthly = (row?: MaidPricingRow): number => {
+    if (!row) return 0;
+    if (row['Price /Month (INR)']) return row['Price /Month (INR)'] as number;
+    if (row['Price /Week (INR)']) return monthlyFromWeekly(row['Price /Week (INR)']);
+    if (row['Price /Visit (INR)']) return monthlyFromVisit(row['Price /Visit (INR)']);
+    if (row['Price /Day (INR)']) return monthlyFromDaily(row['Price /Day (INR)']);
+    return 0;
+  };
+
+ const getPackagePrice = (packageName: string): number => {
+  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+
+  switch (packageName) {
+    case 'utensilCleaning': {
+      const persons = packageStates.utensilCleaning.persons;
+      const row = findRow('Utensil Cleaning', 'People', undefined, persons, preferOnDemand);
+      return getBasePrice(row, bookingType) || 1200;
+    }
+  case 'sweepingMopping': {
+  const size = packageStates.sweepingMopping.houseSize;
+  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+
+  // use "House" instead of "House Size"
+  const row = findRow('Sweeping & Mopping', 'House', size, undefined, preferOnDemand);
+
+  return getBasePrice(row, bookingType) || 1200;
+}
+
+  case 'bathroomCleaning': {
+  const bathrooms = packageStates.bathroomCleaning.bathrooms;
+  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+
+  const row = findRow('Bathroom', 'Number', undefined, bathrooms, preferOnDemand);
+
+  return getBasePrice(row, bookingType) || 600;
+}
+
+    default:
+      return 0;
+  }
+};
+
+  const getPackageDescription = (packageName: string): string => {
+    switch(packageName) {
+      case 'utensilCleaning': return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
+      case 'sweepingMopping': return 'Daily sweeping and mopping';
+      case 'bathroomCleaning': return 'Weekly cleaning of bathrooms';
+      default: return '';
+    }
+  };
+
+  const getPackageDetails = (packageName: string) => {
+    switch(packageName) {
+      case 'utensilCleaning': return { persons: packageStates.utensilCleaning.persons };
+      case 'sweepingMopping': return { houseSize: packageStates.sweepingMopping.houseSize };
+      case 'bathroomCleaning': return { bathrooms: packageStates.bathroomCleaning.bathrooms };
+      default: return {};
+    }
+  };
+
+const getAddOnPrice = (addOnName: string): number => {
+  const map: Record<string, { cat: string; sub?: string; size?: string }> = {
+    bathroomDeepCleaning: { cat: 'Bathroom -Deep Cleaning', sub: 'Number' },
+    normalDusting:        { cat: 'Normal Dusting', sub: 'House' },
+    deepDusting:          { cat: 'Deep Dusting', sub: 'House' },
+    utensilDrying:        { cat: 'Utensil Drying & Arrangements', sub: 'People', size: '<=3' },
+    clothesDrying:        { cat: 'Clothes Drying and Folding', sub: 'People', size: '<=3' },
+  };
+
+  const meta = map[addOnName];
+  if (!meta) return 0;
+
+  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+  const row = findRow(meta.cat, meta.sub, meta.size, undefined, preferOnDemand);
+
+  const price = getBasePrice(row, bookingType);
+  if (price && price > 0) return price;
+
+  // fallback defaults
+  switch (addOnName) {
+    case 'deepDusting': return 1500;
+    default: return 1000;
+  }
+};
+
+  const getAddOnDescription = (addOnName: string): string => {
+    switch(addOnName) {
+      case 'bathroomDeepCleaning': return 'Weekly cleaning of bathrooms, all bathroom walls cleaned';
+      case 'normalDusting': return 'Daily furniture dusting, doors, carpet, bed making';
+      case 'deepDusting': return 'Includes chemical agents cleaning: décor items, furniture';
+      case 'utensilDrying': return 'Househelp will dry and make proper arrangements';
+      case 'clothesDrying': return 'Househelp will get clothes from/to drying place';
+      default: return '';
+    }
+  };
+
+  const handleAddPackageToCart = (packageName: string) => {
+    const isCurrentlyInCart = !!cartItems[packageName];
+    const packageDetails = {
+      id: `package_${packageName}`,
+      type: 'maid' as const,
+      serviceType: 'package' as const,
+      name: packageName,
+      price: getPackagePrice(packageName),
+      description: getPackageDescription(packageName),
+      details: getPackageDetails(packageName)
+    };
+
+    if (isCurrentlyInCart) {
+      dispatch(removeFromCart({ id: packageDetails.id, type: 'maid' }));
+    } else {
+      dispatch(addToCart(packageDetails));
+    }
+
+    setCartItems(prev => ({ ...prev, [packageName]: !isCurrentlyInCart }));
+    setPackageStates(prev => ({
       ...prev,
-      [addOnName]: !prev[addOnName]
-    }));
+      [packageName]: { ...(prev as any)[packageName], selected: !isCurrentlyInCart }
+    }) as PackageState);
+  };
+
+  const handleAddAddOnToCart = (addOnName: string) => {
+    const isCurrentlyInCart = !!cartItems[addOnName];
+
+    const addOnDetails = {
+      id: `addon_${addOnName}`,
+      type: 'maid' as const,
+      serviceType: 'addon' as const,
+      name: addOnName,
+      price: getAddOnPrice(addOnName),
+      description: getAddOnDescription(addOnName)
+    };
+
+    if (isCurrentlyInCart) {
+      dispatch(removeFromCart({ id: addOnDetails.id, type: 'maid' }));
+    } else {
+      dispatch(addToCart(addOnDetails));
+    }
+
+    setCartItems(prev => ({ ...prev, [addOnName]: !isCurrentlyInCart }));
+    setAddOns(prev => ({ ...prev, [addOnName]: !isCurrentlyInCart }));
   };
 
   const calculateTotal = () => {
     let total = 0;
-    
-    if (packageStates.utensilCleaning.selected) total += 1200;
-    if (packageStates.sweepingMopping.selected) total += 1200;
-    if (packageStates.bathroomCleaning.selected) total += 600;
-    
-    if (addOns.bathroomDeepCleaning) total += 1000;
-    if (addOns.normalDusting) total += 1000;
-    if (addOns.deepDusting) total += 1500;
-    if (addOns.utensilDrying) total += 1000;
-    if (addOns.clothesDrying) total += 1000;
-    
+    if (packageStates.utensilCleaning.selected) total += getPackagePrice('utensilCleaning');
+    if (packageStates.sweepingMopping.selected) total += getPackagePrice('sweepingMopping');
+    if (packageStates.bathroomCleaning.selected) total += getPackagePrice('bathroomCleaning');
+    if (addOns.bathroomDeepCleaning) total += getAddOnPrice('bathroomDeepCleaning');
+    if (addOns.normalDusting) total += getAddOnPrice('normalDusting');
+    if (addOns.deepDusting) total += getAddOnPrice('deepDusting');
+    if (addOns.utensilDrying) total += getAddOnPrice('utensilDrying');
+    if (addOns.clothesDrying) total += getAddOnPrice('clothesDrying');
     return total;
   };
 
@@ -187,796 +568,521 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     return count;
   };
 
-  const countSelectedAddOns = () => {
-    return Object.values(addOns).filter(Boolean).length;
-  };
+  const countSelectedAddOns = () => Object.values(addOns).filter(Boolean).length;
+  const hasSelectedServices = () => countSelectedServices() > 0 || countSelectedAddOns() > 0;
 
-  const hasSelectedServices = () => {
-    return countSelectedServices() > 0 || countSelectedAddOns() > 0;
-  };
-  const selectedServices: string[] = [];
-  const selectedAddOns: string[] = Object.entries(addOns)
-    .filter(([_, selected]) => selected)
-    .map(([name]) => name);
+  const [cartDialogOpen, setCartDialogOpen] = useState(false);
 
-    const handleCheckout = async () => {
-  try {
-    const selectedServices: string[] = [];
-    const selectedAddOns: string[] = Object.entries(addOns)
-      .filter(([_, selected]) => selected)
-      .map(([name]) => name);
+  const prepareCartForCheckout = () => {
+    // Clear all existing cart items of supported types
+    dispatch(removeFromCart({ type: 'meal' }));
+    dispatch(removeFromCart({ type: 'maid' }));
+    dispatch(removeFromCart({ type: 'nanny' }));
 
     if (packageStates.utensilCleaning.selected) {
-      selectedServices.push(`Utensil cleaning for ${packageStates.utensilCleaning.persons} persons`);
-    }
-    if (packageStates.sweepingMopping.selected) {
-      selectedServices.push(`Sweeping & mopping for ${packageStates.sweepingMopping.houseSize}`);
-    }
-    if (packageStates.bathroomCleaning.selected) {
-      selectedServices.push(`Bathroom cleaning for ${packageStates.bathroomCleaning.bathrooms} bathrooms`);
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'package_utensilCleaning',
+        serviceType: 'package',
+        name: 'utensilCleaning',
+        price: getPackagePrice('utensilCleaning'),
+        description: getPackageDescription('utensilCleaning'),
+        details: { persons: packageStates.utensilCleaning.persons }
+      }));
     }
 
-    if (selectedServices.length === 0 && selectedAddOns.length === 0) {
-      alert('Please select at least one service or add-on');
+    if (packageStates.sweepingMopping.selected) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'package_sweepingMopping',
+        serviceType: 'package',
+        name: 'sweepingMopping',
+        price: getPackagePrice('sweepingMopping'),
+        description: getPackageDescription('sweepingMopping'),
+        details: { houseSize: packageStates.sweepingMopping.houseSize }
+      }));
+    }
+
+    if (packageStates.bathroomCleaning.selected) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'package_bathroomCleaning',
+        serviceType: 'package',
+        name: 'bathroomCleaning',
+        price: getPackagePrice('bathroomCleaning'),
+        description: getPackageDescription('bathroomCleaning'),
+        details: { bathrooms: packageStates.bathroomCleaning.bathrooms }
+      }));
+    }
+
+    if (addOns.bathroomDeepCleaning) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'addon_bathroomDeepCleaning',
+        serviceType: 'addon',
+        name: 'bathroomDeepCleaning',
+        price: getAddOnPrice('bathroomDeepCleaning'),
+        description: getAddOnDescription('bathroomDeepCleaning')
+      }));
+    }
+
+    if (addOns.normalDusting) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'addon_normalDusting',
+        serviceType: 'addon',
+        name: 'normalDusting',
+        price: getAddOnPrice('normalDusting'),
+        description: getAddOnDescription('normalDusting')
+      }));
+    }
+
+    if (addOns.deepDusting) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'addon_deepDusting',
+        serviceType: 'addon',
+        name: 'deepDusting',
+        price: getAddOnPrice('deepDusting'),
+        description: getAddOnDescription('deepDusting')
+      }));
+    }
+
+    if (addOns.utensilDrying) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'addon_utensilDrying',
+        serviceType: 'addon',
+        name: 'utensilDrying',
+        price: getAddOnPrice('utensilDrying'),
+        description: getAddOnDescription('utensilDrying')
+      }));
+    }
+
+    if (addOns.clothesDrying) {
+      dispatch(addToCart({
+        type: 'maid',
+        id: 'addon_clothesDrying',
+        serviceType: 'addon',
+        name: 'clothesDrying',
+        price: getAddOnPrice('clothesDrying'),
+        description: getAddOnDescription('clothesDrying')
+      }));
+    }
+  };
+
+  const handleOpenCartDialog = () => {
+    if (!hasSelectedServices()) {
+      alert('Please select at least one service');
+      return;
+    }
+    prepareCartForCheckout();
+    setCartDialogOpen(true);
+  };
+
+  // Handle success dialog close
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+  };
+
+  // Navigation function for "View My Bookings" button
+  const handleNavigateToBookings = () => {
+    setSuccessDialogOpen(false);
+    
+    if (sendDataToParent) {
+      sendDataToParent(BOOKINGS);
+    }
+    
+    handleClose();
+    setCartDialogOpen(false);
+  };
+
+const handleCheckout = async () => {
+  try {
+    setLoading(true);
+
+    const selectedServices = allCartItems.filter(isMaidCartItem);
+    const baseTotal = selectedServices.reduce((sum, item) => sum + (item.price || 0), 0);
+    if (baseTotal <= 0) {
+      setSnackbarMessage("No items selected for checkout");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
       return;
     }
 
-    const totalAmount = calculateTotal();
+    const customerId = user?.customerid || "guest-id";
+    const packages = selectedServices.filter(item => item.serviceType === "package");
+    const addOns = selectedServices.filter(item => item.serviceType === "addon");
 
-    // Step: Call calculate-payment API
-//     const calculatePaymentResponse = await axiosInstance.post("/api/payments/calculate-payment", null, {
-//     params: {
-//     customerId,
-//     baseAmount: totalAmount,
-//     startDate_P: bookingType?.startDate || "",
-//     endDate_P: bookingType?.endDate || "",
-//     paymentMode: "UPI", // or whatever mode is selected
-//   },
-// });
+    const responsibilities = {
+      tasks: packages.map(item => {
+        if (item.name === "utensilCleaning") {
+          return { taskType: "Utensil Cleaning", persons: item.details?.persons || 1 };
+        }
+        if (item.name === "sweepingMopping") {
+          return { taskType: "Sweeping & Mopping", houseSize: item.details?.houseSize || "2BHK" };
+        }
+        if (item.name === "bathroomCleaning") {
+          return { taskType: "Bathroom Cleaning", bathrooms: item.details?.bathrooms || 1 };
+        }
+        return { taskType: item.name };
+      }),
+      add_ons: addOns.map(item => ({ taskType: item.name }))
+    };
+
+const payload: BookingPayload = {
+  customerid: customerId,
+  serviceproviderid: providerDetails?.serviceproviderId
+    ? Number(providerDetails.serviceproviderId)
+    : 0,
+  start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+  end_date: bookingType?.endDate || "",
+  start_time: bookingType?.startTime || "",
+  responsibilities,
+  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+  taskStatus: "NOT_STARTED",
+  service_type: "MAID",
+  base_amount: baseTotal,
+  payment_mode: "razorpay",
+  // ✅ FIXED: Use consistent booking preference check
+  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+    end_time: bookingType?.endTime || "",
+  }),
+};
+    const result = await BookingService.bookAndPay(payload);
+
+    // ✅ Set success details and show success dialog instead of snackbar
+    setBookingSuccessDetails({
+      providerName: providerFullName,
+      serviceType: 'Cleaning Help Service',
+      totalAmount: baseTotal,
+      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+      persons: 1, // For maid service, we can use 1 as default or calculate based on services
+      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+    });
     
+    // Close ALL dialogs and open success dialog
+    setCartDialogOpen(false);
+    handleClose();
+    setSuccessDialogOpen(true);
 
-//     if (!calculatePaymentResponse || calculatePaymentResponse.status !== 200) {
-//       alert("Failed to calculate payment.");
-//       return;
-//     }
+  } catch (error: any) {
+    console.error("Checkout error:", error);
 
-    // Step: Create Razorpay order
-    const response = await axios.post(
-      "http://13.201.229.41:3000/create-order",
-      { amount: totalAmount * 100 },
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    if (response.status === 200 && response.data.success) {
-      const orderId = response.data.orderId;
-      const amount = totalAmount * 100;
-      const currency = "INR";
-
-      if (typeof window.Razorpay === "undefined") {
-        alert("Razorpay SDK not loaded.");
-        return;
+    // ✅ Still use snackbar for errors
+    let backendMessage = "Failed to initiate payment";
+    if (error?.response?.data) {
+      if (typeof error.response.data === "string") {
+        backendMessage = error.response.data;
+      } else if (error.response.data.error) {
+        backendMessage = error.response.data.error;
+      } else if (error.response.data.message) {
+        backendMessage = error.response.data.message;
       }
-
-      // Populate booking details
-      bookingDetails.serviceProviderId = providerDetails?.serviceproviderId 
-        ? Number(providerDetails.serviceproviderId) 
-        : null;
-      bookingDetails.serviceProviderName = providerFullName;
-      bookingDetails.customerId = customerId;
-      bookingDetails.customerName = customerName;
-      bookingDetails.address = currentLocation;
-      bookingDetails.startDate = bookingType?.startDate || new Date().toISOString().split('T')[0];
-      bookingDetails.endDate = bookingType?.endDate || "";
-      bookingDetails.engagements = [
-        ...selectedServices,
-        ...(selectedAddOns.length > 0 ? [`Add-ons: ${selectedAddOns.join(', ')}`] : [])
-      ].join('; ');
-      bookingDetails.monthlyAmount = totalAmount;
-      bookingDetails.timeslot = bookingType.timeRange;
-
-      const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount,
-        currency,
-        name: "Serveaso",
-        description: "Maid Service Booking",
-        order_id: orderId,
-        handler: async function (razorpayResponse: any) {
-          alert(`Payment successful! Payment ID: ${razorpayResponse.razorpay_payment_id}`);
-
-          try {
-            const bookingResponse = await axiosInstance.post(
-              "/api/serviceproviders/engagement/add",
-              bookingDetails,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            if (bookingResponse.status === 201) {
-              try {
-                const notifyResponse = await fetch("http://localhost:4000/send-notification", {
-                  method: "POST",
-                  body: JSON.stringify({
-                    title: "Booking Confirmed",
-                    body: `Thank you, ${customerName}! Your booking has been confirmed.`,
-                    url: "http://localhost:3000",
-                  }),
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                });
-
-                if (notifyResponse.ok) {
-                  console.log("Notification sent!");
-                  alert("Notification sent!");
-                } else {
-                  alert("Failed to send notification");
-                }
-              } catch (notifyError) {
-                alert("Error sending notification");
-              }
-
-              if (sendDataToParent) {
-                sendDataToParent(BOOKINGS);
-              }
-              handleClose();
-            }
-          } catch (error) {
-            alert("Booking saved but failed to update server.");
-          }
-        },
-        prefill: {
-          name: customerName || "",
-          email: user?.email || "",
-          contact: user?.mobileNo || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+    } else if (error.message) {
+      backendMessage = error.message;
     }
-  } catch (error) {
-    console.log("error => ", error);
-    alert("Failed to initiate payment. Please try again.");
+
+    setSnackbarMessage(backendMessage);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+
+  } finally {
+    setLoading(false);
   }
 };
 
   return (
     <>
-      <Dialog 
-        style={{padding:'0px', borderRadius: '12px'}}
+      <StyledDialog 
         open={open}
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
-        PaperProps={{
-          style: { width: '550px', borderRadius: '12px' }
-        }}
       >
-        <DialogContent style={{padding: '0'}}>
-          <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '550px', width: '100%'}}>
-            {/* Header */}
-            <div style={{padding: '20px', borderBottom: '1px solid #f0f0f0'}}>
-              <h1 style={{color: '#2d3436', margin: '0', fontSize: '24px'}}>MAID SERVICE PACKAGES</h1>
-            </div>
-            
-            {/* Tabs */}
-            <div style={{display: 'flex', borderBottom: '1px solid #f0f0f0'}}>
-              <button 
-                onClick={() => handleTabChange('regular')}
-                style={{
-                  flex: 1,
-                  padding: '15px',
-                  backgroundColor: '#fff',
-                  border: 'none',
-                  borderBottom: activeTab === 'regular' ? '3px solid #e17055' : 'none',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  color: activeTab === 'regular' ? '#2d3436' : '#636e72'
-                }}
-              >
-                Regular Services
-              </button>
-              <button 
-                onClick={() => handleTabChange('premium')}
-                style={{
-                  flex: 1,
-                  padding: '15px',
-                  backgroundColor: '#fff',
-                  border: 'none',
-                  borderBottom: activeTab === 'premium' ? '3px solid #e17055' : 'none',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  color: activeTab === 'premium' ? '#2d3436' : '#636e72'
-                }}
-              >
-                Premium Services
-              </button>
-            </div>
-            
-            {/* Package Sections */}
-            <div style={{padding: '20px'}}>
-              {/* Regular Utensil Cleaning */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.utensilCleaning.selected ? '#e17055' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Utensil Cleaning</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#e17055', fontWeight: 'bold'}}>4.7</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.2M reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#e17055', fontSize: '18px'}}>₹1,200</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
-                
-                {/* Person Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Persons:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handlePersonChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packageStates.utensilCleaning.persons}
-                    </span>
-                    <button 
-                      onClick={() => handlePersonChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>All kind of daily utensil cleaning</span>
-                  </div>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Party used type utensil cleaning</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => handlePackageSelect('utensilCleaning')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packageStates.utensilCleaning.selected ? '#e17055' : '#fff',
-                    color: packageStates.utensilCleaning.selected ? '#fff' : '#e17055',
-                    border: '1px solid #e17055',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.utensilCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
-              </div>
-              
-              {/* Sweeping & Mopping */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.sweepingMopping.selected ? '#00b894' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Sweeping & Mopping</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#00b894', fontWeight: 'bold'}}>4.8</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(1.5M reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#00b894', fontSize: '18px'}}>₹1,200</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
-                
-                {/* House Size Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>House Size:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handleHouseSizeChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packageStates.sweepingMopping.houseSize}
-                    </span>
-                    <button 
-                      onClick={() => handleHouseSizeChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Daily sweeping and mopping of 2 rooms, 1 Hall</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => handlePackageSelect('sweepingMopping')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packageStates.sweepingMopping.selected ? '#00b894' : '#fff',
-                    color: packageStates.sweepingMopping.selected ? '#fff' : '#00b894',
-                    border: '1px solid #00b894',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.sweepingMopping.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
-              </div>
-              
-              {/* Bathroom Cleaning */}
-              <div style={{
-                border: '1px solid #dfe6e9',
-                borderRadius: '10px',
-                padding: '15px',
-                marginBottom: '20px',
-                borderColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#dfe6e9'
-              }}>
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                  <div>
-                    <h2 style={{color: '#2d3436', margin: '0 0 5px 0'}}>Bathroom Cleaning</h2>
-                    <div style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <span style={{color: '#0984e3', fontWeight: 'bold'}}>4.6</span>
-                      <span style={{color: '#636e72', fontSize: '14px', marginLeft: '5px'}}>(980K reviews)</span>
-                    </div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontWeight: 'bold', color: '#0984e3', fontSize: '18px'}}>₹600</div>
-                    <div style={{color: '#636e72', fontSize: '14px'}}>Monthly service</div>
-                  </div>
-                </div>
-                
-                {/* Bathroom Number Selector */}
-                <div style={{display: 'flex', alignItems: 'center', margin: '15px 0'}}>
-                  <span style={{marginRight: '15px', color: '#2d3436'}}>Bathrooms:</span>
-                  <div style={{display: 'flex', alignItems: 'center', border: '1px solid #dfe6e9', borderRadius: '20px'}}>
-                    <button 
-                      onClick={() => handleBathroomChange('decrement')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderRight: '1px solid #dfe6e9',
-                        borderRadius: '20px 0 0 20px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      -
-                    </button>
-                    <span style={{padding: '5px 15px', minWidth: '20px', textAlign: 'center'}}>
-                      {packageStates.bathroomCleaning.bathrooms}
-                    </span>
-                    <button 
-                      onClick={() => handleBathroomChange('increment')}
-                      style={{
-                        padding: '5px 10px',
-                        backgroundColor: '#f5f5f5',
-                        border: 'none',
-                        borderLeft: '1px solid #dfe6e9',
-                        borderRadius: '0 20px 20px 0',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                <div style={{margin: '15px 0'}}>
-                  <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
-                    <span style={{marginRight: '10px', color: '#2d3436'}}>•</span>
-                    <span>Weekly cleaning of bathrooms</span>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => handlePackageSelect('bathroomCleaning')}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    backgroundColor: packageStates.bathroomCleaning.selected ? '#0984e3' : '#fff',
-                    color: packageStates.bathroomCleaning.selected ? '#fff' : '#0984e3',
-                    border: '1px solid #0984e3',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {packageStates.bathroomCleaning.selected ? 'SELECTED' : 'SELECT SERVICE'}
-                </button>
-              </div>
-              
-              {/* Add-ons Section */}
-              <div style={{marginBottom: '20px'}}>
-                <h3 style={{color: '#2d3436', marginBottom: '15px', fontSize: '18px'}}>Regular Add-on Services</h3>
-                
-                <div style={{display: 'flex', flexWrap: 'wrap', gap: '15px'}}>
-                  {/* Bathroom Deep Cleaning */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.bathroomDeepCleaning ? '#00b894' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Bathroom Deep Cleaning</h4>
-                      <span style={{fontWeight: 'bold', color: '#00b894', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
-                      Weekly cleaning of bathrooms, all bathroom walls cleaned
-                    </div>
-                    <button 
-                      onClick={() => handleAddOnSelect('bathroomDeepCleaning')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.bathroomDeepCleaning ? '#00b894' : 'rgba(228, 245, 241, 0.2)',
-                        color: addOns.bathroomDeepCleaning ? '#fff' : '#00b894',
-                        border: addOns.bathroomDeepCleaning ? 'none' : '2px solid #00b894',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                  
-                  {/* Normal Dusting */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.normalDusting ? '#0984e3' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Normal Dusting</h4>
-                      <span style={{fontWeight: 'bold', color: '#0984e3', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
-                      Daily furniture dusting, doors, carpet, bed making
-                    </div>
-                    <button 
-                      onClick={() => handleAddOnSelect('normalDusting')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.normalDusting ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
-                        color: addOns.normalDusting ? '#fff' : '#0984e3',
-                        border: addOns.normalDusting ? 'none' : '2px solid #0984e3',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                  
-                  {/* Deep Dusting */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.deepDusting ? '#e17055' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Deep Dusting</h4>
-                      <span style={{fontWeight: 'bold', color: '#e17055', fontSize: '16px'}}>+₹1,500</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
-                      Includes chemical agents cleaning: décor items, furniture
-                    </div>
-                    <button 
-                      onClick={() => handleAddOnSelect('deepDusting')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.deepDusting ? '#e17055' : 'hsla(13, 87.50%, 96.90%, 0.20)',
-                        color: addOns.deepDusting ? '#fff' : '#e17055',
-                        border: addOns.deepDusting ? 'none' : '2px solid #e17055',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.deepDusting ? 'ADDED' : 'Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                  
-                  {/* Utensil Drying */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.utensilDrying ? '#00b894' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Utensil Drying</h4>
-                      <span style={{fontWeight: 'bold', color: '#00b894', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
-                      Househelp will dry and make proper arrangements
-                    </div>
-                    <button 
-                      onClick={() => handleAddOnSelect('utensilDrying')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.utensilDrying ? '#00b894' : 'rgba(228, 245, 241, 0.2)',
-                        color: addOns.utensilDrying ? '#fff' : '#00b894',
-                        border: addOns.utensilDrying ? 'none' : '2px solid #00b894',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                  
-                  {/* Clothes Drying */}
-                  <div style={{
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    flex: '1 1 45%',
-                    minWidth: '200px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    borderColor: addOns.clothesDrying ? '#0984e3' : '#dfe6e9'
-                  }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                      <h4 style={{color: '#2d3436', margin: '0', fontWeight: '600'}}>Clothes Drying</h4>
-                      <span style={{fontWeight: 'bold', color: '#0984e3', fontSize: '16px'}}>+₹1,000</span>
-                    </div>
-                    <div style={{color: '#636e72', fontSize: '14px', marginBottom: '15px', lineHeight: '1.4'}}>
-                      Househelp will get clothes from/to drying place
-                    </div>
-                    <button 
-                      onClick={() => handleAddOnSelect('clothesDrying')}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: addOns.clothesDrying ? '#0984e3' : 'rgba(234, 245, 254, 0.2)',
-                        color: addOns.clothesDrying ? '#fff' : '#0984e3',
-                        border: addOns.clothesDrying ? 'none' : '2px solid #0984e3',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
-                        {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Voucher Section */}
-            <div style={{
-              padding: '15px 20px',
-              borderTop: '1px solid #f0f0f0',
-              borderBottom: '1px solid #f0f0f0',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <h3 style={{color: '#2d3436', margin: '0 0 10px 0', fontSize: '16px'}}>Apply Voucher</h3>
-              <div style={{display: 'flex', gap: '10px'}}>
-                <input
-                  type="text"
-                  placeholder="Enter voucher code"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <button style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
+        <StyledDialogContent>
+          <DialogContainer>
+            <DialogHeader style={{
+               position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
-                  APPLY
-                </button>
-              </div>
-            </div>
-            
+              <h1>🧹Maid Service</h1>
+             <CloseButton
+  aria-label="close"
+  onClick={handleClose}
+  size="small"
+  className="!text-white"
+>
+  <CloseIcon />
+</CloseButton>
+
+            </DialogHeader>
+
+            <PackagesContainer>
+              {/* Utensil Cleaning */}
+              <PackageCard selected={packageStates.utensilCleaning.selected} color="#e17055">
+                <PackageHeader>
+                  <div>
+                    <PackageTitle>Utensil Cleaning</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#e17055">4.7</RatingValue>
+                      <ReviewsText>(1.2M reviews)</ReviewsText>
+                    </RatingContainer>
+                  </div>
+                  <PriceContainer>
+                    <PriceValue color="#e17055">₹{getPackagePrice('utensilCleaning').toLocaleString('en-IN')}</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
+
+                <PersonsControl>
+                  <PersonsLabel>Persons:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handlePersonChange('decrement')}>-</DecrementButton>
+                    <PersonsValue>{packageStates.utensilCleaning.persons}</PersonsValue>
+                    <IncrementButton onClick={() => handlePersonChange('increment')}>+</IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
+
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
+                    <span>All kind of daily utensil cleaning</span>
+                  </DescriptionItem>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
+                    <span>Party used type utensil cleaning</span>
+                  </DescriptionItem>
+                </DescriptionList>
+
+                <ButtonsContainer>
+                  <CartButton inCart={cartItems.utensilCleaning} onClick={() => handleAddPackageToCart('utensilCleaning')}>
+                    {cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.utensilCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
+
+              {/* Sweeping & Mopping */}
+              <PackageCard selected={packageStates.sweepingMopping.selected} color="#00b894">
+                <PackageHeader>
+                  <div>
+                    <PackageTitle>Sweeping & Mopping</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#00b894">4.8</RatingValue>
+                      <ReviewsText>(1.5M reviews)</ReviewsText>
+                    </RatingContainer>
+                  </div>
+                  <PriceContainer>
+                    <PriceValue color="#00b894">₹{getPackagePrice('sweepingMopping').toLocaleString('en-IN')}</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
+
+                <PersonsControl>
+                  <PersonsLabel>House Size:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handleHouseSizeChange('decrement')}>-</DecrementButton>
+                    <PersonsValue>{packageStates.sweepingMopping.houseSize}</PersonsValue>
+                    <IncrementButton onClick={() => handleHouseSizeChange('increment')}>+</IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
+
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
+                    <span>Daily sweeping and mopping of 2 rooms, 1 Hall</span>
+                  </DescriptionItem>
+                </DescriptionList>
+
+                <ButtonsContainer>
+                  <CartButton inCart={cartItems.sweepingMopping} onClick={() => handleAddPackageToCart('sweepingMopping')}>
+                    {cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.sweepingMopping ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
+
+              {/* Bathroom Cleaning */}
+              <PackageCard selected={packageStates.bathroomCleaning.selected} color="#0984e3">
+                <PackageHeader>
+                  <div>
+                    <PackageTitle>Bathroom Cleaning</PackageTitle>
+                    <RatingContainer>
+                      <RatingValue color="#0984e3">4.6</RatingValue>
+                      <ReviewsText>(980K reviews)</ReviewsText>
+                    </RatingContainer>
+                  </div>
+                  <PriceContainer>
+                    <PriceValue color="#0984e3">₹{getPackagePrice('bathroomCleaning').toLocaleString('en-IN')}</PriceValue>
+                    <PreparationTime>Monthly service</PreparationTime>
+                  </PriceContainer>
+                </PackageHeader>
+
+                <PersonsControl>
+                  <PersonsLabel>Bathrooms:</PersonsLabel>
+                  <PersonsInput>
+                    <DecrementButton onClick={() => handleBathroomChange('decrement')}>-</DecrementButton>
+                    <PersonsValue>{packageStates.bathroomCleaning.bathrooms}</PersonsValue>
+                    <IncrementButton onClick={() => handleBathroomChange('increment')}>+</IncrementButton>
+                  </PersonsInput>
+                </PersonsControl>
+
+                <DescriptionList>
+                  <DescriptionItem>
+                    <DescriptionBullet>•</DescriptionBullet>
+                    <span>Weekly cleaning of bathrooms</span>
+                  </DescriptionItem>
+                </DescriptionList>
+
+                <ButtonsContainer>
+                  <CartButton inCart={cartItems.bathroomCleaning} onClick={() => handleAddPackageToCart('bathroomCleaning')}>
+                    {cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
+                    {cartItems.bathroomCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                  </CartButton>
+                </ButtonsContainer>
+              </PackageCard>
+
+              {/* Add-ons Section */}
+              <AddOnsContainer>
+                <AddOnsTitle>Regular Add-on Services</AddOnsTitle>
+                <AddOnsGrid>
+                  {/* Bathroom Deep Cleaning */}
+                  <AddOnCard selected={addOns.bathroomDeepCleaning} color="#00b894">
+                    <AddOnHeader>
+                      <AddOnTitle>Bathroom Deep Cleaning</AddOnTitle>
+                      <AddOnPrice color="#00b894">+₹{getAddOnPrice('bathroomDeepCleaning').toLocaleString('en-IN')}</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>Weekly cleaning of bathrooms, all bathroom walls cleaned</AddOnDescription>
+                    <AddOnButton selected={addOns.bathroomDeepCleaning} color="#00b894" onClick={() => handleAddAddOnToCart('bathroomDeepCleaning')}>
+                      {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+
+                  {/* Normal Dusting */}
+                  <AddOnCard selected={addOns.normalDusting} color="#0984e3">
+                    <AddOnHeader>
+                      <AddOnTitle>Normal Dusting</AddOnTitle>
+                      <AddOnPrice color="#0984e3">+₹{getAddOnPrice('normalDusting').toLocaleString('en-IN')}</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>Daily furniture dusting, doors, carpet, bed making</AddOnDescription>
+                    <AddOnButton selected={addOns.normalDusting} color="#0984e3" onClick={() => handleAddAddOnToCart('normalDusting')}>
+                      {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+
+                  {/* Deep Dusting */}
+                  <AddOnCard selected={addOns.deepDusting} color="#e17055">
+                    <AddOnHeader>
+                      <AddOnTitle>Deep Dusting</AddOnTitle>
+                      <AddOnPrice color="#e17055">+₹{getAddOnPrice('deepDusting').toLocaleString('en-IN')}</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>Includes chemical agents cleaning: décor items, furniture</AddOnDescription>
+                    <AddOnButton selected={addOns.deepDusting} color="#e17055" onClick={() => handleAddAddOnToCart('deepDusting')}>
+                      {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+
+                  {/* Utensil Drying */}
+                  <AddOnCard selected={addOns.utensilDrying} color="#00b894">
+                    <AddOnHeader>
+                      <AddOnTitle>Utensil Drying</AddOnTitle>
+                      <AddOnPrice color="#00b894">+₹{getAddOnPrice('utensilDrying').toLocaleString('en-IN')}</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>Househelp will dry and make proper arrangements</AddOnDescription>
+                    <AddOnButton selected={addOns.utensilDrying} color="#00b894" onClick={() => handleAddAddOnToCart('utensilDrying')}>
+                      {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+
+                  {/* Clothes Drying */}
+                  <AddOnCard selected={addOns.clothesDrying} color="#0984e3">
+                    <AddOnHeader>
+                      <AddOnTitle>Clothes Drying</AddOnTitle>
+                      <AddOnPrice color="#0984e3">+₹{getAddOnPrice('clothesDrying').toLocaleString('en-IN')}</AddOnPrice>
+                    </AddOnHeader>
+                    <AddOnDescription>Househelp will get clothes from/to drying place</AddOnDescription>
+                    <AddOnButton selected={addOns.clothesDrying} color="#0984e3" onClick={() => handleAddAddOnToCart('clothesDrying')}>
+                      {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
+                    </AddOnButton>
+                  </AddOnCard>
+                </AddOnsGrid>
+              </AddOnsContainer>
+
+              {/* Voucher Section */}
+              <VoucherContainer>
+                <VoucherTitle>Apply Voucher</VoucherTitle>
+                <VoucherInputContainer>
+                  <VoucherInput type="text" placeholder="Enter voucher code" />
+                  <VoucherButton>APPLY</VoucherButton>
+                </VoucherInputContainer>
+              </VoucherContainer>
+            </PackagesContainer>
+
             {/* Footer with Checkout */}
-            <div
-              style={{
-                position: 'sticky',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: '15px 20px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#fff',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
-              }}
-            >
+            <FooterContainer>
               <div>
-                <div style={{color: '#636e72', fontSize: '14px'}}>
+                <FooterText>
                   Total for {countSelectedServices()} services ({countSelectedAddOns()} add-ons)
-                </div>
-                <div style={{fontWeight: 'bold', fontSize: '20px', color: '#2d3436'}}>
-                  ₹{calculateTotal().toLocaleString('en-IN')}
-                </div>
+                </FooterText>
+                <FooterPrice>₹{calculateTotal().toLocaleString('en-IN')}</FooterPrice>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {!loggedInUser && (
+
+              <FooterButtons>
+                {!isAuthenticated && (
                   <>
                     <Tooltip title="You need to login to proceed with checkout">
                       <IconButton size="small" style={{ marginRight: '8px' }}>
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <button
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#1976d2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        width: 'fit-content'
-                      }}
-                      onClick={handleLogin}
-                    >
+                    <LoginButton onClick={() => loginWithRedirect()}>
                       LOGIN TO CONTINUE
-                    </button>
+                    </LoginButton>
                   </>
                 )}
-                
-                {loggedInUser && (
-                  <button
-                    style={{
-                      padding: '12px 25px',
-                      backgroundColor: hasSelectedServices() ? '#e17055' : '#bdc3c7',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      cursor: hasSelectedServices() ? 'pointer' : 'not-allowed'
-                    }}
-                    onClick={handleCheckout}
-                    disabled={!hasSelectedServices()}
-                  >
-                    CHECKOUT
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Login Dialog */}
-      <Dialog 
-        style={{padding:'0px'}}
-        open={loginOpen}
-        onClose={handleLoginClose}
-        aria-labelledby="login-dialog-title"
-        aria-describedby="login-dialog-description"
+                {isAuthenticated && (
+                  <CheckoutButton onClick={handleOpenCartDialog} disabled={calculateTotal() === 0}>
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                  </CheckoutButton>
+                )}
+              </FooterButtons>
+            </FooterContainer>
+          </DialogContainer>
+        </StyledDialogContent>
+      </StyledDialog>
+
+      <CartDialog
+        open={cartDialogOpen}
+        handleClose={() => setCartDialogOpen(false)}
+        handleMaidCheckout={handleCheckout}
+      />
+
+      {/* Booking Success Dialog - Same as CookServicesDialog */}
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <DialogContent>
-          <Login bookingPage={handleBookingPage}/>
-        </DialogContent>
-      </Dialog>
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

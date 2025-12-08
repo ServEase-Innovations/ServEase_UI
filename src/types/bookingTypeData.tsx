@@ -6,7 +6,8 @@ export type Bookingtype = {
     eveningSelection?: any;
     timeRange?: any;
     duration?: any;
-    startTime?: string;  // Added from BookingForm
-    endTime?: string;    // Added from BookingForm
+    housekeepingRole?:any;
+    startTime?: string | null;  // Added from BookingForm
+    endTime?: string | null;    // Added from BookingForm
     serviceType?: 'Regular' | 'Premium';  // Added from BookingForm
 }
