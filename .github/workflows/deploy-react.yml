@@ -22,11 +22,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------
+      # Checkout Correct Branch
+      # -------------------------
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
+      # -------------------------
+      # Set ENV + Host Mapping
+      # -------------------------
       - name: Determine Environment
         id: env
         run: |
@@ -41,7 +47,6 @@ jobs:
           echo "Using Environment: $ENV"
           echo "Using Branch: $BRANCH"
 
-          # Assign environment-specific values
           if [[ "$ENV" == "dev" ]]; then
             echo "envFile=.env.dev" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_DEV_HOST }}" >> $GITHUB_OUTPUT
@@ -55,28 +60,52 @@ jobs:
             echo "server=${{ secrets.UI_PROD_HOST }}" >> $GITHUB_OUTPUT
           fi
 
+      # -------------------------
+      # Install Node
+      # -------------------------
       - name: Install Node
         uses: actions/setup-node@v4
         with:
           node-version: "18"
 
+      # -------------------------
+      # Install Dependencies (env-cmd included)
+      # -------------------------
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
+      # -------------------------
+      # SAFETY: Ensure env-cmd available globally
+      # -------------------------
+      - name: Ensure env-cmd Installed
+        run: npm install -g env-cmd
+
+      # -------------------------
+      # Build React App
+      # -------------------------
       - name: Build React App
         run: env-cmd -f ${{ steps.env.outputs.envFile }} npm run build
 
+      # -------------------------
+      # SSH Agent
+      # -------------------------
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.UI_SSH_KEY }}
 
+      # -------------------------
+      # Deploy Build Folder to EC2
+      # -------------------------
       - name: Deploy to EC2
         run: |
           rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no" \
             build/ ubuntu@${{ steps.env.outputs.server }}:/var/www/serveaso_ui/
 
+      # -------------------------
+      # Restart NGINX
+      # -------------------------
       - name: Restart NGINX
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.env.outputs.server }} \
