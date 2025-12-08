@@ -88,10 +88,11 @@
     "start:dev": "env-cmd -f .env.dev react-app-rewired start",
     "start:qa": "env-cmd -f .env.qa react-app-rewired start",
     "start:prod": "env-cmd -f .env.prod react-app-rewired start",
-    "build": "env-cmd -f .env.dev react-app-rewired build",
-    "build:dev": "env-cmd -f .env.dev react-app-rewired build",
-    "build:qa": "env-cmd -f .env.qa react-app-rewired build",
-    "build:prod": "env-cmd -f .env.prod react-app-rewired build",
+    "build": "react-app-rewired build",
+"build:dev": "env-cmd -f .env.dev npm run build",
+"build:qa": "env-cmd -f .env.qa npm run build",
+"build:prod": "env-cmd -f .env.prod npm run build",
+
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "lint": "eslint . || true"
