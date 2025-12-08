@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       # -------------------------
-      # Set ENV + Host Mapping
+      # Determine Environment
       # -------------------------
       - name: Determine Environment
         id: env
@@ -44,20 +44,23 @@ jobs:
             BRANCH="${GITHUB_REF##*/}"
           fi
 
-          echo "Using Environment: $ENV"
-          echo "Using Branch: $BRANCH"
+          echo "env=$ENV" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
           if [[ "$ENV" == "dev" ]]; then
             echo "envFile=.env.dev" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_DEV_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_key=${{ secrets.DEV_KEY }}" >> $GITHUB_OUTPUT
 
           elif [[ "$ENV" == "qa" ]]; then
             echo "envFile=.env.qa" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_QA_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_key=${{ secrets.QA_KEY }}" >> $GITHUB_OUTPUT
 
           else
             echo "envFile=.env.prod" >> $GITHUB_OUTPUT
             echo "server=${{ secrets.UI_PROD_HOST }}" >> $GITHUB_OUTPUT
+            echo "ssh_key=${{ secrets.PROD_KEY }}" >> $GITHUB_OUTPUT
           fi
 
       # -------------------------
@@ -69,13 +72,13 @@ jobs:
           node-version: "18"
 
       # -------------------------
-      # Install Dependencies (env-cmd included)
+      # Install Dependencies
       # -------------------------
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
       # -------------------------
-      # SAFETY: Ensure env-cmd available globally
+      # Ensure env-cmd Installed Globally
       # -------------------------
       - name: Ensure env-cmd Installed
         run: npm install -g env-cmd
@@ -87,15 +90,15 @@ jobs:
         run: env-cmd -f ${{ steps.env.outputs.envFile }} npm run build
 
       # -------------------------
-      # SSH Agent
+      # Setup SSH Agent WITH ENV-BASED KEY
       # -------------------------
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.UI_SSH_KEY }}
+          ssh-private-key: ${{ steps.env.outputs.ssh_key }}
 
       # -------------------------
-      # Deploy Build Folder to EC2
+      # Deploy to EC2
       # -------------------------
       - name: Deploy to EC2
         run: |
