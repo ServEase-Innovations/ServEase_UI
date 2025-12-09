@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Button } from '../Button/button';
 import { X } from 'lucide-react';
+import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -49,7 +50,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle className={`flex items-center justify-between ${getSeverityColor()} p-2`}>
+      {/* <DialogTitle className={`flex items-center justify-between ${getSeverityColor()} p-2`}>
         <span className="font-semibold">{title}</span>
         <IconButton
           onClick={onClose}
@@ -59,7 +60,19 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         >
           <X className="h-4 w-4" />
         </IconButton>
-      </DialogTitle>
+      </DialogTitle> */}
+         <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
+                <DialogTitle className="text-xl font-semibold text-white">
+                  <span className="font-semibold">{title}</span>
+                </DialogTitle>
+                <button
+                  onClick={onClose}
+                  className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+              </DialogHeader>
       
       <DialogContent className="p-6">
         <Typography variant="body1" className="text-gray-700 mt-4">
