@@ -8,7 +8,7 @@
 
 @media (max-width: 768px) {
   .container-provider {
-    margin-top: 20px; /* header is taller on mobile */
+    margin-top: 75px; /* header is taller on mobile */
   }
 }
 
