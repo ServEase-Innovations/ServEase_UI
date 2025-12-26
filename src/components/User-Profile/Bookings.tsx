@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon, Menu, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -334,18 +334,18 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 const renderScheduledMessage = (booking: Booking) => {
   if (booking.today_service && booking.today_service.status === "SCHEDULED") {
     return (
-      <div className="mt-4 w-full max-w-2xl">
+      <div className="mt-4 w-full">
         <div className="p-3 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-md shadow-sm">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2 flex-1">
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
                   <p className="text-sm font-medium text-gray-900">
                     Confirmed: Scheduled for today.
                   </p>
                   <Badge 
-                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5 w-fit"
                   >
                     Scheduled
                   </Badge>
@@ -361,18 +361,18 @@ const renderScheduledMessage = (booking: Booking) => {
     );
   } else if (booking.today_service && booking.today_service.status === "IN_PROGRESS") {
     return (
-      <div className="-mt-16 w-full max-w-2xl">
+      <div className="mt-4 w-full">
         <div className="p-3 bg-gradient-to-r from-green-50 to-white border border-green-100 rounded-md shadow-sm">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2 flex-1">
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
                   <p className="text-sm font-medium text-gray-900">
                     Your service is in progress!
                   </p>
                   <Badge 
-                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5 w-fit"
                   >
                     In Progress
                   </Badge>
@@ -388,7 +388,7 @@ const renderScheduledMessage = (booking: Booking) => {
                     size="sm"
                     onClick={() => handleGenerateOTP(booking)}
                     disabled={otpLoading === booking.id || !booking.today_service?.can_generate_otp}
-                    className="min-w-[180px]"
+                    className="w-full sm:w-auto min-w-[180px]"
                   >
                     {otpLoading === booking.id ? (
                       <>
@@ -412,7 +412,7 @@ const renderScheduledMessage = (booking: Booking) => {
                 
                 {/* OTP Display Section (if OTP is generated) */}
                 {booking.today_service.otp_active && generatedOTPs[booking.id] && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md max-w-md">
+                  <div className="mt-3 p-3 bg-gray-50 rounded-md">
                     <p className="text-xs font-medium text-gray-700 mb-1">Share this OTP with your provider:</p>
                     <div className="flex items-center justify-between">
                       <code className="text-lg font-bold tracking-wider text-gray-900">
@@ -445,18 +445,18 @@ const renderScheduledMessage = (booking: Booking) => {
     );
   } else if (booking.today_service && booking.today_service.status === "COMPLETED") {
     return (
-      <div className="-mt-16 w-full max-w-2xl">
+      <div className="mt-4 w-full">
         <div className="p-3 bg-gradient-to-r from-green-50 to-white border border-green-100 rounded-md shadow-sm">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2 flex-1">
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
                   <p className="text-sm font-medium text-gray-900">
                     Service Completed Successfully!
                   </p>
                   <Badge 
-                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5 w-fit"
                   >
                     Completed
                   </Badge>
@@ -468,8 +468,8 @@ const renderScheduledMessage = (booking: Booking) => {
                 
                 {/* Review Prompt Section */}
                 <div className="mt-3 pt-3 border-t border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex-1">
                       <p className="text-xs font-medium text-gray-700">
                         How was your experience?
                       </p>
@@ -481,7 +481,7 @@ const renderScheduledMessage = (booking: Booking) => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleLeaveReviewClick(booking)}
-                      className="ml-2"
+                      className="sm:ml-2 w-full sm:w-auto"
                     >
                       <MessageCircle className="h-3 w-3 mr-1" />
                       Leave Review
@@ -823,50 +823,46 @@ const renderScheduledMessage = (booking: Booking) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
             >
               <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-              Call Provider
+              <span className="hidden sm:inline">Call Provider</span>
+              <span className="sm:hidden">Call</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
             >
               <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Message
+              <span className="hidden sm:inline">Message</span>
+              <span className="sm:hidden">Msg</span>
             </Button>
 
             <Button
               variant="destructive"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               onClick={() => handleCancelClick(booking)}
             >
               <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Cancel Booking
+              <span className="hidden sm:inline">Cancel Booking</span>
+              <span className="sm:hidden">Cancel</span>
             </Button>
 
             {booking.bookingType === "MONTHLY" && (
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
+                className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                 onClick={() => handleModifyClick(booking)}
                 disabled={modificationDisabled}
                 title={modificationTooltip}
               >
                 <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                {modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}
+                <span className="hidden sm:inline">{modificationDisabled ? "Modify (Unavailable)" : "Modify Booking"}</span>
+                <span className="sm:hidden">Modify</span>
               </Button>
             )}
 
@@ -876,27 +872,25 @@ const renderScheduledMessage = (booking: Booking) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 min-w-0 justify-center 
-                               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                               w-1/3 sm:w-auto"
+                    className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                     onClick={() => handleModifyVacationClick(booking)}
                     disabled={isRefreshing}
                   >
                     <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                    Modify Vacation
+                    <span className="hidden sm:inline">Modify Vacation</span>
+                    <span className="sm:hidden">Modify Vacation</span>
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 min-w-0 justify-center 
-                               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                               w-1/3 sm:w-auto"
+                    className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                     onClick={() => handleVacationClick(booking)}
                     disabled={isRefreshing}
                   >
                     <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
-                    Add Vacation
+                    <span className="hidden sm:inline">Add Vacation</span>
+                    <span className="sm:hidden">Add Vacation</span>
                   </Button>
                 )}
               </>
@@ -910,35 +904,32 @@ const renderScheduledMessage = (booking: Booking) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
             >
               <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-              Call Provider
+              <span className="hidden sm:inline">Call Provider</span>
+              <span className="sm:hidden">Call</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
             >
               <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Message
+              <span className="hidden sm:inline">Message</span>
+              <span className="sm:hidden">Msg</span>
             </Button>
 
             <Button
               variant="destructive"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               onClick={() => handleCancelClick(booking)}
             >
               <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              Cancel Booking
+              <span className="hidden sm:inline">Cancel Booking</span>
+              <span className="sm:hidden">Cancel</span>
             </Button>
 
             {booking.bookingType === "MONTHLY" && (
@@ -947,27 +938,25 @@ const renderScheduledMessage = (booking: Booking) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 min-w-0 justify-center 
-                               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                               w-1/3 sm:w-auto"
+                    className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                     onClick={() => handleModifyVacationClick(booking)}
                     disabled={isRefreshing}
                   >
                     <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                    Modify Vacation
+                    <span className="hidden sm:inline">Modify Vacation</span>
+                    <span className="sm:hidden">Modify</span>
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 min-w-0 justify-center 
-                               text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                               w-1/3 sm:w-auto"
+                    className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                     onClick={() => handleVacationClick(booking)}
                     disabled={isRefreshing}
                   >
                     <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
-                    Add Vacation
+                    <span className="hidden sm:inline">Add Vacation</span>
+                    <span className="sm:hidden">Add Vacation</span>
                   </Button>
                 )}
               </>
@@ -982,36 +971,33 @@ const renderScheduledMessage = (booking: Booking) => {
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
+                className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                 disabled={true}
               >
                 <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
-                Review Submitted
+                <span className="hidden sm:inline">Review Submitted</span>
+                <span className="sm:hidden">Reviewed</span>
               </Button>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 min-w-0 justify-center 
-                           text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                           w-1/3 sm:w-auto"
+                className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                 onClick={() => handleLeaveReviewClick(booking)}
               >
                 <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-                Leave Review
+                <span className="hidden sm:inline">Leave Review</span>
+                <span className="sm:hidden">Review</span>
               </Button>
             )}
 
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-0 justify-center 
-                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                         w-1/3 sm:w-auto"
+              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
             >
-              Book Again
+              <span className="hidden sm:inline">Book Again</span>
+              <span className="sm:hidden">Book</span>
             </Button>
           </>
         );
@@ -1021,11 +1007,10 @@ const renderScheduledMessage = (booking: Booking) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 min-w-0 justify-center 
-                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2
-                       w-1/3 sm:w-auto"
+            className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
           >
-            Book Again
+            <span className="hidden sm:inline">Book Again</span>
+            <span className="sm:hidden">Book</span>
           </Button>
         );
 
@@ -1052,114 +1037,150 @@ const renderScheduledMessage = (booking: Booking) => {
   ];
 
   return (
-    <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
-      {/* Header */}  
-      <div
-        className="py-8"
-        style={{
-          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
-          color: "rgb(14, 48, 92)",
-        }}
-      >
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-          <div className="hidden md:block"></div>
+    <div className="min-h-screen bg-background">
+{/* Header */}  
+<div
+  className="px-4"
+  style={{
+    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+    color: "rgb(14, 48, 92)",
+    paddingTop: '6.5rem',
+    paddingBottom: '0.5rem'
+  }}
+>
+  <div className="container mx-auto">
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Left side - empty on mobile, logo on desktop if needed */}
+      <div className="hidden md:block w-1/3"></div>
 
-          <div className="text-center md:text-center mt-6 md:mt-0">
-            <h1 className="text-2xl md:text-3xl font-bold mt-6 md:mt-0" style={{ color: "rgb(14, 48, 92)" }}>
-              My Bookings
-            </h1>
-            <p className="mt-1 text-sm md:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
-              Manage your househelp service appointments
-            </p>
-          </div>
-
-          <div className="flex items-center justify-end w-full md:w-auto gap-2 mt-[-1.5rem] md:mt-0">
-            <div className="relative flex-1 md:flex-none">
-              <input
-                type="text"
-                placeholder="Search bookings..."
-                className="w-full md:w-64 px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  <XCircle className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center">
-              <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
-              onClick={() => setWalletDialogOpen(true)}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="rgb(14, 48, 92)"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                  />
-                </svg>
-              </button>
-              <span className="mt-1 text-sm" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
-            </div>
-          </div>
-        </div>
+      {/* Center - Title */}
+      <div className="text-center order-1 md:order-2 w-full md:w-1/3">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
+          My Bookings
+        </h1>
+        <p className="mt-1 text-xs md:text-sm lg:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
+          Manage your househelp service appointments
+        </p>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {isLoading && (
-          <div 
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-white/90 backdrop-blur-sm" 
-            style={{ top: '75px' }}
+      {/* Right side - Search and Wallet */}
+      <div className="flex items-center justify-end w-full md:w-1/3 order-2 md:order-3 gap-3">
+        <div className="relative flex-1 md:flex-none w-full md:w-64">
+          <div className="hidden md:block">
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <div className="md:hidden">
+            <button
+              onClick={() => {/* Add mobile search modal/toggle */}}
+              className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center"
+            >
+              <Search className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        {/* Wallet Button */}
+        <div className="flex flex-col items-center">
+          <button 
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
+            onClick={() => setWalletDialogOpen(true)}
           >
-            <div className="flex-1 flex flex-col items-center justify-center w-full">
-              <ClipLoader color="#3b82f6" size={50} />
-              <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
-            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 md:h-6 md:w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="rgb(14, 48, 92)"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
+            </svg>
+          </button>
+          <span className="mt-1 text-xs" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Mobile Search Bar (when active) */}
+    {searchTerm && (
+      <div className="mt-4 md:hidden">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search bookings..."
+            className="w-full px-4 py-3 rounded-lg bg-white shadow-md text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          >
+            <XCircle className="h-6 w-6" />
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
+      <div className="container mx-auto px-4 py-4 md:py-8">
+        {isLoading && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+            <ClipLoader color="#3b82f6" size={50} />
+            <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
           </div>
         )}
 
+        {/* Upcoming Bookings Section */}
         <section className="mb-8">
-          <div 
-            className="flex items-center gap-3 mb-6 p-2 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary"
-          >
-            <AlertCircle className="h-6 w-6 text-primary" />
+          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-3 md:p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
+            <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-lg md:text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
               </p>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 mt-2 md:mt-0 w-fit">
               {upcomingBookings.length}
             </Badge>
           </div>
 
           {/* Status Tabs */}
           <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1 md:gap-2">
               {statusTabs.map((tab) => (
                 <button
                   key={tab.value}
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
                     statusFilter === tab.value
                       ? 'bg-primary text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {tab.label} 
-                  <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  <span className="ml-2 bg-gray-200 text-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-xs">
                     {tab.count}
                   </span>
                 </button>
@@ -1172,25 +1193,28 @@ const renderScheduledMessage = (booking: Booking) => {
               {filteredUpcomingBookings.map((booking) => (
                 <Card key={booking.id} className="shadow-card hover:shadow-hover transition-all duration-200">
                   <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 flex-1">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
                         {getServiceIcon(booking.service_type)}
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <div>
-                              <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
-                              <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
+                              <CardTitle className="text-base md:text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
+                              <p className="text-xs md:text-sm text-muted-foreground">Booking #{booking.id}</p>
                             </div>
                             
-                            {/* Provider name and rating on the same row, middle section */}
-                            <div className="flex items-center gap-2 ml-4">
-                              <div className="text-right">
-                                 <p className="text-base font-medium text-gray-800 mr-96">
-                                 ServiceProvider : {booking.serviceProviderName}
-                              </p>
-
+                            {/* Provider name and rating */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                              <div className="text-left sm:text-right">
+                                <p className="text-sm md:text-base font-medium text-gray-800">
+                                  {booking.assignmentStatus === "UNASSIGNED" ? (
+                                    <span className="text-yellow-600">Awaiting Assignment</span>
+                                  ) : (
+                                    <>ServiceProvider: {booking.serviceProviderName}</>
+                                  )}
+                                </p>
                                 {booking.providerRating > 0 && (
-                                  <div className="flex items-center gap-1 justify-end mt-1">
+                                  <div className="flex items-center gap-1 mt-1">
                                     <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                                     <span className="text-xs text-gray-600">
                                       {booking.providerRating.toFixed(1)}
@@ -1203,23 +1227,23 @@ const renderScheduledMessage = (booking: Booking) => {
                         </div>
                       </div>
                       
-                      {/* Booking type and status badges on the right */}
-                      <div className="flex flex-col items-end gap-1 ml-4">
-                        <div className="flex gap-2">
+                      {/* Booking type and status badges */}
+                      <div className="flex flex-col items-start md:items-end gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {getBookingTypeBadge(booking.bookingType)}
                           {getStatusBadge(booking.taskStatus)}
                           {booking.modifications && booking.modifications.length > 0 && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
                               Modified
                             </Badge>
                           )}
                           {booking.assignmentStatus === "UNASSIGNED" && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
                               Awaiting
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground pt-2">
+                        <p className="text-xs text-muted-foreground pt-1">
                           Booking Date:{" "}
                           {new Date(booking.bookingDate).toLocaleDateString("en-US", {
                             month: "short",
@@ -1242,178 +1266,13 @@ const renderScheduledMessage = (booking: Booking) => {
                     </div>
                   </CardHeader>
                   
-            
-<CardContent className="space-y-4">
-  
-  <div className="grid md:grid-cols-2 gap-4">
-    {/* Left Column - Booking Details */}
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        <span>
-          {new Date(booking.startDate).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-          {booking.modifications && booking.modifications.length > 0 && (
-            <span className="ml-2 text-xs text-green-600 font-medium">
-              (Rescheduled)
-            </span>
-          )}
-        </span>
-      </div>
-      
-      <div className="flex items-center gap-2 text-sm">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
-      </div>
-      
-      <div className="flex items-center gap-2 text-sm">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <span>{booking.address}</span>
-      </div>
-
-      {/* Show modification details if available */}
-      {booking.modifications && booking.modifications.length > 0 && (
-        <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
-          {getModificationDetails(booking)}
-        </div>
-      )}
-    </div>
-    
-    {/* Right Column - Responsibilities and Price */}
-    <div className="space-y-3">
-      <div>
-        <p className="font-medium text-sm mb-1">Responsibilities:</p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
-            ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
-          ].map((item: any, index: number) => {
-            const { task, isAddon } = item;
-
-            const taskLabel =
-              typeof task === "object" && task !== null
-                ? Object.entries(task)
-                    .filter(([key]) => key !== "taskType")
-                    .map(([key, value]) => `${value} ${key}`)
-                    .join(", ")
-                : "";
-
-            const taskName = typeof task === "object" ? task.taskType : task;
-
-            return (
-              <Badge key={index} variant="outline" className="text-xs">
-                {isAddon ? "Add-ons - " : ""}
-                {taskName} {taskLabel && `- ${taskLabel}`}
-              </Badge>
-            );
-          })}
-        </div>
-      </div>
-      
-      <div className="text-right">
-        <p className="text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
-      </div>
-    </div>
-  </div>
-   
-  {/* Scheduled Message Section - NOW CENTER ALIGNED */}
-  <div className=" flex justify-center">
-    {renderScheduledMessage(booking)}
-  </div>
-  
-  <Separator />
-  
-  <div className="flex flex-wrap gap-2">
-    {renderActionButtons(booking)}
-  </div>
-</CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="text-center py-8">
-            <CardContent>
-              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
-              <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
-              <Button onClick={() => setServicesDialogOpen(true)}>Book a Service</Button>
-            </CardContent>
-          </Card>
-          )}
-        </section>
-
-        <section>
-          <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
-            <History className="h-6 w-6 text-muted-foreground" />
-            <div className="flex-1">
-              <h2 className="text-2xl font-semibold text-card-foreground">Past Bookings</h2>
-              <p className="text-sm text-muted-foreground">
-                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
-              </p>
-            </div>
-            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
-              {pastBookings.length}
-            </Badge>
-          </div>
-
-          {pastBookings.length > 0 ? (
-            <div className="grid gap-4">
-              {filteredPastBookings.map((booking) => (
-                <Card key={booking.id} className="shadow-card">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        {getServiceIcon(booking.service_type)}
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
-                              <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
-                            </div>
-                            
-                            {/* Provider name and rating on the same row, middle section */}
-                            <div className="flex items-center gap-2 ml-4">
-                              <div className="text-right">
-                                 <p className="text-base font-medium text-gray-800 mr-96">
-                                 ServiceProvider : {booking.serviceProviderName}
-                              </p>
-                                {booking.providerRating > 0 && (
-                                  <div className="flex items-center gap-1 justify-end mt-1">
-                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                    <span className="text-xs text-gray-600">
-                                      {booking.providerRating.toFixed(1)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Booking type and status badges on the right */}
-                      <div className="flex gap-2 ml-4">
-                        {getBookingTypeBadge(booking.bookingType)}
-                        {getStatusBadge(booking.taskStatus)}
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                            Modified
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
+                      {/* Left Column - Booking Details */}
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
+                          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">
                             {new Date(booking.startDate).toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
@@ -1421,7 +1280,7 @@ const renderScheduledMessage = (booking: Booking) => {
                               day: 'numeric'
                             })}
                             {booking.modifications && booking.modifications.length > 0 && (
-                              <span className="ml-2 text-xs text-green-600 font-medium">
+                              <span className="ml-1 text-xs text-green-600 font-medium">
                                 (Rescheduled)
                               </span>
                             )}
@@ -1429,13 +1288,13 @@ const renderScheduledMessage = (booking: Booking) => {
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
+                          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">{formatTimeRange(booking.start_time, booking.end_time)}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{booking.address}</span>
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">{booking.address}</span>
                         </div>
 
                         {/* Show modification details if available */}
@@ -1446,10 +1305,11 @@ const renderScheduledMessage = (booking: Booking) => {
                         )}
                       </div>
                       
+                      {/* Right Column - Responsibilities and Price */}
                       <div className="space-y-3">
-                        <div className="mt-2">
+                        <div>
                           <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1 md:gap-2">
                             {[
                               ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
                               ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
@@ -1467,7 +1327,178 @@ const renderScheduledMessage = (booking: Booking) => {
                               const taskName = typeof task === "object" ? task.taskType : task;
 
                               return (
-                                <Badge key={index} variant="outline" className="text-xs">
+                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                                  {isAddon ? "Add-ons - " : ""}
+                                  {taskName} {taskLabel && `- ${taskLabel}`}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Scheduled Message Section */}
+                    <div className="flex justify-center">
+                      {renderScheduledMessage(booking)}
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {renderActionButtons(booking)}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
+                <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
+                <Button 
+                  onClick={() => setServicesDialogOpen(true)}
+                  className="w-full sm:w-auto"
+                >
+                  Book a Service
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+
+        {/* Past Bookings Section */}
+        <section>
+          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-3 md:p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
+            <History className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1">
+              <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-card-foreground">Past Bookings</h2>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
+              </p>
+            </div>
+            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground mt-2 md:mt-0 w-fit">
+              {pastBookings.length}
+            </Badge>
+          </div>
+
+          {pastBookings.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPastBookings.map((booking) => (
+                <Card key={booking.id} className="shadow-card">
+                  <CardHeader className="pb-4">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        {getServiceIcon(booking.service_type)}
+                        <div className="flex-1">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <div>
+                              <CardTitle className="text-base md:text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
+                              <p className="text-xs md:text-sm text-muted-foreground">Booking #{booking.id}</p>
+                            </div>
+                            
+                            {/* Provider name and rating */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                              <div className="text-left sm:text-right">
+                                <p className="text-sm md:text-base font-medium text-gray-800">
+                                  ServiceProvider: {booking.serviceProviderName}
+                                </p>
+                                {booking.providerRating > 0 && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-xs text-gray-600">
+                                      {booking.providerRating.toFixed(1)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Booking type and status badges */}
+                      <div className="flex flex-wrap gap-2 ml-4">
+                        {getBookingTypeBadge(booking.bookingType)}
+                        {getStatusBadge(booking.taskStatus)}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                            Modified
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* Left Column - Booking Details */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">
+                            {new Date(booking.startDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <span className="ml-1 text-xs text-green-600 font-medium">
+                                (Rescheduled)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">{formatTimeRange(booking.start_time, booking.end_time)}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs md:text-sm">{booking.address}</span>
+                        </div>
+
+                        {/* Show modification details if available */}
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Right Column - Responsibilities and Price */}
+                      <div className="space-y-3">
+                        <div>
+                          <p className="font-medium text-sm mb-1">Responsibilities:</p>
+                          <div className="flex flex-wrap gap-1 md:gap-2">
+                            {[
+                              ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
+                              ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
+                            ].map((item: any, index: number) => {
+                              const { task, isAddon } = item;
+
+                              const taskLabel =
+                                typeof task === "object" && task !== null
+                                  ? Object.entries(task)
+                                      .filter(([key]) => key !== "taskType")
+                                      .map(([key, value]) => `${value} ${key}`)
+                                      .join(", ")
+                                  : "";
+
+                              const taskName = typeof task === "object" ? task.taskType : task;
+
+                              return (
+                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
                                   {isAddon ? "Add-ons - " : ""}
                                   {taskName} {taskLabel && `- ${taskLabel}`}
                                 </Badge>
@@ -1476,19 +1507,20 @@ const renderScheduledMessage = (booking: Booking) => {
                           </div>
                         </div>
 
-                        <div className="text-right mt-4">
-                          <p className="text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                        <div className="text-right">
+                          <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Scheduled Message Section - Positioned at bottom-left for past bookings too */}
+                    {/* Scheduled Message Section */}
                     <div className="mt-4">
                       {renderScheduledMessage(booking)}
                     </div>
                     
                     <Separator />
                     
+                    {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
                       {booking.taskStatus === "COMPLETED" && (
                         <>
@@ -1496,36 +1528,33 @@ const renderScheduledMessage = (booking: Booking) => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 min-w-0 justify-center 
-                                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                                         w-1/3 sm:w-auto"
+                              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                               disabled={true}
                             >
                               <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
-                              Review Submitted
+                              <span className="hidden sm:inline">Review Submitted</span>
+                              <span className="sm:hidden">Reviewed</span>
                             </Button>
                           ) : (
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 min-w-0 justify-center 
-                                         text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                                         w-1/3 sm:w-auto"
+                              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                               onClick={() => handleLeaveReviewClick(booking)}
                             >
                               <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-                              Leave Review
+                              <span className="hidden sm:inline">Leave Review</span>
+                              <span className="sm:hidden">Review</span>
                             </Button>
                           )}
 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 min-w-0 justify-center 
-                                       text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                                       w-1/3 sm:w-auto"
+                            className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                           >
-                            Book Again
+                            <span className="hidden sm:inline">Book Again</span>
+                            <span className="sm:hidden">Book</span>
                           </Button>
                         </>
                       )}
@@ -1534,11 +1563,10 @@ const renderScheduledMessage = (booking: Booking) => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 min-w-0 justify-center 
-                                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                                     w-1/3 sm:w-auto"
+                          className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                         >
-                          Book Again
+                          <span className="hidden sm:inline">Book Again</span>
+                          <span className="sm:hidden">Book</span>
                         </Button>
                       )}
 
@@ -1546,11 +1574,10 @@ const renderScheduledMessage = (booking: Booking) => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 min-w-0 justify-center 
-                                     text-xs px-2 py-1 sm:text-sm sm:px-3 sm:py-2 
-                                     w-1/3 sm:w-auto"
+                          className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                         >
-                          Book Again
+                          <span className="hidden sm:inline">Book Again</span>
+                          <span className="sm:hidden">Book</span>
                         </Button>
                       )}
                     </div>
