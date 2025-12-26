@@ -35,6 +35,15 @@ interface Responsibilities {
   add_ons?: Task[];
 }
 
+interface TodayService {
+  service_day_id: string;
+  status: string;
+  can_start: boolean;
+  can_generate_otp: boolean;
+  can_complete: boolean;
+  otp_active: boolean;
+}
+
 interface Booking {
   id: number;
   name: string;
@@ -85,6 +94,7 @@ interface Booking {
     refund?: number;
     penalty?: number;
   }>;
+  today_service?: TodayService;
 }
 
 const getServiceIcon = (type: string) => {
@@ -170,6 +180,30 @@ const getModificationDetails = (booking: Booking): string => {
   return `Last modified: ${lastMod.action}`;
 };
 
+const formatTimeToAMPM = (timeString: string): string => {
+  if (!timeString) return '';
+  
+  try {
+    // Handle both "HH:mm:ss" and "HH:mm" formats
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const minute = parseInt(minutes, 10);
+    
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12; // Convert 0 to 12, 13 to 1, etc.
+    const displayMinute = minute.toString().padStart(2, '0');
+    
+    return `${displayHour}:${displayMinute} ${period}`;
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeString; // Return original if parsing fails
+  }
+};
+
+const formatTimeRange = (startTime: string, endTime: string): string => {
+  return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
+};
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
@@ -181,11 +215,14 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
   const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
+  const [generatedOTPs, setGeneratedOTPs] = useState<Record<number, string>>({});
   
   const [openDialog, setOpenDialog] = useState(false);
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
@@ -196,6 +233,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState<number | null>(null);
   
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
@@ -221,6 +259,274 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   });
 
   const { user: auth0User, isAuthenticated } = useAuth0();
+  const { appUser } = useAppUser();
+
+  const handleGenerateOTP = async (booking: Booking) => {
+    if (!booking.today_service?.service_day_id) {
+      console.error('Service day ID not found for OTP generation');
+      setSnackbarMessage('Service day ID not found for OTP generation');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    try {
+      // Show loading state for this specific booking
+      setOtpLoading(booking.id);
+      
+      // Call the OTP generation API
+      const response = await PaymentInstance.post(
+       `/api/engagement-service/service-days/${booking.today_service.service_day_id}/otp`
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        // Assuming the API returns the OTP in the response
+        // Adjust this based on actual API response structure
+        const otp = response.data.otp || response.data.data?.otp || '123456';
+        
+        // Store the OTP
+        setGeneratedOTPs(prev => ({
+          ...prev,
+          [booking.id]: otp
+        }));
+
+        // Update the booking state to reflect OTP is active
+        setCurrentBookings(prev => prev.map(b => 
+          b.id === booking.id ? {
+            ...b,
+            today_service: b.today_service ? {
+              ...b.today_service,
+              otp_active: true,
+              can_generate_otp: false // Disable generate button after OTP is generated
+            } : b.today_service
+          } : b
+        ));
+
+        setFutureBookings(prev => prev.map(b => 
+          b.id === booking.id ? {
+            ...b,
+            today_service: b.today_service ? {
+              ...b.today_service,
+              otp_active: true,
+              can_generate_otp: false
+            } : b.today_service
+          } : b
+        ));
+
+        // Show success message
+        setSnackbarMessage('OTP generated successfully!');
+        setSnackbarSeverity('success');
+        setOpenSnackbar(true);
+      }
+    } catch (error: any) {
+      console.error('Error generating OTP:', error);
+      
+      // Show error message
+      const errorMessage = error.response?.data?.message || 'Failed to generate OTP. Please try again.';
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setOtpLoading(null);
+    }
+  };
+
+const renderScheduledMessage = (booking: Booking) => {
+  if (booking.today_service && booking.today_service.status === "SCHEDULED") {
+    return (
+      <div className="mt-4 w-full max-w-2xl">
+        <div className="p-3 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-md shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-2 flex-1">
+              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    Confirmed: Scheduled for today.
+                  </p>
+                  <Badge 
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                  >
+                    Scheduled
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-600">
+                  We are waiting for the provider to initiate start process at {formatTimeToAMPM(booking.start_time)}.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (booking.today_service && booking.today_service.status === "IN_PROGRESS") {
+    return (
+      <div className="-mt-16 w-full max-w-2xl">
+        <div className="p-3 bg-gradient-to-r from-green-50 to-white border border-green-100 rounded-md shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-2 flex-1">
+              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    Your service is in progress!
+                  </p>
+                  <Badge 
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                  >
+                    In Progress
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-600 mb-3">
+                  The provider has started session. Please generate OTP below so they can complete task.
+                </p>
+                
+                {/* OTP Generation Button */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleGenerateOTP(booking)}
+                    disabled={otpLoading === booking.id || !booking.today_service?.can_generate_otp}
+                    className="min-w-[180px]"
+                  >
+                    {otpLoading === booking.id ? (
+                      <>
+                        <ClipLoader size={14} color="#ffffff" />
+                        <span className="ml-2">Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Generate & Share OTP
+                      </>
+                    )}
+                  </Button>
+                  
+                  {booking.today_service.otp_active && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      OTP Active
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* OTP Display Section (if OTP is generated) */}
+                {booking.today_service.otp_active && generatedOTPs[booking.id] && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-md max-w-md">
+                    <p className="text-xs font-medium text-gray-700 mb-1">Share this OTP with your provider:</p>
+                    <div className="flex items-center justify-between">
+                      <code className="text-lg font-bold tracking-wider text-gray-900">
+                        {generatedOTPs[booking.id]}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedOTPs[booking.id]);
+                          setSnackbarMessage('OTP copied to clipboard!');
+                          setSnackbarSeverity('info');
+                          setOpenSnackbar(true);
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Valid for 10 minutes
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (booking.today_service && booking.today_service.status === "COMPLETED") {
+    return (
+      <div className="-mt-16 w-full max-w-2xl">
+        <div className="p-3 bg-gradient-to-r from-green-50 to-white border border-green-100 rounded-md shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-2 flex-1">
+              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    Service Completed Successfully!
+                  </p>
+                  <Badge 
+                    className="bg-green-100 text-green-800 border-green-200 text-xs font-medium px-2 py-0.5"
+                  >
+                    Completed
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-600">
+                  Your {getServiceTitle(booking.service_type)} service has been completed at {formatTimeToAMPM(booking.end_time)}. 
+                  We hope you enjoyed the service!
+                </p>
+                
+                {/* Review Prompt Section */}
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-700">
+                        How was your experience?
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Help us improve by leaving a review for your provider
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleLeaveReviewClick(booking)}
+                      className="ml-2"
+                    >
+                      <MessageCircle className="h-3 w-3 mr-1" />
+                      Leave Review
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+  const hasVacation = (booking: Booking): boolean => {
+    return booking.hasVacation || false;
+  };
+
+  const filterBookings = (bookings: Booking[], term: string) => {
+    if (!term) return bookings;
+    
+    return bookings.filter(booking => 
+      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
+      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
+      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
+    );
+  };
+
+  const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
+    const statusOrder: Record<string, number> = {
+      'NOT_STARTED': 2,
+      'IN_PROGRESS': 1,
+      'COMPLETED': 3,
+      'CANCELLED': 4
+    };
+
+    return [...bookings].sort((a, b) => {
+      const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
+      if (statusComparison !== 0) return statusComparison;
+      return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+    });
+  };
 
   // Function to refresh bookings data
   const refreshBookings = async (id?: string) => {
@@ -239,8 +545,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       setFutureBookings(mapBookingData(upcoming));
     }
   };
-
-  const { appUser } = useAppUser();
 
   useEffect(() => {
     if (isAuthenticated && appUser?.customerid) {
@@ -324,64 +628,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             vacationDetails: hasVacation && item.vacation?.leave_days > 0 
               ? item.vacation 
               : null,
-            modifications: modifications
+            modifications: modifications,
+            today_service: item.today_service
           };
         })
       : [];
-  };
-
-  const formatTimeToAMPM = (timeString: string): string => {
-    if (!timeString) return '';
-    
-    try {
-      // Handle both "HH:mm:ss" and "HH:mm" formats
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours, 10);
-      const minute = parseInt(minutes, 10);
-      
-      const period = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12; // Convert 0 to 12, 13 to 1, etc.
-      const displayMinute = minute.toString().padStart(2, '0');
-      
-      return `${displayHour}:${displayMinute} ${period}`;
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return timeString; // Return original if parsing fails
-    }
-  };
-
-  const formatTimeRange = (startTime: string, endTime: string): string => {
-    return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
-  };
-
-  const hasVacation = (booking: Booking): boolean => {
-    return booking.hasVacation || false;
-  };
-
-  const filterBookings = (bookings: Booking[], term: string) => {
-    if (!term) return bookings;
-    
-    return bookings.filter(booking => 
-      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
-      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
-    );
-  };
-
-  const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
-    const statusOrder: Record<string, number> = {
-      'NOT_STARTED': 2,
-      'IN_PROGRESS': 1,
-      'COMPLETED': 3,
-      'CANCELLED': 4
-    };
-
-    return [...bookings].sort((a, b) => {
-      const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
-      if (statusComparison !== 0) return statusComparison;
-      return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
-    });
   };
 
   const showConfirmation = (
@@ -468,6 +719,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   const handleVacationSuccess = async () => {
+    setSnackbarMessage('Vacation applied successfully!');
+    setSnackbarSeverity('success');
     setOpenSnackbar(true);
     await refreshBookings();
   };
@@ -494,6 +747,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       );
 
       await refreshBookings();
+      setSnackbarMessage('Booking cancelled successfully!');
+      setSnackbarSeverity('success');
       setOpenSnackbar(true);
       
     } catch (error: any) {
@@ -508,6 +763,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
         )
       );
+      setSnackbarMessage('Error cancelling booking. Please try again.');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
     } finally {
       setActionLoading(false);
     }
@@ -541,6 +799,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
       setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
       await refreshBookings();
+      setSnackbarMessage('Leave applied successfully!');
+      setSnackbarSeverity('success');
       setOpenSnackbar(true);
       setHolidayDialogOpen(false);
     } catch (error) {
@@ -550,23 +810,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       setIsRefreshing(false);
     }
   };
-
-  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
-  
-  const filteredByStatus = statusFilter === 'ALL' 
-    ? upcomingBookings 
-    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
-  
-  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
-  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
-
-  const statusTabs = [
-    { value: 'ALL', label: 'All', count: upcomingBookings.length },
-    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
-    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
-    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
-    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
-  ];
 
   const renderActionButtons = (booking: Booking) => {
     const modificationDisabled = isModificationDisabled(booking);
@@ -791,6 +1034,23 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     }
   };
 
+  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
+  
+  const filteredByStatus = statusFilter === 'ALL' 
+    ? upcomingBookings 
+    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
+  
+  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
+  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+
+  const statusTabs = [
+    { value: 'ALL', label: 'All', count: upcomingBookings.length },
+    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
+    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
+    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
+  ];
+
   return (
     <div className="min-h-screen bg-background" style={{marginTop: '4%'}}>
       {/* Header */}  
@@ -925,7 +1185,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                             {/* Provider name and rating on the same row, middle section */}
                             <div className="flex items-center gap-2 ml-4">
                               <div className="text-right">
-                                <p className="text-base font-medium text-gray-800 mr-96">
+                                 <p className="text-base font-medium text-gray-800 mr-96">
                                  ServiceProvider : {booking.serviceProviderName}
                               </p>
 
@@ -982,86 +1242,95 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {new Date(booking.startDate).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                            {booking.modifications && booking.modifications.length > 0 && (
-                              <span className="ml-2 text-xs text-green-600 font-medium">
-                                (Rescheduled)
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{booking.address}</span>
-                        </div>
+            
+<CardContent className="space-y-4">
+  
+  <div className="grid md:grid-cols-2 gap-4">
+    {/* Left Column - Booking Details */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <span>
+          {new Date(booking.startDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+          {booking.modifications && booking.modifications.length > 0 && (
+            <span className="ml-2 text-xs text-green-600 font-medium">
+              (Rescheduled)
+            </span>
+          )}
+        </span>
+      </div>
+      
+      <div className="flex items-center gap-2 text-sm">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        <span>{formatTimeRange(booking.start_time, booking.end_time)}</span>
+      </div>
+      
+      <div className="flex items-center gap-2 text-sm">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <span>{booking.address}</span>
+      </div>
 
-                        {/* Show modification details if available */}
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
-                            {getModificationDetails(booking)}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="mt-2">
-                          <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
-                              ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
-                            ].map((item: any, index: number) => {
-                              const { task, isAddon } = item;
+      {/* Show modification details if available */}
+      {booking.modifications && booking.modifications.length > 0 && (
+        <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
+          {getModificationDetails(booking)}
+        </div>
+      )}
+    </div>
+    
+    {/* Right Column - Responsibilities and Price */}
+    <div className="space-y-3">
+      <div>
+        <p className="font-medium text-sm mb-1">Responsibilities:</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
+            ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
+          ].map((item: any, index: number) => {
+            const { task, isAddon } = item;
 
-                              const taskLabel =
-                                typeof task === "object" && task !== null
-                                  ? Object.entries(task)
-                                      .filter(([key]) => key !== "taskType")
-                                      .map(([key, value]) => `${value} ${key}`)
-                                      .join(", ")
-                                  : "";
+            const taskLabel =
+              typeof task === "object" && task !== null
+                ? Object.entries(task)
+                    .filter(([key]) => key !== "taskType")
+                    .map(([key, value]) => `${value} ${key}`)
+                    .join(", ")
+                : "";
 
-                              const taskName = typeof task === "object" ? task.taskType : task;
+            const taskName = typeof task === "object" ? task.taskType : task;
 
-                              return (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {isAddon ? "Add-ons - " : ""}
-                                  {taskName} {taskLabel && `- ${taskLabel}`}
-                                </Badge>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="text-right mt-4">
-                          <p className="text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {renderActionButtons(booking)}
-                    </div>
-                  </CardContent>
+            return (
+              <Badge key={index} variant="outline" className="text-xs">
+                {isAddon ? "Add-ons - " : ""}
+                {taskName} {taskLabel && `- ${taskLabel}`}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
+      
+      <div className="text-right">
+        <p className="text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+      </div>
+    </div>
+  </div>
+   
+  {/* Scheduled Message Section - NOW CENTER ALIGNED */}
+  <div className=" flex justify-center">
+    {renderScheduledMessage(booking)}
+  </div>
+  
+  <Separator />
+  
+  <div className="flex flex-wrap gap-2">
+    {renderActionButtons(booking)}
+  </div>
+</CardContent>
                 </Card>
               ))}
             </div>
@@ -1211,6 +1480,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                           <p className="text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Scheduled Message Section - Positioned at bottom-left for past bookings too */}
+                    <div className="mt-4">
+                      {renderScheduledMessage(booking)}
                     </div>
                     
                     <Separator />
@@ -1364,8 +1638,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         autoHideDuration={3000}
         onClose={() => setOpenSnackbar(false)}
       >
-        <Alert onClose={() => setOpenSnackbar(false)} severity="success">
-          Operation completed successfully!
+        <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarSeverity}>
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </div>
