@@ -4,6 +4,7 @@ import { X, Send, ArrowLeft, ChevronDown, MessageCircle, Phone, Mail } from "luc
 import Draggable from "react-draggable";
 import { Button, Card, CardContent } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 
 const generalFaqData = [
   { question: "What services do you offer?", answer: "We offer services for HomeCook, Cleanning Help, and Caregiver." },
@@ -64,6 +65,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   return (
     <Draggable disabled={isMobile}>
       <div className="fixed bottom-20 right-2 sm:right-10 z-50 flex flex-col items-end w-full sm:w-auto">
+       
         {open && (
           <Card
             className="
@@ -74,27 +76,29 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
               max-h-[70vh] sm:max-h-[75vh] 
               flex flex-col overflow-hidden
             "
-          >
+          >  {/* Header Section with DialogHeader */}
+              <DialogHeader >
+                <div className="flex justify-between items-center w-full">
+                  {chatOpen && (
+                    <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
+                      <ArrowLeft size={22} />
+                    </Button>
+                  )}
+                  <h2 className="text-sm sm:text-lg font-bold text-white-800 flex-grow text-center">
+                    Chat Support
+                  </h2>
+                  <button
+                    onClick={onClose}
+                    className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
+                    aria-label="Close"
+                  >
+                    <X size={22} />
+                  </button>
+                </div>
+              </DialogHeader>
             <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
 
-              {/* Header Section */}
-              <div className="flex justify-between items-center border-b px-2 sm:px-4 py-2">
-                {chatOpen && (
-                  <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
-                    <ArrowLeft size={22} />
-                  </Button>
-                )}
-                <h2 className="text-sm sm:text-lg font-bold text-gray-900 flex-grow text-center">
-                  Chat Support
-                </h2>
-                <button
-                  onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                  <X size={22} />
-                </button>
-              </div>
-
+            
 
 {/* Messages + FAQ + Contact */}
 <div
