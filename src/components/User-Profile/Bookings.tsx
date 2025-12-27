@@ -334,7 +334,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 const renderScheduledMessage = (booking: Booking) => {
   if (booking.today_service && booking.today_service.status === "SCHEDULED") {
     return (
-      <div className="mt-4 w-full max-w-2xl">
+      <div className="-mt-16 w-full max-w-2xl">
         <div className="p-3 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-md shadow-sm">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-2 flex-1">
