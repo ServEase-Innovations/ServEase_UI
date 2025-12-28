@@ -866,75 +866,85 @@ const handleBookingSave = () => {
    <Bell className="w-5 h-5" />
     </Button>
           {/* User / Auth */}
-          {!isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-white rounded-full shadow"
-              onClick={() => loginWithRedirect()}
-            >
-              <User className="w-5 h-5" />
-            </Button>
-          ) : (
-            <div className="relative inline-block text-left">
-              <button
-                onClick={() => setdropDownOpen((prev) => !prev)}
-                className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
-              >
-                <img
-                  src={appUser?.picture}
-                  alt={appUser?.name}
-                  className="w-6 h-6 md:w-8 md:h-8 rounded-full"
-                />
-                <span className="font-medium hidden sm:inline">
-                  {user?.name}
-                </span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
+        {!isAuthenticated ? (
+  <Button
+    variant="ghost"
+    size="icon"
+    className="bg-white rounded-full shadow"
+    onClick={() => loginWithRedirect()}
+  >
+    <User className="w-5 h-5" />
+  </Button>
+) : (
+  <div className="relative inline-block text-left">
+    <button
+      onClick={() => setdropDownOpen((prev) => !prev)}
+      className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+    >
+      <img
+        src={appUser?.picture}
+        alt={appUser?.name}
+        className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+      />
+      <span className="font-medium hidden sm:inline">
+        {user?.name}
+      </span>
+      <ChevronDown className="w-4 h-4" />
+    </button>
 
-              {dropDownOpen && (
-                <div
-                  ref={dropdownRef}
-                  className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
-                >
-                  <ul className="py-2 text-sm">
-                    <li
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleClick(PROFILE)}
-                    >
-                      Profile
-                    </li>
-                    {appUser?.role === "CUSTOMER" && (
-                      <li
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleClick(BOOKINGS)}
-                      >
-                        My Bookings
-                      </li>
-                    )}
-                    {appUser?.role === "SERVICE_PROVIDER" && (
-                      <li
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleClick(DASHBOARD)}
-                      >
-                        Dashboard
-                      </li>
-                    )}
-                    <li
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() =>
-                        logout({
-                          logoutParams: { returnTo: window.location.origin },
-                        })
-                      }
-                    >
-                      Logout
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
+    {dropDownOpen && (
+      <div
+        ref={dropdownRef}
+        className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
+      >
+        <ul className="py-2 text-sm">
+          <li
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              handleClick(PROFILE);
+              setdropDownOpen(false);
+            }}
+          >
+            Profile
+          </li>
+          {appUser?.role === "CUSTOMER" && (
+            <li
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                handleClick(BOOKINGS);
+                setdropDownOpen(false);
+              }}
+            >
+              My Bookings
+            </li>
           )}
+          {appUser?.role === "SERVICE_PROVIDER" && (
+            <li
+              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => {
+                handleClick(DASHBOARD);
+                setdropDownOpen(false);
+              }}
+            >
+              Dashboard
+            </li>
+          )}
+          <li
+            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            onClick={() => {
+              logout({
+                logoutParams: { returnTo: window.location.origin },
+              });
+              setdropDownOpen(false);
+            }}
+          >
+            Logout
+          </li>
+        </ul>
+      </div>
+    )}
+  </div>
+)}
         </div>
       </header>
 

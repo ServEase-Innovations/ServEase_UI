@@ -108,11 +108,8 @@ interface FormData {
     country: string;
     pincode: string;
   };
-  // Removed only geoHash fields:
-  // geoHash5: string;
-  // geoHash6: string;
-  // geoHash7: string;
 }
+
 // Define the shape of errors to hold string messages
 interface FormErrors {
   firstName?: string;
@@ -198,63 +195,64 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     longitude: number;
     address: string;
   } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add submitting state
 
   const [formData, setFormData] = useState<FormData>({
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  gender: "",
-  emailId: "",
-  password: "",
-  confirmPassword: "",
-  mobileNo: "",
-  AlternateNumber: "",
-  buildingName: "", // Add back
-  locality: "", // Add back
-  street: "", // Add back
-  currentLocation: "", // Add back
-  nearbyLocation: "", // Add back
-  pincode: "", // Add back
-  latitude: 0,
-  longitude: 0,
-  AADHAR: "",
-  pan: "",
-  panImage: null,
-  housekeepingRole: "",
-  description: "",
-  experience: "",
-  kyc: "AADHAR",
-  documentImage: null,
-  otherDetails: "",
-  profileImage: null,
-  cookingSpeciality: "",
-  age: "",
-  diet: "",
-  dob: "",
-  profilePic: "",
-  timeslot: "06:00-20:00",
-  referralCode: "",
-  agreeToTerms: false,
-  terms: false,
-  privacy: false,
-  keyFacts: false,
-  permanentAddress: {
-    apartment: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    pincode: ""
-  },
-  correspondenceAddress: {
-    apartment: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    pincode: ""
-  },
-});
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    gender: "",
+    emailId: "",
+    password: "",
+    confirmPassword: "",
+    mobileNo: "",
+    AlternateNumber: "",
+    buildingName: "", // Add back
+    locality: "", // Add back
+    street: "", // Add back
+    currentLocation: "", // Add back
+    nearbyLocation: "", // Add back
+    pincode: "", // Add back
+    latitude: 0,
+    longitude: 0,
+    AADHAR: "",
+    pan: "",
+    panImage: null,
+    housekeepingRole: "",
+    description: "",
+    experience: "",
+    kyc: "AADHAR",
+    documentImage: null,
+    otherDetails: "",
+    profileImage: null,
+    cookingSpeciality: "",
+    age: "",
+    diet: "",
+    dob: "",
+    profilePic: "",
+    timeslot: "06:00-20:00",
+    referralCode: "",
+    agreeToTerms: false,
+    terms: false,
+    privacy: false,
+    keyFacts: false,
+    permanentAddress: {
+      apartment: "",
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      pincode: ""
+    },
+    correspondenceAddress: {
+      apartment: "",
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      pincode: ""
+    },
+  });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -293,29 +291,52 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
     }));
   };
-const { validationResults, validateField, resetValidation } = useFieldValidation();
 
-// Add debounced validation functions
-const debouncedEmailValidation = useCallback(
-  debounce((email: string) => {
-    validateField('email', email);
-  }, 500),
-  [validateField]
-);
+  const { validationResults, validateField, resetValidation } = useFieldValidation();
 
-const debouncedMobileValidation = useCallback(
-  debounce((mobile: string) => {
-    validateField('mobile', mobile);
-  }, 500),
-  [validateField]
-);
+  // Add debounced validation functions
+  const debouncedEmailValidation = useCallback(
+    debounce((email: string) => {
+      validateField('email', email);
+    }, 500),
+    [validateField]
+  );
 
-const debouncedAlternateValidation = useCallback(
-  debounce((alternate: string) => {
-    validateField('alternate', alternate);
-  }, 500),
-  [validateField]
-);
+  const debouncedMobileValidation = useCallback(
+    debounce((mobile: string) => {
+      validateField('mobile', mobile);
+    }, 500),
+    [validateField]
+  );
+
+  const debouncedAlternateValidation = useCallback(
+    debounce((alternate: string) => {
+      validateField('alternate', alternate);
+    }, 500),
+    [validateField]
+  );
+
+  // Function to clear email field when cross icon is clicked
+  const handleClearEmail = () => {
+    setFormData(prev => ({ ...prev, emailId: "" }));
+    setErrors(prev => ({ ...prev, emailId: "" }));
+    resetValidation('email');
+  };
+
+  // Function to clear mobile field when cross icon is clicked
+  const handleClearMobile = () => {
+    setFormData(prev => ({ ...prev, mobileNo: "" }));
+    setErrors(prev => ({ ...prev, mobileNo: "" }));
+    resetValidation('mobile');
+  };
+
+  // Function to clear alternate mobile field when cross icon is clicked
+  const handleClearAlternate = () => {
+    setFormData(prev => ({ ...prev, AlternateNumber: "" }));
+    setErrors(prev => ({ ...prev, AlternateNumber: "" }));
+    resetValidation('alternate');
+  };
+
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/;
@@ -417,59 +438,59 @@ const debouncedAlternateValidation = useCallback(
       }
     }
 
-     if (name === "emailId") {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(value)) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        emailId: "Please enter a valid email address.",
-      }));
-      resetValidation('email');
-    } else {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        emailId: "",
-      }));
-      // Trigger debounced email validation
-      debouncedEmailValidation(value);
+    if (name === "emailId") {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(value)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          emailId: "Please enter a valid email address.",
+        }));
+        resetValidation('email');
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          emailId: "",
+        }));
+        // Trigger debounced email validation
+        debouncedEmailValidation(value);
+      }
     }
-  }
 
-  if (name === "mobileNo") {
-    const mobilePattern = /^[0-9]{10}$/;
-    if (!mobilePattern.test(value)) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        mobileNo: "Please enter a valid 10-digit mobile number.",
-      }));
-      resetValidation('mobile');
-    } else {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        mobileNo: "",
-      }));
-      // Trigger debounced mobile validation
-      debouncedMobileValidation(value);
+    if (name === "mobileNo") {
+      const mobilePattern = /^[0-9]{10}$/;
+      if (!mobilePattern.test(value)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          mobileNo: "Please enter a valid 10-digit mobile number.",
+        }));
+        resetValidation('mobile');
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          mobileNo: "",
+        }));
+        // Trigger debounced mobile validation
+        debouncedMobileValidation(value);
+      }
     }
-  }
 
-  if (name === "AlternateNumber" && value) {
-    const mobilePattern = /^[0-9]{10}$/;
-    if (!mobilePattern.test(value)) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        AlternateNumber: "Please enter a valid 10-digit mobile number.",
-      }));
-      resetValidation('alternate');
-    } else {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        AlternateNumber: "",
-      }));
-      // Trigger debounced alternate number validation
-      debouncedAlternateValidation(value);
+    if (name === "AlternateNumber" && value) {
+      const mobilePattern = /^[0-9]{10}$/;
+      if (!mobilePattern.test(value)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          AlternateNumber: "Please enter a valid 10-digit mobile number.",
+        }));
+        resetValidation('alternate');
+      } else {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          AlternateNumber: "",
+        }));
+        // Trigger debounced alternate number validation
+        debouncedAlternateValidation(value);
+      }
     }
-  }
 
     if (name === "AADHAR") {
       if (!aadhaarPattern.test(value)) {
@@ -541,19 +562,18 @@ const debouncedAlternateValidation = useCallback(
       if (!formData.gender) {
         tempErrors.gender = "Please select a gender.";
       }
-       if (validationResults.email.error) {
-      tempErrors.emailId = validationResults.email.error;
-    }
+      if (validationResults.email.error) {
+        tempErrors.emailId = validationResults.email.error;
+      }
       if (!formData.password || !strongPasswordRegex.test(formData.password)) {
         tempErrors.password = "Password is required.";
       }
       if (formData.password !== formData.confirmPassword) {
         tempErrors.confirmPassword = "Passwords do not match.";
       }
-   if (validationResults.mobile.error) {
-      tempErrors.mobileNo = validationResults.mobile.error;
-    }
-   
+      if (validationResults.mobile.error) {
+        tempErrors.mobileNo = validationResults.mobile.error;
+      }
     }
 
     if (activeStep === 1) {
@@ -580,7 +600,7 @@ const debouncedAlternateValidation = useCallback(
       }
 
       // Validate correspondence address only if it's different from permanent address
-      const isSameAddress = 
+      const isSameAddress =
         formData.permanentAddress.apartment === formData.correspondenceAddress.apartment &&
         formData.permanentAddress.street === formData.correspondenceAddress.street &&
         formData.permanentAddress.city === formData.correspondenceAddress.city &&
@@ -676,127 +696,132 @@ const debouncedAlternateValidation = useCallback(
     }
   };
 
-const handleSubmit = async (event: React.FormEvent) => {
-  event.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-  if (activeStep !== steps.length - 1) return;
+    if (activeStep !== steps.length - 1) return;
 
-  if (validateForm()) {
-    try {
-      let profilePicUrl = "";
-      
-      if (image) {
-        const formData1 = new FormData();
-        formData1.append("image", image);
+    if (validateForm()) {
+      setIsSubmitting(true); // Start loading
+      try {
+        let profilePicUrl = "";
 
-        const imageResponse = await axiosInstance.post(
-          "http://65.2.153.173:3000/upload",
-          formData1,
+        if (image) {
+          const formData1 = new FormData();
+          formData1.append("image", image);
+
+          const imageResponse = await axiosInstance.post(
+            "http://65.2.153.173:3000/upload",
+            formData1,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+
+          if (imageResponse.status === 200) {
+            profilePicUrl = imageResponse.data.imageUrl;
+          }
+        }
+        // Prepare the payload with conditional cookingSpeciality
+        const payload = {
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          mobileNo: parseInt(formData.mobileNo) || 0,
+          alternateNo: parseInt(formData.AlternateNumber) || 0,
+          emailId: formData.emailId,
+          gender: formData.gender,
+          buildingName: formData.buildingName,
+          locality: formData.locality,
+          latitude: currentLocation?.latitude || formData.latitude,
+          longitude: currentLocation?.longitude || formData.longitude,
+          street: formData.street,
+          pincode: parseInt(formData.pincode) || 0,
+          currentLocation: formData.currentLocation,
+          nearbyLocation: formData.nearbyLocation,
+          location: formData.currentLocation,
+          housekeepingRole: formData.housekeepingRole,
+          diet: formData.diet,
+          ...(formData.housekeepingRole === "COOK" && {
+            cookingSpeciality: formData.cookingSpeciality
+          }),
+          timeslot: formData.timeslot,
+          expectedSalary: 0,
+          experience: parseInt(formData.experience) || 0,
+          username: formData.emailId,
+          password: formData.password,
+          privacy: formData.privacy,
+          keyFacts: formData.keyFacts,
+          permanentAddress: {
+            field1: formData.permanentAddress.apartment,
+            field2: formData.permanentAddress.street,
+            ctArea: formData.permanentAddress.city,
+            pinNo: formData.permanentAddress.pincode,
+            state: formData.permanentAddress.state,
+            country: formData.permanentAddress.country
+          },
+          correspondenceAddress: {
+            field1: formData.correspondenceAddress.apartment,
+            field2: formData.correspondenceAddress.street,
+            ctArea: formData.correspondenceAddress.city,
+            pinNo: formData.correspondenceAddress.pincode,
+            state: formData.correspondenceAddress.state,
+            country: formData.correspondenceAddress.country
+          },
+          active: true,
+          kyc: formData.kyc,
+          dob: formData.dob
+        };
+
+        const response = await axiosInstance.post(
+          "/api/serviceproviders/serviceprovider/add",
+          payload,
           {
             headers: {
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           }
         );
 
-        if (imageResponse.status === 200) {
-          profilePicUrl = imageResponse.data.imageUrl;
-        }
+        setSnackbarOpen(true);
+        setSnackbarSeverity("success");
+        setSnackbarMessage("Service provider added successfully!");
+
+        // Create Auth0 user
+        const authPayload = {
+          email: formData.emailId,
+          password: formData.password,
+          name: `${formData.firstName} ${formData.lastName}`,
+        };
+
+        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+          .then((authResponse) => {
+            console.log("AuthO user created successfully:", authResponse.data);
+          }).catch((authError) => {
+            console.error("Error creating AuthO user:", authError);
+          });
+
+        setTimeout(() => {
+          setIsSubmitting(false); // Stop loading
+          onBackToLogin(true);
+        }, 3000);
+      } catch (error) {
+        setIsSubmitting(false); // Stop loading on error
+        setSnackbarOpen(true);
+        setSnackbarSeverity("error");
+        setSnackbarMessage("Failed to add service provider. Please try again.");
+        console.error("Error submitting form:", error);
       }
- // Prepare the payload with conditional cookingSpeciality
-const payload = {
-  firstName: formData.firstName,
-  middleName: formData.middleName,
-  lastName: formData.lastName,
-  mobileNo: parseInt(formData.mobileNo) || 0,
-  alternateNo: parseInt(formData.AlternateNumber) || 0,
-  emailId: formData.emailId,
-  gender: formData.gender,
-  buildingName: formData.buildingName,
-  locality: formData.locality,
-  latitude: currentLocation?.latitude || formData.latitude,
-  longitude: currentLocation?.longitude || formData.longitude,
-  street: formData.street,
-  pincode: parseInt(formData.pincode) || 0,
-  currentLocation: formData.currentLocation,
-  nearbyLocation: formData.nearbyLocation,
-  location: formData.currentLocation,
-  housekeepingRole: formData.housekeepingRole,
-  diet: formData.diet,
-  ...(formData.housekeepingRole === "COOK" && { 
-    cookingSpeciality: formData.cookingSpeciality 
-  }),
-  timeslot: formData.timeslot,
-  expectedSalary: 0,
-  experience: parseInt(formData.experience) || 0,
-  username: formData.emailId,
-  password: formData.password,
-  privacy: formData.privacy,
-  keyFacts: formData.keyFacts,
-  permanentAddress: {
-    field1: formData.permanentAddress.apartment,
-    field2: formData.permanentAddress.street,
-    ctArea: formData.permanentAddress.city,
-    pinNo: formData.permanentAddress.pincode,
-    state: formData.permanentAddress.state,
-    country: formData.permanentAddress.country
-  },
-  correspondenceAddress: {
-    field1: formData.correspondenceAddress.apartment,
-    field2: formData.correspondenceAddress.street,
-    ctArea: formData.correspondenceAddress.city,
-    pinNo: formData.correspondenceAddress.pincode,
-    state: formData.correspondenceAddress.state,
-    country: formData.correspondenceAddress.country
-  },
-  active: true,
-  kyc: formData.kyc,
-  dob: formData.dob
-};
-
-      const response = await axiosInstance.post(
-        "/api/serviceproviders/serviceprovider/add",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
+    } else {
+      setIsSubmitting(false); // Stop loading if validation fails
       setSnackbarOpen(true);
-      setSnackbarSeverity("success");
-      setSnackbarMessage("Service provider added successfully!");
-
-      // Create Auth0 user
-      const authPayload = {
-        email: formData.emailId,
-        password: formData.password,
-        name: `${formData.firstName} ${formData.lastName}`,
-      };
-
-      axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
-        .then((authResponse) => {
-          console.log("AuthO user created successfully:", authResponse.data);
-        }).catch((authError) => {
-          console.error("Error creating AuthO user:", authError);
-        });
-      
-      setTimeout(() => {
-        onBackToLogin(true);
-      }, 3000);
-    } catch (error) {
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-      setSnackbarMessage("Failed to add service provider. Please try again.");
-      console.error("Error submitting form:", error);
+      setSnackbarSeverity("warning");
+      setSnackbarMessage("Please fill out all required fields.");
     }
-  } else {
-    setSnackbarOpen(true);
-    setSnackbarSeverity("warning");
-    setSnackbarMessage("Please fill out all required fields.");
-  }
-};
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
@@ -840,9 +865,9 @@ const payload = {
             });
 
             if (!city) {
-              const cityComponent = components.find((comp: any) => 
-                comp.types.includes("locality") || 
-                comp.types.includes("sublocality") || 
+              const cityComponent = components.find((comp: any) =>
+                comp.types.includes("locality") ||
+                comp.types.includes("sublocality") ||
                 comp.types.includes("administrative_area_level_2")
               );
               if (cityComponent) {
@@ -1057,38 +1082,45 @@ const payload = {
                 )}
               </FormControl>
             </Grid>
-            <Grid item xs={12}>  
-            <TextField
-    placeholder="Email *"
-    name="emailId"
-    fullWidth
-    required
-    value={formData.emailId}
-    onChange={handleRealTimeValidation}
-    error={!!errors.emailId || validationResults.email.isAvailable === false}
-    helperText={
-      errors.emailId || 
-      (validationResults.email.loading ? "Checking availability..." : 
-       validationResults.email.error || 
-       (validationResults.email.isAvailable ? "Email is available" : ""))
-    }
-    InputProps={{
-      endAdornment: validationResults.email.loading ? (
-        <InputAdornment position="end">
-          <CircularProgress size={20} />
-        </InputAdornment>
-      ) : validationResults.email.isAvailable ? (
-        <InputAdornment position="end">
-          <CheckIcon color="success" />
-        </InputAdornment>
-      ) : validationResults.email.isAvailable === false ? (
-        <InputAdornment position="end">
-          <CloseIcon color="error" />
-        </InputAdornment>
-      ) : null,
-    }}
-  />
-</Grid>
+            <Grid item xs={12}>
+              <TextField
+                placeholder="Email *"
+                name="emailId"
+                fullWidth
+                required
+                value={formData.emailId}
+                onChange={handleRealTimeValidation}
+                error={!!errors.emailId || validationResults.email.isAvailable === false}
+                helperText={
+                  errors.emailId ||
+                  (validationResults.email.loading ? "Checking availability..." :
+                    validationResults.email.error ||
+                    (validationResults.email.isAvailable ? "Email is available" : ""))
+                }
+                InputProps={{
+                  endAdornment: validationResults.email.loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : validationResults.email.isAvailable ? (
+                    <InputAdornment position="end">
+                      <CheckIcon color="success" />
+                    </InputAdornment>
+                  ) : validationResults.email.isAvailable === false ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={handleClearEmail}
+                        edge="end"
+                        aria-label="clear email"
+                      >
+                        <CloseIcon color="error" fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 placeholder="Password *"
@@ -1147,99 +1179,111 @@ const payload = {
                 }}
               />
             </Grid>
-          <Grid item xs={12}>
-  <TextField
-    placeholder="Mobile Number *"
-    name="mobileNo"
-    fullWidth
-    required
-    value={formData.mobileNo}
-    onChange={handleRealTimeValidation}
-    error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
-    helperText={
-      errors.mobileNo || 
-      (validationResults.mobile.loading ? "Checking availability..." : 
-       validationResults.mobile.error || 
-       (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
-    }
-    InputProps={{
-      endAdornment: validationResults.mobile.loading ? (
-        <InputAdornment position="end">
-          <CircularProgress size={20} />
-        </InputAdornment>
-      ) : validationResults.mobile.isAvailable ? (
-        <InputAdornment position="end">
-          <CheckIcon color="success" />
-        </InputAdornment>
-      ) : validationResults.mobile.isAvailable === false ? (
-        <InputAdornment position="end">
-          <CloseIcon color="error" />
-        </InputAdornment>
-      ) : null,
-    }}
-  />
-</Grid>
+            <Grid item xs={12}>
+              <TextField
+                placeholder="Mobile Number *"
+                name="mobileNo"
+                fullWidth
+                required
+                value={formData.mobileNo}
+                onChange={handleRealTimeValidation}
+                error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
+                helperText={
+                  errors.mobileNo ||
+                  (validationResults.mobile.loading ? "Checking availability..." :
+                    validationResults.mobile.error ||
+                    (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
+                }
+                InputProps={{
+                  endAdornment: validationResults.mobile.loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : validationResults.mobile.isAvailable ? (
+                    <InputAdornment position="end">
+                      <CheckIcon color="success" />
+                    </InputAdornment>
+                  ) : validationResults.mobile.isAvailable === false ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={handleClearMobile}
+                        edge="end"
+                        aria-label="clear mobile number"
+                      >
+                        <CloseIcon color="error" fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </Grid>
 
-
-<Grid item xs={12}>
-  <TextField
-    placeholder="Alternate Number"
-    name="AlternateNumber"
-    fullWidth
-    value={formData.AlternateNumber}
-    onChange={handleRealTimeValidation}
-    error={ validationResults.alternate.isAvailable === false}
-    helperText={
-     
-      (validationResults.alternate.loading ? "Checking availability..." : 
-       validationResults.alternate.error || 
-       (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
-    }
-    InputProps={{
-      endAdornment: validationResults.alternate.loading ? (
-        <InputAdornment position="end">
-          <CircularProgress size={20} />
-        </InputAdornment>
-      ) : validationResults.alternate.isAvailable ? (
-        <InputAdornment position="end">
-          <CheckIcon color="success" />
-        </InputAdornment>
-      ) : validationResults.alternate.isAvailable === false ? (
-        <InputAdornment position="end">
-          <CloseIcon color="error" />
-        </InputAdornment>
-      ) : null,
-    }}
-  />
-</Grid>
+            <Grid item xs={12}>
+              <TextField
+                placeholder="Alternate Number"
+                name="AlternateNumber"
+                fullWidth
+                value={formData.AlternateNumber}
+                onChange={handleRealTimeValidation}
+                error={validationResults.alternate.isAvailable === false}
+                helperText={
+                  (validationResults.alternate.loading ? "Checking availability..." :
+                    validationResults.alternate.error ||
+                    (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
+                }
+                InputProps={{
+                  endAdornment: validationResults.alternate.loading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : validationResults.alternate.isAvailable ? (
+                    <InputAdornment position="end">
+                      <CheckIcon color="success" />
+                    </InputAdornment>
+                  ) : validationResults.alternate.isAvailable === false ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={handleClearAlternate}
+                        edge="end"
+                        aria-label="clear alternate number"
+                      >
+                        <CloseIcon color="error" fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </Grid>
           </Grid>
         );
-    // In your main component's renderStepContent for step 1:
-case 1:
-  return (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <AddressComponent
-          onAddressChange={handleAddressChange}
-          permanentAddress={formData.permanentAddress}
-          correspondenceAddress={formData.correspondenceAddress}
-          errors={{
-            permanent: errors.permanentAddress,
-            correspondence: errors.correspondenceAddress
-          }}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={fetchLocationData}
-        >
-          Fetch My Location
-        </Button>
-      </Grid>
-    </Grid>
-  );
+      // In your main component's renderStepContent for step 1:
+      case 1:
+        return (
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <AddressComponent
+                onAddressChange={handleAddressChange}
+                permanentAddress={formData.permanentAddress}
+                correspondenceAddress={formData.correspondenceAddress}
+                errors={{
+                  permanent: errors.permanentAddress,
+                  correspondence: errors.correspondenceAddress
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={fetchLocationData}
+              >
+                Fetch My Location
+              </Button>
+            </Grid>
+          </Grid>
+        );
       case 2: // Additional Details
         return (
           <Grid container spacing={2}>
@@ -1249,27 +1293,27 @@ case 1:
               sm={12}
               className="mt-4 flex justify-center items-center ml-10"
             >
-             <TextField
-  select
-  label="Select Service Type"
-  name="housekeepingRole"
-  fullWidth
-  value={formData.housekeepingRole}
-  onChange={(e) => {
-    handleChange(e);
-    setIsCookSelected(e.target.value === "COOK");
-  }}
-  error={!!errors.housekeepingRole}
-  helperText={errors.housekeepingRole}
-  required
->
-  <MenuItem value="" disabled>
-    Select Service Type
-  </MenuItem>
-  <MenuItem value="COOK">Cook</MenuItem>
-  <MenuItem value="NANNY">Nanny</MenuItem>
-  <MenuItem value="MAID">Maid</MenuItem>
-</TextField>
+              <TextField
+                select
+                label="Select Service Type"
+                name="housekeepingRole"
+                fullWidth
+                value={formData.housekeepingRole}
+                onChange={(e) => {
+                  handleChange(e);
+                  setIsCookSelected(e.target.value === "COOK");
+                }}
+                error={!!errors.housekeepingRole}
+                helperText={errors.housekeepingRole}
+                required
+              >
+                <MenuItem value="" disabled>
+                  Select Service Type
+                </MenuItem>
+                <MenuItem value="COOK">Cook</MenuItem>
+                <MenuItem value="NANNY">Nanny</MenuItem>
+                <MenuItem value="MAID">Maid</MenuItem>
+              </TextField>
             </Grid>
             {isCookSelected && (
               <Grid item xs={12} >
@@ -1364,147 +1408,147 @@ case 1:
                 onChange={handleChange}
               />
             </Grid>
-           <Grid item xs={12}>
-        <FormControl component="fieldset" fullWidth>
-          <FormLabel component="legend" >
-            Select Time Slot
-          </FormLabel>
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.timeslot === "06:00-20:00"}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setFormData({
-                        ...formData,
-                        timeslot: "06:00-20:00",
-                      });
-                      setSliderDisabled(true);
-                    } else {
-                      setFormData({ ...formData, timeslot: "" });
-                      setSliderDisabled(false);
+            <Grid item xs={12}>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel component="legend" >
+                  Select Time Slot
+                </FormLabel>
+                <FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.timeslot === "06:00-20:00"}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              timeslot: "06:00-20:00",
+                            });
+                            setSliderDisabled(true);
+                          } else {
+                            setFormData({ ...formData, timeslot: "" });
+                            setSliderDisabled(false);
+                          }
+                        }}
+                      />
                     }
-                  }}
-                />
-              }
-              label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
-              style={{ width: '100%', marginLeft: 0 }}
-            />
-            
-            {/* Morning Slider */}
-            <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
-              <Typography align="center" gutterBottom>
-                Morning (6:00 AM - 12:00 PM)
-              </Typography>
-              <Slider
-                value={sliderValueMorning}
-                onChange={(e, newValue) => {
-                  const selectedRange = newValue as number[];
-                  setSliderValueMorning(selectedRange);
-                  updateFormTimeSlot(selectedRange, sliderValueEvening);
-                }}
-                valueLabelDisplay="on"
-                valueLabelFormat={(value) => formatDisplayTime(value)}
-                min={6}
-                max={12}
-                step={0.5}
-                marks={[
-                  { value: 6, label: "6:00 AM" },
-                  { value: 8, label: "8:00 AM" },
-                  { value: 10, label: "10:00 AM" },
-                  { value: 12, label: "12:00 PM" },
-                ]}
-                disabled={sliderDisabled}
-                sx={{
-                  color: sliderDisabled ? "grey.500" : "primary.main",
-                  width: '95%',
-                  mx: 'auto',
-                }}
-                aria-labelledby="morning-slider"
-              />
-            </Box>
-            
-            {/* Evening Slider */}
-            <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
-              <Typography align="center" gutterBottom>
-                Evening (12:00 PM - 8:00 PM)
-              </Typography>
-              <Slider
-                value={sliderValueEvening}
-                onChange={(e, newValue) => {
-                  const selectedRange = newValue as number[];
-                  setSliderValueEvening(selectedRange);
-                  updateFormTimeSlot(sliderValueMorning, selectedRange);
-                }}
-                valueLabelDisplay="on"
-                valueLabelFormat={(value) => formatDisplayTime(value)}
-                min={12}
-                max={20}
-                step={0.5}
-                marks={[
-                  { value: 12, label: "12:00 PM" },
-                  { value: 14, label: "2:00 PM" },
-                  { value: 16, label: "4:00 PM" },
-                  { value: 20, label: "8:00 PM" },
-                ]}
-                disabled={sliderDisabled}
-                sx={{
-                  color: sliderDisabled ? "grey.500" : "primary.main",
-                  width: '95%',
-                  mx: 'auto',
-                }}
-                aria-labelledby="evening-slider"
-              />
-            </Box>
-          </FormGroup>
-        </FormControl>
-      </Grid>
-    </Grid>
-        );
-  case 3:
-  return (
-    <Grid container spacing={2}>
-      <Grid item xs={12} sx={{ mt: 2 }}>
-        <TextField
-          placeholder="Aadhaar Number *"
-          name="AADHAR"
-          fullWidth
-          required
-          value={formData.AADHAR || ""}
-          onChange={handleRealTimeValidation}
-          error={!!errors.kyc}
-          helperText={errors.kyc}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <CustomFileInput
-          name="documentImage"
-          accept="image/*"
-          required
-          value={formData.documentImage}
-          onChange={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
-          buttonText="Upload Aadhaar Document"
-        />
-      </Grid>
-    </Grid>
-  );
-     case 4:
-  return (
-    <Grid container spacing={1}>
-      
-      <Grid item xs={12} sx={{ mt: 2 }}>
-        <Typography gutterBottom>
-          Please agree to the following before proceeding with your Registration:
-        </Typography>
+                    label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
+                    style={{ width: '100%', marginLeft: 0 }}
+                  />
 
-     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-  <TermsCheckboxes onChange={handleTermsChange} />
- 
-</Box>     
-      </Grid>
-    </Grid>
-  );
+                  {/* Morning Slider */}
+                  <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
+                    <Typography align="center" gutterBottom>
+                      Morning (6:00 AM - 12:00 PM)
+                    </Typography>
+                    <Slider
+                      value={sliderValueMorning}
+                      onChange={(e, newValue) => {
+                        const selectedRange = newValue as number[];
+                        setSliderValueMorning(selectedRange);
+                        updateFormTimeSlot(selectedRange, sliderValueEvening);
+                      }}
+                      valueLabelDisplay="on"
+                      valueLabelFormat={(value) => formatDisplayTime(value)}
+                      min={6}
+                      max={12}
+                      step={0.5}
+                      marks={[
+                        { value: 6, label: "6:00 AM" },
+                        { value: 8, label: "8:00 AM" },
+                        { value: 10, label: "10:00 AM" },
+                        { value: 12, label: "12:00 PM" },
+                      ]}
+                      disabled={sliderDisabled}
+                      sx={{
+                        color: sliderDisabled ? "grey.500" : "primary.main",
+                        width: '95%',
+                        mx: 'auto',
+                      }}
+                      aria-labelledby="morning-slider"
+                    />
+                  </Box>
+
+                  {/* Evening Slider */}
+                  <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
+                    <Typography align="center" gutterBottom>
+                      Evening (12:00 PM - 8:00 PM)
+                    </Typography>
+                    <Slider
+                      value={sliderValueEvening}
+                      onChange={(e, newValue) => {
+                        const selectedRange = newValue as number[];
+                        setSliderValueEvening(selectedRange);
+                        updateFormTimeSlot(sliderValueMorning, selectedRange);
+                      }}
+                      valueLabelDisplay="on"
+                      valueLabelFormat={(value) => formatDisplayTime(value)}
+                      min={12}
+                      max={20}
+                      step={0.5}
+                      marks={[
+                        { value: 12, label: "12:00 PM" },
+                        { value: 14, label: "2:00 PM" },
+                        { value: 16, label: "4:00 PM" },
+                        { value: 20, label: "8:00 PM" },
+                      ]}
+                      disabled={sliderDisabled}
+                      sx={{
+                        color: sliderDisabled ? "grey.500" : "primary.main",
+                        width: '95%',
+                        mx: 'auto',
+                      }}
+                      aria-labelledby="evening-slider"
+                    />
+                  </Box>
+                </FormGroup>
+              </FormControl>
+            </Grid>
+          </Grid>
+        );
+      case 3:
+        return (
+          <Grid container spacing={2}>
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <TextField
+                placeholder="Aadhaar Number *"
+                name="AADHAR"
+                fullWidth
+                required
+                value={formData.AADHAR || ""}
+                onChange={handleRealTimeValidation}
+                error={!!errors.kyc}
+                helperText={errors.kyc}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <CustomFileInput
+                name="documentImage"
+                accept="image/*"
+                required
+                value={formData.documentImage}
+                onChange={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
+                buttonText="Upload Aadhaar Document"
+              />
+            </Grid>
+          </Grid>
+        );
+      case 4:
+        return (
+          <Grid container spacing={1}>
+
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography gutterBottom>
+                Please agree to the following before proceeding with your Registration:
+              </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <TermsCheckboxes onChange={handleTermsChange} />
+
+              </Box>
+            </Grid>
+          </Grid>
+        );
       default:
         return "Unknown step";
     }
@@ -1513,38 +1557,37 @@ case 1:
   return (
     <>
       <Dialog fullWidth maxWidth="sm" open={true} >
-     <DialogHeader
-  style={{ 
-    position: 'relative', 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  }}
->
-   <Typography 
-  variant="h5" 
-  gutterBottom 
-  sx={{ textAlign: 'center', paddingTop: 2 }}
->
-    Service Provider Registration
-  </Typography>
-  <IconButton
-    aria-label="close"
-    onClick={() => onBackToLogin(true)}
-    sx={{
-      position: 'absolute',
-      right: 8,
-      top: 8,
-      color: '#fff',
-    }}
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogHeader>
+        <DialogHeader
+          style={{
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Typography
+            variant="h5"
+            gutterBottom
+            sx={{ textAlign: 'center', paddingTop: 2 }}
+          >
+            Service Provider Registration
+          </Typography>
+          <IconButton
+            aria-label="close"
+            onClick={() => onBackToLogin(true)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: '#fff',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogHeader>
 
-         <Box sx={{ padding: 2 }}>
-          
-         
+        <Box sx={{ padding: 2 }}>
+
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>
@@ -1552,7 +1595,7 @@ case 1:
               </Step>
             ))}
           </Stepper>
-             <form onSubmit={(e) => {
+          <form onSubmit={(e) => {
             e.preventDefault();
             if (activeStep === steps.length - 1) {
               handleSubmit(e);
@@ -1571,26 +1614,30 @@ case 1:
                 variant="contained"
                 color="primary"
                 startIcon={<ArrowBack />}
-                disabled={activeStep === 0}
+                disabled={activeStep === 0 || isSubmitting}
               >
                 Back
               </Button>
               {activeStep === steps.length - 1 ? (
                 <Tooltip
                   title={!(formData.terms && formData.privacy && formData.keyFacts)
-                      ? "Check terms and conditions to enable Submit"
-                      : ""
+                    ? "Check terms and conditions to enable Submit"
+                    : ""
                   }
                 >
                   <span>
-                  <Button
-  type="submit"
-  variant="contained"
-  color="primary"
-  disabled={!(formData.terms && formData.privacy && formData.keyFacts)}
->
-  Submit
-</Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      disabled={!(formData.terms && formData.privacy && formData.keyFacts) || isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <CircularProgress size={24} sx={{ color: 'white' }} />
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
                   </span>
                 </Tooltip>
               ) : (
@@ -1602,6 +1649,7 @@ case 1:
                     handleNext(); // Only proceed to next step
                   }}
                   endIcon={<ArrowForward />}
+                  disabled={isSubmitting}
                 >
                   Next
                 </Button>

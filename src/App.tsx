@@ -96,10 +96,10 @@ function App() {
   const handleAccept = async (engagementId: number) => {
     try {
       const payload = {
-        providerId: appUser?.serviceProviderId,
+        serviceproviderid: appUser?.serviceProviderId,
       };
 
-      const res = await PaymentInstance.patch(
+      const res = await PaymentInstance.post(
         `/api/engagements/${engagementId}/accept`,
         payload
       );
