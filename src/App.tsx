@@ -60,7 +60,7 @@ function App() {
   const hasCheckedMobileRef = useRef(false);
 
   console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
-  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL);
+  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL , process.env.REACT_PROVIDER_URL);
 
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();

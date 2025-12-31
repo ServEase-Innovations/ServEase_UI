@@ -16,6 +16,7 @@ import PreferenceSelection from "../PreferenceSelection/PreferenceSelection";
 import axios from "axios";
 import { keys } from "../../env/env";
 import { usePricingFilterService } from '../../utils/PricingFilter';
+import providerInstance from "../../services/providerInstance";
 
 
 interface DetailsViewProps {
@@ -165,6 +166,19 @@ useEffect(() => {
     });
 
     console.log("Query Params:", queryParams.toString());
+
+    const newApi = await providerInstance.post('/api/service-providers/nearby-monthly', {
+      "lat" : latitude.toString(),
+      "lng" : longitude.toString(),
+      "radius" : 10,
+      "startDate" : formatDateOnly(bookingType?.startDate) || "2025-04-01",
+      "endDate" : formatDateOnly(bookingType?.endDate) || "2025-04-30",
+      preferredStartTime: bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
+      "role": bookingType?.housekeepingRole || "COOK",
+      "serviceDurationMinutes": 60
+    })
+
+    console.log("New API Response:", newApi.data);
 
     const response = await axiosInstance.get(
       `/api/serviceproviders/search?${queryParams.toString()}`
