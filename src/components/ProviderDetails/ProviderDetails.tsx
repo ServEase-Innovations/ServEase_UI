@@ -23,28 +23,17 @@ import { PlusIcon } from "lucide-react";
 import MaidServiceDialog from "./MaidServiceDialog";
 import NannyServicesDialog from "./NannyServicesDialog";
 import CookServicesDialog from "./CookServicesDialog";
-import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
+import { EnhancedProviderDetails, ServiceProviderDTO } from "../../types/ProviderDetailsType";
 import { useAppUser } from "src/context/AppUserContext";
 
-interface ProviderDetailsProps {
-  housekeepingRole: string;
-  selectedProvider: (provider: any) => void;
-  serviceproviderId: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  gender: string;
-  dob: string;
-  diet: string;
-  language?: string;
-  experience?: string;
-  otherServices?: string;
+interface ProviderDetailsProps extends ServiceProviderDTO  {
+  selectedProvider: (provider: ServiceProviderDTO) => void;
   availableTimeSlots?: string[];
   sendDataToParent?: (data: string) => void;
 }
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
   const [morningSelection, setMorningSelection] = useState<number | null>(null);
   const [eveningSelectionTime, setEveningSelectionTime] = useState<string | null>(null);
@@ -113,7 +102,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     event.stopPropagation(); // Prevent triggering expand/collapse
     setIsFavorite(!isFavorite);
     // Here you would typically make an API call to save the favorite status
-    console.log("Favorite toggled for provider:", props.serviceproviderId, "New status:", !isFavorite);
+    console.log("Favorite toggled for provider:", props.serviceproviderid, "New status:", !isFavorite);
   };
 
   const checkMissingTimeSlots = () => {
@@ -131,7 +120,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
     if (!isExpanded) {
       try {
-        if (props.serviceproviderId === bookingType?.serviceproviderId) {
+        if (props.serviceproviderid === bookingType?.serviceproviderId) {
           setMatchedMorningSelection(bookingType?.morningSelection || null);
           setMatchedEveningSelection(bookingType?.eveningSelection || null);
         } else {
@@ -139,36 +128,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           setMatchedEveningSelection(null);
         }
 
-        const response = await axiosInstance.get(
-          `/api/serviceproviders/get/engagement/by/serviceProvider/${props.serviceproviderId}`
-        );
-
-        const engagementData = response.data.map((engagement: { id?: number; availableTimeSlots?: string[] }) => ({
-          id: engagement.id ?? Math.random(),
-          availableTimeSlots: engagement.availableTimeSlots || [],
-        }));
-
-        const fullTimeSlots: string[] = Array.from({ length: 24 }, (_, i) =>
-          `${i.toString().padStart(2, "0")}:00`
-        );
-
-        const processedSlots = engagementData.map((entry: any) => {
-          const uniqueAvailableTimeSlots = Array.from(new Set(entry.availableTimeSlots)).sort();
-          const missingTimeSlots = fullTimeSlots.filter(slot => !uniqueAvailableTimeSlots.includes(slot));
-
-          return {
-            id: entry.id,
-            uniqueAvailableTimeSlots,
-            missingTimeSlots,
-          };
-        });
-
-        const uniqueMissingSlots: string[] = Array.from(
-          new Set(processedSlots.flatMap((slot: any) => slot.missingTimeSlots))
-        ).sort() as string[];
-
-        setUniqueMissingSlots(uniqueMissingSlots);
-        setAvailableTimeSlots(processedSlots.map((entry: any) => entry.uniqueAvailableTimeSlots));
       } catch (error) {
         console.error("Error fetching engagement data:", error);
       }
@@ -183,16 +142,16 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const handleBookNow = () => {
     let booking: Bookingtype;
 
-    if (props.housekeepingRole !== "NANNY") {
+    if (props.housekeepingrole !== "NANNY") {
       booking = {
-        serviceproviderId: props.serviceproviderId,
+        serviceproviderId: props.serviceproviderid,
         eveningSelection: eveningSelectionTime,
         morningSelection: morningSelectionTime,
         ...bookingType
       };
     } else {
       booking = {
-        serviceproviderId: props.serviceproviderId,
+        serviceproviderId: props.serviceproviderid,
         timeRange: `${startTime} - ${endTime}`,
         duration: getHoursDifference(startTime, endTime),
         ...bookingType
@@ -222,6 +181,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   };
 
   const handleLogin = () => {
+    alert("Please login to proceed with booking.");
     setOpen(true);
   };
 
@@ -274,7 +234,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     (morningSelection !== null || eveningSelection !== null) || 
     (matchedMorningSelection !== null || matchedEveningSelection !== null);
 
-  const providerDetailsData: EnhancedProviderDetails = {
+  const providerDetailsData: any = {
     ...props,
     selectedMorningTime: morningSelection,
     selectedEveningTime: eveningSelection,
@@ -287,121 +247,59 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   return (
     <>
       <Paper elevation={3}>
-        <div className="container-provider">
-          <Button
-            variant="outlined"
-            className="expand-toggle"
-            onClick={toggleExpand}
-            sx={{ border: '1px solid #1976d2', color: '#1976d2', padding: '8px', fontSize: '24px', position: 'absolute', top: 10, right: 10 }}
-          >
-            {isExpanded ? <RemoveIcon /> : <AddIcon />}
-          </Button>
-          <Button
-            variant="outlined"
-            className="expand-toggle"
-            onClick={handleLogin}
-            sx={{ border: '1px solid #1976d2', color: '#1976d2', padding: '8px', fontSize: '14px', position: 'absolute', top: 10, right: 80 }}
-          >
-            Book Now
-          </Button>
-           {/* Favorite Button */}
-          {/* <IconButton
-            onClick={toggleFavorite}
-            sx={{ 
-              position: 'absolute', 
-              top: 10, 
-              right: 180, 
-              color: isFavorite ? 'red' : 'gray',
-              '&:hover': {
-                color: isFavorite ? 'darkred' : 'darkgray'
-              }
-            }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-          </IconButton> */}
+  <div className="container-provider">
+    <div className="provider-card">
 
-          <div className={`content ${isExpanded ? "expanded" : ""}`}>
-            <div className="essentials">
-              <Typography
-                variant="subtitle1"
-                style={{
-                  fontWeight: "bold",
-                  marginBottom: "0.5px",
-                  marginTop: "0.5px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <span style={{ fontWeight: "bold", fontSize: "1.2rem" }}>
-                  {props.firstName} {props.middleName} {props.lastName}
-                </span>
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: "1.2rem",
-                    marginLeft: "8px",
-                  }}
-                >
-                  ({props.gender === "FEMALE" ? "F " : props.gender === "MALE" ? "M " : "O"}
-                  {calculateAge(props.dob)})
-                </span>
-                <span style={{ display: "inline-block", marginLeft: "8px" }}>
-                  <img
-                    src={dietImage}
-                    alt={props.diet}
-                    style={{
-                      width: "20px",
-                      height: "20px",
-                      verticalAlign: "middle",
-                    }} />
-                </span>
-              </Typography>
-            </div>
+      {/* LEFT COLUMN */}
+      <div className="provider-left">
+        <Typography variant="subtitle2"><strong>Review</strong></Typography>
+        <Typography>⭐ {props.rating || 5}</Typography>
 
-            {isExpanded && (
-              <div>
-                <Typography
-                  variant="subtitle1"
-                  style={{ fontWeight: "bold", marginBottom: "2px" }}
-                >
-                  Language:{" "}
-                  <span
-                    style={{
-                      fontWeight: "normal",
-                      fontSize: "1rem",
-                      display: "inline-flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    {props.language || "English"}
-                  </span>
-                </Typography>
+        <Typography variant="subtitle2"><strong>Distance</strong></Typography>
+        <Typography>{props.distance_km} km</Typography>
 
-                <Typography
-                  variant="subtitle1"
-                  style={{ fontWeight: "bold", marginBottom: "2px" }}
-                >
-                  Experience:{" "}
-                  <span style={{ fontWeight: "normal", fontSize: "1rem" }}>
-                    {props.experience || "1 year"}
-                  </span>
-                  , Other Services:{" "}
-                  <span style={{ fontWeight: "normal", fontSize: "1.2rem", marginLeft: "8px" }}>
-                    {props.otherServices || "N/A"}
-                  </span>
-                </Typography>
-                
-                <div style={{ float: 'right', display: 'flex' }}>
-                  {warning && <p className="text-red-500">{warning}</p>}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Paper>
+        {props.bestMatch && (
+          <Typography style={{ color: "#2e7d32", fontWeight: "bold" }}>
+            Best Match
+          </Typography>
+        )}
+      </div>
 
-      {props.housekeepingRole === "COOK" && 
+      {/* RIGHT COLUMN */}
+      <div className="provider-right">
+        <Typography variant="subtitle1" className="provider-name">
+          {props.firstname} {props.lastname}
+          <span className="provider-gender">
+            ({props.gender === "MALE" ? "M" : "F"} {calculateAge(props.dob)})
+          </span>
+        </Typography>
+
+        <Typography className="provider-meta">
+          Diet: {props.diet} | Experience: {props.experience} yrs
+        </Typography>
+
+        <Typography className="provider-meta">
+          Language: {props.languageknown || "English"}
+        </Typography>
+
+        {props.monthlyAvailability.fullyAvailable ? (
+          <Typography className="available">
+            Available at {props.monthlyAvailability.preferredTime}
+          </Typography>
+        ) : (
+          <Typography className="not-available">
+            Partially available
+          </Typography>
+        )}
+      </div>
+
+    </div>
+  </div>
+</Paper>
+
+
+
+      {props.housekeepingrole === "COOK" && 
         <CookServicesDialog 
           open={open} 
           handleClose={handleClose} 
@@ -410,7 +308,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         />
       }
       
-      {props.housekeepingRole === "MAID" && 
+      {props.housekeepingrole === "MAID" && 
         <MaidServiceDialog 
           open={open} 
           handleClose={handleClose} 
@@ -419,7 +317,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         />
       }
       
-      {props.housekeepingRole === "NANNY" && 
+      {props.housekeepingrole === "NANNY" && 
         <NannyServicesDialog 
           open={open} 
           handleClose={handleClose} 

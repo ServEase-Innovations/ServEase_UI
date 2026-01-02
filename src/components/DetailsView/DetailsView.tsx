@@ -17,6 +17,7 @@ import axios from "axios";
 import { keys } from "../../env/env";
 import { usePricingFilterService } from '../../utils/PricingFilter';
 import providerInstance from "../../services/providerInstance";
+import { ServiceProviderDTO } from "src/types/ProviderDetailsType";
 
 
 interface DetailsViewProps {
@@ -116,7 +117,7 @@ useEffect(() => {
   };
 
   const [searchData, setSearchData] = useState<any>();
-  const [serviceProviderData, setServiceProviderData] = useState<any>([]);
+  const [serviceProviderData, setServiceProviderData] = useState<ServiceProviderDTO[]>([]);
 
 
   const handleSearch = (formData: { serviceType: string; startTime: string; endTime: string }) => {
@@ -167,7 +168,7 @@ useEffect(() => {
 
     console.log("Query Params:", queryParams.toString());
 
-    const newApi = await providerInstance.post('/api/service-providers/nearby-monthly', {
+    const response = await providerInstance.post('/api/service-providers/nearby-monthly', {
       "lat" : latitude.toString(),
       "lng" : longitude.toString(),
       "radius" : 10,
@@ -178,16 +179,16 @@ useEffect(() => {
       "serviceDurationMinutes": 60
     })
 
-    console.log("New API Response:", newApi.data);
+    // console.log("New API Response:", newApi.data);
 
-    const response = await axiosInstance.get(
-      `/api/serviceproviders/search?${queryParams.toString()}`
-    );
+    // const response = await axiosInstance.get(
+    //   `/api/serviceproviders/search?${queryParams.toString()}`
+    // );
 
-    if (response.data.length === 0) {
+    if (response.data.count === 0) {
       setServiceProviderData([]);
     } else {
-      setServiceProviderData(response.data);
+      setServiceProviderData(response.data.providers);
     }
   } catch (error: any) {
     console.error("Geolocation or API error:", error.message || error);
