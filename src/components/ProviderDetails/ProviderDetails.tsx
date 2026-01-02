@@ -1,7 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
+import { 
+  Button, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogContentText, 
+  DialogTitle, 
+  IconButton, 
+  Paper, 
+  TextField, 
+  Tooltip, 
+  Typography, 
+  Chip, 
+  Box,
+  Stack,
+  Avatar,
+  Rating,
+  Divider,
+  Card,
+  CardContent,
+  CardActions
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
 import moment from "moment";
 import "./ProviderDetails.css"; 
 import AddIcon from '@mui/icons-material/Add';
@@ -25,12 +47,67 @@ import NannyServicesDialog from "./NannyServicesDialog";
 import CookServicesDialog from "./CookServicesDialog";
 import { EnhancedProviderDetails, ServiceProviderDTO } from "../../types/ProviderDetailsType";
 import { useAppUser } from "src/context/AppUserContext";
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import StarIcon from '@mui/icons-material/Star';
+import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import LanguageIcon from '@mui/icons-material/Language';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
   availableTimeSlots?: string[];
   sendDataToParent?: (data: string) => void;
 }
+
+// Styled components
+const PremiumBadge = styled(Chip)(({ theme }) => ({
+  position: 'absolute',
+  top: theme.spacing(1),
+  left: theme.spacing(1),
+  zIndex: 1,
+  fontWeight: 700,
+  fontSize: '0.7rem',
+  backgroundColor: theme.palette.warning.main,
+  color: theme.palette.warning.contrastText,
+  '& .MuiChip-icon': {
+    color: theme.palette.warning.contrastText,
+  },
+}));
+
+const ProviderCard = styled(Card)(({ theme }) => ({
+  borderRadius: 16,
+  overflow: 'visible',
+  transition: 'all 0.3s ease',
+  border: '1px solid',
+  borderColor: theme.palette.divider,
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: theme.shadows[8],
+    borderColor: theme.palette.primary.main,
+  },
+}));
+
+const MetricBox = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: theme.spacing(1.5),
+  borderRadius: 12,
+  backgroundColor: theme.palette.grey[50],
+  border: `1px solid ${theme.palette.grey[200]}`,
+  minWidth: 80,
+}));
+
+const ProviderAvatar = styled(Avatar)(({ theme }) => ({
+  width: 56,
+  height: 56,
+  fontSize: '1.5rem',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+}));
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -50,7 +127,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false); // New state for favorite status
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const hasCheckedRef = useRef(false);
 
@@ -64,7 +141,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const user = useSelector((state: any) => state.user?.value);
 
-  // Handle selection for morning or evening availability
   const handleSelection = (hour: number, isEvening: boolean, time: number) => {
     const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
     const endTime = moment({ hour: time + 1, minute: 0 }).format("HH:mm");
@@ -97,11 +173,9 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     }
   };
 
-  // Toggle favorite status
   const toggleFavorite = (event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent triggering expand/collapse
+    event.stopPropagation();
     setIsFavorite(!isFavorite);
-    // Here you would typically make an API call to save the favorite status
     console.log("Favorite toggled for provider:", props.serviceproviderid, "New status:", !isFavorite);
   };
 
@@ -137,6 +211,21 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const calculateAge = (dob: string) => {
     if (!dob) return "";
     return moment().diff(moment(dob), "years");
+  };
+
+  // Get age from props or calculate from DOB
+  const getAge = () => {
+    // If age is directly provided in props, use it
+    if (props.age) {
+      return props.age;
+    }
+    
+    // Otherwise calculate from DOB
+    if (props.dob) {
+      return calculateAge(props.dob);
+    }
+    
+    return "";
   };
 
   const handleBookNow = () => {
@@ -181,7 +270,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   };
 
   const handleLogin = () => {
-    alert("Please login to proceed with booking.");
+    // Changed from alert to just opening the dialog
     setOpen(true);
   };
 
@@ -244,60 +333,203 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     endTime
   };
 
+  // Format time for display (e.g., "05:00" -> "05:00 AM")
+  const formatTimeForDisplay = (timeString: string) => {
+    if (!timeString) return "";
+    return moment(timeString, "HH:mm").format("hh:mm A");
+  };
+
+  const age = getAge();
+  const gender = props.gender === "MALE" ? "M" : "F";
+  
+  // Get initials for avatar
+  const getInitials = () => {
+    return `${props.firstname?.[0] || ''}${props.lastname?.[0] || ''}`.toUpperCase();
+  };
+
   return (
     <>
-      <Paper elevation={3}>
-  <div className="container-provider">
-    <div className="provider-card">
-
-      {/* LEFT COLUMN */}
-      <div className="provider-left">
-        <Typography variant="subtitle2"><strong>Review</strong></Typography>
-        <Typography>⭐ {props.rating || 5}</Typography>
-
-        <Typography variant="subtitle2"><strong>Distance</strong></Typography>
-        <Typography>{props.distance_km} km</Typography>
-
+      <ProviderCard>
         {props.bestMatch && (
-          <Typography style={{ color: "#2e7d32", fontWeight: "bold" }}>
-            Best Match
-          </Typography>
+          <PremiumBadge
+            icon={<LocalFireDepartmentIcon />}
+            label="Best Match"
+            size="small"
+          />
         )}
-      </div>
-
-      {/* RIGHT COLUMN */}
-      <div className="provider-right">
-        <Typography variant="subtitle1" className="provider-name">
-          {props.firstname} {props.lastname}
-          <span className="provider-gender">
-            ({props.gender === "MALE" ? "M" : "F"} {calculateAge(props.dob)})
-          </span>
-        </Typography>
-
-        <Typography className="provider-meta">
-          Diet: {props.diet} | Experience: {props.experience} yrs
-        </Typography>
-
-        <Typography className="provider-meta">
-          Language: {props.languageknown || "English"}
-        </Typography>
-
-        {props.monthlyAvailability.fullyAvailable ? (
-          <Typography className="available">
-            Available at {props.monthlyAvailability.preferredTime}
-          </Typography>
-        ) : (
-          <Typography className="not-available">
-            Partially available
-          </Typography>
-        )}
-      </div>
-
-    </div>
-  </div>
-</Paper>
-
-
+        
+        <CardContent sx={{ p: 3 }}>
+          <Stack direction="row" spacing={3} alignItems="flex-start">
+            {/* Left Section - Avatar & Metrics */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <ProviderAvatar>
+                {getInitials()}
+              </ProviderAvatar>
+              
+              <Stack spacing={1} mt={2} width="100%">
+                <MetricBox>
+                  <Typography variant="h6" color="primary" fontWeight={600}>
+                    {props.distance_km || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    km away
+                  </Typography>
+                </MetricBox>
+                
+                <MetricBox>
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <StarIcon fontSize="small" color="warning" />
+                    <Typography variant="h6" fontWeight={600}>
+                      {props.rating?.toFixed(1) || '5.0'}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    {props.rating  || 5} reviews
+                  </Typography>
+                </MetricBox>
+                
+                <MetricBox>
+                  <Typography variant="h6" color="success.main" fontWeight={600}>
+                    {props.experience || 12}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    yrs experience
+                  </Typography>
+                </MetricBox>
+              </Stack>
+            </Box>
+            
+            <Divider orientation="vertical" flexItem />
+            
+            {/* Center Section - Provider Details */}
+            <Box flex={1}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="h6" fontWeight={600}>
+                      {props.firstname} {props.lastname}
+                    </Typography>
+                    <Chip 
+                      label={`${gender}, ${age}`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Stack>
+                  
+                  <Stack direction="row" spacing={2} mt={1} alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <RestaurantIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {props.diet}
+                      </Typography>
+                    </Stack>
+                    
+                    <Divider orientation="vertical" flexItem />
+                    
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <LanguageIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {props.languageknown?.[0] || "English"}
+                      </Typography>
+                    </Stack>
+                    
+                    <Divider orientation="vertical" flexItem />
+                    
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <LocationOnIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="text.secondary">
+                        {props.locality || "Nearby"}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                  
+                  <Box mt={2}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Availability
+                    </Typography>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <AccessTimeIcon fontSize="small" color="primary" />
+                      <Typography variant="body1" fontWeight={500}>
+                        Available at {formatTimeForDisplay(props.monthlyAvailability?.preferredTime) || "08:00 AM"}
+                      </Typography>
+                      <Chip 
+                        label="Monthly" 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </Box>
+                  
+                  {props.otherServices && (
+                    <Box mt={2}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Additional Services
+                      </Typography>
+                      <Typography variant="body2">
+                        {props.otherServices}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+                
+                <IconButton 
+                  onClick={toggleFavorite}
+                  color={isFavorite ? "error" : "default"}
+                  size="small"
+                >
+                  {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                </IconButton>
+              </Stack>
+            </Box>
+            
+            <Divider orientation="vertical" flexItem />
+            
+            {/* Right Section - Actions */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 140 }}>
+              <Button 
+                variant="outlined" 
+                size="medium"
+                fullWidth
+                startIcon={<InfoOutlinedIcon />}
+                onClick={toggleExpand}
+                sx={{ borderRadius: 2 }}
+              >
+                View Details
+              </Button>
+              
+              {/* CHANGED: Book Monthly button to Book Now button */}
+              <Button 
+                variant="contained" 
+                size="medium"
+                fullWidth
+                onClick={handleLogin}  // Changed from handleBookNow to handleLogin
+                
+                // sx={{ 
+                //   borderRadius: 2,
+                //   fontWeight: 600,
+                //   boxShadow: 2,
+                //   '&:hover': {
+                //     boxShadow: 4,
+                //   }
+                // }}
+              >
+                Book Now 
+              </Button>
+              
+              {props.housekeepingrole && (
+                <Chip 
+                  label={props.housekeepingrole}
+                  color="primary"
+                  variant="filled"
+                  size="small"
+                  sx={{ alignSelf: 'center' }}
+                />
+              )}
+            </Box>
+          </Stack>
+        </CardContent>
+      </ProviderCard>
 
       {props.housekeepingrole === "COOK" && 
         <CookServicesDialog 

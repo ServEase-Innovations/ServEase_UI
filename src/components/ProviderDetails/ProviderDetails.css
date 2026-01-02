@@ -2,31 +2,8 @@
    Provider Container
 ========================= */
 .container-provider {
-  position: relative;
-  padding: 16px 20px;
-  margin-top: 10px;
-  width: 90%;
-}
-
-/* =========================
-   Expand Toggle
-========================= */
-.expand-toggle {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 6px;
-  font-size: 20px;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  color: #1976d2;
-  font-weight: bold;
-  transition: color 0.3s;
-}
-
-.expand-toggle:hover {
-  color: #1565c0;
+  width: 100%;
+  margin-bottom: 12px;
 }
 
 /* =========================
@@ -34,29 +11,76 @@
 ========================= */
 .provider-card {
   display: flex;
-  gap: 16px;
-  width: 100%;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+  min-height: 100px;
+  max-height: 140px;
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.provider-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 /* =========================
-   LEFT COLUMN – Quick Info
+   LEFT COLUMN – Metrics
 ========================= */
 .provider-left {
-  width: 160px;
-  padding-right: 12px;
-  border-right: 1px solid #eee;
-
   display: flex;
-  flex-direction: row;
-  gap: 8px;
-
-  font-size: 0.85rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  min-width: 90px;
+  max-width: 90px;
 }
 
-.provider-left strong {
-  font-size: 0.75rem;
-  color: #666;
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  padding: 0;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2d3436;
+  line-height: 1.1;
+}
+
+.metric-value.rating {
+  color: #f39c12;
+  font-size: 0.95rem;
+}
+
+.metric-value.experience {
+  color: #27ae60;
+  font-size: 0.95rem;
+}
+
+.metric-value.distance {
+  color: #3498db;
+  font-size: 0.95rem;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: #6c757d;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+  margin-top: 1px;
 }
 
 /* =========================
@@ -64,139 +88,401 @@
 ========================= */
 .provider-right {
   flex: 1;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.provider-name-section {
+  display: flex;
+  align-items: center;
   gap: 6px;
-}
-
-/* =========================
-   Content
-========================= */
-.content {
-  display: flex;
-  flex-direction: column;
-}
-
-/* =========================
-   Availability
-========================= */
-.availability-section {
-  margin-top: 16px;
-}
-
-.section-title {
-  font-weight: bold;
-  font-size: 1.1rem;
-  margin-bottom: 8px;
-}
-
-/* =========================
-   Time Slot Buttons
-========================= */
-.time-slot-container {
-  display: flex;
   flex-wrap: wrap;
 }
 
-.availability-button {
-  padding: 6px 10px;
-  margin: 4px;
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-  width: 78px;
-  text-align: center;
-  font-size: 0.85rem;
+.provider-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.availability-button:hover {
-  background-color: #1565c0;
+.provider-gender-age {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 400;
+  background: #f1f3f4;
+  padding: 1px 6px;
+  border-radius: 8px;
 }
 
-.availability-button.selected {
-  background-color: #66bb6a;
+.favorite-button {
+  padding: 4px;
+  color: #e74c3c;
+  font-size: 0.9rem !important;
+  margin-left: auto;
 }
 
-.availability-button:not(.selected) {
-  background-color: #ef9a9a;
+.favorite-button:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.provider-details {
+  margin-bottom: 8px;
+  flex-grow: 1;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.diet-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  height: 20px;
+}
+
+.diet-badge.nonveg {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.diet-badge.both {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.language-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  height: 20px;
+}
+
+.separator {
+  color: #adb5bd;
+  font-size: 0.8rem;
+  font-weight: 300;
+  margin: 0 2px;
+}
+
+.availability-info {
+  background: #f1f8ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border-left: 2px solid #3498db;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.availability-text {
+  font-size: 0.8rem;
+  color: #2d3436;
+  font-weight: 500;
+}
+
+.availability-time {
+  font-weight: 600;
+  color: #3498db;
 }
 
 /* =========================
-   Book Button
+   Action Buttons
 ========================= */
-.book-now-button {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.view-details-button {
+  border: 1px solid #d0d7de;
+  color: #495057;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  text-transform: none;
+  border-radius: 6px;
+  font-weight: 500;
+  height: 28px;
+  min-width: 100px;
+}
+
+.view-details-button:hover {
+  border-color: #adb5bd;
+  background-color: #f8f9fa;
+}
+
+.book-monthly-button {
+  background: #1976d2;
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 16px;
+  text-transform: none;
+  border-radius: 6px;
+  font-weight: 600;
+  height: 28px;
+  min-width: 120px;
+}
+
+.book-monthly-button:hover {
+  background: #1565c0;
+}
+
+.book-monthly-button:disabled {
+  background: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
 }
 
 /* =========================
-   Mobile
+   Status Badges
+========================= */
+.status-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  z-index: 1;
+}
+
+.status-badge.best-match {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+/* =========================
+   Compact Layout for Small Content
+========================= */
+.provider-card.compact {
+  max-height: 120px;
+}
+
+.provider-card.compact .provider-left {
+  min-width: 80px;
+  max-width: 80px;
+  padding: 8px 4px;
+  gap: 4px;
+}
+
+.provider-card.compact .provider-right {
+  padding: 8px 12px;
+}
+
+.provider-card.compact .provider-name {
+  font-size: 0.95rem;
+}
+
+.provider-card.compact .provider-gender-age {
+  font-size: 0.75rem;
+  padding: 1px 4px;
+}
+
+/* =========================
+   Responsive Design
 ========================= */
 @media (max-width: 768px) {
   .provider-card {
-    flex-direction: row-reverse;
+    flex-direction: row;
+    max-height: none;
+    min-height: auto;
   }
-
+  
   .provider-left {
-    width: 100%;
+    flex-direction: column;
+    min-width: 70px;
+    max-width: 70px;
+    padding: 10px 6px;
+    gap: 8px;
+  }
+  
+  .metric-value {
+    font-size: 0.9rem;
+  }
+  
+  .metric-label {
+    font-size: 0.65rem;
+  }
+  
+  .provider-right {
+    padding: 10px 12px;
+  }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .view-details-button,
+  .book-monthly-button {
+    flex: 1;
+    min-width: auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .provider-card {
+    flex-direction: column;
+    max-height: none;
+  }
+  
+  .provider-left {
+    flex-direction: row;
+    justify-content: space-around;
+    min-width: 100%;
+    max-width: 100%;
+    padding: 8px;
     border-right: none;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 0;
   }
-
-  .expand-toggle {
-    top: 6px;
-    right: 6px;
+  
+  .metric-item {
+    flex: 1;
+    padding: 0 4px;
+  }
+  
+  .provider-header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .provider-name {
+    font-size: 0.95rem;
+  }
+  
+  .detail-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .action-buttons {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .view-details-button,
+  .book-monthly-button {
+    flex: 1;
+    margin: 0;
   }
 }
 
-
-.provider-card {
-  display: flex;
-  align-items: flex-start; /* 🔥 KEY FIX */
-  gap: 20px;
+/* =========================
+   Extreme Mobile (Very Small Screens)
+========================= */
+@media (max-width: 360px) {
+  .provider-card {
+    padding: 0;
+  }
+  
+  .provider-left {
+    padding: 6px;
+  }
+  
+  .provider-right {
+    padding: 8px;
+  }
+  
+  .provider-name {
+    font-size: 0.9rem;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+  
+  .separator {
+    display: none;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .view-details-button,
+  .book-monthly-button {
+    width: 100%;
+  }
 }
 
-.provider-left {
-  width: 140px;           /* 🔥 FIXED WIDTH */
-  flex-shrink: 0;         /* 🔥 PREVENT COLLAPSE */
-  text-align: left;
+/* =========================
+   Utility Classes for Height Control
+========================= */
+.provider-card.small {
+  max-height: 110px;
 }
 
-.provider-right {
-  flex: 1;
-  min-width: 0;           /* 🔥 PREVENT TEXT OVERFLOW */
+.provider-card.medium {
+  max-height: 130px;
 }
 
-.provider-name {
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 4px;
+.provider-card.large {
+  max-height: 150px;
 }
 
-.provider-gender {
-  margin-left: 6px;
-  font-size: 0.9rem;
-  color: #666;
+/* =========================
+   Content Overflow Handling
+========================= */
+.provider-name,
+.availability-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
-.provider-meta {
-  font-size: 0.9rem;
-  color: #555;
-  line-height: 1.4;
+/* =========================
+   Print Styles
+========================= */
+@media print {
+  .provider-card {
+    box-shadow: none;
+    border: 1px solid #000;
+    break-inside: avoid;
+    max-height: none;
+    min-height: auto;
+  }
+  
+  .action-buttons {
+    display: none;
+  }
 }
-
-.available {
-  color: #2e7d32;
-  font-weight: 500;
-}
-
-.not-available {
-  color: #d32f2f;
-  font-weight: 500;
-}
-

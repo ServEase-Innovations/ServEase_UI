@@ -63,7 +63,7 @@ export interface ServiceProviderDTO {
   experience: number; // years
   rating: number;
   dob: string; // ISO date string
-
+  age: number;
   otherServices: string | null;
 
   housekeepingrole: string;
@@ -72,7 +72,7 @@ export interface ServiceProviderDTO {
   diet: "VEG" | "NON_VEG" | "BOTH";
   cookingspeciality: "VEG" | "NON_VEG" | "BOTH";
   languageknown: string[] | null;
-
+  
   // Location
   locality: string;
   location: string;
