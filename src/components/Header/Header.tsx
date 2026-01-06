@@ -95,7 +95,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
- const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleNotificationClick = () => {
     setShowNotifications(true);
@@ -220,13 +220,10 @@ export const Header: React.FC<ChildComponentProps> = ({
     try {
       setLoadingLocations(true);
       const response = await utilsInstance.get(`/user-settings/${customerId}`);
-      console.log("Response from user settings API:", response.data);
+      console.log("✅ Response from user settings API:", response.data);
 
       if (response.status === 200) {
-        console.log(
-          "Customer preferences fetched successfully:",
-          response.data
-        );
+        console.log("✅ Customer preferences fetched successfully:", response.data);
 
         setUserPreference(response.data);
         if (user) {
@@ -238,27 +235,35 @@ export const Header: React.FC<ChildComponentProps> = ({
           });
         }
 
-        console.log("Updated user object with customerId:", user);
+        console.log("✅ Updated user object with customerId:", user);
+        
+        // Ensure response.data has the correct structure
         const baseSuggestions = [
           { name: "Detect Location", index: 1 },
           { name: "Add Address", index: 2 },
         ];
-        const savedLocationSuggestions = response.data[0].savedLocations.map(
-          (loc, i) => ({
-            name: loc.name,
-            index: i + 3,
-          })
-        );
+        
+        // Check if response.data is an array and has savedLocations
+        const savedLocations = Array.isArray(response.data) && response.data[0]?.savedLocations 
+          ? response.data[0].savedLocations 
+          : [];
+        
+        console.log("📌 Saved locations from API:", savedLocations);
+        
+        const savedLocationSuggestions = savedLocations.map((loc: any, i: number) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
 
+        console.log("📌 Updated suggestions:", [...baseSuggestions, ...savedLocationSuggestions]);
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
-
-        console.log("Suggestions updated:", suggestions);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
+        console.log("🔄 Creating new user preferences...");
         createUserPreferences(customerId);
       } else {
-        console.error("Unexpected error fetching user settings:", error);
+        console.error("❌ Unexpected error fetching user settings:", error);
       }
     } finally {
       setLoadingLocations(false); // End loading regardless of success/failure
@@ -287,6 +292,13 @@ export const Header: React.FC<ChildComponentProps> = ({
       // Optionally check response before setting state
       if (response.status === 200 || response.status === 201) {
         setUserPreference(payload);
+        
+        // Initialize suggestions with empty saved locations
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        setSuggestions(baseSuggestions);
       } else {
         console.warn("Unexpected response:", response);
       }
@@ -415,30 +427,45 @@ export const Header: React.FC<ChildComponentProps> = ({
     handleCartClose();
   };
 
+  // FIXED: Updated handleChange function
   const handleChange = (newValue: any) => {
     console.log("➡️ New Value Selected:", newValue);
+    
     if (newValue === "Add Address") {
       setOpen(true);
     } else if (newValue === "Detect Location") {
       getLocation();
     } else {
-      console.log("➡️ Selected Location:", newValue);
+      console.log("➡️ Selected Saved Location:", newValue);
       console.log("🗂️ User Preferences:", userPreference);
-      const loc = userPreference[0]?.savedLocations.find(
-        (location: any) =>
-          location.name?.toLowerCase() === newValue.toLowerCase()
+      
+      // Check if userPreference has data
+      if (!userPreference || userPreference.length === 0) {
+        console.error("userPreference is empty or undefined");
+        return;
+      }
+      
+      // Check if savedLocations exists
+      if (!userPreference[0]?.savedLocations || userPreference[0]?.savedLocations.length === 0) {
+        console.error("No saved locations found in userPreference");
+        return;
+      }
+      
+      // Find the location - use exact match first, then case-insensitive
+      const savedLocation = userPreference[0].savedLocations.find(
+        (location: any) => location.name === newValue
+      ) || userPreference[0].savedLocations.find(
+        (location: any) => location.name?.toLowerCase() === newValue.toLowerCase()
       );
-
-      console.log(
-        "🔍 Matching Location Found:",
-        loc?.location?.address[0]?.formatted_address
-      );
-      if (loc?.location?.address[0]?.formatted_address) {
-        console.log("Location from user preference: ", loc.location);
-        setLocation(loc?.location?.address[0]?.formatted_address);
-        dispatch(add(loc.location));
+      
+      if (savedLocation?.location?.address?.[0]?.formatted_address) {
+        console.log("✅ Found location:", savedLocation.location.address[0].formatted_address);
+        console.log("Full location data:", savedLocation.location);
+        setLocation(savedLocation.location.address[0].formatted_address);
+        dispatch(add(savedLocation.location));
       } else {
-        console.warn("No matching location found for:", newValue);
+        console.warn("❌ No matching location found for:", newValue);
+        console.log("Available saved locations:", userPreference[0].savedLocations);
       }
     }
   };
@@ -479,57 +506,57 @@ export const Header: React.FC<ChildComponentProps> = ({
     setDialogOpen(true);
   };
 
-const handleBookingSave = () => {
-  let timeRange = "";
-  let timeSlot = "";
+  const handleBookingSave = () => {
+    let timeRange = "";
+    let timeSlot = "";
 
-  // Apply your new logic
-  if (selectedRadioButtonValue === "Date") {
-    // For "Date" → send startTime-endTime for both
-    timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-  } else if (selectedRadioButtonValue === "Short term") {
-    // For "Short term" → timeRange = startTime only, but timeSlot = full range
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-  } else {
-    // For "Monthly" → both are just startTime
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = startTime?.format("HH:mm") || "";
-  }
+    // Apply your new logic
+    if (selectedRadioButtonValue === "Date") {
+      // For "Date" → send startTime-endTime for both
+      timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+      timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    } else if (selectedRadioButtonValue === "Short term") {
+      // For "Short term" → timeRange = startTime only, but timeSlot = full range
+      timeRange = startTime?.format("HH:mm") || "";
+      timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    } else {
+      // For "Monthly" → both are just startTime
+      timeRange = startTime?.format("HH:mm") || "";
+      timeSlot = startTime?.format("HH:mm") || "";
+    }
 
-  // Create booking object
-  const booking = {
-    startDate: startDate ? startDate.split("T")[0] : "",
-    endDate: endDate
-      ? endDate.split("T")[0]
-      : startDate
-      ? startDate.split("T")[0]
-      : "",
-    timeRange: timeRange,  
-    bookingPreference: selectedRadioButtonValue,
-    housekeepingRole: selectedType,
+    // Create booking object
+    const booking = {
+      startDate: startDate ? startDate.split("T")[0] : "",
+      endDate: endDate
+        ? endDate.split("T")[0]
+        : startDate
+        ? startDate.split("T")[0]
+        : "",
+      timeRange: timeRange,  
+      bookingPreference: selectedRadioButtonValue,
+      housekeepingRole: selectedType,
 
-    // NEW → include these extra fields
-    startTime: startTime?.format("HH:mm") || "",
-    endTime: endTime?.format("HH:mm") || "",
-    timeSlot: timeSlot
+      // NEW → include these extra fields
+      startTime: startTime?.format("HH:mm") || "",
+      endTime: endTime?.format("HH:mm") || "",
+      timeSlot: timeSlot
+    };
+
+    console.log("Booking details:", booking);
+
+    // Dispatch
+    dispatch(addBooking(booking));
+
+    // Same condition check as in homepage
+    if (selectedRadioButtonValue === "Date") {
+      setOpenServiceDialog(true);
+    } else {
+      sendDataToParent(DETAILS);
+    }
+
+    setDialogOpen(false);
   };
-
-  console.log("Booking details:", booking);
-
-  // Dispatch
-  dispatch(addBooking(booking));
-
-  // Same condition check as in homepage
-  if (selectedRadioButtonValue === "Date") {
-    setOpenServiceDialog(true);
-  } else {
-    sendDataToParent(DETAILS);
-  }
-
-  setDialogOpen(false);
-};
 
   const handleSave = () => {
     if (!dataFromMap) {
@@ -544,12 +571,11 @@ const handleBookingSave = () => {
     setOpenSaveOptionForSave(true);
   };
 
+  // FIXED: Updated locationHandleSave and updateUserSetting functions
   const locationHandleSave = () => {
     console.log("Location saved as:", locationAs);
     console.log("user preference ", userPreference);
-
     console.log(location);
-
     updateUserSetting();
   };
 
@@ -564,35 +590,49 @@ const handleBookingSave = () => {
       location: dataFromMap,
     };
 
-    console.log("New location to add:", newLocation);
+    console.log("➕ New location to add:", newLocation);
+    console.log("📝 Current user preferences before update:", userPreference);
 
-    console.log("Current user preferences:", userPreference);
-
-    const existingLocations = Array.isArray(userPreference[0]?.savedLocations)
-      ? userPreference[0].savedLocations
+    // Create updated preferences
+    const currentPreferences = userPreference && userPreference.length > 0 
+      ? [...userPreference] 
+      : [{ customerId: user.customerid, savedLocations: [] }];
+    
+    const existingLocations = Array.isArray(currentPreferences[0]?.savedLocations)
+      ? currentPreferences[0].savedLocations
       : [];
 
     const updatedLocations = [...existingLocations, newLocation];
 
-    const payload = {
+    // Create the updated user preference object
+    const updatedUserPreference = [{
+      ...currentPreferences[0],
       customerId: user.customerid,
-      savedLocations: updatedLocations,
-    };
+      savedLocations: updatedLocations
+    }];
+
+    console.log("📤 Updated user preferences to save:", updatedUserPreference);
 
     try {
+      const payload = {
+        customerId: user.customerid,
+        savedLocations: updatedLocations,
+      };
+
+      console.log("🚀 Sending payload to API:", payload);
+
       const response = await utilsInstance.put(
         `/user-settings/${user.customerid}`,
         payload
       );
 
       if (response.status === 200 || response.status === 201) {
-        setUserPreference({
-          customerId: user.customerid,
-          savedLocations: updatedLocations,
-        });
-        setOpenSaveOptionForSave(false);
-        setLocationAs("");
-
+        console.log("✅ User settings updated successfully");
+        
+        // Update local state after successful API call
+        setUserPreference(updatedUserPreference);
+        
+        // Update suggestions
         const baseSuggestions = [
           { name: "Detect Location", index: 1 },
           { name: "Add Address", index: 2 },
@@ -602,15 +642,22 @@ const handleBookingSave = () => {
           index: i + 3,
         }));
 
+        console.log("📝 Updated suggestions:", [...baseSuggestions, ...savedLocationSuggestions]);
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+        
+        // Clear and close
+        setOpenSaveOptionForSave(false);
+        setLocationAs("");
+        
+        // Force a state refresh
+        setTimeout(() => {
+          console.log("🔄 State refreshed, new suggestions should be available");
+        }, 100);
       } else {
-        console.warn(
-          "Unexpected response while updating user settings:",
-          response
-        );
+        console.warn("⚠️ Unexpected response:", response);
       }
     } catch (error) {
-      console.error("Error updating user settings:", error);
+      console.error("❌ Error updating user settings:", error);
     }
   };
 
@@ -646,6 +693,37 @@ const handleBookingSave = () => {
   }
 
   const isMobile = useMediaQuery("(max-width:768px)");
+
+  // Add this useEffect for debugging
+  useEffect(() => {
+    console.log("🔄 userPreference state changed:", userPreference);
+    console.log("🔄 suggestions state changed:", suggestions);
+  }, [userPreference, suggestions]);
+
+  // Add this useEffect to ensure suggestions are synced with userPreference
+  useEffect(() => {
+    if (userPreference && userPreference.length > 0 && userPreference[0]?.savedLocations) {
+      const baseSuggestions = [
+        { name: "Detect Location", index: 1 },
+        { name: "Add Address", index: 2 },
+      ];
+      
+      const savedLocations = userPreference[0].savedLocations || [];
+      const savedLocationSuggestions = savedLocations.map((loc: any, i: number) => ({
+        name: loc.name,
+        index: i + 3,
+      }));
+      
+      const newSuggestions = [...baseSuggestions, ...savedLocationSuggestions];
+      
+      // Only update if suggestions are different
+      if (JSON.stringify(newSuggestions) !== JSON.stringify(suggestions)) {
+        console.log("🔄 Syncing suggestions with userPreference");
+        console.log("New suggestions:", newSuggestions);
+        setSuggestions(newSuggestions);
+      }
+    }
+  }, [userPreference]);
 
   return (
     <>
@@ -797,8 +875,8 @@ const handleBookingSave = () => {
         )}
         {/* Right Side Content */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Location Bar */}
-          <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64">
+          {/* Location Bar - UPDATED */}
+          <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64 relative">
             <MapPin className="w-4 h-4 text-gray-500 mr-2" />
             <div className="relative w-full">
               <input
@@ -807,16 +885,20 @@ const handleBookingSave = () => {
                 value={location}
                 onFocus={() => setShowDropdown(true)}
                 onClick={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                className="bg-transparent outline-none text-xs md:text-sm w-full px-1"
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                className="bg-transparent outline-none text-xs md:text-sm w-full px-1 cursor-pointer"
+                readOnly
               />
               {showDropdown && (
                 <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto text-xs md:text-sm">
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
+                      console.log("📍 Detect Location clicked");
                       handleChange("Detect Location");
-                      setShowDropdown(false);
+                      setTimeout(() => {
+                        setShowDropdown(false);
+                      }, 100);
                     }}
                   >
                     Detect Location
@@ -824,8 +906,11 @@ const handleBookingSave = () => {
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
+                      console.log("🏠 Add Address clicked");
                       handleChange("Add Address");
-                      setShowDropdown(false);
+                      setTimeout(() => {
+                        setShowDropdown(false);
+                      }, 100);
                     }}
                   >
                     Add Address
@@ -842,9 +927,17 @@ const handleBookingSave = () => {
                         <li
                           key={index}
                           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            console.log(`📍 ${suggestion.name} clicked`);
+                            console.log("📊 Current suggestions:", suggestions);
+                            console.log("📊 Current userPreference:", userPreference);
+                            // Call handleChange immediately
                             handleChange(suggestion.name);
-                            setShowDropdown(false);
+                            // Close dropdown
+                            setTimeout(() => {
+                              setShowDropdown(false);
+                            }, 100);
                           }}
                         >
                           {suggestion.name}
@@ -984,7 +1077,7 @@ const handleBookingSave = () => {
               startIcon={<FaHome />}
               className={undefined}
               onClick={() => {
-                handleUserPreference("home");
+                handleUserPreference("Home");
               }}
             >
               Home
@@ -1014,6 +1107,7 @@ const handleBookingSave = () => {
               label="Enter Location Name"
               variant="standard"
               fullWidth
+              value={locationAs}
               onChange={(e) => setLocationAs(e.target.value)}
             />
           )}

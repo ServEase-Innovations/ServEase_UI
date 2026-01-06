@@ -2,7 +2,6 @@
 /* eslint-disable */
 import React, { useEffect, useRef, useState } from "react";
 import { 
-  Button, 
   Dialog, 
   DialogActions, 
   DialogContent, 
@@ -21,7 +20,9 @@ import {
   Divider,
   Card,
   CardContent,
-  CardActions
+  CardActions,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import moment from "moment";
@@ -54,6 +55,7 @@ import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LanguageIcon from '@mui/icons-material/Language';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import { Button } from "../Button/button";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -61,16 +63,17 @@ interface ProviderDetailsProps extends ServiceProviderDTO  {
   sendDataToParent?: (data: string) => void;
 }
 
-// Styled components
+// Styled components - KEEPING YOUR EXACT WEB VIEW STYLES
 const PremiumBadge = styled(Chip)(({ theme }) => ({
   position: 'absolute',
   top: theme.spacing(1),
   left: theme.spacing(1),
-  zIndex: 1,
+  zIndex: 10,
   fontWeight: 700,
   fontSize: '0.7rem',
   backgroundColor: theme.palette.warning.main,
   color: theme.palette.warning.contrastText,
+  boxShadow: theme.shadows[2],
   '& .MuiChip-icon': {
     color: theme.palette.warning.contrastText,
   },
@@ -82,6 +85,7 @@ const ProviderCard = styled(Card)(({ theme }) => ({
   transition: 'all 0.3s ease',
   border: '1px solid',
   borderColor: theme.palette.divider,
+  position: 'relative', // Add this to position the badge relative to the card
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.shadows[8],
@@ -109,6 +113,24 @@ const ProviderAvatar = styled(Avatar)(({ theme }) => ({
   color: theme.palette.primary.contrastText,
 }));
 
+// Best Match Ribbon Component
+const BestMatchRibbon = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  top: theme.spacing(-0.5),
+  left: theme.spacing(1),
+  zIndex: 10,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+  backgroundColor: theme.palette.warning.main,
+  color: theme.palette.warning.contrastText,
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+  borderRadius: '4px',
+  boxShadow: theme.shadows[2],
+  fontWeight: 700,
+  fontSize: '0.7rem',
+}));
+
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
@@ -130,6 +152,8 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const hasCheckedRef = useRef(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const dietImages = {
     VEG: "veg.png",
@@ -349,107 +373,190 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   return (
     <>
-      <ProviderCard>
+      <ProviderCard sx={{
+        // Mobile: adjust border radius
+        '@media (max-width: 900px)': {
+          borderRadius: 12,
+        },
+        '@media (max-width: 600px)': {
+          borderRadius: 10,
+          marginTop:2
+        }
+      }}>
+        {/* FIXED: Best Match Badge - Always visible without hover */}
         {props.bestMatch && (
-          <PremiumBadge
-            icon={<LocalFireDepartmentIcon />}
-            label="Best Match"
-            size="small"
-          />
+          <BestMatchRibbon sx={{
+            // Mobile: adjust size
+            '@media (max-width: 900px)': {
+              top: 8,
+              left: 8,
+              fontSize: '0.65rem',
+              padding: '2px 8px',
+            }
+          }}>
+            <LocalFireDepartmentIcon fontSize="small" />
+            <span>Best Match</span>
+          </BestMatchRibbon>
         )}
         
-        <CardContent sx={{ p: 3 }}>
-          <Stack direction="row" spacing={3} alignItems="flex-start">
-            {/* Left Section - Avatar & Metrics */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <ProviderAvatar>
-                {getInitials()}
-              </ProviderAvatar>
-              
-              <Stack spacing={1} mt={2} width="100%">
-                <MetricBox>
-                  <Typography variant="h6" color="primary" fontWeight={600}>
-                    {props.distance_km || 0}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    km away
-                  </Typography>
-                </MetricBox>
-                
-                <MetricBox>
-                  <Stack direction="row" alignItems="center" spacing={0.5}>
-                    <StarIcon fontSize="small" color="warning" />
-                    <Typography variant="h6" fontWeight={600}>
-                      {props.rating?.toFixed(1) || '5.0'}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="caption" color="text.secondary">
-                    {props.rating  || 5} reviews
-                  </Typography>
-                </MetricBox>
-                
-                <MetricBox>
-                  <Typography variant="h6" color="success.main" fontWeight={600}>
-                    {props.experience || 12}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    yrs experience
-                  </Typography>
-                </MetricBox>
-              </Stack>
-            </Box>
-            
-            <Divider orientation="vertical" flexItem />
-            
-            {/* Center Section - Provider Details */}
-            <Box flex={1}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                <Box>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="h6" fontWeight={600}>
+        <CardContent sx={{ 
+          p: 3,
+          // Mobile: adjust padding
+          '@media (max-width: 900px)': {
+            p: 2,
+          },
+          '@media (max-width: 600px)': {
+            p: 1.5,
+          }
+        }}>
+          {/* MAIN CONTAINER - Desktop: row, Mobile: column */}
+          <Stack 
+            direction={isMobile ? "column" : "row"} 
+            spacing={isMobile ? 2 : 3} 
+            alignItems="flex-start"
+          >
+            {/* Center Section - Provider Details - ALWAYS FIRST */}
+            <Box flex={1} sx={{
+              // Mobile: full width
+              width: isMobile ? '100%' : 'auto'
+            }}>
+              <Stack 
+                direction={isMobile ? "column" : "row"} 
+                justifyContent="space-between" 
+                alignItems={isMobile ? "flex-start" : "flex-start"}
+                spacing={isMobile ? 2 : 0}
+              >
+                <Box sx={{
+                  // Mobile: full width
+                  width: isMobile ? '100%' : 'auto'
+                }}>
+                 <Stack 
+        direction="row" 
+        alignItems="center" 
+        spacing={1} 
+        flexWrap="wrap"
+        sx={{
+          // ADD THIS: Additional spacing for name section on mobile
+          '@media (max-width: 600px)': {
+            mt: 2,
+          }
+        }}
+      >
+                    <Typography variant="h6" fontWeight={600} sx={{
+                      // Mobile: adjust font size
+                      '@media (max-width: 900px)': {
+                        fontSize: '1.1rem',
+                      },
+                      '@media (max-width: 600px)': {
+                        fontSize: '1rem',
+                      }
+                    }}>
                       {props.firstname} {props.lastname}
                     </Typography>
                     <Chip 
                       label={`${gender}, ${age}`}
                       size="small"
                       variant="outlined"
+                      sx={{
+                        // Mobile: adjust size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.7rem',
+                          height: 22,
+                        }
+                      }}
                     />
                   </Stack>
                   
-                  <Stack direction="row" spacing={2} mt={1} alignItems="center">
+                  <Stack 
+                    direction={isMobile ? "column" : "row"} 
+                    spacing={isMobile ? 1 : 2} 
+                    mt={1} 
+                    alignItems={isMobile ? "flex-start" : "center"}
+                    flexWrap="wrap"
+                  >
                     <Stack direction="row" spacing={1} alignItems="center">
                       <RestaurantIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
                         {props.diet}
                       </Typography>
                     </Stack>
                     
-                    <Divider orientation="vertical" flexItem />
+                    {/* Vertical Divider - Hidden on mobile */}
+                    <Divider 
+                      orientation="vertical" 
+                      flexItem 
+                      sx={{
+                        display: isMobile ? 'none' : 'flex'
+                      }} 
+                    />
                     
                     <Stack direction="row" spacing={1} alignItems="center">
                       <LanguageIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
                         {props.languageknown?.[0] || "English"}
                       </Typography>
                     </Stack>
                     
-                    <Divider orientation="vertical" flexItem />
+                    {/* Vertical Divider - Hidden on mobile */}
+                    <Divider 
+                      orientation="vertical" 
+                      flexItem 
+                      sx={{
+                        display: isMobile ? 'none' : 'flex'
+                      }} 
+                    />
                     
                     <Stack direction="row" spacing={1} alignItems="center">
                       <LocationOnIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
                         {props.locality || "Nearby"}
                       </Typography>
                     </Stack>
                   </Stack>
-                  
-                  <Box mt={2}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
+              
+                  <Box mt={2} sx={{
+                    // Mobile: adjust margin
+                    '@media (max-width: 600px)': {
+                      mt: 1.5,
+                    }
+                  }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{
+                      // Mobile: adjust font size
+                      '@media (max-width: 600px)': {
+                        fontSize: '0.8rem',
+                      }
+                    }}>
                       Availability
                     </Typography>
-                    <Stack direction="row" spacing={2} alignItems="center">
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{
+                      // Mobile: wrap content
+                      '@media (max-width: 900px)': {
+                        flexWrap: 'wrap',
+                        gap: 1,
+                      }
+                    }}>
                       <AccessTimeIcon fontSize="small" color="primary" />
-                      <Typography variant="body1" fontWeight={500}>
+                      <Typography variant="body1" fontWeight={500} sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.9rem',
+                        }
+                      }}>
                         Available at {formatTimeForDisplay(props.monthlyAvailability?.preferredTime) || "08:00 AM"}
                       </Typography>
                       <Chip 
@@ -457,75 +564,261 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         size="small" 
                         color="primary" 
                         variant="outlined"
+                        sx={{
+                          // Mobile: adjust size
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.7rem',
+                            height: 22,
+                          }
+                        }}
                       />
                     </Stack>
                   </Box>
                   
                   {props.otherServices && (
-                    <Box mt={2}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <Box mt={2} sx={{
+                      // Mobile: adjust margin
+                      '@media (max-width: 600px)': {
+                        mt: 1.5,
+                      }
+                    }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
                         Additional Services
                       </Typography>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
                         {props.otherServices}
                       </Typography>
                     </Box>
                   )}
                 </Box>
+             
+                {/* Vertical Divider - Hidden on mobile */}
+                <Divider 
+                  orientation="vertical" 
+                  flexItem 
+                  sx={{ 
+                    mr: -60,
+                    display: isMobile ? 'none' : 'flex'
+                  }} 
+                />
                 
-                <IconButton 
-                  onClick={toggleFavorite}
-                  color={isFavorite ? "error" : "default"}
-                  size="small"
-                >
-                  {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                </IconButton>
+                {/* Metrics Section */}
+             <Box mt={isMobile ? 2 : -0.5} sx={{
+  // Mobile: full width
+  width: isMobile ? '100%' : 'auto'
+}}>
+  <Stack
+    direction="row"
+    spacing={2}
+    mt={isMobile ? 0 : 2}
+    width="100%"
+    justifyContent="space-between"
+    sx={{
+      // Mobile: adjust spacing and allow wrapping if needed
+      '@media (max-width: 600px)': {
+        spacing: 1,
+        gap: 1,
+      }
+    }}
+  >
+    <MetricBox sx={{
+      // Keep the row layout for all screen sizes
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      minWidth: 'auto',
+      padding: '10px 12px',
+      mb: isMobile ? 0 : 0, // No margin bottom in row layout
+    }}>
+      <Typography variant="h6" color="primary" fontWeight={600} sx={{
+        // Mobile: adjust font size
+        '@media (max-width: 600px)': {
+          fontSize: '1rem',
+        }
+      }}>
+        {props.distance_km || 0}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{
+        // Mobile: adjust font size and alignment
+        '@media (max-width: 600px)': {
+          fontSize: '0.7rem',
+          marginLeft: 'auto',
+        }
+      }}>
+        km away
+      </Typography>
+    </MetricBox>
+
+    <MetricBox sx={{
+      // Keep the row layout for all screen sizes
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      minWidth: 'auto',
+      padding: '10px 12px',
+      mb: isMobile ? 0 : 0, // No margin bottom in row layout
+    }}>
+      <Stack direction="row" alignItems="center" spacing={0.5} sx={{
+        // Mobile: take available space
+        flex: 1,
+      }}>
+        <StarIcon fontSize="small" color="warning" />
+        <Typography variant="h6" fontWeight={600} sx={{
+          // Mobile: adjust font size
+          '@media (max-width: 600px)': {
+            fontSize: '1rem',
+          }
+        }}>
+          {props.rating?.toFixed(1) }
+        </Typography>
+      </Stack>
+      <Typography variant="caption" color="text.secondary" sx={{
+        // Mobile: adjust font size and alignment
+        '@media (max-width: 600px)': {
+          fontSize: '0.7rem',
+          marginLeft: 'auto',
+        }
+      }}>
+        {props.rating } reviews
+      </Typography>
+    </MetricBox>
+
+    <MetricBox sx={{
+      // Keep the row layout for all screen sizes
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      minWidth: 'auto',
+      padding: '10px 12px',
+      mb: isMobile ? 0 : 0, // No margin bottom in row layout
+    }}>
+      <Typography variant="h6" color="success.main" fontWeight={600} sx={{
+        // Mobile: adjust font size
+        '@media (max-width: 600px)': {
+          fontSize: '1rem',
+        }
+      }}>
+        {props.experience || 12}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{
+        // Mobile: adjust font size and alignment
+        '@media (max-width: 600px)': {
+          fontSize: '0.7rem',
+          marginLeft: 'auto',
+        }
+      }}>
+        yrs experience
+      </Typography>
+    </MetricBox>
+  </Stack>
+</Box>
               </Stack>
             </Box>
             
-            <Divider orientation="vertical" flexItem />
+            {/* Vertical Divider - Hidden on mobile */}
+            <Divider 
+              orientation="vertical" 
+              flexItem 
+              sx={{
+                display: isMobile ? 'none' : 'flex'
+              }}
+            />
             
-            {/* Right Section - Actions */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 140 }}>
-              <Button 
-                variant="outlined" 
-                size="medium"
-                fullWidth
-                startIcon={<InfoOutlinedIcon />}
-                onClick={toggleExpand}
-                sx={{ borderRadius: 2 }}
-              >
-                View Details
-              </Button>
-              
-              {/* CHANGED: Book Monthly button to Book Now button */}
-              <Button 
-                variant="contained" 
-                size="medium"
-                fullWidth
-                onClick={handleLogin}  // Changed from handleBookNow to handleLogin
-                
-                // sx={{ 
-                //   borderRadius: 2,
-                //   fontWeight: 600,
-                //   boxShadow: 2,
-                //   '&:hover': {
-                //     boxShadow: 4,
-                //   }
-                // }}
-              >
-                Book Now 
-              </Button>
-              
+            {/* Right Section - Actions - Mobile: comes last with border top */}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'row' : 'column', 
+              gap: isMobile ? 1 : 2, 
+              minWidth: isMobile ? '100%' : 140,
+              justifyContent: isMobile ? 'space-between' : 'flex-start',
+              alignItems: isMobile ? 'center' : 'stretch',
+              // Mobile: add top border and padding
+              ...(isMobile && {
+                borderTop: '1px solid #e0e0e0',
+                pt: 2,
+                mt: 2,
+              })
+            }}>
               {props.housekeepingrole && (
                 <Chip 
                   label={props.housekeepingrole}
                   color="primary"
                   variant="filled"
                   size="small"
-                  sx={{ alignSelf: 'center' }}
+                  sx={{ 
+                    alignSelf: isMobile ? 'flex-start' : 'center',
+                    // Mobile: adjust size
+                    '@media (max-width: 600px)': {
+                      fontSize: '0.7rem',
+                      height: 22,
+                    }
+                  }}
                 />
               )}
+              <Button 
+                variant="outlined" 
+                size="medium"
+                fullWidth={!isMobile}
+                startIcon={<InfoOutlinedIcon />}
+                onClick={toggleExpand}
+                sx={{ 
+                  borderRadius: 2,
+                  // Mobile: adjust button
+                  ...(isMobile && {
+                    minWidth: 'auto',
+                    flex: 1,
+                  }),
+                  '@media (max-width: 600px)': {
+                    fontSize: '0.85rem',
+                    px: 1,
+                    minHeight: 36,
+                  }
+                }}
+              >
+                {/* Mobile: shorter text */}
+                {isMobile ? "Details" : "View Details"}
+              </Button>
+              
+              <Button 
+                variant="contained" 
+                size="medium"
+                fullWidth={!isMobile}
+                onClick={handleLogin}
+                sx={{ 
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  boxShadow: 2,
+                  // Mobile: adjust button
+                  ...(isMobile && {
+                    minWidth: 'auto',
+                    flex: 1,
+                  }),
+                  '@media (max-width: 600px)': {
+                    fontSize: '0.85rem',
+                    px: 1,
+                    minHeight: 36,
+                  },
+                  '&:hover': {
+                    boxShadow: 4,
+                  }
+                }}
+              >
+                {/* Mobile: shorter text */}
+                {isMobile ? "Book" : "Book Now"}
+              </Button>
             </Box>
           </Stack>
         </CardContent>

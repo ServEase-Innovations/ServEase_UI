@@ -315,148 +315,77 @@
 /* =========================
    Responsive Design
 ========================= */
-@media (max-width: 768px) {
+
+/* Tablet and Mobile (900px and below) */
+@media (max-width: 900px) {
   .provider-card {
-    flex-direction: row;
     max-height: none;
     min-height: auto;
+    margin-bottom: 16px;
   }
   
-  .provider-left {
-    flex-direction: column;
-    min-width: 70px;
-    max-width: 70px;
-    padding: 10px 6px;
-    gap: 8px;
-  }
-  
-  .metric-value {
-    font-size: 0.9rem;
-  }
-  
-  .metric-label {
-    font-size: 0.65rem;
-  }
-  
-  .provider-right {
-    padding: 10px 12px;
-  }
-  
-  .action-buttons {
-    flex-wrap: wrap;
-  }
-  
-  .view-details-button,
-  .book-monthly-button {
-    flex: 1;
-    min-width: auto;
-    text-align: center;
+  .MuiCardContent-root {
+    padding: 16px !important;
   }
 }
 
+/* Mobile (600px and below) */
+@media (max-width: 600px) {
+  .provider-card {
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  
+  .MuiCardContent-root {
+    padding: 12px !important;
+  }
+  
+  .MuiTypography-h6 {
+    font-size: 1rem !important;
+  }
+  
+  .MuiTypography-body1 {
+    font-size: 0.9rem !important;
+  }
+  
+  .MuiTypography-body2 {
+    font-size: 0.8rem !important;
+  }
+  
+  .MuiChip-root {
+    font-size: 0.7rem !important;
+    height: 22px !important;
+  }
+}
+
+/* Small Mobile (480px and below) */
 @media (max-width: 480px) {
   .provider-card {
-    flex-direction: column;
-    max-height: none;
+    margin-bottom: 10px;
+    border-radius: 10px;
   }
   
-  .provider-left {
-    flex-direction: row;
-    justify-content: space-around;
-    min-width: 100%;
-    max-width: 100%;
-    padding: 8px;
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
-    gap: 0;
+  .MuiCardContent-root {
+    padding: 10px !important;
   }
   
-  .metric-item {
-    flex: 1;
-    padding: 0 4px;
+  .MuiTypography-h6 {
+    font-size: 0.95rem !important;
   }
   
-  .provider-header {
-    flex-direction: row;
-    align-items: flex-start;
+  .MuiTypography-body1 {
+    font-size: 0.85rem !important;
   }
   
-  .provider-name {
-    font-size: 0.95rem;
+  .MuiTypography-body2 {
+    font-size: 0.75rem !important;
   }
   
-  .detail-row {
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
+  .MuiButton-root {
+    font-size: 0.85rem !important;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
   }
-  
-  .action-buttons {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-  
-  .view-details-button,
-  .book-monthly-button {
-    flex: 1;
-    margin: 0;
-  }
-}
-
-/* =========================
-   Extreme Mobile (Very Small Screens)
-========================= */
-@media (max-width: 360px) {
-  .provider-card {
-    padding: 0;
-  }
-  
-  .provider-left {
-    padding: 6px;
-  }
-  
-  .provider-right {
-    padding: 8px;
-  }
-  
-  .provider-name {
-    font-size: 0.9rem;
-  }
-  
-  .detail-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
-  }
-  
-  .separator {
-    display: none;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .view-details-button,
-  .book-monthly-button {
-    width: 100%;
-  }
-}
-
-/* =========================
-   Utility Classes for Height Control
-========================= */
-.provider-card.small {
-  max-height: 110px;
-}
-
-.provider-card.medium {
-  max-height: 130px;
-}
-
-.provider-card.large {
-  max-height: 150px;
 }
 
 /* =========================
