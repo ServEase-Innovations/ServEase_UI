@@ -280,12 +280,12 @@ function App() {
     }
     
     if (currentSection === "PRIVACY_POLICY") {
-      return <PrivacyPolicy />;
+      return <PrivacyPolicy onBack={handleBackToHome} />;
     }
     
     if (currentSection === "TERMS_CONDITIONS") {
-      return <TnC />;
-    }
+      return <TnC onBack={handleBackToHome} />;
+    }    
 
     // Render service-related pages when selection exists
     if (selection === DETAILS) {

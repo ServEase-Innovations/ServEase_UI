@@ -9,14 +9,47 @@ import {
   List,
   ListItem,
   ListItemText,
-  Link
+  Link,
+  IconButton,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-const PrivacyPolicy = () => {
+interface PrivacyPolicyProps {
+  onBack?: () => void;
+}
+
+const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* ⬇️ Changed padding to 88px and border-radius to 2px */}
-      <Paper elevation={3} sx={{ p: '88px', borderRadius: '2px' }}>
+      <Paper
+        elevation={3}
+        sx={{
+          mt: '80px',
+          p: { xs: '40px 24px', md: '88px' },
+          borderRadius: '2px',
+          position: 'relative', // Required for absolute positioning
+        }}
+      >
+        {onBack && (
+          <IconButton
+            onClick={onBack}
+            aria-label="back"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              backgroundColor: 'white',
+              boxShadow: 1,
+              borderRadius: '8px',
+              '&:hover': {
+                backgroundColor: '#f0f0f0',
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
+
         <Typography
           variant="h3"
           component="h1"
