@@ -56,6 +56,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LanguageIcon from '@mui/icons-material/Language';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { Button } from "../Button/button";
+import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer"; // Add this import
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -131,6 +132,21 @@ const BestMatchRibbon = styled(Box)(({ theme }) => ({
   fontSize: '0.7rem',
 }));
 
+// Availability Info Chip Component
+const AvailabilityChip = styled(Chip)(({ theme }) => ({
+  backgroundColor: theme.palette.success.light,
+  color: theme.palette.success.contrastText,
+  fontWeight: 600,
+  '&.partial': {
+    backgroundColor: theme.palette.warning.light,
+    color: theme.palette.warning.contrastText,
+  },
+  '&.limited': {
+    backgroundColor: theme.palette.error.light,
+    color: theme.palette.error.contrastText,
+  },
+}));
+
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
@@ -150,6 +166,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false); // Add state for drawer
 
   const hasCheckedRef = useRef(false);
   const theme = useTheme();
@@ -230,6 +247,16 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         console.error("Error fetching engagement data:", error);
       }
     }
+  };
+
+  // New function to handle drawer open
+  const handleViewDetails = () => {
+    setDrawerOpen(true);
+  };
+
+  // New function to handle drawer close
+  const handleDrawerClose = () => {
+    setDrawerOpen(false);
   };
 
   const calculateAge = (dob: string) => {
@@ -359,8 +386,34 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   // Format time for display (e.g., "05:00" -> "05:00 AM")
   const formatTimeForDisplay = (timeString: string) => {
-    if (!timeString) return "";
+    if (!timeString) return "08:00 AM"; // Default fallback
     return moment(timeString, "HH:mm").format("hh:mm A");
+  };
+
+  // Get availability status for the chip
+  const getAvailabilityStatus = () => {
+    if (!props.monthlyAvailability) return "Available";
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return "Fully Available";
+    } else {
+      const exceptions = props.monthlyAvailability.exceptions?.length || 0;
+      if (exceptions > 0) {
+        return `Partially Available (${exceptions} exception${exceptions > 1 ? 's' : ''})`;
+      }
+      return "Available";
+    }
+  };
+
+  // Get availability chip class
+  const getAvailabilityChipClass = () => {
+    if (!props.monthlyAvailability) return "";
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return "";
+    } else {
+      return "partial";
+    }
   };
 
   const age = getAge();
@@ -535,14 +588,28 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       mt: 1.5,
                     }
                   }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{
-                      // Mobile: adjust font size
-                      '@media (max-width: 600px)': {
-                        fontSize: '0.8rem',
-                      }
-                    }}>
-                      Availability
-                    </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{
+                        // Mobile: adjust font size
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.8rem',
+                        }
+                      }}>
+                        Availability
+                      </Typography>
+                      <AvailabilityChip
+                        label={getAvailabilityStatus()}
+                        size="small"
+                        className={getAvailabilityChipClass()}
+                        sx={{
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.65rem',
+                            height: 20,
+                          }
+                        }}
+                      />
+                    </Stack>
+                    
                     <Stack direction="row" spacing={2} alignItems="center" sx={{
                       // Mobile: wrap content
                       '@media (max-width: 900px)': {
@@ -557,7 +624,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '0.9rem',
                         }
                       }}>
-                        Available at {formatTimeForDisplay(props.monthlyAvailability?.preferredTime) || "08:00 AM"}
+                        Available at {formatTimeForDisplay(props.monthlyAvailability?.preferredTime)}
                       </Typography>
                       <Chip 
                         label="Monthly" 
@@ -573,6 +640,42 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         }}
                       />
                     </Stack>
+                    
+                    {/* Show exceptions count if any */}
+                    {props.monthlyAvailability?.exceptions && props.monthlyAvailability.exceptions.length > 0 && (
+                      <Typography 
+                        variant="caption" 
+                        color="warning.main"
+                        sx={{ 
+                          display: 'block', 
+                          mt: 0.5,
+                          fontWeight: 500,
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.7rem',
+                          }
+                        }}
+                      >
+                        ⚠️ {props.monthlyAvailability.exceptions.length} schedule exception(s) this month
+                      </Typography>
+                    )}
+                    
+                    {/* Show fully available message */}
+                    {props.monthlyAvailability?.fullyAvailable && (
+                      <Typography 
+                        variant="caption" 
+                        color="success.main"
+                        sx={{ 
+                          display: 'block', 
+                          mt: 0.5,
+                          fontWeight: 500,
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.7rem',
+                          }
+                        }}
+                      >
+                        ✓ Fully available all month
+                      </Typography>
+                    )}
                   </Box>
                   
                   {props.otherServices && (
@@ -773,7 +876,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 size="medium"
                 fullWidth={!isMobile}
                 startIcon={<InfoOutlinedIcon />}
-                onClick={toggleExpand}
+                onClick={handleViewDetails} // Changed to handleViewDetails
                 sx={{ 
                   borderRadius: 2,
                   // Mobile: adjust button
@@ -823,6 +926,13 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           </Stack>
         </CardContent>
       </ProviderCard>
+
+      {/* Availability Drawer */}
+      <ProviderAvailabilityDrawer
+        open={drawerOpen}
+        onClose={handleDrawerClose}
+        provider={props}
+      />
 
       {props.housekeepingrole === "COOK" && 
         <CookServicesDialog 
