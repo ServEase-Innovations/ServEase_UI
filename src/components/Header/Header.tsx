@@ -10,6 +10,9 @@ import {
   Badge,
   IconButton,
   TextField,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import React, { useState, useEffect, useReducer, useRef } from "react";
 import axios from "axios";
@@ -28,7 +31,7 @@ import {
   PROFILE,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
+import { Bell, ChevronDown, MapPin, ShoppingCart, User, X } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -49,6 +52,7 @@ import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -365,6 +369,10 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [openServiceDialog, setOpenServiceDialog] = useState(false);
   const [selectedType, setSelectedType] = useState("");
   const [selectedRadioButtonValue, setSelectedRadioButtonValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   // Ref to close dropdown when clicked outside
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
@@ -571,95 +579,109 @@ export const Header: React.FC<ChildComponentProps> = ({
     setOpenSaveOptionForSave(true);
   };
 
-  // FIXED: Updated locationHandleSave and updateUserSetting functions
-  const locationHandleSave = () => {
-    console.log("Location saved as:", locationAs);
-    console.log("user preference ", userPreference);
-    console.log(location);
-    updateUserSetting();
+  const locationHandleSave = async () => {
+  console.log("Location saved as:", locationAs);
+  console.log("user preference ", userPreference);
+  console.log(location);
+  
+  setIsSaving(true);
+  
+  try {
+    await updateUserSetting();
+    
+    // Show success snackbar
+    setSnackbarMessage("Location saved successfully!");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+    
+    // Close dialog after a short delay
+    setTimeout(() => {
+      setOpenSaveOptionForSave(false);
+      setLocationAs("");
+      setIsSaving(false);
+    }, 500);
+    
+  } catch (error) {
+    console.error("Error saving location:", error);
+    
+    // Show error snackbar
+    setSnackbarMessage("Failed to save location. Please try again.");
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+    
+    setIsSaving(false);
+  }
+};
+
+// Updated updateUserSetting function to handle errors properly
+const updateUserSetting = async () => {
+  if (!user || !locationAs || !dataFromMap) {
+    console.error("Missing required data to update user setting.");
+    throw new Error("Missing required data");
+  }
+
+  const newLocation = {
+    name: locationAs,
+    location: dataFromMap,
   };
 
-  const updateUserSetting = async () => {
-    if (!user || !locationAs || !dataFromMap) {
-      console.error("Missing required data to update user setting.");
-      return;
-    }
+  console.log("➕ New location to add:", newLocation);
 
-    const newLocation = {
-      name: locationAs,
-      location: dataFromMap,
+  try {
+    const payload = {
+      customerId: user.customerid,
+      savedLocations: [
+        ...(userPreference?.[0]?.savedLocations || []),
+        newLocation
+      ],
     };
 
-    console.log("➕ New location to add:", newLocation);
-    console.log("📝 Current user preferences before update:", userPreference);
+    const response = await utilsInstance.put(
+      `/user-settings/${user.customerid}`,
+      payload
+    );
 
-    // Create updated preferences
-    const currentPreferences = userPreference && userPreference.length > 0 
-      ? [...userPreference] 
-      : [{ customerId: user.customerid, savedLocations: [] }];
-    
-    const existingLocations = Array.isArray(currentPreferences[0]?.savedLocations)
-      ? currentPreferences[0].savedLocations
-      : [];
-
-    const updatedLocations = [...existingLocations, newLocation];
-
-    // Create the updated user preference object
-    const updatedUserPreference = [{
-      ...currentPreferences[0],
-      customerId: user.customerid,
-      savedLocations: updatedLocations
-    }];
-
-    console.log("📤 Updated user preferences to save:", updatedUserPreference);
-
-    try {
-      const payload = {
+    if (response.status === 200 || response.status === 201) {
+      console.log("✅ User settings updated successfully");
+      
+      // Update local state
+      const updatedUserPreference = [{
+        ...userPreference?.[0],
         customerId: user.customerid,
-        savedLocations: updatedLocations,
-      };
-
-      console.log("🚀 Sending payload to API:", payload);
-
-      const response = await utilsInstance.put(
-        `/user-settings/${user.customerid}`,
-        payload
-      );
-
-      if (response.status === 200 || response.status === 201) {
-        console.log("✅ User settings updated successfully");
-        
-        // Update local state after successful API call
-        setUserPreference(updatedUserPreference);
-        
-        // Update suggestions
-        const baseSuggestions = [
-          { name: "Detect Location", index: 1 },
-          { name: "Add Address", index: 2 },
-        ];
-        const savedLocationSuggestions = updatedLocations.map((loc, i) => ({
-          name: loc.name,
-          index: i + 3,
-        }));
-
-        console.log("📝 Updated suggestions:", [...baseSuggestions, ...savedLocationSuggestions]);
-        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
-        
-        // Clear and close
-        setOpenSaveOptionForSave(false);
-        setLocationAs("");
-        
-        // Force a state refresh
-        setTimeout(() => {
-          console.log("🔄 State refreshed, new suggestions should be available");
-        }, 100);
-      } else {
-        console.warn("⚠️ Unexpected response:", response);
-      }
-    } catch (error) {
-      console.error("❌ Error updating user settings:", error);
+        savedLocations: payload.savedLocations
+      }];
+      
+      setUserPreference(updatedUserPreference);
+      
+      // Update suggestions
+      const baseSuggestions = [
+        { name: "Detect Location", index: 1 },
+        { name: "Add Address", index: 2 },
+      ];
+      const savedLocationSuggestions = payload.savedLocations.map((loc: any, i: number) => ({
+        name: loc.name,
+        index: i + 3,
+      }));
+      
+      setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+      
+      return response.data; // Return data for chaining
+    } else {
+      throw new Error(`Unexpected response: ${response.status}`);
     }
-  };
+  } catch (error) {
+    console.error("❌ Error updating user settings:", error);
+    throw error; // Re-throw for error handling in locationHandleSave
+  }
+};
+
+// Snackbar close handler
+const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  if (reason === 'clickaway') {
+    return;
+  }
+  setSnackbarOpen(false);
+};
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -1042,7 +1064,24 @@ export const Header: React.FC<ChildComponentProps> = ({
       </header>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Set Location</DialogTitle>
+         <DialogHeader style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: 'white',
+                        zIndex: 1000,
+                        padding: '16px 24px',
+                        borderBottom: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <DialogTitle>Set Location</DialogTitle>
+                        <IconButton
+                          aria-label="close"
+                          onClick={handleClose}
+                          className="!absolute right-4  !text-white"
+                        >
+                          <X className="w-6 h-6" />
+                        </IconButton></DialogHeader>
+        
         <DialogContent
           sx={{
             p: 0,
@@ -1068,65 +1107,108 @@ export const Header: React.FC<ChildComponentProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
-        <DialogTitle>Save As</DialogTitle>
-        <DialogContent>
-          <div>
-            <div>Save As :</div>
-            <Button
-              startIcon={<FaHome />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference("Home");
-              }}
-            >
-              Home
-            </Button>
-            <Button
-              startIcon={<HiBuildingOffice />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference("Office");
-              }}
-            >
-              Office
-            </Button>
-            <Button
-              startIcon={<FaLocationArrow />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference();
-              }}
-            >
-              Others
-            </Button>
-          </div>
-          {showInput && (
-            <TextField
-              id="standard-basic"
-              label="Enter Location Name"
-              variant="standard"
-              fullWidth
-              value={locationAs}
-              onChange={(e) => setLocationAs(e.target.value)}
-            />
-          )}
-        </DialogContent>
+<Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
 
-        <DialogActions sx={{ padding: "10px" }}>
-          <Button color="primary" onClick={handleClose} className={undefined}>
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            onClick={locationHandleSave}
-            className={undefined}
-          >
-            Save
-          </Button>
-        </DialogActions>
-         
-      </Dialog>
+   <DialogHeader style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: 'white',
+                        zIndex: 1000,
+                        padding: '16px 24px',
+                        borderBottom: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                         <DialogTitle>Save As</DialogTitle>
+                        <IconButton
+                          aria-label="close"
+                          onClick={handleClose}
+                          className="!absolute right-4  !text-white"
+                        >
+                          <X className="w-6 h-6" />
+                        </IconButton></DialogHeader>
+  <DialogContent>
+    <div>
+      <div>Save As :</div>
+      <Button
+        startIcon={<FaHome />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference("Home");
+        }}
+        disabled={isSaving}
+      >
+        Home
+      </Button>
+      <Button
+        startIcon={<HiBuildingOffice />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference("Office");
+        }}
+        disabled={isSaving}
+      >
+        Office
+      </Button>
+      <Button
+        startIcon={<FaLocationArrow />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference();
+        }}
+        disabled={isSaving}
+      >
+        Others
+      </Button>
+    </div>
+    {showInput && (
+      <TextField
+        id="standard-basic"
+        label="Enter Location Name"
+        variant="standard"
+        fullWidth
+        value={locationAs}
+        onChange={(e) => setLocationAs(e.target.value)}
+        disabled={isSaving}
+      />
+    )}
+  </DialogContent>
+
+  <DialogActions sx={{ padding: "10px" }}>
+    <Button 
+      color="primary" 
+      onClick={handleClose} 
+      className={undefined}
+      disabled={isSaving}
+    >
+      Cancel
+    </Button>
+    <Button
+      color="primary"
+      onClick={locationHandleSave}
+      className={undefined}
+      disabled={isSaving || !locationAs}
+      startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
+    >
+      {isSaving ? "Saving..." : "Save"}
+    </Button>
+  </DialogActions>
+</Dialog>
+
+   <Snackbar
+              open={snackbarOpen}
+              autoHideDuration={6000}
+             onClose={handleSnackbarClose}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              sx={{ marginTop: "60px" }}
+            >
+  <Alert 
+    onClose={handleSnackbarClose} 
+    severity={snackbarSeverity}
+    sx={{ width: '100%' }}
+  >
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
       <NotificationsDialog 
         open={showNotifications} 
         onClose={handleCloseNotifications} 
