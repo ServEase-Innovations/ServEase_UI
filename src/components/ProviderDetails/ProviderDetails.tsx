@@ -376,6 +376,8 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const providerDetailsData: any = {
     ...props,
+    serviceproviderid: props.serviceproviderid,      // Snake_case (for API)
+    serviceproviderId: props.serviceproviderid,
     selectedMorningTime: morningSelection,
     selectedEveningTime: eveningSelection,
     matchedMorningSelection,

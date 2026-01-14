@@ -214,7 +214,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     prepareCartForCheckout();
     setCartDialogOpen(true);
   };
-
+console.log("providerDetails?.serviceproviderId",providerDetails?.serviceproviderId)
   const handleCheckout = async () => {
     try {
       setLoading(true);
