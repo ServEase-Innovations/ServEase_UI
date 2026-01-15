@@ -52,7 +52,7 @@ function App() {
   const [notificationReceived, setNotificationReceived] = useState(false);
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState<boolean>(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
   const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
@@ -353,12 +353,16 @@ function App() {
         />
       )}
 
-      <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
-      <ChatbotButton 
-        open={chatOpen} 
-        onToggle={() => setChatOpen(prev => !prev)} 
+       <ChatbotButton 
+        open={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)} 
       />
-
+      
+      {/* Chatbot Window - Only visible when open */}
+      <Chatbot 
+        open={chatbotOpen} 
+        onClose={() => setChatbotOpen(false)} 
+      />
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 
