@@ -56,7 +56,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LanguageIcon from '@mui/icons-material/Language';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { Button } from "../Button/button";
-import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer"; // Add this import
+import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -86,7 +86,7 @@ const ProviderCard = styled(Card)(({ theme }) => ({
   transition: 'all 0.3s ease',
   border: '1px solid',
   borderColor: theme.palette.divider,
-  position: 'relative', // Add this to position the badge relative to the card
+  position: 'relative',
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.shadows[8],
@@ -166,7 +166,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false); // Add state for drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const hasCheckedRef = useRef(false);
   const theme = useTheme();
@@ -242,19 +242,16 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           setMatchedMorningSelection(null);
           setMatchedEveningSelection(null);
         }
-
       } catch (error) {
         console.error("Error fetching engagement data:", error);
       }
     }
   };
 
-  // New function to handle drawer open
   const handleViewDetails = () => {
     setDrawerOpen(true);
   };
 
-  // New function to handle drawer close
   const handleDrawerClose = () => {
     setDrawerOpen(false);
   };
@@ -264,14 +261,11 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return moment().diff(moment(dob), "years");
   };
 
-  // Get age from props or calculate from DOB
   const getAge = () => {
-    // If age is directly provided in props, use it
     if (props.age) {
       return props.age;
     }
     
-    // Otherwise calculate from DOB
     if (props.dob) {
       return calculateAge(props.dob);
     }
@@ -321,7 +315,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   };
 
   const handleLogin = () => {
-    // Changed from alert to just opening the dialog
     setOpen(true);
   };
 
@@ -356,6 +349,76 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     }
   };
   
+  // Fixed: Get availability status for the chip
+  const getAvailabilityStatus = () => {
+    if (!props.monthlyAvailability) return "Available";
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return "Fully Available";
+    } else {
+      const exceptions = props.monthlyAvailability.exceptions?.length || 0;
+      if (exceptions > 0) {
+        return `Partially Available (${exceptions} exception${exceptions > 1 ? 's' : ''})`;
+      }
+      // FIXED: Changed from "Available" to "Partially Available"
+      return "Partially Available";
+    }
+  };
+
+  // Fixed: Get availability chip class
+  const getAvailabilityChipClass = () => {
+    if (!props.monthlyAvailability) return "";
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return ""; // Default class for fully available
+    } else {
+      // Apply "partial" class for all non-fully available cases
+      return "partial";
+    }
+  };
+
+  // NEW: Helper function to get appropriate availability message
+  const getAvailabilityMessage = () => {
+    if (!props.monthlyAvailability) {
+      return "Availability not specified";
+    }
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return `Available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+    }
+    
+    const exceptions = props.monthlyAvailability.exceptions?.length || 0;
+    
+    if (exceptions > 20) {
+      return "Very limited availability";
+    } else if (exceptions > 10) {
+      return "Limited availability this month";
+    } else if (exceptions > 0) {
+      return `Usually available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+    }
+    
+    return `Available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+  };
+
+  // NEW: Helper function to get time icon color based on availability
+  const getTimeIconColor = () => {
+    if (!props.monthlyAvailability) return "disabled";
+    
+    if (props.monthlyAvailability.fullyAvailable) {
+      return "success";
+    }
+    
+    const exceptions = props.monthlyAvailability.exceptions?.length || 0;
+    
+    if (exceptions > 10) {
+      return "warning";
+    } else if (exceptions > 0) {
+      return "primary";
+    }
+    
+    return "primary";
+  };
+
   const { appUser } = useAppUser();
 
   useEffect(() => {
@@ -376,7 +439,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const providerDetailsData: any = {
     ...props,
-    serviceproviderid: props.serviceproviderid,      // Snake_case (for API)
+    serviceproviderid: props.serviceproviderid,
     serviceproviderId: props.serviceproviderid,
     selectedMorningTime: morningSelection,
     selectedEveningTime: eveningSelection,
@@ -386,42 +449,14 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     endTime
   };
 
-  // Format time for display (e.g., "05:00" -> "05:00 AM")
   const formatTimeForDisplay = (timeString: string) => {
-    if (!timeString) return "08:00 AM"; // Default fallback
+    if (!timeString) return "08:00 AM";
     return moment(timeString, "HH:mm").format("hh:mm A");
-  };
-
-  // Get availability status for the chip
-  const getAvailabilityStatus = () => {
-    if (!props.monthlyAvailability) return "Available";
-    
-    if (props.monthlyAvailability.fullyAvailable) {
-      return "Fully Available";
-    } else {
-      const exceptions = props.monthlyAvailability.exceptions?.length || 0;
-      if (exceptions > 0) {
-        return `Partially Available (${exceptions} exception${exceptions > 1 ? 's' : ''})`;
-      }
-      return "Available";
-    }
-  };
-
-  // Get availability chip class
-  const getAvailabilityChipClass = () => {
-    if (!props.monthlyAvailability) return "";
-    
-    if (props.monthlyAvailability.fullyAvailable) {
-      return "";
-    } else {
-      return "partial";
-    }
   };
 
   const age = getAge();
   const gender = props.gender === "MALE" ? "M" : "F";
   
-  // Get initials for avatar
   const getInitials = () => {
     return `${props.firstname?.[0] || ''}${props.lastname?.[0] || ''}`.toUpperCase();
   };
@@ -429,19 +464,16 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   return (
     <>
       <ProviderCard sx={{
-        // Mobile: adjust border radius
         '@media (max-width: 900px)': {
           borderRadius: 12,
         },
         '@media (max-width: 600px)': {
           borderRadius: 10,
-          marginTop:2
+          marginTop: 2
         }
       }}>
-        {/* FIXED: Best Match Badge - Always visible without hover */}
         {props.bestMatch && (
           <BestMatchRibbon sx={{
-            // Mobile: adjust size
             '@media (max-width: 900px)': {
               top: 8,
               left: 8,
@@ -456,7 +488,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         
         <CardContent sx={{ 
           p: 3,
-          // Mobile: adjust padding
           '@media (max-width: 900px)': {
             p: 2,
           },
@@ -464,15 +495,12 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
             p: 1.5,
           }
         }}>
-          {/* MAIN CONTAINER - Desktop: row, Mobile: column */}
           <Stack 
             direction={isMobile ? "column" : "row"} 
             spacing={isMobile ? 2 : 3} 
             alignItems="flex-start"
           >
-            {/* Center Section - Provider Details - ALWAYS FIRST */}
             <Box flex={1} sx={{
-              // Mobile: full width
               width: isMobile ? '100%' : 'auto'
             }}>
               <Stack 
@@ -482,23 +510,20 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 spacing={isMobile ? 2 : 0}
               >
                 <Box sx={{
-                  // Mobile: full width
                   width: isMobile ? '100%' : 'auto'
                 }}>
-                 <Stack 
-        direction="row" 
-        alignItems="center" 
-        spacing={1} 
-        flexWrap="wrap"
-        sx={{
-          // ADD THIS: Additional spacing for name section on mobile
-          '@media (max-width: 600px)': {
-            mt: 2,
-          }
-        }}
-      >
+                  <Stack 
+                    direction="row" 
+                    alignItems="center" 
+                    spacing={1} 
+                    flexWrap="wrap"
+                    sx={{
+                      '@media (max-width: 600px)': {
+                        mt: 2,
+                      }
+                    }}
+                  >
                     <Typography variant="h6" fontWeight={600} sx={{
-                      // Mobile: adjust font size
                       '@media (max-width: 900px)': {
                         fontSize: '1.1rem',
                       },
@@ -513,7 +538,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       size="small"
                       variant="outlined"
                       sx={{
-                        // Mobile: adjust size
                         '@media (max-width: 600px)': {
                           fontSize: '0.7rem',
                           height: 22,
@@ -532,7 +556,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <RestaurantIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary" sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
@@ -541,7 +564,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     </Stack>
                     
-                    {/* Vertical Divider - Hidden on mobile */}
                     <Divider 
                       orientation="vertical" 
                       flexItem 
@@ -553,7 +575,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <LanguageIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary" sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
@@ -562,7 +583,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     </Stack>
                     
-                    {/* Vertical Divider - Hidden on mobile */}
                     <Divider 
                       orientation="vertical" 
                       flexItem 
@@ -574,7 +594,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <LocationOnIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary" sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
@@ -585,21 +604,53 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   </Stack>
               
                   <Box mt={2} sx={{
-                    // Mobile: adjust margin
                     '@media (max-width: 600px)': {
                       mt: 1.5,
                     }
                   }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
                       <Typography variant="body2" color="text.secondary" gutterBottom sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
                       }}>
                         Availability
                       </Typography>
-                      <AvailabilityChip
+                  
+                    </Stack>
+                    
+                    {/* FIXED: Availability message section with proper logic */}
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{
+                      '@media (max-width: 900px)': {
+                        flexWrap: 'wrap',
+                        gap: 1,
+                      }
+                    }}>
+                      <AccessTimeIcon fontSize="small" color={getTimeIconColor()} />
+                      <Typography variant="body1" fontWeight={500} sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.9rem',
+                        }
+                      }}>
+                        {getAvailabilityMessage()}
+                      </Typography>
+                    <Chip 
+  label={
+    props.monthlyAvailability?.summary?.daysAtPreferredTime >= 30 
+      ? "Monthly" 
+      : "Short Term"
+  } 
+  size="small" 
+  color="primary" 
+  variant="outlined"
+  sx={{
+    '@media (max-width: 600px)': {
+      fontSize: '0.7rem',
+      height: 22,
+    }
+  }}
+/>
+                          <AvailabilityChip
                         label={getAvailabilityStatus()}
                         size="small"
                         className={getAvailabilityChipClass()}
@@ -607,37 +658,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           '@media (max-width: 600px)': {
                             fontSize: '0.65rem',
                             height: 20,
-                          }
-                        }}
-                      />
-                    </Stack>
-                    
-                    <Stack direction="row" spacing={2} alignItems="center" sx={{
-                      // Mobile: wrap content
-                      '@media (max-width: 900px)': {
-                        flexWrap: 'wrap',
-                        gap: 1,
-                      }
-                    }}>
-                      <AccessTimeIcon fontSize="small" color="primary" />
-                      <Typography variant="body1" fontWeight={500} sx={{
-                        // Mobile: adjust font size
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.9rem',
-                        }
-                      }}>
-                        Available at {formatTimeForDisplay(props.monthlyAvailability?.preferredTime)}
-                      </Typography>
-                      <Chip 
-                        label="Monthly" 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                        sx={{
-                          // Mobile: adjust size
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.7rem',
-                            height: 22,
                           }
                         }}
                       />
@@ -678,17 +698,34 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         ✓ Fully available all month
                       </Typography>
                     )}
+                    
+                    {/* Show partially available message (when not fully available but no exceptions) */}
+                    {props.monthlyAvailability && !props.monthlyAvailability.fullyAvailable && 
+                     (!props.monthlyAvailability.exceptions || props.monthlyAvailability.exceptions.length === 0) && (
+                      <Typography 
+                        variant="caption" 
+                        color="warning.main"
+                        sx={{ 
+                          display: 'block', 
+                          mt: 0.5,
+                          fontWeight: 500,
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.7rem',
+                          }
+                        }}
+                      >
+                        ⚠️ Partially available this month
+                      </Typography>
+                    )}
                   </Box>
                   
                   {props.otherServices && (
                     <Box mt={2} sx={{
-                      // Mobile: adjust margin
                       '@media (max-width: 600px)': {
                         mt: 1.5,
                       }
                     }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
@@ -696,7 +733,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         Additional Services
                       </Typography>
                       <Typography variant="body2" sx={{
-                        // Mobile: adjust font size
                         '@media (max-width: 600px)': {
                           fontSize: '0.8rem',
                         }
@@ -707,7 +743,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   )}
                 </Box>
              
-                {/* Vertical Divider - Hidden on mobile */}
                 <Divider 
                   orientation="vertical" 
                   flexItem 
@@ -717,123 +752,109 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   }} 
                 />
                 
-                {/* Metrics Section */}
-             <Box mt={isMobile ? 2 : -0.5} sx={{
-  // Mobile: full width
-  width: isMobile ? '100%' : 'auto'
-}}>
-  <Stack
-    direction="row"
-    spacing={2}
-    mt={isMobile ? 0 : 2}
-    width="100%"
-    justifyContent="space-between"
-    sx={{
-      // Mobile: adjust spacing and allow wrapping if needed
-      '@media (max-width: 600px)': {
-        spacing: 1,
-        gap: 1,
-      }
-    }}
-  >
-    <MetricBox sx={{
-      // Keep the row layout for all screen sizes
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      minWidth: 'auto',
-      padding: '10px 12px',
-      mb: isMobile ? 0 : 0, // No margin bottom in row layout
-    }}>
-      <Typography variant="h6" color="primary" fontWeight={600} sx={{
-        // Mobile: adjust font size
-        '@media (max-width: 600px)': {
-          fontSize: '1rem',
-        }
-      }}>
-        {props.distance_km || 0}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{
-        // Mobile: adjust font size and alignment
-        '@media (max-width: 600px)': {
-          fontSize: '0.7rem',
-          marginLeft: 'auto',
-        }
-      }}>
-        km away
-      </Typography>
-    </MetricBox>
+                <Box mt={isMobile ? 2 : -0.5} sx={{
+                  width: isMobile ? '100%' : 'auto'
+                }}>
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    mt={isMobile ? 0 : 2}
+                    width="100%"
+                    justifyContent="space-between"
+                    sx={{
+                      '@media (max-width: 600px)': {
+                        spacing: 1,
+                        gap: 1,
+                      }
+                    }}
+                  >
+                    <MetricBox sx={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      minWidth: 'auto',
+                      padding: '10px 12px',
+                      mb: isMobile ? 0 : 0,
+                    }}>
+                      <Typography variant="h6" color="primary" fontWeight={600} sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '1rem',
+                        }
+                      }}>
+                        {props.distance_km || 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.7rem',
+                          marginLeft: 'auto',
+                        }
+                      }}>
+                        km away
+                      </Typography>
+                    </MetricBox>
 
-    <MetricBox sx={{
-      // Keep the row layout for all screen sizes
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      minWidth: 'auto',
-      padding: '10px 12px',
-      mb: isMobile ? 0 : 0, // No margin bottom in row layout
-    }}>
-      <Stack direction="row" alignItems="center" spacing={0.5} sx={{
-        // Mobile: take available space
-        flex: 1,
-      }}>
-        <StarIcon fontSize="small" color="warning" />
-        <Typography variant="h6" fontWeight={600} sx={{
-          // Mobile: adjust font size
-          '@media (max-width: 600px)': {
-            fontSize: '1rem',
-          }
-        }}>
-          {props.rating?.toFixed(1) }
-        </Typography>
-      </Stack>
-      <Typography variant="caption" color="text.secondary" sx={{
-        // Mobile: adjust font size and alignment
-        '@media (max-width: 600px)': {
-          fontSize: '0.7rem',
-          marginLeft: 'auto',
-        }
-      }}>
-        {props.rating } reviews
-      </Typography>
-    </MetricBox>
+                    <MetricBox sx={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      minWidth: 'auto',
+                      padding: '10px 12px',
+                      mb: isMobile ? 0 : 0,
+                    }}>
+                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{
+                        flex: 1,
+                      }}>
+                        <StarIcon fontSize="small" color="warning" />
+                        <Typography variant="h6" fontWeight={600} sx={{
+                          '@media (max-width: 600px)': {
+                            fontSize: '1rem',
+                          }
+                        }}>
+                          {props.rating?.toFixed(1)}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.7rem',
+                          marginLeft: 'auto',
+                        }
+                      }}>
+                        {props.rating} reviews
+                      </Typography>
+                    </MetricBox>
 
-    <MetricBox sx={{
-      // Keep the row layout for all screen sizes
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      minWidth: 'auto',
-      padding: '10px 12px',
-      mb: isMobile ? 0 : 0, // No margin bottom in row layout
-    }}>
-      <Typography variant="h6" color="success.main" fontWeight={600} sx={{
-        // Mobile: adjust font size
-        '@media (max-width: 600px)': {
-          fontSize: '1rem',
-        }
-      }}>
-        {props.experience || 12}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{
-        // Mobile: adjust font size and alignment
-        '@media (max-width: 600px)': {
-          fontSize: '0.7rem',
-          marginLeft: 'auto',
-        }
-      }}>
-        yrs experience
-      </Typography>
-    </MetricBox>
-  </Stack>
-</Box>
+                    <MetricBox sx={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      minWidth: 'auto',
+                      padding: '10px 12px',
+                      mb: isMobile ? 0 : 0,
+                    }}>
+                      <Typography variant="h6" color="success.main" fontWeight={600} sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '1rem',
+                        }
+                      }}>
+                        {props.experience || 12}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{
+                        '@media (max-width: 600px)': {
+                          fontSize: '0.7rem',
+                          marginLeft: 'auto',
+                        }
+                      }}>
+                        yrs experience
+                      </Typography>
+                    </MetricBox>
+                  </Stack>
+                </Box>
               </Stack>
             </Box>
             
-            {/* Vertical Divider - Hidden on mobile */}
             <Divider 
               orientation="vertical" 
               flexItem 
@@ -842,7 +863,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
               }}
             />
             
-            {/* Right Section - Actions - Mobile: comes last with border top */}
             <Box sx={{ 
               display: 'flex', 
               flexDirection: isMobile ? 'row' : 'column', 
@@ -850,7 +870,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
               minWidth: isMobile ? '100%' : 140,
               justifyContent: isMobile ? 'space-between' : 'flex-start',
               alignItems: isMobile ? 'center' : 'stretch',
-              // Mobile: add top border and padding
               ...(isMobile && {
                 borderTop: '1px solid #e0e0e0',
                 pt: 2,
@@ -865,7 +884,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   size="small"
                   sx={{ 
                     alignSelf: isMobile ? 'flex-start' : 'center',
-                    // Mobile: adjust size
                     '@media (max-width: 600px)': {
                       fontSize: '0.7rem',
                       height: 22,
@@ -878,10 +896,9 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 size="medium"
                 fullWidth={!isMobile}
                 startIcon={<InfoOutlinedIcon />}
-                onClick={handleViewDetails} // Changed to handleViewDetails
+                onClick={handleViewDetails}
                 sx={{ 
                   borderRadius: 2,
-                  // Mobile: adjust button
                   ...(isMobile && {
                     minWidth: 'auto',
                     flex: 1,
@@ -893,7 +910,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   }
                 }}
               >
-                {/* Mobile: shorter text */}
                 {isMobile ? "Details" : "View Details"}
               </Button>
               
@@ -906,7 +922,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   borderRadius: 2,
                   fontWeight: 600,
                   boxShadow: 2,
-                  // Mobile: adjust button
                   ...(isMobile && {
                     minWidth: 'auto',
                     flex: 1,
@@ -921,7 +936,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   }
                 }}
               >
-                {/* Mobile: shorter text */}
                 {isMobile ? "Book" : "Book Now"}
               </Button>
             </Box>
@@ -929,7 +943,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         </CardContent>
       </ProviderCard>
 
-      {/* Availability Drawer */}
       <ProviderAvailabilityDrawer
         open={drawerOpen}
         onClose={handleDrawerClose}
