@@ -319,6 +319,7 @@ const BookingSuccessDialog: React.FC<BookingSuccessDialogProps> = ({
       return dateString;
     }
   };
+  console.log("bookingDetails",bookingDetails);
 
   return (
     <>

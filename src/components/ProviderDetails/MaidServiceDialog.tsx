@@ -192,7 +192,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const currentLocation = users?.customerDetails?.currentLocation;
 
   const { getPricingData, getFilteredPricing } = usePricingFilterService();
-  const providerFullName = `${providerDetails?.firstName || ''} ${providerDetails?.lastName || ''}`.trim();
+ const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const filtered = getFilteredPricing('maid');
 

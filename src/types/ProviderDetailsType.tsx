@@ -1,9 +1,9 @@
 // types.ts
 export interface ProviderDetailsType {
     serviceproviderId: string;
-    firstName: string;
+    firstname: string;
     middleName?: string;
-    lastName: string;
+    lastname: string;
     gender: string;
     dob: string;
     diet: string;
