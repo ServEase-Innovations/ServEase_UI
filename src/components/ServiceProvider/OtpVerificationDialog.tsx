@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 
 import { Button } from "../../components/Button";
@@ -27,23 +27,34 @@ export function OtpVerificationDialog({
   bookingInfo,
 }: OtpVerificationDialogProps) {
   const [otpValue, setOtpValue] = useState("");
+  const verificationCompletedRef = useRef(false);
 
-  // Close dialog when verification completes successfully
+  // Reset ref when dialog opens
   useEffect(() => {
-    if (!verifying && open && otpValue) {
-      // Small delay to allow user to see success state if needed
+    if (open) {
+      verificationCompletedRef.current = false;
+    }
+  }, [open]);
+
+  // Handle successful verification completion
+  useEffect(() => {
+    // Only run when verifying changes from true to false AND we were previously verifying
+    if (!verifying && verificationCompletedRef.current) {
       const timer = setTimeout(() => {
         handleClose();
       }, 500);
       
       return () => clearTimeout(timer);
     }
-  }, [verifying, open, otpValue]);
+  }, [verifying]);
 
   const handleVerify = async () => {
     if (!otpValue.trim()) return;
+    
+    // Mark that verification is starting
+    verificationCompletedRef.current = true;
     await onVerify(otpValue.trim());
-    // Dialog will close automatically via the useEffect above
+    // The dialog will close via the useEffect above when verifying becomes false
   };
 
   const handleClose = () => {
