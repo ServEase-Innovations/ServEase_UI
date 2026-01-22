@@ -30,6 +30,8 @@ import {
   Snackbar,
   Dialog,
   CircularProgress,
+  CardContent,
+  Card,
 } from "@mui/material";
 import {
   Visibility,
@@ -50,8 +52,14 @@ import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { debounce } from "src/utils/debounce";
 import { useFieldValidation } from "./useFieldValidation";
-import { CheckIcon } from "lucide-react";
-
+import {  CheckIcon } from "lucide-react";
+import {
+  Home as HomeIcon,
+  LocationOn as LocationOnIcon,
+  ContentCopy as CopyIcon,
+  MyLocation as MyLocationIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -284,13 +292,62 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       [name]: value,
     }));
   };
+const handleAddressChange = async (type: 'permanent' | 'correspondence', data: any) => {
+  // First update the form data
+  setFormData(prev => ({
+    ...prev,
+    [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
+  }));
 
-  const handleAddressChange = (type: 'permanent' | 'correspondence', data: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
-    }));
-  };
+  // Geocode the address to get coordinates
+  if (data.apartment && data.street && data.city && data.state && data.pincode) {
+    try {
+      const fullAddress = `${data.apartment}, ${data.street}, ${data.city}, ${data.state}, ${data.pincode}, ${data.country}`;
+      
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/geocode/json",
+        {
+          params: {
+            address: fullAddress,
+            key: keys.api_key, // Your Google Maps API key
+          },
+        }
+      );
+
+      if (response.data.results && response.data.results.length > 0) {
+        const location = response.data.results[0].geometry.location;
+        const address = response.data.results[0].formatted_address;
+
+        // Update coordinates and address
+        setFormData(prev => ({
+          ...prev,
+          latitude: location.lat,
+          longitude: location.lng,
+          currentLocation: address,
+          locality: data.city,
+          street: data.street,
+          pincode: data.pincode,
+          buildingName: data.apartment
+        }));
+
+        // Also update current location state if needed
+        if (type === 'permanent') {
+          setCurrentLocation({
+            latitude: location.lat,
+            longitude: location.lng,
+            address: address
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error geocoding address:", error);
+      // Optional: Show error to user
+      setSnackbarMessage("Could not get coordinates for this address. Please check the address details.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+    }
+  }
+};
 
   const { validationResults, validateField, resetValidation } = useFieldValidation();
 
@@ -1258,32 +1315,78 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             </Grid>
           </Grid>
         );
-      // In your main component's renderStepContent for step 1:
-      case 1:
-        return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <AddressComponent
-                onAddressChange={handleAddressChange}
-                permanentAddress={formData.permanentAddress}
-                correspondenceAddress={formData.correspondenceAddress}
-                errors={{
-                  permanent: errors.permanentAddress,
-                  correspondence: errors.correspondenceAddress
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
+      
+     case 1:
+  return (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <AddressComponent
+          onAddressChange={handleAddressChange}
+          permanentAddress={formData.permanentAddress}
+          correspondenceAddress={formData.correspondenceAddress}
+          errors={{
+            permanent: errors.permanentAddress,
+            correspondence: errors.correspondenceAddress
+          }}
+        />
+      </Grid>
+      
+      <Grid item xs={12}>
+        <Card variant="outlined" sx={{ borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+              <LocationOnIcon color="primary" sx={{ mr: 1 }} />
+              Current Location
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Use GPS to automatically fetch your current location coordinates
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={fetchLocationData}
+                startIcon={<MyLocationIcon />}
+                sx={{ 
+                  borderRadius: 2,
+                  px: 3,
+                  py: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 600
+                }}
               >
-                Fetch My Location
+                Fetch My Location (GPS)
               </Button>
-            </Grid>
-          </Grid>
-        );
+              
+              {(formData.latitude !== 0 || formData.longitude !== 0) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CheckCircleIcon color="success" />
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    <strong>Location found:</strong> 
+                    Lat: {formData.latitude.toFixed(6)}, 
+                    Lng: {formData.longitude.toFixed(6)}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+            
+            {(formData.latitude !== 0 || formData.longitude !== 0) && (
+              <Alert 
+                severity="success" 
+                sx={{ mt: 2, borderRadius: 2 }}
+                icon={false}
+              >
+                <Typography variant="body2">
+                  <strong>Address detected:</strong> {formData.currentLocation || "Fetching address..."}
+                </Typography>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
       case 2: // Additional Details
         return (
           <Grid container spacing={2}>

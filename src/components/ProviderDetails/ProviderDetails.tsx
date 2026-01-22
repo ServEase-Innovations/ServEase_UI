@@ -583,15 +583,15 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     </Stack>
                     
-                    <Divider 
+                    {/* <Divider 
                       orientation="vertical" 
                       flexItem 
                       sx={{
                         display: isMobile ? 'none' : 'flex'
                       }} 
-                    />
+                    /> */}
                     
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    {/* <Stack direction="row" spacing={1} alignItems="center">
                       <LocationOnIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="text.secondary" sx={{
                         '@media (max-width: 600px)': {
@@ -600,7 +600,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       }}>
                         {props.locality || "Nearby"}
                       </Typography>
-                    </Stack>
+                    </Stack> */}
                   </Stack>
               
                   <Box mt={2} sx={{
@@ -636,7 +636,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     <Chip 
   label={
-    props.monthlyAvailability?.summary?.daysAtPreferredTime >= 30 
+    props.monthlyAvailability?.summary?.totalDays >= 30 
       ? "Monthly" 
       : "Short Term"
   } 
@@ -747,7 +747,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   orientation="vertical" 
                   flexItem 
                   sx={{ 
-                    mr: -60,
+                    mr: -50,
                     display: isMobile ? 'none' : 'flex'
                   }} 
                 />
