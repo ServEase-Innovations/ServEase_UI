@@ -1,0 +1,115 @@
+name: Deploy React UI to AWS EC2
+
+on:
+  push:
+    branches: [ dev, qa, prod ]
+
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Select environment"
+        required: true
+        type: choice
+        options: [dev, qa, prod]
+      branch:
+        description: "Select branch to deploy"
+        required: true
+        type: string
+        default: "main"
+
+jobs:
+  deploy-ui:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      # -------------------------
+      # DETERMINE ENVIRONMENT
+      # -------------------------
+      - name: Determine Environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENV="${{ github.event.inputs.target_env }}"
+            BRANCH="${{ github.event.inputs.branch }}"
+          else
+            ENV="${GITHUB_REF##*/}"
+            BRANCH="${GITHUB_REF##*/}"
+          fi
+
+          echo "Using Environment: $ENV"
+          echo "Using Branch: $BRANCH"
+
+          echo "env=$ENV" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+          if [[ "$ENV" == "dev" ]]; then
+            echo "envFile=.env.dev" >> $GITHUB_OUTPUT
+            echo "server=${{ secrets.UI_DEV_HOST }}" >> $GITHUB_OUTPUT
+
+            {
+              echo "ssh_key<<EOF"
+              echo "${{ secrets.DEV_KEY }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+
+          elif [[ "$ENV" == "qa" ]]; then
+            echo "envFile=.env.qa" >> $GITHUB_OUTPUT
+            echo "server=${{ secrets.UI_QA_HOST }}" >> $GITHUB_OUTPUT
+
+            {
+              echo "ssh_key<<EOF"
+              echo "${{ secrets.QA_KEY }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+
+          else
+            echo "envFile=.env.prod" >> $GITHUB_OUTPUT
+            echo "server=${{ secrets.UI_PROD_HOST }}" >> $GITHUB_OUTPUT
+
+            {
+              echo "ssh_key<<EOF"
+              echo "${{ secrets.PROD_KEY }}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+          fi
+
+      # -------------------------
+      # BUILD SECTION
+      # -------------------------
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install env-cmd
+        run: npm install -g env-cmd
+
+      - name: Build React App
+        run: env-cmd -f ${{ steps.env.outputs.envFile }} npm run build
+
+      # -------------------------
+      # DEPLOY SECTION
+      # -------------------------
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ steps.env.outputs.ssh_key }}
+
+      - name: Deploy to EC2
+        run: |
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            build/ ubuntu@${{ steps.env.outputs.server }}:/home/ubuntu/serveaso_ui/
+
+      - name: Restart NGINX
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.env.outputs.server }} \
+            "sudo systemctl restart nginx"
