@@ -10,6 +10,9 @@ import {
   Badge,
   IconButton,
   TextField,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import React, { useState, useEffect, useReducer, useRef } from "react";
 import axios from "axios";
@@ -28,7 +31,7 @@ import {
   PROFILE,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
+import { Bell, ChevronDown, MapPin, ShoppingCart, User, X } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -49,6 +52,7 @@ import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
+import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -95,7 +99,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
- const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleNotificationClick = () => {
     setShowNotifications(true);
@@ -220,13 +224,10 @@ export const Header: React.FC<ChildComponentProps> = ({
     try {
       setLoadingLocations(true);
       const response = await utilsInstance.get(`/user-settings/${customerId}`);
-      console.log("Response from user settings API:", response.data);
+      console.log("✅ Response from user settings API:", response.data);
 
       if (response.status === 200) {
-        console.log(
-          "Customer preferences fetched successfully:",
-          response.data
-        );
+        console.log("✅ Customer preferences fetched successfully:", response.data);
 
         setUserPreference(response.data);
         if (user) {
@@ -238,27 +239,35 @@ export const Header: React.FC<ChildComponentProps> = ({
           });
         }
 
-        console.log("Updated user object with customerId:", user);
+        console.log("✅ Updated user object with customerId:", user);
+        
+        // Ensure response.data has the correct structure
         const baseSuggestions = [
           { name: "Detect Location", index: 1 },
           { name: "Add Address", index: 2 },
         ];
-        const savedLocationSuggestions = response.data[0].savedLocations.map(
-          (loc, i) => ({
-            name: loc.name,
-            index: i + 3,
-          })
-        );
+        
+        // Check if response.data is an array and has savedLocations
+        const savedLocations = Array.isArray(response.data) && response.data[0]?.savedLocations 
+          ? response.data[0].savedLocations 
+          : [];
+        
+        console.log("📌 Saved locations from API:", savedLocations);
+        
+        const savedLocationSuggestions = savedLocations.map((loc: any, i: number) => ({
+          name: loc.name,
+          index: i + 3,
+        }));
 
+        console.log("📌 Updated suggestions:", [...baseSuggestions, ...savedLocationSuggestions]);
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
-
-        console.log("Suggestions updated:", suggestions);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
+        console.log("🔄 Creating new user preferences...");
         createUserPreferences(customerId);
       } else {
-        console.error("Unexpected error fetching user settings:", error);
+        console.error("❌ Unexpected error fetching user settings:", error);
       }
     } finally {
       setLoadingLocations(false); // End loading regardless of success/failure
@@ -287,6 +296,13 @@ export const Header: React.FC<ChildComponentProps> = ({
       // Optionally check response before setting state
       if (response.status === 200 || response.status === 201) {
         setUserPreference(payload);
+        
+        // Initialize suggestions with empty saved locations
+        const baseSuggestions = [
+          { name: "Detect Location", index: 1 },
+          { name: "Add Address", index: 2 },
+        ];
+        setSuggestions(baseSuggestions);
       } else {
         console.warn("Unexpected response:", response);
       }
@@ -353,6 +369,10 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [openServiceDialog, setOpenServiceDialog] = useState(false);
   const [selectedType, setSelectedType] = useState("");
   const [selectedRadioButtonValue, setSelectedRadioButtonValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   // Ref to close dropdown when clicked outside
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
@@ -415,30 +435,45 @@ export const Header: React.FC<ChildComponentProps> = ({
     handleCartClose();
   };
 
+  // FIXED: Updated handleChange function
   const handleChange = (newValue: any) => {
     console.log("➡️ New Value Selected:", newValue);
+    
     if (newValue === "Add Address") {
       setOpen(true);
     } else if (newValue === "Detect Location") {
       getLocation();
     } else {
-      console.log("➡️ Selected Location:", newValue);
+      console.log("➡️ Selected Saved Location:", newValue);
       console.log("🗂️ User Preferences:", userPreference);
-      const loc = userPreference[0]?.savedLocations.find(
-        (location: any) =>
-          location.name?.toLowerCase() === newValue.toLowerCase()
+      
+      // Check if userPreference has data
+      if (!userPreference || userPreference.length === 0) {
+        console.error("userPreference is empty or undefined");
+        return;
+      }
+      
+      // Check if savedLocations exists
+      if (!userPreference[0]?.savedLocations || userPreference[0]?.savedLocations.length === 0) {
+        console.error("No saved locations found in userPreference");
+        return;
+      }
+      
+      // Find the location - use exact match first, then case-insensitive
+      const savedLocation = userPreference[0].savedLocations.find(
+        (location: any) => location.name === newValue
+      ) || userPreference[0].savedLocations.find(
+        (location: any) => location.name?.toLowerCase() === newValue.toLowerCase()
       );
-
-      console.log(
-        "🔍 Matching Location Found:",
-        loc?.location?.address[0]?.formatted_address
-      );
-      if (loc?.location?.address[0]?.formatted_address) {
-        console.log("Location from user preference: ", loc.location);
-        setLocation(loc?.location?.address[0]?.formatted_address);
-        dispatch(add(loc.location));
+      
+      if (savedLocation?.location?.address?.[0]?.formatted_address) {
+        console.log("✅ Found location:", savedLocation.location.address[0].formatted_address);
+        console.log("Full location data:", savedLocation.location);
+        setLocation(savedLocation.location.address[0].formatted_address);
+        dispatch(add(savedLocation.location));
       } else {
-        console.warn("No matching location found for:", newValue);
+        console.warn("❌ No matching location found for:", newValue);
+        console.log("Available saved locations:", userPreference[0].savedLocations);
       }
     }
   };
@@ -479,57 +514,57 @@ export const Header: React.FC<ChildComponentProps> = ({
     setDialogOpen(true);
   };
 
-const handleBookingSave = () => {
-  let timeRange = "";
-  let timeSlot = "";
+  const handleBookingSave = () => {
+    let timeRange = "";
+    let timeSlot = "";
 
-  // Apply your new logic
-  if (selectedRadioButtonValue === "Date") {
-    // For "Date" → send startTime-endTime for both
-    timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-  } else if (selectedRadioButtonValue === "Short term") {
-    // For "Short term" → timeRange = startTime only, but timeSlot = full range
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-  } else {
-    // For "Monthly" → both are just startTime
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = startTime?.format("HH:mm") || "";
-  }
+    // Apply your new logic
+    if (selectedRadioButtonValue === "Date") {
+      // For "Date" → send startTime-endTime for both
+      timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+      timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    } else if (selectedRadioButtonValue === "Short term") {
+      // For "Short term" → timeRange = startTime only, but timeSlot = full range
+      timeRange = startTime?.format("HH:mm") || "";
+      timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
+    } else {
+      // For "Monthly" → both are just startTime
+      timeRange = startTime?.format("HH:mm") || "";
+      timeSlot = startTime?.format("HH:mm") || "";
+    }
 
-  // Create booking object
-  const booking = {
-    startDate: startDate ? startDate.split("T")[0] : "",
-    endDate: endDate
-      ? endDate.split("T")[0]
-      : startDate
-      ? startDate.split("T")[0]
-      : "",
-    timeRange: timeRange,  
-    bookingPreference: selectedRadioButtonValue,
-    housekeepingRole: selectedType,
+    // Create booking object
+    const booking = {
+      startDate: startDate ? startDate.split("T")[0] : "",
+      endDate: endDate
+        ? endDate.split("T")[0]
+        : startDate
+        ? startDate.split("T")[0]
+        : "",
+      timeRange: timeRange,  
+      bookingPreference: selectedRadioButtonValue,
+      housekeepingRole: selectedType,
 
-    // NEW → include these extra fields
-    startTime: startTime?.format("HH:mm") || "",
-    endTime: endTime?.format("HH:mm") || "",
-    timeSlot: timeSlot
+      // NEW → include these extra fields
+      startTime: startTime?.format("HH:mm") || "",
+      endTime: endTime?.format("HH:mm") || "",
+      timeSlot: timeSlot
+    };
+
+    console.log("Booking details:", booking);
+
+    // Dispatch
+    dispatch(addBooking(booking));
+
+    // Same condition check as in homepage
+    if (selectedRadioButtonValue === "Date") {
+      setOpenServiceDialog(true);
+    } else {
+      sendDataToParent(DETAILS);
+    }
+
+    setDialogOpen(false);
   };
-
-  console.log("Booking details:", booking);
-
-  // Dispatch
-  dispatch(addBooking(booking));
-
-  // Same condition check as in homepage
-  if (selectedRadioButtonValue === "Date") {
-    setOpenServiceDialog(true);
-  } else {
-    sendDataToParent(DETAILS);
-  }
-
-  setDialogOpen(false);
-};
 
   const handleSave = () => {
     if (!dataFromMap) {
@@ -544,75 +579,109 @@ const handleBookingSave = () => {
     setOpenSaveOptionForSave(true);
   };
 
-  const locationHandleSave = () => {
-    console.log("Location saved as:", locationAs);
-    console.log("user preference ", userPreference);
+  const locationHandleSave = async () => {
+  console.log("Location saved as:", locationAs);
+  console.log("user preference ", userPreference);
+  console.log(location);
+  
+  setIsSaving(true);
+  
+  try {
+    await updateUserSetting();
+    
+    // Show success snackbar
+    setSnackbarMessage("Location saved successfully!");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+    
+    // Close dialog after a short delay
+    setTimeout(() => {
+      setOpenSaveOptionForSave(false);
+      setLocationAs("");
+      setIsSaving(false);
+    }, 500);
+    
+  } catch (error) {
+    console.error("Error saving location:", error);
+    
+    // Show error snackbar
+    setSnackbarMessage("Failed to save location. Please try again.");
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+    
+    setIsSaving(false);
+  }
+};
 
-    console.log(location);
+// Updated updateUserSetting function to handle errors properly
+const updateUserSetting = async () => {
+  if (!user || !locationAs || !dataFromMap) {
+    console.error("Missing required data to update user setting.");
+    throw new Error("Missing required data");
+  }
 
-    updateUserSetting();
+  const newLocation = {
+    name: locationAs,
+    location: dataFromMap,
   };
 
-  const updateUserSetting = async () => {
-    if (!user || !locationAs || !dataFromMap) {
-      console.error("Missing required data to update user setting.");
-      return;
-    }
+  console.log("➕ New location to add:", newLocation);
 
-    const newLocation = {
-      name: locationAs,
-      location: dataFromMap,
-    };
-
-    console.log("New location to add:", newLocation);
-
-    console.log("Current user preferences:", userPreference);
-
-    const existingLocations = Array.isArray(userPreference[0]?.savedLocations)
-      ? userPreference[0].savedLocations
-      : [];
-
-    const updatedLocations = [...existingLocations, newLocation];
-
+  try {
     const payload = {
       customerId: user.customerid,
-      savedLocations: updatedLocations,
+      savedLocations: [
+        ...(userPreference?.[0]?.savedLocations || []),
+        newLocation
+      ],
     };
 
-    try {
-      const response = await utilsInstance.put(
-        `/user-settings/${user.customerid}`,
-        payload
-      );
+    const response = await utilsInstance.put(
+      `/user-settings/${user.customerid}`,
+      payload
+    );
 
-      if (response.status === 200 || response.status === 201) {
-        setUserPreference({
-          customerId: user.customerid,
-          savedLocations: updatedLocations,
-        });
-        setOpenSaveOptionForSave(false);
-        setLocationAs("");
-
-        const baseSuggestions = [
-          { name: "Detect Location", index: 1 },
-          { name: "Add Address", index: 2 },
-        ];
-        const savedLocationSuggestions = updatedLocations.map((loc, i) => ({
-          name: loc.name,
-          index: i + 3,
-        }));
-
-        setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
-      } else {
-        console.warn(
-          "Unexpected response while updating user settings:",
-          response
-        );
-      }
-    } catch (error) {
-      console.error("Error updating user settings:", error);
+    if (response.status === 200 || response.status === 201) {
+      console.log("✅ User settings updated successfully");
+      
+      // Update local state
+      const updatedUserPreference = [{
+        ...userPreference?.[0],
+        customerId: user.customerid,
+        savedLocations: payload.savedLocations
+      }];
+      
+      setUserPreference(updatedUserPreference);
+      
+      // Update suggestions
+      const baseSuggestions = [
+        { name: "Detect Location", index: 1 },
+        { name: "Add Address", index: 2 },
+      ];
+      const savedLocationSuggestions = payload.savedLocations.map((loc: any, i: number) => ({
+        name: loc.name,
+        index: i + 3,
+      }));
+      
+      setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
+      
+      return response.data; // Return data for chaining
+    } else {
+      throw new Error(`Unexpected response: ${response.status}`);
     }
-  };
+  } catch (error) {
+    console.error("❌ Error updating user settings:", error);
+    throw error; // Re-throw for error handling in locationHandleSave
+  }
+};
+
+// Snackbar close handler
+const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  if (reason === 'clickaway') {
+    return;
+  }
+  setSnackbarOpen(false);
+};
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
@@ -646,6 +715,37 @@ const handleBookingSave = () => {
   }
 
   const isMobile = useMediaQuery("(max-width:768px)");
+
+  // Add this useEffect for debugging
+  useEffect(() => {
+    console.log("🔄 userPreference state changed:", userPreference);
+    console.log("🔄 suggestions state changed:", suggestions);
+  }, [userPreference, suggestions]);
+
+  // Add this useEffect to ensure suggestions are synced with userPreference
+  useEffect(() => {
+    if (userPreference && userPreference.length > 0 && userPreference[0]?.savedLocations) {
+      const baseSuggestions = [
+        { name: "Detect Location", index: 1 },
+        { name: "Add Address", index: 2 },
+      ];
+      
+      const savedLocations = userPreference[0].savedLocations || [];
+      const savedLocationSuggestions = savedLocations.map((loc: any, i: number) => ({
+        name: loc.name,
+        index: i + 3,
+      }));
+      
+      const newSuggestions = [...baseSuggestions, ...savedLocationSuggestions];
+      
+      // Only update if suggestions are different
+      if (JSON.stringify(newSuggestions) !== JSON.stringify(suggestions)) {
+        console.log("🔄 Syncing suggestions with userPreference");
+        console.log("New suggestions:", newSuggestions);
+        setSuggestions(newSuggestions);
+      }
+    }
+  }, [userPreference]);
 
   return (
     <>
@@ -797,8 +897,8 @@ const handleBookingSave = () => {
         )}
         {/* Right Side Content */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Location Bar */}
-          <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64">
+          {/* Location Bar - UPDATED */}
+          <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64 relative">
             <MapPin className="w-4 h-4 text-gray-500 mr-2" />
             <div className="relative w-full">
               <input
@@ -807,16 +907,20 @@ const handleBookingSave = () => {
                 value={location}
                 onFocus={() => setShowDropdown(true)}
                 onClick={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                className="bg-transparent outline-none text-xs md:text-sm w-full px-1"
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                className="bg-transparent outline-none text-xs md:text-sm w-full px-1 cursor-pointer"
+                readOnly
               />
               {showDropdown && (
                 <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto text-xs md:text-sm">
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
+                      console.log("📍 Detect Location clicked");
                       handleChange("Detect Location");
-                      setShowDropdown(false);
+                      setTimeout(() => {
+                        setShowDropdown(false);
+                      }, 100);
                     }}
                   >
                     Detect Location
@@ -824,8 +928,11 @@ const handleBookingSave = () => {
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
+                      console.log("🏠 Add Address clicked");
                       handleChange("Add Address");
-                      setShowDropdown(false);
+                      setTimeout(() => {
+                        setShowDropdown(false);
+                      }, 100);
                     }}
                   >
                     Add Address
@@ -842,9 +949,17 @@ const handleBookingSave = () => {
                         <li
                           key={index}
                           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            console.log(`📍 ${suggestion.name} clicked`);
+                            console.log("📊 Current suggestions:", suggestions);
+                            console.log("📊 Current userPreference:", userPreference);
+                            // Call handleChange immediately
                             handleChange(suggestion.name);
-                            setShowDropdown(false);
+                            // Close dropdown
+                            setTimeout(() => {
+                              setShowDropdown(false);
+                            }, 100);
                           }}
                         >
                           {suggestion.name}
@@ -949,7 +1064,24 @@ const handleBookingSave = () => {
       </header>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Set Location</DialogTitle>
+         <DialogHeader style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: 'white',
+                        zIndex: 1000,
+                        padding: '16px 24px',
+                        borderBottom: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                        <DialogTitle>Set Location</DialogTitle>
+                        <IconButton
+                          aria-label="close"
+                          onClick={handleClose}
+                          className="!absolute right-4  !text-white"
+                        >
+                          <X className="w-6 h-6" />
+                        </IconButton></DialogHeader>
+        
         <DialogContent
           sx={{
             p: 0,
@@ -975,64 +1107,108 @@ const handleBookingSave = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
-        <DialogTitle>Save As</DialogTitle>
-        <DialogContent>
-          <div>
-            <div>Save As :</div>
-            <Button
-              startIcon={<FaHome />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference("home");
-              }}
-            >
-              Home
-            </Button>
-            <Button
-              startIcon={<HiBuildingOffice />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference("Office");
-              }}
-            >
-              Office
-            </Button>
-            <Button
-              startIcon={<FaLocationArrow />}
-              className={undefined}
-              onClick={() => {
-                handleUserPreference();
-              }}
-            >
-              Others
-            </Button>
-          </div>
-          {showInput && (
-            <TextField
-              id="standard-basic"
-              label="Enter Location Name"
-              variant="standard"
-              fullWidth
-              onChange={(e) => setLocationAs(e.target.value)}
-            />
-          )}
-        </DialogContent>
+<Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
 
-        <DialogActions sx={{ padding: "10px" }}>
-          <Button color="primary" onClick={handleClose} className={undefined}>
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            onClick={locationHandleSave}
-            className={undefined}
-          >
-            Save
-          </Button>
-        </DialogActions>
-         
-      </Dialog>
+   <DialogHeader style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: 'white',
+                        zIndex: 1000,
+                        padding: '16px 24px',
+                        borderBottom: '1px solid #e0e0e0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}>
+                         <DialogTitle>Save As</DialogTitle>
+                        <IconButton
+                          aria-label="close"
+                          onClick={handleClose}
+                          className="!absolute right-4  !text-white"
+                        >
+                          <X className="w-6 h-6" />
+                        </IconButton></DialogHeader>
+  <DialogContent>
+    <div>
+      <div>Save As :</div>
+      <Button
+        startIcon={<FaHome />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference("Home");
+        }}
+        disabled={isSaving}
+      >
+        Home
+      </Button>
+      <Button
+        startIcon={<HiBuildingOffice />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference("Office");
+        }}
+        disabled={isSaving}
+      >
+        Office
+      </Button>
+      <Button
+        startIcon={<FaLocationArrow />}
+        className={undefined}
+        onClick={() => {
+          handleUserPreference();
+        }}
+        disabled={isSaving}
+      >
+        Others
+      </Button>
+    </div>
+    {showInput && (
+      <TextField
+        id="standard-basic"
+        label="Enter Location Name"
+        variant="standard"
+        fullWidth
+        value={locationAs}
+        onChange={(e) => setLocationAs(e.target.value)}
+        disabled={isSaving}
+      />
+    )}
+  </DialogContent>
+
+  <DialogActions sx={{ padding: "10px" }}>
+    <Button 
+      color="primary" 
+      onClick={handleClose} 
+      className={undefined}
+      disabled={isSaving}
+    >
+      Cancel
+    </Button>
+    <Button
+      color="primary"
+      onClick={locationHandleSave}
+      className={undefined}
+      disabled={isSaving || !locationAs}
+      startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
+    >
+      {isSaving ? "Saving..." : "Save"}
+    </Button>
+  </DialogActions>
+</Dialog>
+
+   <Snackbar
+              open={snackbarOpen}
+              autoHideDuration={6000}
+             onClose={handleSnackbarClose}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              sx={{ marginTop: "60px" }}
+            >
+  <Alert 
+    onClose={handleSnackbarClose} 
+    severity={snackbarSeverity}
+    sx={{ width: '100%' }}
+  >
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
       <NotificationsDialog 
         open={showNotifications} 
         onClose={handleCloseNotifications} 

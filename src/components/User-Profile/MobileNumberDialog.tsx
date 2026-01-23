@@ -11,12 +11,14 @@ import {
   Snackbar,
   Alert,
   AlertColor,
+  IconButton,
 } from "@mui/material";
 import { Button } from "../Button/button";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import axiosInstance from "src/services/axiosInstance";
 import { CheckIcon, X } from "lucide-react";
+import providerInstance from "src/services/providerInstance";
 
 interface MobileNumberDialogProps {
   open: boolean;
@@ -31,6 +33,7 @@ interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
+  formatError: boolean;
 }
 
 interface SnackbarState {
@@ -53,12 +56,14 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   const [contactValidation, setContactValidation] = useState<ValidationState>({
     loading: false,
     error: '',
-    isAvailable: null
+    isAvailable: null,
+    formatError: false
   });
   const [altContactValidation, setAltContactValidation] = useState<ValidationState>({
     loading: false,
     error: '',
-    isAvailable: null
+    isAvailable: null,
+    formatError: false
   });
 
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -67,6 +72,9 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     severity: 'info'
   });
 
+  // Track which fields have been validated
+  const [validatedFields, setValidatedFields] = useState<Set<string>>(new Set());
+
   // Initialize with existing user data if available
   useEffect(() => {
     if (open && appUser) {
@@ -74,8 +82,9 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       setAltContactNumber(appUser.alternateNo || "");
       
       // Reset validation states
-      setContactValidation({ loading: false, error: '', isAvailable: null });
-      setAltContactValidation({ loading: false, error: '', isAvailable: null });
+      setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      setValidatedFields(new Set());
     }
   }, [open, appUser]);
 
@@ -102,43 +111,90 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }
 
     const setValidation = isAlternate ? setAltContactValidation : setContactValidation;
+    const fieldName = isAlternate ? 'altContactNumber' : 'contactNumber';
     
     setValidation({
       loading: true,
       error: '',
-      isAvailable: null
+      isAvailable: null,
+      formatError: false
     });
 
     try {
-      const endpoint = isAlternate 
-        ? `/api/serviceproviders/check-alternate/${encodeURIComponent(number)}`
-        : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
+      // Use POST request with payload as shown in API documentation
+      const endpoint = '/api/service-providers/check-mobile'; // Same endpoint for both
+      const payload = { mobile: number };
       
-      const response = await axiosInstance.get(endpoint);
+      const response = await providerInstance.post(endpoint, payload);
       
-      const isAvailable = response.data.available !== false;
+      // Handle different API response structures
+      let isAvailable = true;
+      let errorMessage = '';
+      
+      if (response.data.exists !== undefined) {
+        isAvailable = !response.data.exists; // If exists is true, then NOT available
+        errorMessage = response.data.exists 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else if (response.data.available !== undefined) {
+        isAvailable = response.data.available;
+        errorMessage = !response.data.available 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else if (response.data.isAvailable !== undefined) {
+        isAvailable = response.data.isAvailable;
+        errorMessage = !response.data.isAvailable 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else {
+        // Default assumption if API returns success without specific availability flag
+        isAvailable = true;
+      }
       
       setValidation({
         loading: false,
-        error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
-        isAvailable
+        error: errorMessage,
+        isAvailable,
+        formatError: false
       });
+
+      // Mark this field as validated
+      if (isAvailable) {
+        setValidatedFields(prev => {
+          const newSet = new Set(prev);
+          newSet.add(fieldName);
+          return newSet;
+        });
+      }
 
       return isAvailable;
     } catch (error: any) {
       console.error('Error validating mobile number:', error);
       
       let errorMessage = `Error checking ${isAlternate ? 'alternate' : 'mobile'} number`;
-      if (error.response?.status === 409) {
+      
+      if (error.response?.data) {
+        const apiError = error.response.data;
+        if (typeof apiError === 'string') {
+          errorMessage = apiError;
+        } else if (apiError.message) {
+          errorMessage = apiError.message;
+        } else if (apiError.error) {
+          errorMessage = apiError.error;
+        }
+      } else if (error.response?.status === 400) {
+        errorMessage = `Invalid ${isAlternate ? 'alternate' : 'mobile'} number format`;
+      } else if (error.response?.status === 409) {
         errorMessage = `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
       }
 
       setValidation({
         loading: false,
         error: errorMessage,
-        isAvailable: false
+        isAvailable: false,
+        formatError: false
       });
 
       return false;
@@ -164,7 +220,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
       timeouts.current[timeoutKey] = setTimeout(() => {
         checkMobileAvailability(number, isAlternate);
-      }, 500);
+      }, 800); // Increased to 800ms for better debouncing
     };
   };
 
@@ -174,30 +230,61 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setContactNumber(value);
 
+    // Reset validation state when changing
+    setContactValidation(prev => ({
+      ...prev,
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    }));
+
     if (value.length === 10) {
+      // Clear any format error
+      setContactValidation(prev => ({
+        ...prev,
+        formatError: false,
+        error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
+      }));
+      
+      // Start debounced validation
       debouncedValidation(value, false);
       
+      // Check if alternate number is same as contact number
       if (altContactNumber === value) {
         setAltContactValidation(prev => ({
           ...prev,
           error: 'Alternate number cannot be same as contact number',
-          isAvailable: false
+          isAvailable: false,
+          formatError: false
         }));
-      } else if (altContactNumber && altContactValidation.error === 'Alternate number cannot be same as contact number') {
-        setAltContactValidation(prev => ({
-          ...prev,
-          error: '',
-          isAvailable: null
-        }));
-        if (validateMobileFormat(altContactNumber)) {
+      } else if (altContactNumber && altContactNumber.length === 10) {
+        // Re-validate alternate number if it was marked as same
+        if (altContactValidation.error === 'Alternate number cannot be same as contact number') {
+          setAltContactValidation(prev => ({
+            ...prev,
+            error: '',
+            isAvailable: null,
+            formatError: false
+          }));
           debouncedValidation(altContactNumber, true);
         }
       }
-    } else {
+    } else if (value) {
+      // Show format error for incomplete numbers
       setContactValidation({
         loading: false,
-        error: value ? 'Please enter a valid 10-digit mobile number' : '',
-        isAvailable: null
+        error: 'Please enter a valid 10-digit mobile number',
+        isAvailable: null,
+        formatError: true
+      });
+    } else {
+      // Clear everything if empty
+      setContactValidation({
+        loading: false,
+        error: '',
+        isAvailable: null,
+        formatError: false
       });
     }
   };
@@ -206,21 +293,52 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setAltContactNumber(value);
 
-    if (value && value.length === 10) {
-      if (value === contactNumber) {
+    // Reset validation state when changing
+    setAltContactValidation(prev => ({
+      ...prev,
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    }));
+
+    if (value) {
+      if (value.length === 10) {
+        // Clear format error
+        setAltContactValidation(prev => ({
+          ...prev,
+          formatError: false,
+          error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
+        }));
+
+        // Check if it's the same as contact number
+        if (value === contactNumber) {
+          setAltContactValidation({
+            loading: false,
+            error: 'Alternate number cannot be same as contact number',
+            isAvailable: false,
+            formatError: false
+          });
+        } else {
+          // Validate alternate number availability
+          debouncedValidation(value, true);
+        }
+      } else {
+        // Show format error for incomplete numbers
         setAltContactValidation({
           loading: false,
-          error: 'Alternate number cannot be same as contact number',
-          isAvailable: false
+          error: 'Please enter a valid 10-digit mobile number',
+          isAvailable: null,
+          formatError: true
         });
-      } else {
-        debouncedValidation(value, true);
       }
     } else {
+      // Clear everything if empty
       setAltContactValidation({
         loading: false,
-        error: value ? 'Please enter a valid 10-digit mobile number' : '',
-        isAvailable: null
+        error: '',
+        isAvailable: null,
+        formatError: false
       });
     }
   };
@@ -236,25 +354,37 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       return false;
     }
 
-    if (altContactNumber && !validateMobileFormat(altContactNumber)) {
-      showSnackbar("Please enter a valid 10-digit alternate contact number", "error");
-      return false;
-    }
-
-    if (!areNumbersUnique()) {
-      showSnackbar("Contact number and alternate contact number must be different", "error");
-      return false;
-    }
-
-    const isContactAvailable = await checkMobileAvailability(contactNumber, false);
-    if (!isContactAvailable) {
+    // Check contact number availability if not already validated
+    if (!validatedFields.has('contactNumber') || contactValidation.isAvailable === null) {
+      const isContactAvailable = await checkMobileAvailability(contactNumber, false);
+      if (!isContactAvailable) {
+        showSnackbar("Contact number is not available", "error");
+        return false;
+      }
+    } else if (contactValidation.isAvailable === false) {
       showSnackbar("Contact number is not available", "error");
       return false;
     }
 
     if (altContactNumber) {
-      const isAltContactAvailable = await checkMobileAvailability(altContactNumber, true);
-      if (!isAltContactAvailable) {
+      if (!validateMobileFormat(altContactNumber)) {
+        showSnackbar("Please enter a valid 10-digit alternate contact number", "error");
+        return false;
+      }
+
+      if (!areNumbersUnique()) {
+        showSnackbar("Contact number and alternate contact number must be different", "error");
+        return false;
+      }
+
+      // Check alternate number availability if not already validated
+      if (!validatedFields.has('altContactNumber') || altContactValidation.isAvailable === null) {
+        const isAltContactAvailable = await checkMobileAvailability(altContactNumber, true);
+        if (!isAltContactAvailable) {
+          showSnackbar("Alternate contact number is not available", "error");
+          return false;
+        }
+      } else if (altContactValidation.isAvailable === false) {
         showSnackbar("Alternate contact number is not available", "error");
         return false;
       }
@@ -279,7 +409,10 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
         return;
       }
 
-      const payload: any = {};
+      const payload: any = {
+        customerid: appUser.customerid
+      };
+      
       if (contactNumber) payload.mobileNo = contactNumber;
       if (altContactNumber) payload.alternateNo = altContactNumber;
 
@@ -307,6 +440,11 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
       showSnackbar("Mobile number(s) updated successfully!", "success");
       
+      // Reset validation states
+      setValidatedFields(new Set());
+      setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+      
       // Close dialog after successful update
       setTimeout(() => {
         onClose();
@@ -322,71 +460,111 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   };
 
   const isFormValid = (): boolean => {
-    const basicValidation = validateMobileFormat(contactNumber) &&
-      contactValidation.isAvailable !== false &&
-      (altContactNumber === '' || validateMobileFormat(altContactNumber)) &&
-      areNumbersUnique();
+    // Contact number validation
+    const contactValid = validateMobileFormat(contactNumber) && 
+      (contactValidation.isAvailable === true || contactValidation.isAvailable === null);
 
-    const altNumberValidation = altContactNumber === '' || 
+    // Alternate contact number validation (optional field)
+    const altContactValid = !altContactNumber ||  // Empty is valid
       (validateMobileFormat(altContactNumber) && 
-       altContactValidation.isAvailable !== false &&
+       (altContactValidation.isAvailable === true || altContactValidation.isAvailable === null) &&
        areNumbersUnique());
 
-    return basicValidation && altNumberValidation;
+    return contactValid && altContactValid;
+  };
+
+  // Function to clear contact number field
+  const handleClearContactNumber = () => {
+    setContactNumber("");
+    setContactValidation({
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    });
+    // Remove from validated fields
+    setValidatedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.delete('contactNumber');
+      return newSet;
+    });
+  };
+
+  // Function to clear alternate contact number field
+  const handleClearAltContactNumber = () => {
+    setAltContactNumber("");
+    setAltContactValidation({
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    });
+    // Remove from validated fields
+    setValidatedFields(prev => {
+      const newSet = new Set(prev);
+      newSet.delete('altContactNumber');
+      return newSet;
+    });
   };
 
   return (
     <>
-      <Dialog open={open} onClose={onClose}>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
           <DialogTitle className="text-xl font-semibold text-white">
             Update Contact Numbers
           </DialogTitle>
-          <button
+          <IconButton
             onClick={onClose}
-            className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
+            className="text-white hover:text-gray-200"
             aria-label="Close"
+            size="small"
           >
-            &times;
-          </button>
+            <X size={20} />
+          </IconButton>
         </DialogHeader>
 
-        <DialogContent className="max-w-md p-6">
+        <DialogContent className="p-6">
           <div className="flex flex-col gap-4 mt-4">
             <div>
-              <p className="text-sm text-black-500 ">
+              <p className="text-sm text-gray-600 mb-4">
                 Please enter your mobile and alternative contact numbers to continue.
               </p>
               <label className="text-sm font-medium text-gray-700">
                 Contact Number *
               </label>
-              <Input
-                placeholder="10-digit mobile number"
-                value={contactNumber}
-                onChange={handleContactNumberChange}
-                className="mt-1 w-full"
-                inputProps={{ maxLength: 10 }}
-                error={!!contactValidation.error || (contactNumber.length > 0 && contactNumber.length !== 10)}
-                endAdornment={
-                  contactValidation.loading ? (
+              <div className="relative">
+                <Input
+                  placeholder="10-digit mobile number"
+                  value={contactNumber}
+                  onChange={handleContactNumberChange}
+                  className="mt-1 w-full"
+                  inputProps={{ maxLength: 10 }}
+                  error={!!contactValidation.error || contactValidation.formatError}
+                  endAdornment={
                     <InputAdornment position="end">
-                      <CircularProgress size={20} />
+                      {contactValidation.loading ? (
+                        <CircularProgress size={20} />
+                      ) : contactValidation.isAvailable ? (
+                        <CheckIcon color="success" size={20} />
+                      ) : contactValidation.isAvailable === false ? (
+                        <IconButton
+                          size="small"
+                          onClick={handleClearContactNumber}
+                          edge="end"
+                          aria-label="clear contact number"
+                        >
+                          <X color="error" size={20} />
+                        </IconButton>
+                      ) : null}
                     </InputAdornment>
-                  ) : contactValidation.isAvailable ? (
-                    <InputAdornment position="end">
-                      <CheckIcon color="success" size={20} />
-                    </InputAdornment>
-                  ) : contactValidation.isAvailable === false ? (
-                    <InputAdornment position="end">
-                      <X color="error" size={20} />
-                    </InputAdornment>
-                  ) : null
-                }
-              />
+                  }
+                />
+              </div>
               {contactValidation.error && (
                 <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>
               )}
-              {contactNumber && contactNumber.length !== 10 && (
+              {contactValidation.formatError && (
                 <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
               )}
               {contactValidation.isAvailable && (
@@ -396,35 +574,40 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Alternative Contact Number
+                Alternative Contact Number (Optional)
               </label>
-              <Input
-                placeholder="10-digit mobile number"
-                value={altContactNumber}
-                onChange={handleAltContactNumberChange}
-                className="mt-1 w-full"
-                inputProps={{ maxLength: 10 }}
-                error={!!altContactValidation.error || (altContactNumber.length > 0 && altContactNumber.length !== 10)}
-                endAdornment={
-                  altContactValidation.loading ? (
+              <div className="relative">
+                <Input
+                  placeholder="10-digit mobile number"
+                  value={altContactNumber}
+                  onChange={handleAltContactNumberChange}
+                  className="mt-1 w-full"
+                  inputProps={{ maxLength: 10 }}
+                  error={!!altContactValidation.error || altContactValidation.formatError}
+                  endAdornment={
                     <InputAdornment position="end">
-                      <CircularProgress size={20} />
+                      {altContactValidation.loading ? (
+                        <CircularProgress size={20} />
+                      ) : altContactValidation.isAvailable ? (
+                        <CheckIcon color="success" size={20} />
+                      ) : altContactValidation.isAvailable === false ? (
+                        <IconButton
+                          size="small"
+                          onClick={handleClearAltContactNumber}
+                          edge="end"
+                          aria-label="clear alternate number"
+                        >
+                          <X color="error" size={20} />
+                        </IconButton>
+                      ) : null}
                     </InputAdornment>
-                  ) : altContactValidation.isAvailable ? (
-                    <InputAdornment position="end">
-                      <CheckIcon color="success" size={20} />
-                    </InputAdornment>
-                  ) : altContactValidation.isAvailable === false ? (
-                    <InputAdornment position="end">
-                      <X color="error" size={20} />
-                    </InputAdornment>
-                  ) : null
-                }
-              />
+                  }
+                />
+              </div>
               {altContactValidation.error && (
                 <p className="text-red-500 text-xs mt-1">{altContactValidation.error}</p>
               )}
-              {altContactNumber && altContactNumber.length !== 10 && (
+              {altContactValidation.formatError && (
                 <p className="text-red-500 text-xs mt-1">Please enter exactly 10 digits</p>
               )}
               {altContactValidation.isAvailable && (
@@ -444,7 +627,8 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
           <DialogActions className="mt-6">
             <Button
               onClick={onClose}
-              className="bg-gray-200 text-gray-800 hover:bg-gray-300"
+              variant="outlined"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
@@ -453,7 +637,12 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
               disabled={loading || !isFormValid()}
               className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? "Updating..." : "Submit"}
+              {loading ? (
+                <>
+                  <CircularProgress size={16} color="inherit" className="mr-2" />
+                  Updating...
+                </>
+              ) : "Submit"}
             </Button>
           </DialogActions>
         </DialogContent>

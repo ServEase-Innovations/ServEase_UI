@@ -278,7 +278,13 @@ useEffect(() => {
     return (
         <main className="pt-16">
             {/* Hero Section */}
-<section className="py-8 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad] text-white">
+<section className="py-8 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between "
+ style={{
+  // a7d0ff
+    background: "linear-gradient(hsl(212, 100%, 84%) 0%,  rgb(255, 255, 255) 100%)",
+    color: "rgb(14, 48, 92)",
+ 
+  }}>
 
   <div className="md:w-1/2 space-y-4">
     <h1 className="text-3xl font-bold leading-tight">
@@ -305,7 +311,7 @@ useEffect(() => {
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold text-white">Home Cook</p>
+    <p className="mt-2 text-sm font-semibold ">Home Cook</p>
    
   </div>
 
@@ -324,7 +330,7 @@ useEffect(() => {
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold text-white">Cleaning Help</p>
+    <p className="mt-2 text-sm font-semibold ">Cleaning Help</p>
    
   </div>
 
@@ -343,7 +349,7 @@ useEffect(() => {
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold text-white">Caregiver</p>
+    <p className="mt-2 text-sm font-semibold">Caregiver</p>
     {/* {role === "SERVICE_PROVIDER" && (
       <span className="text-xs text-gray-300 mt-1">Not available</span>
     )} */}

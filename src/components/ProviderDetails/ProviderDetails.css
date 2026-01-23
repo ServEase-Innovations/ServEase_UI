@@ -1,101 +1,417 @@
-/* ProviderDetails.css */
-
-/* Container Styles */
+/* =========================
+   Provider Container
+========================= */
 .container-provider {
-  padding: 20px;
-  margin-top: 10px;
+  width: 100%;
+  margin-bottom: 12px;
 }
 
-@media (max-width: 768px) {
-  .container-provider {
-    margin-top: 75px; /* header is taller on mobile */
-  }
+/* =========================
+   Provider Card Layout
+========================= */
+.provider-card {
+  display: flex;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+  min-height: 100px;
+  max-height: 140px;
+  position: relative;
+  transition: box-shadow 0.2s ease;
 }
 
-
-
-/* Position the + and - toggle at the top-right */
-.expand-toggle {
-  position: absolute;
-  top: 10px;
-  right: 10px; /* Positioned to the top-right corner */
-  padding: 8px;
-  font-size: 24px;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  color: #1976d2;
-  font-weight: bold;
-  transition: color 0.3s;
+.provider-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.expand-toggle:hover {
-  color: #1565c0;
-}
-
-/* Content Styles */
-.content {
+/* =========================
+   LEFT COLUMN – Metrics
+========================= */
+.provider-left {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  min-width: 90px;
+  max-width: 90px;
 }
 
-.availability-section {
-  margin-top: 20px;
-}
-
-.availability-header {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-weight: bold;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-
-.time-slot-container {
+.metric-item {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  padding: 0;
+}
+
+.metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2d3436;
+  line-height: 1.1;
+}
+
+.metric-value.rating {
+  color: #f39c12;
+  font-size: 0.95rem;
+}
+
+.metric-value.experience {
+  color: #27ae60;
+  font-size: 0.95rem;
+}
+
+.metric-value.distance {
+  color: #3498db;
+  font-size: 0.95rem;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+/* =========================
+   RIGHT COLUMN – Details
+========================= */
+.provider-right {
+  flex: 1;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.provider-name-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.availability-button {
-  padding: 8px 12px;
-  margin: 5px;
-  background-color: #1976d2;
+.provider-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.provider-gender-age {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 400;
+  background: #f1f3f4;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.favorite-button {
+  padding: 4px;
+  color: #e74c3c;
+  font-size: 0.9rem !important;
+  margin-left: auto;
+}
+
+.favorite-button:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.provider-details {
+  margin-bottom: 8px;
+  flex-grow: 1;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.diet-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  height: 20px;
+}
+
+.diet-badge.nonveg {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.diet-badge.both {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.language-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  height: 20px;
+}
+
+.separator {
+  color: #adb5bd;
+  font-size: 0.8rem;
+  font-weight: 300;
+  margin: 0 2px;
+}
+
+.availability-info {
+  background: #f1f8ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border-left: 2px solid #3498db;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.availability-text {
+  font-size: 0.8rem;
+  color: #2d3436;
+  font-weight: 500;
+}
+
+.availability-time {
+  font-weight: 600;
+  color: #3498db;
+}
+
+/* =========================
+   Action Buttons
+========================= */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.view-details-button {
+  border: 1px solid #d0d7de;
+  color: #495057;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  text-transform: none;
+  border-radius: 6px;
+  font-weight: 500;
+  height: 28px;
+  min-width: 100px;
+}
+
+.view-details-button:hover {
+  border-color: #adb5bd;
+  background-color: #f8f9fa;
+}
+
+.book-monthly-button {
+  background: #1976d2;
   color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
-  width: 80px;
-  text-align: center;
+  font-size: 0.75rem;
+  padding: 4px 16px;
+  text-transform: none;
+  border-radius: 6px;
+  font-weight: 600;
+  height: 28px;
+  min-width: 120px;
 }
 
-.availability-button:hover {
-  background-color: #1565c0;
+.book-monthly-button:hover {
+  background: #1565c0;
 }
 
-.availability-button.selected {
-  background-color: lightgreen; /* Selected button */
+.book-monthly-button:disabled {
+  background: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
 }
 
-.availability-button:not(.selected) {
-  background-color: lightcoral; /* Deselect buttons */
-}
-
-
-.container-provider {
-  position: relative; /* Make sure this div is the reference for absolute positioning */
-}
-
-.expand-toggle {
+/* =========================
+   Status Badges
+========================= */
+.status-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 6px;
+  right: 6px;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  z-index: 1;
 }
 
-.book-now-button {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
+.status-badge.best-match {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+/* =========================
+   Compact Layout for Small Content
+========================= */
+.provider-card.compact {
+  max-height: 120px;
+}
+
+.provider-card.compact .provider-left {
+  min-width: 80px;
+  max-width: 80px;
+  padding: 8px 4px;
+  gap: 4px;
+}
+
+.provider-card.compact .provider-right {
+  padding: 8px 12px;
+}
+
+.provider-card.compact .provider-name {
+  font-size: 0.95rem;
+}
+
+.provider-card.compact .provider-gender-age {
+  font-size: 0.75rem;
+  padding: 1px 4px;
+}
+
+/* =========================
+   Responsive Design
+========================= */
+
+/* Tablet and Mobile (900px and below) */
+@media (max-width: 900px) {
+  .provider-card {
+    max-height: none;
+    min-height: auto;
+    margin-bottom: 16px;
+  }
+  
+  .MuiCardContent-root {
+    padding: 16px !important;
+  }
+}
+
+/* Mobile (600px and below) */
+@media (max-width: 600px) {
+  .provider-card {
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  
+  .MuiCardContent-root {
+    padding: 12px !important;
+  }
+  
+  .MuiTypography-h6 {
+    font-size: 1rem !important;
+  }
+  
+  .MuiTypography-body1 {
+    font-size: 0.9rem !important;
+  }
+  
+  .MuiTypography-body2 {
+    font-size: 0.8rem !important;
+  }
+  
+  .MuiChip-root {
+    font-size: 0.7rem !important;
+    height: 22px !important;
+  }
+}
+
+/* Small Mobile (480px and below) */
+@media (max-width: 480px) {
+  .provider-card {
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+  
+  .MuiCardContent-root {
+    padding: 10px !important;
+  }
+  
+  .MuiTypography-h6 {
+    font-size: 0.95rem !important;
+  }
+  
+  .MuiTypography-body1 {
+    font-size: 0.85rem !important;
+  }
+  
+  .MuiTypography-body2 {
+    font-size: 0.75rem !important;
+  }
+  
+  .MuiButton-root {
+    font-size: 0.85rem !important;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+  }
+}
+
+/* =========================
+   Content Overflow Handling
+========================= */
+.provider-name,
+.availability-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* =========================
+   Print Styles
+========================= */
+@media print {
+  .provider-card {
+    box-shadow: none;
+    border: 1px solid #000;
+    break-inside: avoid;
+    max-height: none;
+    min-height: auto;
+  }
+  
+  .action-buttons {
+    display: none;
+  }
 }

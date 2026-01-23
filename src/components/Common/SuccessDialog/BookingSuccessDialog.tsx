@@ -61,7 +61,7 @@ const countdown = keyframes`
 const SuccessDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
     borderRadius: '16px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'linear-gradient(135deg, #0a2a66 0%, #575aff 100%)',
     overflow: 'visible',
     animation: `${fadeIn} 0.4s ease-out`,
     boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)',
@@ -319,6 +319,7 @@ const BookingSuccessDialog: React.FC<BookingSuccessDialogProps> = ({
       return dateString;
     }
   };
+  console.log("bookingDetails",bookingDetails);
 
   return (
     <>

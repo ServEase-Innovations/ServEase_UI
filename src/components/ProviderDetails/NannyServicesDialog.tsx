@@ -145,7 +145,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
   const users = useSelector((state: any) => state.user?.value);
   const currentLocation = users?.customerDetails?.currentLocation;
-  const providerFullName = `${providerDetails?.firstName} ${providerDetails?.lastName}`;
+  const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
 
   const toggleCart = useCallback((key: string, pkg: NannyPackage) => {
     // Detect package type from key

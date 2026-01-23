@@ -11,6 +11,7 @@ import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
 import { FaHome, FaLocationArrow } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
+import providerInstance from "src/services/providerInstance";
 
 interface Address {
   id: string;
@@ -569,18 +570,39 @@ const ProfileScreen = () => {
     });
 
     try {
-      // Use alternateNo parameter for alternative contact number
-      const endpoint = isAlternate 
-        ? `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`
-        : `/api/serviceproviders/check-mobile/${encodeURIComponent(number)}`;
+      // Use POST request with payload as shown in your API documentation
+      const endpoint = '/api/service-providers/check-mobile'; // Same endpoint for both
+      const payload = { mobile: number };
       
-      const response = await axiosInstance.get(endpoint);
+      const response = await providerInstance.post(endpoint, payload);
       
-      const isAvailable = response.data.available !== false;
+      // Handle different API response structures
+      let isAvailable = true;
+      let errorMessage = '';
+      
+      if (response.data.exists !== undefined) {
+        isAvailable = !response.data.exists; // If exists is true, then NOT available
+        errorMessage = response.data.exists 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else if (response.data.available !== undefined) {
+        isAvailable = response.data.available;
+        errorMessage = !response.data.available 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else if (response.data.isAvailable !== undefined) {
+        isAvailable = response.data.isAvailable;
+        errorMessage = !response.data.isAvailable 
+          ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
+          : '';
+      } else {
+        // Default assumption if API returns success without specific availability flag
+        isAvailable = true;
+      }
       
       setValidation({
         loading: false,
-        error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
+        error: errorMessage,
         isAvailable,
         formatError: false
       });
@@ -599,10 +621,22 @@ const ProfileScreen = () => {
       console.error('Error validating mobile number:', error);
       
       let errorMessage = `Error checking ${isAlternate ? 'alternate' : 'mobile'} number`;
-      if (error.response?.status === 409) {
+      
+      if (error.response?.data) {
+        const apiError = error.response.data;
+        if (typeof apiError === 'string') {
+          errorMessage = apiError;
+        } else if (apiError.message) {
+          errorMessage = apiError.message;
+        } else if (apiError.error) {
+          errorMessage = apiError.error;
+        }
+      } else if (error.response?.status === 400) {
+        errorMessage = `Invalid ${isAlternate ? 'alternate' : 'mobile'} number format`;
+      } else if (error.response?.status === 409) {
         errorMessage = `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
       }
 
       setValidation({
@@ -616,6 +650,7 @@ const ProfileScreen = () => {
     }
   };
 
+  // Debounced validation using setTimeout
   const useDebouncedValidation = () => {
     const timeouts = {
       contact: null as NodeJS.Timeout | null,
@@ -631,7 +666,7 @@ const ProfileScreen = () => {
 
       timeouts[timeoutKey] = setTimeout(() => {
         checkMobileAvailability(number, isAlternate);
-      }, 500);
+      }, 800); // Increased to 800ms for better debouncing
     };
   };
 
@@ -641,16 +676,27 @@ const ProfileScreen = () => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setUserData(prev => ({ ...prev, contactNumber: value }));
 
+    // Reset validation state when changing
+    setContactValidation(prev => ({
+      ...prev,
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    }));
+
     if (value.length === 10) {
-      debouncedValidation(value, false);
-      
-      // Clear format error when we have exactly 10 digits
+      // Clear any format error
       setContactValidation(prev => ({
         ...prev,
         formatError: false,
         error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
       }));
       
+      // Start debounced validation
+      debouncedValidation(value, false);
+      
+      // Check if alternate number is same as contact number
       if (userData.altContactNumber === value) {
         setAltContactValidation(prev => ({
           ...prev,
@@ -658,23 +704,33 @@ const ProfileScreen = () => {
           isAvailable: false,
           formatError: false
         }));
-      } else if (userData.altContactNumber && altContactValidation.error === 'Alternate number cannot be same as contact number') {
-        setAltContactValidation(prev => ({
-          ...prev,
-          error: '',
-          isAvailable: null,
-          formatError: false
-        }));
-        if (validateMobileFormat(userData.altContactNumber)) {
+      } else if (userData.altContactNumber && userData.altContactNumber.length === 10) {
+        // Re-validate alternate number if it was marked as same
+        if (altContactValidation.error === 'Alternate number cannot be same as contact number') {
+          setAltContactValidation(prev => ({
+            ...prev,
+            error: '',
+            isAvailable: null,
+            formatError: false
+          }));
           debouncedValidation(userData.altContactNumber, true);
         }
       }
-    } else {
+    } else if (value) {
+      // Show format error for incomplete numbers
       setContactValidation({
         loading: false,
-        error: value ? 'Please enter a valid 10-digit mobile number' : '',
+        error: 'Please enter a valid 10-digit mobile number',
         isAvailable: null,
-        formatError: !!value && value.length !== 10
+        formatError: true
+      });
+    } else {
+      // Clear everything if empty
+      setContactValidation({
+        loading: false,
+        error: '',
+        isAvailable: null,
+        formatError: false
       });
     }
   };
@@ -683,30 +739,52 @@ const ProfileScreen = () => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setUserData(prev => ({ ...prev, altContactNumber: value }));
 
-    if (value && value.length === 10) {
-      // Clear format error when we have exactly 10 digits
-      setAltContactValidation(prev => ({
-        ...prev,
-        formatError: false,
-        error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
-      }));
+    // Reset validation state when changing
+    setAltContactValidation(prev => ({
+      ...prev,
+      loading: false,
+      error: '',
+      isAvailable: null,
+      formatError: false
+    }));
 
-      if (value === userData.contactNumber) {
+    if (value) {
+      if (value.length === 10) {
+        // Clear format error
+        setAltContactValidation(prev => ({
+          ...prev,
+          formatError: false,
+          error: prev.error === 'Please enter a valid 10-digit mobile number' ? '' : prev.error
+        }));
+
+        // Check if it's the same as contact number
+        if (value === userData.contactNumber) {
+          setAltContactValidation({
+            loading: false,
+            error: 'Alternate number cannot be same as contact number',
+            isAvailable: false,
+            formatError: false
+          });
+        } else {
+          // Validate alternate number availability
+          debouncedValidation(value, true);
+        }
+      } else {
+        // Show format error for incomplete numbers
         setAltContactValidation({
           loading: false,
-          error: 'Alternate number cannot be same as contact number',
-          isAvailable: false,
-          formatError: false
+          error: 'Please enter a valid 10-digit mobile number',
+          isAvailable: null,
+          formatError: true
         });
-      } else {
-        debouncedValidation(value, true);
       }
     } else {
+      // Clear everything if empty
       setAltContactValidation({
         loading: false,
-        error: value ? 'Please enter a valid 10-digit mobile number' : '',
+        error: '',
         isAvailable: null,
-        formatError: !!value && value.length !== 10
+        formatError: false
       });
     }
   };
@@ -744,26 +822,26 @@ const ProfileScreen = () => {
   };
 
   const validateAllFields = async (): Promise<boolean> => {
-    // Only validate fields that have changed and are mobile numbers
     const contactNumberChanged = userData.contactNumber !== originalData.userData.contactNumber;
     const altContactNumberChanged = userData.altContactNumber !== originalData.userData.altContactNumber;
 
+    let allValid = true;
+    const validationPromises: Promise<boolean>[] = [];
+
+    // Validate contact number if changed
     if (contactNumberChanged) {
       if (!validateMobileFormat(userData.contactNumber)) {
         alert("Please enter a valid 10-digit contact number");
         return false;
       }
 
-      // Only check availability if not already validated
-      if (!validatedFields.has('contactNumber')) {
-        const isContactAvailable = await checkMobileAvailability(userData.contactNumber, false);
-        if (!isContactAvailable) {
-          alert("Contact number is not available");
-          return false;
-        }
+      // Check if we need to validate availability
+      if (!validatedFields.has('contactNumber') || contactValidation.isAvailable === null) {
+        validationPromises.push(checkMobileAvailability(userData.contactNumber, false));
       }
     }
 
+    // Validate alternate number if changed
     if (altContactNumberChanged && userData.altContactNumber) {
       if (!validateMobileFormat(userData.altContactNumber)) {
         alert("Please enter a valid 10-digit alternate contact number");
@@ -775,17 +853,30 @@ const ProfileScreen = () => {
         return false;
       }
 
-      // Only check availability if not already validated
-      if (!validatedFields.has('altContactNumber')) {
-        const isAltContactAvailable = await checkMobileAvailability(userData.altContactNumber, true);
-        if (!isAltContactAvailable) {
-          alert("Alternate contact number is not available");
-          return false;
-        }
+      // Check if we need to validate availability
+      if (!validatedFields.has('altContactNumber') || altContactValidation.isAvailable === null) {
+        validationPromises.push(checkMobileAvailability(userData.altContactNumber, true));
       }
     }
 
-    return true;
+    // Wait for all validations to complete
+    if (validationPromises.length > 0) {
+      const results = await Promise.all(validationPromises);
+      allValid = results.every(result => result === true);
+    }
+
+    // Also check current validation states
+    if (contactNumberChanged && contactValidation.isAvailable === false) {
+      alert("Contact number is not available");
+      allValid = false;
+    }
+
+    if (altContactNumberChanged && userData.altContactNumber && altContactValidation.isAvailable === false) {
+      alert("Alternate contact number is not available");
+      allValid = false;
+    }
+
+    return allValid;
   };
 
   const handleAddAddress = async () => {
@@ -1015,18 +1106,19 @@ const ProfileScreen = () => {
   };
 
   const isFormValid = (): boolean => {
-    // Check if contact number is valid (if changed)
     const contactNumberChanged = userData.contactNumber !== originalData.userData.contactNumber;
     const altContactNumberChanged = userData.altContactNumber !== originalData.userData.altContactNumber;
 
+    // Contact number validation
     const contactValid = !contactNumberChanged || 
       (validateMobileFormat(userData.contactNumber) && 
-       contactValidation.isAvailable !== false);
+       (contactValidation.isAvailable === true || contactValidation.isAvailable === null));
 
+    // Alternate contact number validation (optional field)
     const altContactValid = !altContactNumberChanged || 
-      (userData.altContactNumber === '' || 
+      (!userData.altContactNumber ||  // Empty is valid
        (validateMobileFormat(userData.altContactNumber) && 
-        altContactValidation.isAvailable !== false &&
+        (altContactValidation.isAvailable === true || altContactValidation.isAvailable === null) &&
         areNumbersUnique()));
 
     return contactValid && altContactValid;
@@ -1530,7 +1622,6 @@ const ProfileScreen = () => {
                 <div className="flex justify-end space-x-2 mt-3">
                   <Button
                     onClick={() => setShowAddAddress(false)}
-        
                   >
                     Cancel
                   </Button>

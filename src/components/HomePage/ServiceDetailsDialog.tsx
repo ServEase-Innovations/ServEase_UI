@@ -274,7 +274,15 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
     }
   }}
     >
-   <DialogHeader className="relative flex items-center justify-between bg-gray-100 border-b border-gray-300 text-blue-700 font-bold text-xl pr-10">
+   <DialogHeader style={{
+                position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 1000,
+                padding: '16px 24px',
+                borderBottom: '1px solid #e0e0e0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
   <div className="flex items-center gap-2">
     {icon && <span className="text-2xl">{icon}</span>}
     {title}
@@ -282,7 +290,7 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
   <IconButton
     aria-label="close"
     onClick={onClose}
-    className="!absolute right-4 top-4 !text-white"
+    className="!absolute right-4  !text-white"
   >
     <X className="w-6 h-6" />
   </IconButton>

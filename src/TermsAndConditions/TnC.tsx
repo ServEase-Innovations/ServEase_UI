@@ -1,17 +1,55 @@
 /* eslint-disable */
 import React from 'react';
-import { Container, Typography, Box, Paper, Divider, List, ListItem, ListItemText } from '@mui/material';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Paper, 
+  Divider, 
+  List, 
+  ListItem, 
+  ListItemText,
+  IconButton,
+  Stack
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 // Define the props interface
 interface TnCProps {
   onBack?: () => void;
 }
 
-const TnC = () => {
+const TnC: React.FC<TnCProps> = ({ onBack }) => {
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* Updated padding and border radius */}
-      <Paper elevation={3} sx={{ p: '88px', borderRadius: '2px' }}>
+    <Container maxWidth="md" sx={{ py: 4, mt: '88px' }}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: '88px',
+          borderRadius: '2px',
+          position: 'relative', // Required for absolute positioning
+        }}
+      >
+        {onBack && (
+          <IconButton
+            onClick={onBack}
+            aria-label="back"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              backgroundColor: 'white',
+              boxShadow: 1,
+              borderRadius: '8px',
+              '&:hover': {
+                backgroundColor: '#f0f0f0',
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
+
         <Typography
           variant="h4"
           component="h1"

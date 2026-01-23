@@ -358,26 +358,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                     return false;
                   }}
                   minutesStep={5}
-                  format={prefers24Hour ? "MM/DD/YYYY HH:mm" : "MM/DD/YYYY hh:mm A"}
+                  format={prefers24Hour ? "MM/DD/YYYY HH:mm" : "MM/DD/YYYY"}
                   slotProps={{
                     textField: {
-                      fullWidth: true,
-                      placeholder: "MM/DD/YYYY",
-                      error: false,
                       size: isMobile ? "small" : "medium",
-                    },
-                    actionBar: { actions: ["accept"] },
-                    popper: {
-                      placement: isMobile ? "bottom-start" : "top-start",
-                      modifiers: [
-                        {
-                          name: "offset",
-                          options: {
-                            offset: isMobile ? [0, -10] : [0, 0],
-                          },
-                        },
-                      ],
-                    },
+                      fullWidth: true,
+                      placeholder: "MM/DD/YYYY"
+                    }
                   }}
                 />
               </DemoContainer>

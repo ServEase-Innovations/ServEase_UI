@@ -52,7 +52,7 @@ function App() {
   const [notificationReceived, setNotificationReceived] = useState(false);
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState<boolean>(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
   const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
@@ -60,7 +60,7 @@ function App() {
   const hasCheckedMobileRef = useRef(false);
 
   console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
-  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL);
+  console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL , process.env.REACT_PROVIDER_URL);
 
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
@@ -280,12 +280,12 @@ function App() {
     }
     
     if (currentSection === "PRIVACY_POLICY") {
-      return <PrivacyPolicy />;
+      return <PrivacyPolicy onBack={handleBackToHome} />;
     }
     
     if (currentSection === "TERMS_CONDITIONS") {
-      return <TnC />;
-    }
+      return <TnC onBack={handleBackToHome} />;
+    }    
 
     // Render service-related pages when selection exists
     if (selection === DETAILS) {
@@ -353,12 +353,16 @@ function App() {
         />
       )}
 
-      <Chatbot open={chatOpen} onClose={() => setChatOpen(false)} />
-      <ChatbotButton 
-        open={chatOpen} 
-        onToggle={() => setChatOpen(prev => !prev)} 
+       <ChatbotButton 
+        open={chatbotOpen} 
+        onToggle={() => setChatbotOpen(!chatbotOpen)} 
       />
-
+      
+      {/* Chatbot Window - Only visible when open */}
+      <Chatbot 
+        open={chatbotOpen} 
+        onClose={() => setChatbotOpen(false)} 
+      />
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 

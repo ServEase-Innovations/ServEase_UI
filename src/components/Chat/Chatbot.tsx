@@ -37,13 +37,25 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   ]);
   const [inputText, setInputText] = useState("");
   const [showAllFaq, setShowAllFaq] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleQuestionClick = (faq) => {
+  const handleQuestionClick = (faq: any) => {
     setMessages((prevMessages) => [
       ...prevMessages,
       { text: faq.question, sender: "user" },
@@ -60,148 +72,144 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   };
 
   // Disable dragging for mobile
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  if (!open) return null;
 
   return (
-    <Draggable disabled={isMobile}>
-      <div className="fixed bottom-20 right-2 sm:right-10 z-50 flex flex-col items-end w-full sm:w-auto">
-       
-        {open && (
-          <Card
-            className="
-              w-[90%] max-w-[320px]   /* mobile: small width */
-              sm:w-[26rem] sm:max-w-none  /* tablet/desktop: bigger width */
-              shadow-2xl border border-gray-300 rounded-xl 
-              p-2 sm:p-4 bg-white 
-              max-h-[70vh] sm:max-h-[75vh] 
-              flex flex-col overflow-hidden
-            "
-          >  {/* Header Section with DialogHeader */}
-              <DialogHeader >
-                <div className="flex justify-between items-center w-full">
-                  {chatOpen && (
-                    <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
-                      <ArrowLeft size={22} />
+    <Draggable disabled={isMobile} bounds="parent" handle=".chatbot-header">
+      <div className="fixed bottom-20 right-2 sm:right-10 z-[9998] flex flex-col items-end w-full sm:w-auto">
+        <Card
+          className="
+            w-[90%] max-w-[320px]
+            sm:w-[26rem] sm:max-w-none
+            shadow-2xl border border-gray-300 rounded-xl
+            p-2 sm:p-4 bg-white
+            max-h-[70vh] sm:max-h-[75vh]
+            flex flex-col overflow-hidden
+            chatbot-container
+          "
+        >
+          {/* Header Section with DialogHeader */}
+          <DialogHeader className="chatbot-header">
+            <div className="flex justify-between items-center w-full">
+              {chatOpen && (
+                <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
+                  <ArrowLeft size={22} />
+                </Button>
+              )}
+              <h2 className="text-sm sm:text-lg font-bold text-white-800 flex-grow text-center">
+                Chat Support
+              </h2>
+              <button
+                onClick={onClose}
+                className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
+                aria-label="Close"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          </DialogHeader>
+          
+          <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
+            {/* Messages + FAQ + Contact */}
+            <div
+              className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
+                    msg.sender === "user"
+                      ? "bg-blue-500 text-white self-end rounded-br-none"
+                      : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              ))}
+
+              {!chatOpen && (
+                <>
+                  {/* FAQs */}
+                  {showAllFaq ? (
+                    faqData.map((faq, index) => (
+                      <Button
+                        key={index}
+                        variant="outlined"
+                        className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
+                        onClick={() => handleQuestionClick(faq)}
+                      >
+                        {faq.question}
+                      </Button>
+                    ))
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
+                      onClick={() => setShowAllFaq(true)}
+                    >
+                      View All FAQs
+                      <ChevronDown size={14} className="ml-2" />
                     </Button>
                   )}
-                  <h2 className="text-sm sm:text-lg font-bold text-white-800 flex-grow text-center">
-                    Chat Support
-                  </h2>
-                  <button
-                    onClick={onClose}
-                    className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
-                    aria-label="Close"
+
+                  {/* Divider */}
+                  <div className="border-t border-gray-300 my-2"></div>
+
+                  {/* Email Support */}
+                  <div
+                    className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
+                    onClick={() => window.open("mailto:support@serveaso.com")}
                   >
-                    <X size={22} />
-                  </button>
-                </div>
-              </DialogHeader>
-            <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
+                    <Mail size={18} className="text-blue-600" />
+                    <span className="text-xs sm:text-sm text-gray-700 font-medium">
+                      support@serveaso.com
+                    </span>
+                  </div>
 
-            
+                  {/* Call Support */}
+                  <div
+                    className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
+                    onClick={() => window.open("tel:080123456789")}
+                  >
+                    <Phone size={18} className="text-green-600" />
+                    <span className="text-xs sm:text-sm text-gray-700 font-medium">
+                      080-123456789
+                    </span>
+                  </div>
 
-{/* Messages + FAQ + Contact */}
-<div
-  className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
-  style={{ scrollbarWidth: "thin" }}
->
-  {messages.map((msg, index) => (
-    <div
-      key={index}
-      className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
-        msg.sender === "user"
-          ? "bg-blue-500 text-white self-end rounded-br-none"
-          : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
-      }`}
-    >
-      {msg.text}
-    </div>
-  ))}
-
-  {!chatOpen && (
-    <>
-      {/* FAQs */}
-      {showAllFaq ? (
-        faqData.map((faq, index) => (
-          <Button
-            key={index}
-            variant="outlined"
-            className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
-            onClick={() => handleQuestionClick(faq)}
-          >
-            {faq.question}
-          </Button>
-        ))
-      ) : (
-        <Button
-          variant="outlined"
-          className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
-          onClick={() => setShowAllFaq(true)}
-        >
-          View All FAQs
-          <ChevronDown size={14} className="ml-2" />
-        </Button>
-      )}
-
-     {/* Divider */}
-<div className="border-t border-gray-300 my-2"></div>
-
-{/* Email Support */}
-<div
-  className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
-  onClick={() => window.open("mailto:support@serveaso.com")}
->
-  <Mail size={18} className="text-blue-600" />
-  <span className="text-xs sm:text-sm text-gray-700 font-medium">
-    support@serveaso.com
-  </span>
-</div>
-
-{/* Call Support */}
-<div
-  className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
-  onClick={() => window.open("tel:080123456789")}
->
-  <Phone size={18} className="text-green-600" />
-  <span className="text-xs sm:text-sm text-gray-700 font-medium">
-    080-123456789
-  </span>
-</div>
-
-
-      {/* Chat with Assistant */}
-      <Button
-        variant="contained"
-        className="w-full text-left px-2 py-2 sm:px-4 sm:py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 normal-case text-xs sm:text-sm flex items-center justify-center"
-        onClick={() => setChatOpen(true)}
-      >
-        <MessageCircle size={16} className="mr-2" />
-        Chat with Assistant
-      </Button>
-    </>
-  )}
-  <div ref={messagesEndRef} />
-</div>
-
-              {/* Input */}
-              {chatOpen && (
-                <div className="flex items-center border-t p-2 sm:p-3 bg-gray-100">
-                  <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Type your question..."
-                    className="flex-grow p-2 border rounded-lg outline-none text-xs sm:text-sm"
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage} className="ml-2 min-w-0 p-2">
-                    <Send size={18} />
+                  {/* Chat with Assistant */}
+                  <Button
+                    variant="contained"
+                    className="w-full text-left px-2 py-2 sm:px-4 sm:py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 normal-case text-xs sm:text-sm flex items-center justify-center"
+                    onClick={() => setChatOpen(true)}
+                  >
+                    <MessageCircle size={16} className="mr-2" />
+                    Chat with Assistant
                   </Button>
-                </div>
+                </>
               )}
-            </CardContent>
-          </Card>
-        )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            {chatOpen && (
+              <div className="flex items-center border-t p-2 sm:p-3 bg-gray-100">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Type your question..."
+                  className="flex-grow p-2 border rounded-lg outline-none text-xs sm:text-sm"
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                />
+                <Button onClick={handleSendMessage} className="ml-2 min-w-0 p-2">
+                  <Send size={18} />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Draggable>
   );

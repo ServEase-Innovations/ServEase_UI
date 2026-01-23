@@ -39,7 +39,7 @@ body, html {
 /* Main content styles */
 .main-content {
   flex-grow: 1;
-  padding: 20px;
+  padding: 10%;
   transition: width 0.3s ease;
 }
 
@@ -88,6 +88,7 @@ body, html {
   margin-top: 1%;
   height : 85%;
   width: 100%; 
+  padding: 1%;
   }
 
   .search{
