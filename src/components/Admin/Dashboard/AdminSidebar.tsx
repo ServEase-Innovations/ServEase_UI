@@ -35,7 +35,8 @@ import { title } from "process";
     { title: "Pricing", id: "pricing", icon: DollarSign },
     { title: "Upload Data", id: "upload-data", icon: Upload },
     { title: "Settings", id: "settings", icon: Settings },
-    {title : "Permissions", id: "permissions", icon: Settings } // Assuming Permissions is a settings-like section
+    {title : "Permissions", id: "permissions", icon: Settings },
+    {title : "Ledger", id: "ledger", icon: Settings } // Assuming Permissions is a settings-like section
   ];
   
   interface AdminSidebarProps {

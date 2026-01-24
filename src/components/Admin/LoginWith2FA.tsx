@@ -24,7 +24,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await utilsInstance.post(`/register`, { username, password });
+      const res = await utilsInstance.post(`/api/register`, { username, password });
       if (res.data.qr) {
         setMessage('✅ Registered successfully! Please login now.');
         setMode('login');
@@ -44,7 +44,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await utilsInstance.post(`/login`, { username, password });
+      const res = await utilsInstance.post(`/api/login`, { username, password });
       if (res.data.message === '2FA required') {
         setUserId(res.data.userId);
         setStep('2fa');
@@ -63,7 +63,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await utilsInstance.post(`/verify-token`, {
+      const res = await utilsInstance.post(`/api/verify-token`, {
         username,
         token: otpCode,
       });

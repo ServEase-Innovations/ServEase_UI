@@ -17,7 +17,7 @@ const RegisterWith2FA = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await utilsInstance.post(`/register`, { username, password });
+      const res = await utilsInstance.post(`/api/register`, { username, password });
       setQrCode(res.data.qr); // base64 image
       setUsername(res.data.username); // Needed for OTP verify
       setStep("verify");
@@ -30,7 +30,7 @@ const RegisterWith2FA = () => {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await utilsInstance.post(`/verify`, { username, token: otp });
+      const res = await utilsInstance.post(`/api/verify`, { username, token: otp });
       setMessage("✅ 2FA setup complete! You can now login.");
       setStep("register");
       setQrCode("");

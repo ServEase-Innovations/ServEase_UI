@@ -15,6 +15,7 @@ import { Bell, Search, User } from "lucide-react";
 import { Input } from "src/components/Common/input";
 import { Button } from "src/components/Common/button";
 import Permissions from "./Permissions";
+import AdminLedgerGrid from "./AdminLedgerGrid";
 
 export function DashboardLayout ({ userRole }: { userRole: string })  {
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -70,6 +71,8 @@ export function DashboardLayout ({ userRole }: { userRole: string })  {
           return <Settings />;
         case "permissions":
             return <Permissions />;
+        case "ledger":
+            return <AdminLedgerGrid />;
         default:
           return <Dashboard />;
       }
