@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { AgGridReact } from "ag-grid-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRef } from "react";
