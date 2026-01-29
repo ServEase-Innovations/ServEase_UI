@@ -37,8 +37,10 @@ export interface AddressData {
 
 interface AddressComponentProps {
   onAddressChange: (type: 'permanent' | 'correspondence', data: AddressData) => void;
+  onSameAddressToggle: (checked: boolean) => void;
   permanentAddress: AddressData;
   correspondenceAddress: AddressData;
+  isSameAddress: boolean;
   errors?: {
     permanent?: Partial<AddressData>;
     correspondence?: Partial<AddressData>;
@@ -144,11 +146,12 @@ const countryStateService = new CountryStateService();
 
 const AddressComponent: React.FC<AddressComponentProps> = ({
   onAddressChange,
+  onSameAddressToggle,
   permanentAddress,
   correspondenceAddress,
+  isSameAddress,
   errors = {}
 }) => {
-  const [isSameAddress, setIsSameAddress] = useState(false);
   const [showPincodeHelp, setShowPincodeHelp] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
   const [permanentStates, setPermanentStates] = useState<State[]>([]);
@@ -239,10 +242,6 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
   const handlePermanentAddressChange = (field: keyof AddressData, value: string) => {
     const newAddress = { ...permanentAddress, [field]: value };
     onAddressChange('permanent', newAddress);
-
-    if (isSameAddress) {
-      onAddressChange('correspondence', newAddress);
-    }
   };
 
   // Handle country and state changes for permanent address
@@ -253,19 +252,11 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
       state: '' // Clear state when country changes
     };
     onAddressChange('permanent', newAddress);
-
-    if (isSameAddress) {
-      onAddressChange('correspondence', newAddress);
-    }
   };
 
   const handlePermanentStateChange = (selectedState: string) => {
     const newAddress = { ...permanentAddress, state: selectedState };
     onAddressChange('permanent', newAddress);
-
-    if (isSameAddress) {
-      onAddressChange('correspondence', newAddress);
-    }
   };
 
   // Handle correspondence address field changes
@@ -288,14 +279,9 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
     handleCorrespondenceAddressChange('state', selectedState);
   };
 
-  const handleSameAddressToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
-    setIsSameAddress(checked);
-
-    if (checked) {
-      // Copy permanent → correspondence
-      onAddressChange('correspondence', permanentAddress);
-    }
+    onSameAddressToggle(checked);
   };
 
   // Get current country object for Autocomplete
@@ -516,7 +502,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
           control={
             <Checkbox
               checked={isSameAddress}
-              onChange={handleSameAddressToggle}
+              onChange={handleCheckboxToggle}
               color="primary"
               size="medium"
               sx={{ '& .MuiSvgIcon-root': { fontSize: 28 } }}

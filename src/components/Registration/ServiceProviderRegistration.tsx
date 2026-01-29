@@ -60,6 +60,7 @@ import {
   MyLocation as MyLocationIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
+
 // Define the shape of formData using an interface
 interface FormData {
   firstName: string;
@@ -71,12 +72,12 @@ interface FormData {
   confirmPassword: string;
   mobileNo: string;
   AlternateNumber: string;
-  buildingName: string; // Add back
-  locality: string; // Add back
-  street: string; // Add back
-  currentLocation: string; // Add back
-  nearbyLocation: string; // Add back
-  pincode: string; // Add back
+  buildingName: string;
+  locality: string;
+  street: string;
+  currentLocation: string;
+  nearbyLocation: string;
+  pincode: string;
   latitude: number;
   longitude: number;
   AADHAR: string;
@@ -203,7 +204,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     longitude: number;
     address: string;
   } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Add submitting state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSameAddress, setIsSameAddress] = useState(false); // Move state here
 
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -215,12 +217,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     confirmPassword: "",
     mobileNo: "",
     AlternateNumber: "",
-    buildingName: "", // Add back
-    locality: "", // Add back
-    street: "", // Add back
-    currentLocation: "", // Add back
-    nearbyLocation: "", // Add back
-    pincode: "", // Add back
+    buildingName: "",
+    locality: "",
+    street: "",
+    currentLocation: "",
+    nearbyLocation: "",
+    pincode: "",
     latitude: 0,
     longitude: 0,
     AADHAR: "",
@@ -291,65 +293,115 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       ...prev,
       [name]: value,
     }));
+    
+    // Clear error for this field when user types
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
-const handleAddressChange = async (type: 'permanent' | 'correspondence', data: any) => {
-  // First update the form data
-  setFormData(prev => ({
-    ...prev,
-    [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
-  }));
 
-  // Geocode the address to get coordinates
-  if (data.apartment && data.street && data.city && data.state && data.pincode) {
-    try {
-      const fullAddress = `${data.apartment}, ${data.street}, ${data.city}, ${data.state}, ${data.pincode}, ${data.country}`;
+  const handleSameAddressToggle = (checked: boolean) => {
+    setIsSameAddress(checked);
+    
+    if (checked) {
+      // Copy permanent address to correspondence address
+      setFormData(prev => ({
+        ...prev,
+        correspondenceAddress: { ...prev.permanentAddress }
+      }));
       
-      const response = await axios.get(
-        "https://maps.googleapis.com/maps/api/geocode/json",
-        {
-          params: {
-            address: fullAddress,
-            key: keys.api_key, // Your Google Maps API key
-          },
-        }
-      );
+      // Clear correspondence address errors
+      setErrors(prev => ({
+        ...prev,
+        correspondenceAddress: undefined
+      }));
+    }
+  };
 
-      if (response.data.results && response.data.results.length > 0) {
-        const location = response.data.results[0].geometry.location;
-        const address = response.data.results[0].formatted_address;
+  const handleAddressChange = async (type: 'permanent' | 'correspondence', data: any) => {
+    const newFormData = {
+      ...formData,
+      [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
+    };
+    
+    // If isSameAddress is true and we're updating permanent address, also update correspondence address
+    if (isSameAddress && type === 'permanent') {
+      newFormData.correspondenceAddress = data;
+    }
+    
+    setFormData(newFormData);
 
-        // Update coordinates and address
-        setFormData(prev => ({
-          ...prev,
-          latitude: location.lat,
-          longitude: location.lng,
-          currentLocation: address,
-          locality: data.city,
-          street: data.street,
-          pincode: data.pincode,
-          buildingName: data.apartment
-        }));
+    // Clear address errors when address is being filled
+    if (type === 'permanent') {
+      setErrors(prev => ({
+        ...prev,
+        permanentAddress: undefined
+      }));
+    } else if (!isSameAddress) { // Only clear correspondence errors if not same address
+      setErrors(prev => ({
+        ...prev,
+        correspondenceAddress: undefined
+      }));
+    }
 
-        // Also update current location state if needed
-        if (type === 'permanent') {
-          setCurrentLocation({
+    // If permanent address is updated and isSameAddress is true, also clear correspondence errors
+    if (type === 'permanent' && isSameAddress) {
+      setErrors(prev => ({
+        ...prev,
+        correspondenceAddress: undefined
+      }));
+    }
+
+    if (data.apartment && data.street && data.city && data.state && data.pincode) {
+      try {
+        const fullAddress = `${data.apartment}, ${data.street}, ${data.city}, ${data.state}, ${data.pincode}, ${data.country}`;
+        
+        const response = await axios.get(
+          "https://maps.googleapis.com/maps/api/geocode/json",
+          {
+            params: {
+              address: fullAddress,
+              key: keys.api_key,
+            },
+          }
+        );
+
+        if (response.data.results && response.data.results.length > 0) {
+          const location = response.data.results[0].geometry.location;
+          const address = response.data.results[0].formatted_address;
+
+          setFormData(prev => ({
+            ...prev,
             latitude: location.lat,
             longitude: location.lng,
-            address: address
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error geocoding address:", error);
-      // Optional: Show error to user
-      setSnackbarMessage("Could not get coordinates for this address. Please check the address details.");
-      setSnackbarSeverity("warning");
-      setSnackbarOpen(true);
-    }
-  }
-};
+            currentLocation: address,
+            locality: data.city,
+            street: data.street,
+            pincode: data.pincode,
+            buildingName: data.apartment
+          }));
 
-  const { validationResults, validateField, resetValidation } = useFieldValidation();
+          if (type === 'permanent') {
+            setCurrentLocation({
+              latitude: location.lat,
+              longitude: location.lng,
+              address: address
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error geocoding address:", error);
+        setSnackbarMessage("Could not get coordinates for this address. Please check the address details.");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+      }
+    }
+  };
+
+  const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation();
 
   // Add debounced validation functions
   const debouncedEmailValidation = useCallback(
@@ -376,27 +428,55 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
   // Function to clear email field when cross icon is clicked
   const handleClearEmail = () => {
     setFormData(prev => ({ ...prev, emailId: "" }));
-    setErrors(prev => ({ ...prev, emailId: "" }));
+    setErrors(prev => ({ ...prev, emailId: undefined }));
     resetValidation('email');
   };
 
   // Function to clear mobile field when cross icon is clicked
   const handleClearMobile = () => {
     setFormData(prev => ({ ...prev, mobileNo: "" }));
-    setErrors(prev => ({ ...prev, mobileNo: "" }));
+    setErrors(prev => ({ ...prev, mobileNo: undefined }));
     resetValidation('mobile');
   };
 
   // Function to clear alternate mobile field when cross icon is clicked
   const handleClearAlternate = () => {
     setFormData(prev => ({ ...prev, AlternateNumber: "" }));
-    setErrors(prev => ({ ...prev, AlternateNumber: "" }));
+    setErrors(prev => ({ ...prev, AlternateNumber: undefined }));
     resetValidation('alternate');
+  };
+
+  // Helper function to check if step 0 is ready for next
+  const isStep0ReadyForNext = () => {
+    // Check if required fields are filled
+    const requiredFieldsFilled = formData.firstName.trim() && 
+                                 formData.lastName.trim() && 
+                                 formData.gender && 
+                                 formData.emailId.trim() && 
+                                 formData.password.trim() && 
+                                 formData.confirmPassword.trim() && 
+                                 formData.mobileNo.trim();
+
+    // Check if there are any validation errors
+    const hasValidationErrors = validationResults.email.error || 
+                               validationResults.mobile.error ||
+                               !validationResults.email.isAvailable ||
+                               !validationResults.mobile.isAvailable;
+
+    return requiredFieldsFilled && !hasValidationErrors;
   };
 
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const aadhaarPattern = /^[0-9]{12}$/;
+
+    // Clear error for this field when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
 
     if (name === "firstName") {
       const trimmedValue = value.trim();
@@ -424,17 +504,18 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
     }
 
     if (name === "lastName") {
-      if (!value.trim()) {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           lastName: "Last Name is required.",
         }));
-      } else if (!nameRegex.test(value.trim())) {
+      } else if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           lastName: "Last Name should contain only alphabets.",
         }));
-      } else if (value.length > MAX_NAME_LENGTH) {
+      } else if (trimmedValue.length > MAX_NAME_LENGTH) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
@@ -448,27 +529,33 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
     }
 
     if (name === "password") {
-      if (value.length < 8) {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          password: "Password is required.",
+        }));
+      } else if (trimmedValue.length < 8) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: "Password must be at least 8 characters long.",
         }));
-      } else if (!/[A-Z]/.test(value)) {
+      } else if (!/[A-Z]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: "Password must contain at least one uppercase letter.",
         }));
-      } else if (!/[a-z]/.test(value)) {
+      } else if (!/[a-z]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: "Password must contain at least one lowercase letter.",
         }));
-      } else if (!/[0-9]/.test(value)) {
+      } else if (!/[0-9]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: "Password must contain at least one digit.",
         }));
-      } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+      } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: "Password must contain at least one special character.",
@@ -482,7 +569,13 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
     }
 
     if (name === "confirmPassword") {
-      if (value !== formData.password) {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          confirmPassword: "Confirm Password is required.",
+        }));
+      } else if (trimmedValue !== formData.password) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           confirmPassword: "Passwords do not match",
@@ -496,8 +589,16 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
     }
 
     if (name === "emailId") {
+      const trimmedValue = value.trim();
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(value)) {
+      
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          emailId: "Email is required.",
+        }));
+        resetValidation('email');
+      } else if (!emailPattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           emailId: "Please enter a valid email address.",
@@ -508,14 +609,21 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
           ...prevErrors,
           emailId: "",
         }));
-        // Trigger debounced email validation
-        debouncedEmailValidation(value);
+        debouncedEmailValidation(trimmedValue);
       }
     }
 
     if (name === "mobileNo") {
+      const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
-      if (!mobilePattern.test(value)) {
+      
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          mobileNo: "Mobile number is required.",
+        }));
+        resetValidation('mobile');
+      } else if (!mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           mobileNo: "Please enter a valid 10-digit mobile number.",
@@ -526,34 +634,45 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
           ...prevErrors,
           mobileNo: "",
         }));
-        // Trigger debounced mobile validation
-        debouncedMobileValidation(value);
+        debouncedMobileValidation(trimmedValue);
       }
     }
 
     if (name === "AlternateNumber" && value) {
+      const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
-      if (!mobilePattern.test(value)) {
+      
+      if (trimmedValue && !mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AlternateNumber: "Please enter a valid 10-digit mobile number.",
         }));
         resetValidation('alternate');
+      } else if (trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          AlternateNumber: "",
+        }));
+        debouncedAlternateValidation(trimmedValue);
       } else {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AlternateNumber: "",
         }));
-        // Trigger debounced alternate number validation
-        debouncedAlternateValidation(value);
+        resetValidation('alternate');
       }
     }
 
     if (name === "AADHAR") {
-      if (!aadhaarPattern.test(value)) {
+      if (!value) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          AADHAR: "AADHAR number must be exactly 12 digits.",
+          AADHAR: "Aadhaar number is required.",
+        }));
+      } else if (!aadhaarPattern.test(value)) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          AADHAR: "Aadhaar number must be exactly 12 digits.",
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -565,12 +684,19 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
 
     if (name === "pincode") {
       const numericValue = value.replace(/\D/g, "");
+      const trimmedValue = numericValue.slice(0, 6);
+      
       setFormData((prevData) => ({
         ...prevData,
-        [name]: numericValue.slice(0, 6),
+        [name]: trimmedValue,
       }));
 
-      if (numericValue.length !== 6) {
+      if (!trimmedValue) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          pincode: "Pincode is required.",
+        }));
+      } else if (trimmedValue.length !== 6) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           pincode: "Pincode must be exactly 6 digits.",
@@ -583,9 +709,20 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       }
     }
 
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
+    // Handle other fields
+    if (name !== "pincode") {
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+  };
+
+  // Clear specific error when field is focused
+  const handleFieldFocus = (fieldName: string) => {
+    setErrors(prevErrors => ({
+      ...prevErrors,
+      [fieldName]: ""
     }));
   };
 
@@ -594,23 +731,24 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
   ) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, cookingSpeciality: value }));
+    setErrors(prevErrors => ({ ...prevErrors, cookingSpeciality: "" }));
   };
 
-  const validateForm = (): boolean => {
+  const validateStep = (step: number): boolean => {
     let tempErrors: FormErrors = {};
 
-    if (activeStep === 0) {
-      if (!formData.firstName) {
+    if (step === 0) {
+      if (!formData.firstName.trim()) {
         tempErrors.firstName = "First Name is required.";
-      } else if (!nameRegex.test(formData.firstName)) {
+      } else if (!nameRegex.test(formData.firstName.trim())) {
         tempErrors.firstName = "First Name should contain only alphabets.";
       } else if (formData.firstName.length > MAX_NAME_LENGTH) {
         tempErrors.firstName = `First Name should be under ${MAX_NAME_LENGTH} characters.`;
       }
 
-      if (!formData.lastName) {
+      if (!formData.lastName.trim()) {
         tempErrors.lastName = "Last Name is required.";
-      } else if (!nameRegex.test(formData.lastName)) {
+      } else if (!nameRegex.test(formData.lastName.trim())) {
         tempErrors.lastName = "Last Name should contain only alphabets.";
       } else if (formData.lastName.length > MAX_NAME_LENGTH) {
         tempErrors.lastName = `Last Name should be under ${MAX_NAME_LENGTH} characters.`;
@@ -619,77 +757,98 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       if (!formData.gender) {
         tempErrors.gender = "Please select a gender.";
       }
-      if (validationResults.email.error) {
+      
+      if (!formData.emailId.trim()) {
+        tempErrors.emailId = "Email is required.";
+      } else if (!emailIdRegex.test(formData.emailId.trim())) {
+        tempErrors.emailId = "Please enter a valid email address.";
+      } else if (validationResults.email.error) {
         tempErrors.emailId = validationResults.email.error;
+      } else if (!validationResults.email.isAvailable) {
+        tempErrors.emailId = "Email is not available.";
       }
-      if (!formData.password || !strongPasswordRegex.test(formData.password)) {
+      
+      if (!formData.password.trim()) {
         tempErrors.password = "Password is required.";
+      } else if (!strongPasswordRegex.test(formData.password.trim())) {
+        tempErrors.password = "Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.";
       }
-      if (formData.password !== formData.confirmPassword) {
+      
+      if (!formData.confirmPassword.trim()) {
+        tempErrors.confirmPassword = "Confirm Password is required.";
+      } else if (formData.password.trim() !== formData.confirmPassword.trim()) {
         tempErrors.confirmPassword = "Passwords do not match.";
       }
-      if (validationResults.mobile.error) {
+      
+      if (!formData.mobileNo.trim()) {
+        tempErrors.mobileNo = "Mobile number is required.";
+      } else if (!phoneRegex.test(formData.mobileNo.trim())) {
+        tempErrors.mobileNo = "Please enter a valid 10-digit mobile number.";
+      } else if (validationResults.mobile.error) {
         tempErrors.mobileNo = validationResults.mobile.error;
+      } else if (!validationResults.mobile.isAvailable) {
+        tempErrors.mobileNo = "Mobile number is not available.";
       }
     }
 
-    if (activeStep === 1) {
-      // Validate permanent address
-      if (!formData.permanentAddress.apartment) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, apartment: "Apartment is required." };
+    if (step === 1) {
+      const permanentErrors: any = {};
+      if (!formData.permanentAddress.apartment?.trim()) {
+        permanentErrors.apartment = "Apartment is required.";
       }
-      if (!formData.permanentAddress.street) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, street: "Street is required." };
+      if (!formData.permanentAddress.street?.trim()) {
+        permanentErrors.street = "Street is required.";
       }
-      if (!formData.permanentAddress.city) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, city: "City is required." };
+      if (!formData.permanentAddress.city?.trim()) {
+        permanentErrors.city = "City is required.";
       }
-      if (!formData.permanentAddress.state) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, state: "State is required." };
+      if (!formData.permanentAddress.state?.trim()) {
+        permanentErrors.state = "State is required.";
       }
-      if (!formData.permanentAddress.country) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, country: "Country is required." };
+      if (!formData.permanentAddress.country?.trim()) {
+        permanentErrors.country = "Country is required.";
       }
-      if (!formData.permanentAddress.pincode) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode is required." };
+      if (!formData.permanentAddress.pincode?.trim()) {
+        permanentErrors.pincode = "Pincode is required.";
       } else if (formData.permanentAddress.pincode.length !== 6) {
-        tempErrors.permanentAddress = { ...tempErrors.permanentAddress, pincode: "Pincode must be exactly 6 digits." };
+        permanentErrors.pincode = "Pincode must be exactly 6 digits.";
       }
 
-      // Validate correspondence address only if it's different from permanent address
-      const isSameAddress =
-        formData.permanentAddress.apartment === formData.correspondenceAddress.apartment &&
-        formData.permanentAddress.street === formData.correspondenceAddress.street &&
-        formData.permanentAddress.city === formData.correspondenceAddress.city &&
-        formData.permanentAddress.state === formData.correspondenceAddress.state &&
-        formData.permanentAddress.country === formData.correspondenceAddress.country &&
-        formData.permanentAddress.pincode === formData.correspondenceAddress.pincode;
+      if (Object.keys(permanentErrors).length > 0) {
+        tempErrors.permanentAddress = permanentErrors;
+      }
 
+      // Only validate correspondence address if not same as permanent
       if (!isSameAddress) {
-        if (!formData.correspondenceAddress.apartment) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, apartment: "Apartment is required." };
+        const correspondenceErrors: any = {};
+        if (!formData.correspondenceAddress.apartment?.trim()) {
+          correspondenceErrors.apartment = "Apartment is required.";
         }
-        if (!formData.correspondenceAddress.street) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, street: "Street is required." };
+        if (!formData.correspondenceAddress.street?.trim()) {
+          correspondenceErrors.street = "Street is required.";
         }
-        if (!formData.correspondenceAddress.city) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, city: "City is required." };
+        if (!formData.correspondenceAddress.city?.trim()) {
+          correspondenceErrors.city = "City is required.";
         }
-        if (!formData.correspondenceAddress.state) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, state: "State is required." };
+        if (!formData.correspondenceAddress.state?.trim()) {
+          correspondenceErrors.state = "State is required.";
         }
-        if (!formData.correspondenceAddress.country) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, country: "Country is required." };
+        if (!formData.correspondenceAddress.country?.trim()) {
+          correspondenceErrors.country = "Country is required.";
         }
-        if (!formData.correspondenceAddress.pincode) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode is required." };
+        if (!formData.correspondenceAddress.pincode?.trim()) {
+          correspondenceErrors.pincode = "Pincode is required.";
         } else if (formData.correspondenceAddress.pincode.length !== 6) {
-          tempErrors.correspondenceAddress = { ...tempErrors.correspondenceAddress, pincode: "Pincode must be exactly 6 digits." };
+          correspondenceErrors.pincode = "Pincode must be exactly 6 digits.";
+        }
+
+        if (Object.keys(correspondenceErrors).length > 0) {
+          tempErrors.correspondenceAddress = correspondenceErrors;
         }
       }
     }
 
-    if (activeStep === 2) {
+    if (step === 2) {
       if (!formData.housekeepingRole) {
         tempErrors.housekeepingRole = "Please select a service type.";
       }
@@ -705,13 +864,15 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       }
     }
 
-    if (activeStep === 3) {
-      if (!formData.AADHAR || !aadhaarRegex.test(formData.AADHAR)) {
-        tempErrors.kyc = "Aadhaar number must be exactly 12 digits.";
+    if (step === 3) {
+      if (!formData.AADHAR) {
+        tempErrors.AADHAR = "Aadhaar number is required.";
+      } else if (!aadhaarRegex.test(formData.AADHAR)) {
+        tempErrors.AADHAR = "Aadhaar number must be exactly 12 digits.";
       }
     }
 
-    if (activeStep === 4) {
+    if (step === 4) {
       if (!formData.keyFacts) {
         tempErrors.keyFacts = "You must agree to the Key Facts Document";
       }
@@ -723,17 +884,48 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       }
     }
 
-    setErrors(tempErrors);
-    return Object.keys(tempErrors).length === 0;
+    // Only set errors if there are any
+    if (Object.keys(tempErrors).length > 0) {
+      setErrors(tempErrors);
+      return false;
+    }
+    
+    return true;
   };
 
   const handleNext = () => {
-    if (validateForm()) {
-      setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
-      if (activeStep === steps.length - 1) {
-        setSnackbarMessage("Registration Successful!");
+    // For step 0, check if validations are complete before proceeding
+    if (activeStep === 0) {
+      if (validationResults.email.loading || validationResults.mobile.loading) {
+        setSnackbarMessage("Please wait for email/mobile validation to complete.");
+        setSnackbarSeverity("warning");
         setSnackbarOpen(true);
+        return;
       }
+      
+      // Validate the current step
+      if (!validateStep(activeStep)) {
+        return;
+      }
+      
+      // Additional check for validation results
+      if (!isStep0ReadyForNext()) {
+        setSnackbarMessage("Please fix email/mobile validation errors before proceeding.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+        return;
+      }
+    } else {
+      // For other steps, just validate
+      if (!validateStep(activeStep)) {
+        return;
+      }
+    }
+    
+    setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
+    if (activeStep === steps.length - 1) {
+      setSnackbarMessage("Registration Successful!");
+      setSnackbarOpen(true);
     }
   };
 
@@ -743,6 +935,14 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       ...prev,
       [name]: checked,
     }));
+    
+    // Clear the error when checkbox is checked
+    if (checked) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const handleBack = () => {
@@ -758,8 +958,8 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
 
     if (activeStep !== steps.length - 1) return;
 
-    if (validateForm()) {
-      setIsSubmitting(true); // Start loading
+    if (validateStep(activeStep)) {
+      setIsSubmitting(true);
       try {
         let profilePicUrl = "";
 
@@ -781,7 +981,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
             profilePicUrl = imageResponse.data.imageUrl;
           }
         }
-        // Prepare the payload with conditional cookingSpeciality
+        
         const payload = {
           firstName: formData.firstName,
           middleName: formData.middleName,
@@ -846,7 +1046,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
         setSnackbarSeverity("success");
         setSnackbarMessage("Service provider added successfully!");
 
-        // Create Auth0 user
         const authPayload = {
           email: formData.emailId,
           password: formData.password,
@@ -861,18 +1060,18 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
           });
 
         setTimeout(() => {
-          setIsSubmitting(false); // Stop loading
+          setIsSubmitting(false);
           onBackToLogin(true);
         }, 3000);
       } catch (error) {
-        setIsSubmitting(false); // Stop loading on error
+        setIsSubmitting(false);
         setSnackbarOpen(true);
         setSnackbarSeverity("error");
         setSnackbarMessage("Failed to add service provider. Please try again.");
         console.error("Error submitting form:", error);
       }
     } else {
-      setIsSubmitting(false); // Stop loading if validation fails
+      setIsSubmitting(false);
       setSnackbarOpen(true);
       setSnackbarSeverity("warning");
       setSnackbarMessage("Please fill out all required fields.");
@@ -960,6 +1159,9 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
               buildingName: apartment || ""
             }));
 
+            // Also set isSameAddress to true since we're using the same address
+            setIsSameAddress(true);
+
             setSnackbarMessage("Location fetched successfully!");
             setSnackbarSeverity("success");
             setSnackbarOpen(true);
@@ -1024,6 +1226,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
   const handledietChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, diet: value }));
+    setErrors(prevErrors => ({ ...prevErrors, diet: "" }));
   };
 
   const handleDOBChange = (dob: string) => {
@@ -1049,7 +1252,29 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       terms: allAccepted,
       privacy: allAccepted,
     }));
+    
+    if (allAccepted) {
+      setErrors(prev => ({
+        ...prev,
+        keyFacts: "",
+        terms: "",
+        privacy: ""
+      }));
+    }
   }, []);
+
+  const handleServiceTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, housekeepingRole: value }));
+    setIsCookSelected(value === "COOK");
+    setErrors(prev => ({ ...prev, housekeepingRole: "" }));
+  };
+
+  const handleExperienceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, experience: value }));
+    setErrors(prev => ({ ...prev, experience: "" }));
+  };
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -1067,6 +1292,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.firstName}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("firstName")}
                 error={!!errors.firstName}
                 helperText={errors.firstName}
                 inputProps={{ maxLength: MAX_NAME_LENGTH }}
@@ -1090,6 +1316,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.lastName}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("lastName")}
                 error={!!errors.lastName}
                 helperText={errors.lastName}
                 inputProps={{ maxLength: MAX_NAME_LENGTH }}
@@ -1147,6 +1374,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.emailId}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("emailId")}
                 error={!!errors.emailId || validationResults.email.isAvailable === false}
                 helperText={
                   errors.emailId ||
@@ -1187,6 +1415,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.password}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("password")}
                 error={!!errors.password}
                 helperText={errors.password}
                 InputProps={{
@@ -1213,10 +1442,11 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.confirmPassword}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("confirmPassword")}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword}
-                onPaste={(e) => e.preventDefault()} // Prevent paste
-                onCopy={(e) => e.preventDefault()} // Prevent copy
+                onPaste={(e) => e.preventDefault()}
+                onCopy={(e) => e.preventDefault()}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -1244,6 +1474,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.mobileNo}
                 onChange={handleRealTimeValidation}
+                onFocus={() => handleFieldFocus("mobileNo")}
                 error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
                 helperText={
                   errors.mobileNo ||
@@ -1316,78 +1547,75 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
           </Grid>
         );
       
-     case 1:
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <AddressComponent
-          onAddressChange={handleAddressChange}
-          permanentAddress={formData.permanentAddress}
-          correspondenceAddress={formData.correspondenceAddress}
-          errors={{
-            permanent: errors.permanentAddress,
-            correspondence: errors.correspondenceAddress
-          }}
-        />
-      </Grid>
-      
-      <Grid item xs={12}>
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-              <LocationOnIcon color="primary" sx={{ mr: 1 }} />
-              Current Location
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Use GPS to automatically fetch your current location coordinates
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={fetchLocationData}
-                startIcon={<MyLocationIcon />}
-                sx={{ 
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1.5,
-                  textTransform: 'none',
-                  fontWeight: 600
+      case 1:
+        return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <AddressComponent
+                onAddressChange={handleAddressChange}
+                onSameAddressToggle={handleSameAddressToggle}
+                permanentAddress={formData.permanentAddress}
+                correspondenceAddress={formData.correspondenceAddress}
+                isSameAddress={isSameAddress}
+                errors={{
+                  permanent: errors.permanentAddress,
+                  correspondence: errors.correspondenceAddress
                 }}
-              >
-                Fetch My Location (GPS)
-              </Button>
-              
-              {(formData.latitude !== 0 || formData.longitude !== 0) && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CheckCircleIcon color="success" />
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                    <strong>Location found:</strong> 
-                    Lat: {formData.latitude.toFixed(6)}, 
-                    Lng: {formData.longitude.toFixed(6)}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+              />
+            </Grid>
             
-            {(formData.latitude !== 0 || formData.longitude !== 0) && (
-              <Alert 
-                severity="success" 
-                sx={{ mt: 2, borderRadius: 2 }}
-                icon={false}
-              >
-                <Typography variant="body2">
-                  <strong>Address detected:</strong> {formData.currentLocation || "Fetching address..."}
-                </Typography>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
-      case 2: // Additional Details
+            <Grid item xs={12}>
+              <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                    <LocationOnIcon color="primary" sx={{ mr: 1 }} />
+                    Current Location
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Use GPS to automatically fetch your current location coordinates
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={fetchLocationData}
+                      startIcon={<MyLocationIcon />}
+                      sx={{ 
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                        textTransform: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      Fetch My Location (GPS)
+                    </Button>
+                    
+                    {(formData.latitude !== 0 || formData.longitude !== 0) && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CheckCircleIcon color="success" />
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {(formData.latitude !== 0 || formData.longitude !== 0) && (
+                    <Alert 
+                      severity="success" 
+                      sx={{ mt: 2, borderRadius: 2 }}
+                      icon={false}
+                    >
+                      <Typography variant="body2">
+                        <strong>Address detected:</strong> {formData.currentLocation || "Fetching address..."}
+                      </Typography>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        );
+      case 2:
         return (
           <Grid container spacing={2}>
             <Grid
@@ -1402,10 +1630,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 name="housekeepingRole"
                 fullWidth
                 value={formData.housekeepingRole}
-                onChange={(e) => {
-                  handleChange(e);
-                  setIsCookSelected(e.target.value === "COOK");
-                }}
+                onChange={handleServiceTypeChange}
                 error={!!errors.housekeepingRole}
                 helperText={errors.housekeepingRole}
                 required
@@ -1494,7 +1719,7 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 fullWidth
                 required
                 value={formData.experience}
-                onChange={handleChange}
+                onChange={handleExperienceChange}
                 error={!!errors.experience}
                 helperText={
                   errors.experience ||
@@ -1539,7 +1764,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                     style={{ width: '100%', marginLeft: 0 }}
                   />
 
-                  {/* Morning Slider */}
                   <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
                     <Typography align="center" gutterBottom>
                       Morning (6:00 AM - 12:00 PM)
@@ -1572,7 +1796,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                     />
                   </Box>
 
-                  {/* Evening Slider */}
                   <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
                     <Typography align="center" gutterBottom>
                       Evening (12:00 PM - 8:00 PM)
@@ -1620,8 +1843,9 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                 required
                 value={formData.AADHAR || ""}
                 onChange={handleRealTimeValidation}
-                error={!!errors.kyc}
-                helperText={errors.kyc}
+                onFocus={() => handleFieldFocus("AADHAR")}
+                error={!!errors.AADHAR}
+                helperText={errors.AADHAR}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1639,7 +1863,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
       case 4:
         return (
           <Grid container spacing={1}>
-
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Typography gutterBottom>
                 Please agree to the following before proceeding with your Registration:
@@ -1647,7 +1870,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <TermsCheckboxes onChange={handleTermsChange} />
-
               </Box>
             </Grid>
           </Grid>
@@ -1690,7 +1912,6 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
         </DialogHeader>
 
         <Box sx={{ padding: 2 }}>
-
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label, index) => (
               <Step key={index}>
@@ -1744,18 +1965,35 @@ const handleAddressChange = async (type: 'permanent' | 'correspondence', data: a
                   </span>
                 </Tooltip>
               ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={(e) => {
-                    e.preventDefault(); // Prevent form submission
-                    handleNext(); // Only proceed to next step
-                  }}
-                  endIcon={<ArrowForward />}
-                  disabled={isSubmitting}
+                <Tooltip
+                  title={
+                    activeStep === 0 && !isStep0ReadyForNext()
+                      ? validationResults.email.loading || validationResults.mobile.loading
+                        ? "Validating email/mobile, please wait..."
+                        : !isStep0ValidationsComplete()
+                        ? "Please fix email/mobile validation errors"
+                        : "Please complete all required fields"
+                      : ""
+                  }
                 >
-                  Next
-                </Button>
+                  <span>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNext();
+                      }}
+                      endIcon={<ArrowForward />}
+                      disabled={
+                        isSubmitting || 
+                        (activeStep === 0 && !isStep0ReadyForNext())
+                      }
+                    >
+                      Next
+                    </Button>
+                  </span>
+                </Tooltip>
               )}
             </Box>
           </form>
