@@ -2,11 +2,11 @@
 import { useState, useCallback } from 'react';
 import providerInstance from 'src/services/providerInstance';
 
-
 interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
+  isValidated: boolean; // Add this flag
 }
 
 interface ValidationResults {
@@ -17,23 +17,33 @@ interface ValidationResults {
 
 export const useFieldValidation = () => {
   const [validationResults, setValidationResults] = useState<ValidationResults>({
-    email: { loading: false, error: '', isAvailable: null },
-    mobile: { loading: false, error: '', isAvailable: null },
-    alternate: { loading: false, error: '', isAvailable: null },
+    email: { loading: false, error: '', isAvailable: null, isValidated: false },
+    mobile: { loading: false, error: '', isAvailable: null, isValidated: false },
+    alternate: { loading: false, error: '', isAvailable: null, isValidated: false },
   });
 
   const validateField = useCallback(async (fieldType: 'email' | 'mobile' | 'alternate', value: string) => {
     if (!value.trim()) {
       setValidationResults(prev => ({
         ...prev,
-        [fieldType]: { loading: false, error: '', isAvailable: null }
+        [fieldType]: { 
+          loading: false, 
+          error: '', 
+          isAvailable: null,
+          isValidated: false 
+        }
       }));
       return;
     }
 
     setValidationResults(prev => ({
       ...prev,
-      [fieldType]: { loading: true, error: '', isAvailable: null }
+      [fieldType]: { 
+        loading: true, 
+        error: '', 
+        isAvailable: null,
+        isValidated: false 
+      }
     }));
 
     try {
@@ -42,14 +52,11 @@ export const useFieldValidation = () => {
       
       switch (fieldType) {
         case 'email':
-          // POST /api/service-providers/check-email
           endpoint = '/api/service-providers/check-email';
           payload = { email: value };
           break;
         case 'mobile':
         case 'alternate':
-          // Both mobile and alternate use the same API
-          // POST /api/service-providers/check-mobile
           endpoint = '/api/service-providers/check-mobile';
           payload = { mobile: value };
           break;
@@ -57,12 +64,11 @@ export const useFieldValidation = () => {
 
       const response = await providerInstance.post(endpoint, payload);
       
-      // Handle API response - adjust based on actual API response structure
       let isAvailable = true;
       let errorMessage = '';
       
       if (response.data.exists !== undefined) {
-        isAvailable = !response.data.exists; // If exists is true, then NOT available
+        isAvailable = !response.data.exists;
         errorMessage = response.data.exists 
           ? `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered` 
           : '';
@@ -77,7 +83,6 @@ export const useFieldValidation = () => {
           ? `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered` 
           : '';
       } else {
-        // Default assumption if API returns success without specific availability flag
         isAvailable = true;
       }
       
@@ -86,7 +91,8 @@ export const useFieldValidation = () => {
         [fieldType]: { 
           loading: false, 
           error: errorMessage, 
-          isAvailable 
+          isAvailable,
+          isValidated: true
         }
       }));
 
@@ -98,7 +104,6 @@ export const useFieldValidation = () => {
       let errorMessage = `Error checking ${fieldType === 'email' ? 'email' : 'mobile number'}`;
       
       if (error.response?.data) {
-        // Try to extract error message from API response
         const apiError = error.response.data;
         if (typeof apiError === 'string') {
           errorMessage = apiError;
@@ -120,7 +125,8 @@ export const useFieldValidation = () => {
         [fieldType]: { 
           loading: false, 
           error: errorMessage, 
-          isAvailable: false 
+          isAvailable: false,
+          isValidated: true
         }
       }));
 
@@ -132,20 +138,46 @@ export const useFieldValidation = () => {
     if (fieldType) {
       setValidationResults(prev => ({
         ...prev,
-        [fieldType]: { loading: false, error: '', isAvailable: null }
+        [fieldType]: { 
+          loading: false, 
+          error: '', 
+          isAvailable: null,
+          isValidated: false 
+        }
       }));
     } else {
       setValidationResults({
-        email: { loading: false, error: '', isAvailable: null },
-        mobile: { loading: false, error: '', isAvailable: null },
-        alternate: { loading: false, error: '', isAvailable: null },
+        email: { loading: false, error: '', isAvailable: null, isValidated: false },
+        mobile: { loading: false, error: '', isAvailable: null, isValidated: false },
+        alternate: { loading: false, error: '', isAvailable: null, isValidated: false },
       });
     }
   }, []);
 
+  // Helper function to check if step 0 validations are complete
+  const isStep0ValidationsComplete = useCallback(() => {
+    // Check if email and mobile are not loading
+    if (validationResults.email.loading || validationResults.mobile.loading) {
+      return false;
+    }
+    
+    // Check if email and mobile have been validated
+    if (!validationResults.email.isValidated || !validationResults.mobile.isValidated) {
+      return false;
+    }
+    
+    // Check if email and mobile are available
+    if (validationResults.email.isAvailable === false || validationResults.mobile.isAvailable === false) {
+      return false;
+    }
+    
+    return true;
+  }, [validationResults]);
+
   return {
     validationResults,
     validateField,
-    resetValidation
+    resetValidation,
+    isStep0ValidationsComplete, // Add this new method
   };
 };

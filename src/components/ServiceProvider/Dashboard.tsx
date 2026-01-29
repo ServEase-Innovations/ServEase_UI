@@ -19,7 +19,8 @@ import {
   CheckCircle,
   Shield,
   CreditCard,
-  Wallet
+  Wallet,
+  Receipt
 } from "lucide-react";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
@@ -31,6 +32,8 @@ import ProviderCalendarBig from "./ProviderCalendarBig";
 import PaymentInstance from "src/services/paymentInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { OtpVerificationDialog } from "./OtpVerificationDialog";
+import WithdrawalDialog from "./WithdrawalDialog"; // Add this import
+import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
 
 // Types for API response
 interface CustomerHoliday {
@@ -308,6 +311,9 @@ export default function Dashboard() {
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   const [currentBooking, setCurrentBooking] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [withdrawalHistoryDialogOpen, setWithdrawalHistoryDialogOpen] = useState(false);
+  // Add state for withdrawal dialog
+  const [withdrawalDialogOpen, setWithdrawalDialogOpen] = useState(false);
 
   const metrics = [
     {
@@ -327,7 +333,7 @@ export default function Dashboard() {
       description: "For active bookings"
     },
     {
-      title: "Service Fee",
+      title: "Withdrawal",
       value: `₹${(
         (payout?.summary?.total_earned || 0) - (payout?.summary?.available_to_withdraw || 0)
       ).toLocaleString("en-IN")}`,
@@ -402,6 +408,28 @@ export default function Dashboard() {
       fetchData();
     }
   }, [serviceProviderId, toast]);
+
+  // Add function to handle withdrawal success
+  const handleWithdrawalSuccess = async () => {
+    // Refresh payout data after successful withdrawal
+    if (serviceProviderId) {
+      try {
+        const currentMonthYear = getCurrentMonthYear();
+        const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await PaymentInstance.get(
+          `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+        );
+        setPayout(payoutResponse.data);
+        
+        toast({
+          title: "Balance Updated",
+          description: "Your wallet balance has been updated.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Failed to refresh balance:", error);
+      }
+    }
+  };
 
   const handleContactClient = (booking: any) => {
     const contactInfo = booking.contact || booking.bookingData?.mobileno || "Contact info not available";
@@ -883,10 +911,29 @@ export default function Dashboard() {
                     </Button>
                   }
                 />
-                <Button className="w-full justify-start" variant="outline">
+                {/* Updated Request Withdrawal Button */}
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => setWithdrawalDialogOpen(true)}
+                  // disabled={!payout?.summary?.available_to_withdraw || payout.summary.available_to_withdraw < 500}
+                >
                   <IndianRupee className="h-4 w-4 mr-2" />
                   Request Withdrawal
+                  {/* {(payout?.summary?.available_to_withdraw || 0) < 500 && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                      Min ₹500
+                    </span>
+                  )} */}
                 </Button>
+               <Button 
+  className="w-full justify-start" 
+  variant="outline"
+  onClick={() => setWithdrawalHistoryDialogOpen(true)}
+>
+  <Receipt className="h-4 w-4 mr-2" /> {/* You might want to use a different icon */}
+  Withdrawal History
+</Button> 
                 <Button className="w-full justify-start" variant="outline">
                   <Calendar className="h-4 w-4 mr-2" />
                   Apply Leave
@@ -954,6 +1001,19 @@ export default function Dashboard() {
             service: getServiceTitle(currentBooking.bookingData?.service_type || currentBooking.bookingData?.serviceType),
             bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.id,
           } : undefined}
+        />
+<WithdrawalHistoryDialog
+  open={withdrawalHistoryDialogOpen}
+  onOpenChange={setWithdrawalHistoryDialogOpen}
+  serviceProviderId={serviceProviderId}
+/>
+        {/* Add WithdrawalDialog here */}
+        <WithdrawalDialog
+          open={withdrawalDialogOpen}
+          onOpenChange={setWithdrawalDialogOpen}
+          serviceProviderId={serviceProviderId}
+          availableBalance={payout?.summary?.available_to_withdraw || 0}
+          onWithdrawalSuccess={handleWithdrawalSuccess}
         />
       </main>
     </div>
