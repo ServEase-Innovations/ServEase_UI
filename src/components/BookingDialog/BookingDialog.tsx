@@ -25,6 +25,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import CloseIcon from "@mui/icons-material/Close";
+import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -331,43 +332,50 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           {/* --- Date Option --- */}
           {selectedOption === "Date" && (
             <Box>
-              <DemoContainer components={["DesktopDateTimePicker"]} sx={{ width: "100%", mb: 2 }}>
-                <DesktopDateTimePicker
-                  label="Select Start Date"
-                  ampm={!prefers24Hour}
-                  value={startDate ? dayjs(startDate) : null}
-                  onChange={(newValue) => {
-                    if (!newValue) return;
-                    // Directly update start date/time as user changes it
-                    updateStartDate(newValue);
-                  }}
-                  minDateTime={dayjs().add(30, "minute")}
-                  maxDate={maxDate21Days}
-                  shouldDisableTime={(value, view) => {
-                    const hour = value.hour();
-                    const minute = value.minute();
+              <Box sx={{ width: "100%", mb: 2 }}>
+  <Box
+    sx={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "100%",
+    }}
+  >
+    <Box sx={{ width: "100%", maxWidth: 380 }}>
+  <DribbbleDateTimePicker
+    mode="single"
+    value={startDate ? dayjs(startDate).toDate() : undefined}
+    onChange={(selectedDateTime: Date) => {
+      const selected = dayjs(selectedDateTime);
+      const now = dayjs();
 
-                    if (view === "hours") {
-                      return hour < 5 || hour > 21;
-                    }
+      // ⛔ Minimum 30 minutes from now
+      if (selected.isBefore(now.add(30, "minute"))) {
+        alert("Please select a time at least 30 minutes from now");
+        return;
+      }
 
-                    if (view === "minutes") {
-                      return minute % 5 !== 0;
-                    }
+      // ⛔ Allowed hours: 5 AM – 9 PM
+      if (selected.hour() < 5 || selected.hour() > 21) {
+        alert("Time must be between 5 AM and 9 PM");
+        return;
+      }
 
-                    return false;
-                  }}
-                  minutesStep={5}
-                  format={prefers24Hour ? "MM/DD/YYYY HH:mm" : "MM/DD/YYYY"}
-                  slotProps={{
-                    textField: {
-                      size: isMobile ? "small" : "medium",
-                      fullWidth: true,
-                      placeholder: "MM/DD/YYYY"
-                    }
-                  }}
-                />
-              </DemoContainer>
+      // ⛔ Max 21 days
+      if (selected.isAfter(maxDate21Days)) {
+        alert("Date exceeds allowed range");
+        return;
+      }
+
+      // ✅ Save final value
+      updateStartDate(selected);
+    }}
+  />
+</Box>
+
+
+  </Box>
+</Box>
 
               {/* Duration Selector Section */}
               {startDate && startTime && (
@@ -499,61 +507,82 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
           {/* --- Short Term Option --- */}
           {selectedOption === "Short term" && (
-            <Box display="flex" gap={isMobile ? 2 : 3} flexDirection="column">
-              <DateTimePicker
-                label="Select Start Date"
-                value={startDate ? dayjs(startDate) : null}
-                onChange={(newValue) => updateStartDate(newValue)}
-                minDate={today}
-                maxDate={maxDate90Days}
-                shouldDisableDate={(date) => date.isBefore(today, "day")}
-                format={startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
-                slotProps={{
-                  textField: {
-                    size: isMobile ? "small" : "medium",
-                    fullWidth: true
-                  }
-                }}
-              />
-              <DateTimePicker
-                label="Select End Date"
-                value={endDate ? dayjs(endDate) : null}
-                onChange={(newValue) => updateEndDate(newValue)}
-                shouldDisableDate={shouldDisableEndDate}
-                minDate={startDate ? dayjs(startDate).add(1, "day") : today}
-                maxDate={startDate ? dayjs(startDate).add(20, "day") : today}
-                format={endDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
-                slotProps={{
-                  textField: {
-                    size: isMobile ? "small" : "medium",
-                    fullWidth: true
-                  }
-                }}
-              />
-            </Box>
+<Box
+  display="flex"
+  gap={isMobile ? 2 : 3}
+  flexDirection="column"
+  alignItems="center"
+>
+  <DribbbleDateTimePicker
+    mode="range"   // ✅ REQUIRED
+    value={{
+      startDate: startDate ? dayjs(startDate).toDate() : undefined,
+      endDate: endDate ? dayjs(endDate).toDate() : undefined,
+    }}
+    onChange={({ startDate, endDate, time }) => {
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+
+      // ✅ SAME time applied to both dates
+      setStartDate(start.format("YYYY-MM-DD"));
+      setEndDate(end.format("YYYY-MM-DD"));
+
+      setStartTime(start);
+      setEndTime(end);
+    }}
+  />
+</Box>
+
+
+
+
           )}
 
           {/* --- Monthly Option --- */}
           {selectedOption === "Monthly" && (
-            <DateTimePicker
-              label="Select Start Date"
-              value={startDate ? dayjs(startDate) : null}
-              onChange={(newValue) => {
-                if (!newValue) return;
-                updateStartDate(newValue);
-              }}
-              minDate={today}
-              maxDate={maxDate90Days}
-              shouldDisableDate={shouldDisableDate}
-              format={startDate ? "MM/DD/YYYY hh:mm A" : "MM/DD/YYYY"}
-              slotProps={{
-                textField: {
-                  size: isMobile ? "small" : "medium",
-                  fullWidth: true
-                }
-              }}
-            />
-          )}
+  <Box
+    display="flex"
+    justifyContent="center"
+    width="100%"
+  >
+    <DribbbleDateTimePicker
+      mode="single"
+      value={startDate ? dayjs(startDate).toDate() : undefined}
+      onChange={(selectedDateTime: Date) => {
+        const selected = dayjs(selectedDateTime);
+        const now = dayjs();
+
+        // ⛔ Minimum 30 minutes from now
+        if (selected.isBefore(now.add(30, "minute"))) {
+          alert("Please select a time at least 30 minutes from now");
+          return;
+        }
+
+        // ⛔ Allowed hours: 5 AM – 9 PM
+        if (selected.hour() < 5 || selected.hour() > 21) {
+          alert("Time must be between 5 AM and 9 PM");
+          return;
+        }
+
+        // ⛔ Max 90 days
+        if (selected.isAfter(maxDate90Days, "day")) {
+          alert("Date exceeds allowed range");
+          return;
+        }
+
+        // ⛔ Disable past dates
+        if (selected.isBefore(today, "day")) {
+          alert("Past dates are not allowed");
+          return;
+        }
+
+        // ✅ Valid → update state
+        updateStartDate(selected);
+      }}
+    />
+  </Box>
+)}
+
         </LocalizationProvider>
       </DialogContent>
 

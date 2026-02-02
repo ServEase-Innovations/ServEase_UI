@@ -1,0 +1,138 @@
+.dtp-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  width: 360px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.dtp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dtp-header h3 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.dtp-header button {
+  border: none;
+  background: none;
+  font-size: 22px;
+  color: #3e57d0;
+  cursor: pointer;
+}
+
+.dtp-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-top: 10px;
+  color: #888;
+  font-size: 12px;
+  text-align: center;
+}
+
+.dtp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-top: 8px;
+}
+
+.dtp-day {
+  aspect-ratio: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.dtp-day.active {
+  background: #3e57d0;
+  color: #fff;
+  font-weight: 700;
+}
+
+.dtp-divider {
+  height: 1px;
+  background: #eee;
+  margin: 16px 0;
+}
+
+.dtp-time-title {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.dtp-time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.dtp-time {
+  padding: 10px;
+  border-radius: 20px;
+  border: none;
+  background: #f4f6fb;
+  cursor: pointer;
+}
+
+.dtp-time.active {
+  background: #3e57d0;
+  color: white;
+  font-weight: 700;
+}
+
+.dtp-time.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #f1f1f1;
+}
+
+.dtp-day.empty {
+  pointer-events: none;
+}
+
+.dtp-time.in-range {
+  background: rgba(62, 87, 208, 0.18);
+  color: #3e57d0;
+}
+
+.dtp-time.active {
+  background: #3e57d0;
+  color: white;
+  font-weight: 600;
+}
+
+.dtp-time.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.range-start,
+.range-end {
+  background: #3e57d0;
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.range-middle {
+  background: rgba(62, 87, 208, 0.15);
+  color: #3e57d0;
+  border-radius: 6px;
+}
+
+.dtp-day {
+  transition: background 0.2s ease;
+}
+
+.dtp-day.disabled {
+  pointer-events: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+
