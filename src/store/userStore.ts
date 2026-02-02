@@ -6,6 +6,7 @@ import pricingReducer from '../features/pricing/pricingSlice';
 import detailsDataReducer from '../features/detailsData/detailsDataSlice';
 import  addToCartReducer  from '../features/addToCart/addToSlice';
 import  geoLocationReducer  from '../features/geoLocation/geoLocationSlice';
+import customerReducer from '../features/customer/customerSlice';
 // Configure your Redux store
 const store = configureStore({
   reducer: {
@@ -15,7 +16,8 @@ const store = configureStore({
     pricing: pricingReducer,
     detailsData : detailsDataReducer,
     addToCart: addToCartReducer,
-    geoLocation : geoLocationReducer
+    geoLocation : geoLocationReducer,
+    customer: customerReducer,
   },
 });
 

@@ -11,6 +11,12 @@ import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
 import { FaHome, FaLocationArrow } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
+// USE REDUX ONLY - NO DUPLICATE API CALLS
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "src/store/userStore";
+import { 
+  setHasMobileNumber 
+} from "src/features/customer/customerSlice";
 import providerInstance from "src/services/providerInstance";
 
 interface Address {
@@ -73,15 +79,6 @@ interface ServiceProvider {
   correspondenceAddress: CorrespondenceAddress;
 }
 
-interface CustomerDetails {
-  customerid: number;
-  firstName: string;
-  lastName: string;
-  mobileNo: string | null;
-  alternateNo: string | null;
-  email: string;
-}
-
 interface ValidationState {
   loading: boolean;
   error: string;
@@ -98,17 +95,33 @@ const ProfileScreen = () => {
   const { user: auth0User, isAuthenticated } = useAuth0();
   const { appUser } = useAppUser();
   
+  // USE REDUX STATE - DATA ALREADY LOADED BY APP COMPONENT
+  const dispatch = useDispatch();
+  const {
+    customerId,
+    mobileNo,
+    alternateNo,
+    firstName,
+    lastName,
+    emailId,
+    hasMobileNumber,
+    loading: customerLoading
+  } = useSelector((state: RootState) => state.customer);
+  
+  // Keep local state for dialog
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("CUSTOMER");
   const [serviceProviderData, setServiceProviderData] = useState<ServiceProvider | null>(null);
-  const [customerData, setCustomerData] = useState<CustomerDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedAddressIds, setExpandedAddressIds] = useState<string[]>([]);
-  const [showMobileDialog, setShowMobileDialog] = useState(false);
+  const [dialogShownInSession, setDialogShownInSession] = useState(false);
 
+  // Initialize userData from Redux or name
   const [userData, setUserData] = useState<UserData>({
     firstName: "",
     lastName: "",
@@ -172,39 +185,6 @@ const ProfileScreen = () => {
     setExpandedAddressIds((prev) =>
       prev.includes(id) ? prev.filter((addrId) => addrId !== id) : [...prev, id]
     );
-  };
-
-  const fetchCustomerDetails = async (customerId: number) => {
-    try {
-      console.log("Fetching customer details for ID:", customerId);
-      const response = await axiosInstance.get(`/api/customer/get-customer-by-id/${customerId}`);
-      console.log("✅ Customer details fetched successfully:", response.data);
-      
-      const customer = response.data;
-      setCustomerData(customer);
-
-      if (!customer?.mobileNo || customer.mobileNo === null || customer.mobileNo === "") {
-        console.warn("⚠️ Customer mobile number is missing (null/empty).");
-      }
-
-      const updatedUserData = {
-        firstName: customer.firstName || "",
-        lastName: customer.lastName || "",
-        contactNumber: customer.mobileNo || "",
-        altContactNumber: customer.alternateNo ? customer.alternateNo.toString() : ""
-      };
-
-      setUserData(updatedUserData);
-      setOriginalData(prev => ({
-        ...prev,
-        userData: updatedUserData
-      }));
-
-      return customer;
-    } catch (error) {
-      console.error("❌ Error fetching customer details:", error);
-      return null;
-    }
   };
 
   // Function to save address to user-settings API (same as Header component)
@@ -337,26 +317,51 @@ const ProfileScreen = () => {
         setUserName(name);
         setUserId(id ? Number(id) : null);
 
-        if (name) {
-          const nameParts = name.split(" ");
-          const initialUserData = {
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            contactNumber: "",
-            altContactNumber: ""
-          };
-          setUserData(initialUserData);
-          setOriginalData(prev => ({
-            ...prev,
-            userData: initialUserData
-          }));
-        }
-
         try {
           if (role === "SERVICE_PROVIDER" && id) {
             await fetchServiceProviderData(id);
+            // Service providers don't need mobile validation
+            dispatch(setHasMobileNumber(true));
           } else if (role === "CUSTOMER" && id) {
-            await fetchCustomerDetails(Number(id));
+            // NO API CALL NEEDED - DATA ALREADY IN REDUX FROM APP COMPONENT
+            
+            // Wait for Redux data to load (if still loading)
+            if (customerLoading) {
+              console.log("⏳ Waiting for Redux customer data to load...");
+              // Give it a moment to load
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            // Initialize userData from Redux state
+            const updatedUserData = {
+              firstName: firstName || name?.split(" ")[0] || "",
+              lastName: lastName || name?.split(" ").slice(1).join(" ") || "",
+              contactNumber: mobileNo || "",
+              altContactNumber: alternateNo || ""
+            };
+            
+            setUserData(updatedUserData);
+            setOriginalData(prev => ({
+              ...prev,
+              userData: updatedUserData
+            }));
+            
+            console.log("✅ Profile data loaded from Redux:", {
+              firstName,
+              lastName,
+              mobileNo,
+              hasMobileNumber
+            });
+            
+            // Check if mobile number is missing and dialog hasn't been shown in this session
+            if (!hasMobileNumber && !dialogShownInSession) {
+              // Add a small delay to ensure UI is loaded
+              setTimeout(() => {
+                setMobileDialogOpen(true);
+                setDialogShownInSession(true);
+              }, 1000);
+            }
+            
             await fetchCustomerAddresses(Number(id));
           }
         } catch (err) {
@@ -370,7 +375,31 @@ const ProfileScreen = () => {
     };
 
     initializeProfile();
-  }, [isAuthenticated, appUser]);
+  }, [isAuthenticated, appUser, dialogShownInSession, dispatch]);
+
+  // Update userData when Redux state changes
+  useEffect(() => {
+    if (userRole === "CUSTOMER" && (firstName || lastName)) {
+      const updatedUserData = {
+        firstName: firstName || userData.firstName || "",
+        lastName: lastName || userData.lastName || "",
+        contactNumber: mobileNo || userData.contactNumber || "",
+        altContactNumber: alternateNo || userData.altContactNumber || ""
+      };
+      
+      // Only update if data actually changed
+      if (JSON.stringify(userData) !== JSON.stringify(updatedUserData)) {
+        setUserData(updatedUserData);
+        // Only update originalData if not editing
+        if (!isEditing) {
+          setOriginalData(prev => ({
+            ...prev,
+            userData: updatedUserData
+          }));
+        }
+      }
+    }
+  }, [firstName, lastName, mobileNo, alternateNo, userRole, isEditing]);
 
   const fetchCustomerAddresses = async (customerId: number) => {
     try {
@@ -527,15 +556,6 @@ const ProfileScreen = () => {
     } catch (error) {
       console.error("Failed to fetch service provider data:", error);
     }
-  };
-
-  const hasValidMobileNumbers = () => {
-    if (userRole !== "CUSTOMER") return true;
-    
-    return customerData?.mobileNo && 
-           customerData.mobileNo !== null && 
-           customerData.mobileNo !== "" &&
-           customerData.mobileNo !== "null";
   };
 
   const formatMobileNumber = (number: string | null) => {
@@ -1052,7 +1072,12 @@ const ProfileScreen = () => {
           payload
         );
         
-        await fetchCustomerDetails(userId);
+        // After saving, update local state from the response if needed
+        // We don't need to fetch from API since the data is updated
+        // Just update Redux state if needed
+        if (userData.contactNumber) {
+          dispatch(setHasMobileNumber(true));
+        }
         
         // Update addresses in user-settings if they changed
         if (JSON.stringify(addresses) !== JSON.stringify(originalData.addresses)) {
@@ -1078,7 +1103,7 @@ const ProfileScreen = () => {
     setIsEditing(false);
     setShowAddAddress(false);
     
-    // Reset to original data
+    // Reset to original data (which comes from Redux)
     setUserData(originalData.userData);
     setAddresses([...originalData.addresses]);
     
@@ -1208,17 +1233,28 @@ const ProfileScreen = () => {
 
   return (
     <div className="w-full">
-      <MobileNumberDialog 
-        open={showMobileDialog}
-        onClose={() => setShowMobileDialog(false)}
-        customerId={userId || 0}
-        onSuccess={() => {
-          setShowMobileDialog(false);
-          if (userId) {
-            fetchCustomerDetails(userId);
-          }
-        }}
-      />
+      {/* Mobile Number Dialog - Controlled by local state */}
+      {mobileDialogOpen && appUser?.customerid && (
+        <MobileNumberDialog
+          open={mobileDialogOpen}
+          onClose={() => {
+            setMobileDialogOpen(false);
+          }}
+          customerId={appUser.customerid}
+          onSuccess={() => {
+            console.log("Mobile number updated successfully from ProfileScreen!");
+            
+            // Update Redux state
+            dispatch(setHasMobileNumber(true));
+            
+            // Close dialog
+            setMobileDialogOpen(false);
+            
+            // No API call needed - data will be refreshed on next page load
+            // Or you can manually update Redux state if you get the new mobile number
+          }}
+        />
+      )}
 
       {/* Header */}
       <div className="relative mt-16 bg-gradient-to-b from-blue-100 to-white text-blue-900">
@@ -1236,7 +1272,8 @@ const ProfileScreen = () => {
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 {userRole === "SERVICE_PROVIDER" ? "Service Provider" : "Customer"}
-                {userRole === "CUSTOMER" && !hasValidMobileNumbers() && (
+                {/* Use Redux state for mobile number warning */}
+                {userRole === "CUSTOMER" && !hasMobileNumber && (
                   <span className="ml-2 text-red-500 text-xs">⚠️ Mobile number required</span>
                 )}
               </p>
@@ -1263,9 +1300,10 @@ const ProfileScreen = () => {
         <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
           <div className="flex justify-between items-center border-b pb-3 mb-6">
             <h2 className="text-lg font-semibold text-gray-800">My account</h2>
-            {userRole === "CUSTOMER" && !hasValidMobileNumbers() && (
+            {/* Use Redux state for mobile number warning */}
+            {userRole === "CUSTOMER" && !hasMobileNumber && (
               <button
-                onClick={() => setShowMobileDialog(true)}
+                onClick={() => setMobileDialogOpen(true)}
                 className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200"
               >
                 Add Mobile Number
@@ -1297,7 +1335,7 @@ const ProfileScreen = () => {
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={appUser?.email || auth0User?.email || "No email available"}
+                  value={appUser?.email || auth0User?.email || emailId || "No email available"}
                   readOnly
                   style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
                 />
@@ -1357,8 +1395,8 @@ const ProfileScreen = () => {
               <label className="block text-sm font-semibold text-gray-600 mb-2">
                 Contact Number
                 {userRole === "CUSTOMER" && (
-                  <span className={`ml-1 ${!hasValidMobileNumbers() ? 'text-red-500' : 'text-green-500'}`}>
-                    {!hasValidMobileNumbers() ? '⚠️' : '✓'}
+                  <span className={`ml-1 ${!hasMobileNumber ? 'text-red-500' : 'text-green-500'}`}>
+                    {!hasMobileNumber ? '⚠️' : '✓'}
                   </span>
                 )}
               </label>
@@ -1422,10 +1460,19 @@ const ProfileScreen = () => {
               {contactValidation.isAvailable && (
                 <p className="text-green-500 text-xs mt-1">Contact number is available</p>
               )}
-              {userRole === "CUSTOMER" && !hasValidMobileNumbers() && !isEditing && (
-                <p className="text-red-500 text-xs mt-1">
-                  Mobile number is required for bookings and notifications
-                </p>
+              {/* Use Redux state for mobile number warning */}
+              {userRole === "CUSTOMER" && !hasMobileNumber && !isEditing && (
+                <div className="mt-1">
+                  <p className="text-red-500 text-xs">
+                    Mobile number is required for bookings and notifications
+                  </p>
+                  <button
+                    onClick={() => setMobileDialogOpen(true)}
+                    className="mt-1 text-blue-600 text-xs hover:underline"
+                  >
+                    Click here to add mobile number
+                  </button>
+                </div>
               )}
             </div>
 

@@ -16,7 +16,7 @@ import { ADMIN, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PRO
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux"; // Import useSelector
+import { useDispatch, useSelector } from "react-redux";
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
@@ -41,6 +41,8 @@ import TnC from "./TermsAndConditions/TnC";
 import axiosInstance from "./services/axiosInstance";
 import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
+import { useCustomerMobileCheck } from "./components/hooks/useCustomerMobileCheck";
+import { setHasMobileNumber } from "./features/customer/customerSlice";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -53,11 +55,10 @@ function App() {
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
-  const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
-
-  // Ref to track if mobile number check has been done
-  const hasCheckedMobileRef = useRef(false);
+  
+  // LOCAL STATE FOR DIALOG - ADD THIS
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
 
   console.log("Loaded ENV =", process.env.REACT_APP_API_URL, process.env.REACT_APP_ENV);
   console.log("UTILS BASE URL =", process.env.REACT_APP_UTLIS_URL , process.env.REACT_PROVIDER_URL);
@@ -65,21 +66,26 @@ function App() {
   const selectedBookingTypeValue = { selectedBookingType, setSelectedBookingType };
   const dispatch = useDispatch();
 
+  // USE THE CUSTOM HOOK
+  const { showMobileDialog } = useCustomerMobileCheck();
+
+  // CONTROL DIALOG BASED ON REDUX STATE - ADD THIS EFFECT
+  useEffect(() => {
+    if (showMobileDialog) {
+      setMobileDialogOpen(true);
+    }
+  }, [showMobileDialog]);
+
  const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
   console.log("Data received from child component:", data);
   
-  // If it's a service selection (like DETAILS), set the selection
   if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD) {
     setSelection(data);
-    // Clear any section state when navigating to service pages
     setCurrentSection("HOME");
   } else if (type === 'section') {
-    // If it's a section change (like ABOUT, CONTACT)
     setCurrentSection(data);
-    // Clear selection when going to about/contact
     setSelection(undefined);
   } else {
-    // For other cases
     setSelection(data);
   }
 };
@@ -180,38 +186,7 @@ function App() {
     };
 
     fetchPricingData();
-  }, [dispatch]); // Empty dependency array means this runs once on mount
-
-  // Effect for checking customer mobile number (runs when appUser changes)
-  useEffect(() => {
-    // Skip if not a customer or already checked
-    if (!appUser || 
-        appUser?.role?.toUpperCase() !== "CUSTOMER" || 
-        hasCheckedMobileRef.current) {
-      return;
-    }
-
-    const fetchCustomerDetails = async () => {
-      try {
-        const response = await axiosInstance.get(
-          `/api/customer/get-customer-by-id/${appUser.customerid}`
-        );
-        const customer = response.data;
-
-        if (!customer?.mobileNo) {
-          setShowMobileDialog(true);
-        }
-        
-        // Mark as checked to prevent future calls
-        hasCheckedMobileRef.current = true;
-      } catch (error) {
-        console.error("Failed to fetch customer details:", error);
-        hasCheckedMobileRef.current = true;
-      }
-    };
-
-    fetchCustomerDetails();
-  }, [appUser]);
+  }, [dispatch]);
 
   // Effect for socket connection (runs when isAuthenticated or appUser changes)
   useEffect(() => {
@@ -330,27 +305,33 @@ function App() {
   return (
     <div className="bg-gray-50 text-gray-800">
          <Header
-
-  sendDataToParent={(data) => handleDataFromChild(data)}
-  onAboutClick={handleAboutClick}
-  onContactClick={handleContactClick}
-  onLogoClick={handleLogoClick} 
-  bookingType={""}
-/>
+          sendDataToParent={(data) => handleDataFromChild(data)}
+          onAboutClick={handleAboutClick}
+          onContactClick={handleContactClick}
+          onLogoClick={handleLogoClick} 
+          bookingType={""}
+        />
 
       {/* Render the current content */}
       {renderContent()}
 
-      {showMobileDialog && appUser?.customerid && (
-        <MobileNumberDialog
-          open={showMobileDialog}
-          onClose={() => setShowMobileDialog(false)}
-          customerId={appUser.customerid}
-          onSuccess={() => {
-            console.log("Mobile number updated successfully!");
-            setShowMobileDialog(false);
-          }}
-        />
+      {/* Mobile Number Dialog - CONTROLLED BY LOCAL STATE */}
+      {mobileDialogOpen && appUser?.customerid && (
+       <MobileNumberDialog
+  open={mobileDialogOpen}
+  onClose={() => {
+    setMobileDialogOpen(false);
+  }}
+  customerId={appUser.customerid}
+  onSuccess={() => {
+    console.log("Mobile number updated successfully!");
+    
+    // ADD THIS LINE - Tell checklist "YES, now has mobile"
+    dispatch(setHasMobileNumber(true));  // ← ADD THIS!
+    
+    setMobileDialogOpen(false);
+  }}
+/>
       )}
 
        <ChatbotButton 
@@ -363,6 +344,7 @@ function App() {
         open={chatbotOpen} 
         onClose={() => setChatbotOpen(false)} 
       />
+      
       {/* Show footer only on HOME section without service selections */}
       {shouldShowFooter() && (
         <Footer 

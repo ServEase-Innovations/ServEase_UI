@@ -9,9 +9,10 @@ import { Button } from '../../components/Button/button';
 import { useEffect, useState } from 'react';
 import { TermsCheckboxes } from '../Common/TermsCheckboxes/TermsCheckboxes';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
-import axiosInstance from '../../services/axiosInstance';
 import { useAppUser } from '../../context/AppUserContext';
 import MobileNumberDialog from '../User-Profile/MobileNumberDialog';
+import { RootState } from '../../store/userStore'; // Import RootState
+import { setHasMobileNumber } from '../../features/customer/customerSlice'; // Import action
 
 interface CartDialogProps {
   open: boolean;
@@ -45,10 +46,15 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const allCartItems = useSelector(selectCartItems);
   const { appUser } = useAppUser();
   
+  // Get customer state from Redux
+  const customerState = useSelector((state: RootState) => state.customer);
+  const hasMobileNumber = customerState.hasMobileNumber;
+  const loadingCustomer = customerState.loading;
+  
   // State for mobile number dialog
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false); // Add loading state
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   
   // Filter items by type
   const mealCartItems = allCartItems.filter(isMealCartItem);
@@ -75,7 +81,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
     if (!open) {
       setAllTermsAccepted(false);
       setPendingCheckout(false);
-      setCheckoutLoading(false); // Reset loading state when dialog closes
+      setCheckoutLoading(false);
     }
   }, [open]);
 
@@ -86,33 +92,39 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       return;
     }
 
-    setCheckoutLoading(true); // Start loading
+    setCheckoutLoading(true);
 
-    try {
-      // Make API call to check if mobile number exists
-      const response = await axiosInstance.get(`/api/customer/get-customer-by-id/${appUser.customerid}`);
-      const customer = response.data;
+    // Check loading state first
+    if (loadingCustomer) {
+      console.log("Still loading customer details...");
+      // Wait a bit and check again
+      setTimeout(() => {
+        checkMobileNumberAndProceed();
+      }, 500);
+      return;
+    }
 
-      if (!customer?.mobileNo) {
-        // If no mobile number, open the mobile number dialog
-        setPendingCheckout(true);
-        setMobileDialogOpen(true);
-        setCheckoutLoading(false); // Stop loading since we're showing mobile dialog
-        return; // Don't proceed with checkout yet
-      }
-
+    // Check if we have the mobile number info from Redux
+    if (hasMobileNumber === false) {
+      // If no mobile number, open the mobile number dialog
+      setPendingCheckout(true);
+      setMobileDialogOpen(true);
+      setCheckoutLoading(false);
+      return;
+    } else if (hasMobileNumber === true) {
       // If mobile number exists, proceed with normal checkout
       await proceedWithCheckout();
-    } catch (error) {
-      console.error("Error checking mobile number:", error);
-      setCheckoutLoading(false); // Stop loading on error
-      // Optionally, you can show an error message to the user
+    } else {
+      // If hasMobileNumber is null, the data hasn't been fetched yet
+      // This shouldn't happen if you're using the useCustomerMobileCheck hook in App.tsx
+      // But as a fallback, we can proceed anyway or show an error
+      console.warn("Customer mobile number status unknown. Proceeding with checkout.");
+      await proceedWithCheckout();
     }
   };
 
   const proceedWithCheckout = async () => {
     try {
-      // Simulate API call or processing time if needed
       if (mealCartItems.length > 0 && handleCookCheckout) {
         await handleCookCheckout();
       } else if (maidCartItems.length > 0 && handleMaidCheckout) {
@@ -123,7 +135,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
         console.error("No checkout handler available for cart items");
       }
     } finally {
-      setCheckoutLoading(false); // Stop loading when checkout completes
+      setCheckoutLoading(false);
       handleClose();
     }
   };
@@ -132,7 +144,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const handleMobileNumberSuccess = () => {
     setMobileDialogOpen(false);
     if (pendingCheckout) {
-      setCheckoutLoading(true); // Start loading again when proceeding after mobile number
+      setCheckoutLoading(true);
+      // Update Redux state manually since we're in CartDialog
+      dispatch(setHasMobileNumber(true));
       // Proceed with checkout after mobile number is updated
       proceedWithCheckout();
       setPendingCheckout(false);
@@ -143,7 +157,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const handleMobileDialogClose = () => {
     setMobileDialogOpen(false);
     setPendingCheckout(false);
-    setCheckoutLoading(false); // Stop loading if mobile dialog is closed
+    setCheckoutLoading(false);
   };
 
   // Check if checkout is available for current cart items
@@ -354,9 +368,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
             <Button
               variant="contained"
               onClick={checkMobileNumberAndProceed}
-              disabled={allCartItems.length === 0 || !allTermsAccepted || !isCheckoutAvailable() || checkoutLoading}
+              disabled={allCartItems.length === 0 || !allTermsAccepted || !isCheckoutAvailable() || checkoutLoading || loadingCustomer}
               sx={{
-                minWidth: '200px', // Ensure consistent width
+                minWidth: '200px',
                 position: 'relative'
               }}
             >
@@ -370,6 +384,17 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                     }} 
                   />
                   Processing...
+                </>
+              ) : loadingCustomer ? (
+                <>
+                  <CircularProgress 
+                    size={20} 
+                    sx={{ 
+                      color: 'white',
+                      marginRight: 1 
+                    }} 
+                  />
+                  Checking...
                 </>
               ) : (
                 `Proceed to Checkout (₹${grandTotal.toFixed(2)})`
@@ -425,18 +450,17 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
   };
 
   return (
-   <Box
-  sx={{
-    mb: 3,
-    p: 3,
-    borderRadius: '8px',
-    borderLeft: '2px solid #0984e3',  // Only left border
-    backgroundColor: '#0984e310',     // light background tint
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    position: 'relative'
-  }}
->
-
+    <Box
+      sx={{
+        mb: 3,
+        p: 3,
+        borderRadius: '8px',
+        borderLeft: '2px solid #0984e3',
+        backgroundColor: '#0984e310',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        position: 'relative'
+      }}
+    >
       <IconButton
         onClick={onRemove}
         sx={{
@@ -506,7 +530,6 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
           ₹{item.price.toFixed(2)}
         </Typography>
       </Box>
-      
     </Box>
   );
 };

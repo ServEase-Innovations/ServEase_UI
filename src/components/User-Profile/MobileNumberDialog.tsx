@@ -19,6 +19,8 @@ import { useAppUser } from "src/context/AppUserContext";
 import axiosInstance from "src/services/axiosInstance";
 import { CheckIcon, X } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
+import { useDispatch } from "react-redux"; // ADD THIS
+import { setHasMobileNumber } from "../../features/customer/customerSlice"; // ADD THIS
 
 interface MobileNumberDialogProps {
   open: boolean;
@@ -52,6 +54,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   const [altContactNumber, setAltContactNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const { appUser, setAppUser } = useAppUser();
+  const dispatch = useDispatch(); // ADD THIS
 
   const [contactValidation, setContactValidation] = useState<ValidationState>({
     loading: false,
@@ -122,7 +125,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
     try {
       // Use POST request with payload as shown in API documentation
-      const endpoint = '/api/service-providers/check-mobile'; // Same endpoint for both
+      const endpoint = '/api/service-providers/check-mobile';
       const payload = { mobile: number };
       
       const response = await providerInstance.post(endpoint, payload);
@@ -132,7 +135,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       let errorMessage = '';
       
       if (response.data.exists !== undefined) {
-        isAvailable = !response.data.exists; // If exists is true, then NOT available
+        isAvailable = !response.data.exists;
         errorMessage = response.data.exists 
           ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
           : '';
@@ -147,7 +150,6 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
           ? `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered` 
           : '';
       } else {
-        // Default assumption if API returns success without specific availability flag
         isAvailable = true;
       }
       
@@ -220,7 +222,7 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
 
       timeouts.current[timeoutKey] = setTimeout(() => {
         checkMobileAvailability(number, isAlternate);
-      }, 800); // Increased to 800ms for better debouncing
+      }, 800);
     };
   };
 
@@ -393,71 +395,73 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     return true;
   };
 
-  const handleSubmit = async () => {
-    const isValid = await validateAllFields();
-    if (!isValid) {
+ const handleSubmit = async () => {
+  const isValid = await validateAllFields();
+  if (!isValid) {
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    if (!appUser?.customerid) {
+      console.error("❌ Customer ID not found in appUser");
+      showSnackbar("Customer ID not found!", "error");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const payload: any = {
+      customerid: appUser.customerid
+    };
+    
+    if (contactNumber) payload.mobileNo = contactNumber;
+    if (altContactNumber) payload.alternateNo = altContactNumber;
 
-    try {
-      if (!appUser?.customerid) {
-        console.error("❌ Customer ID not found in appUser");
-        showSnackbar("Customer ID not found!", "error");
-        setLoading(false);
-        return;
-      }
+    console.log("📤 Sending update payload:", payload);
 
-      const payload: any = {
-        customerid: appUser.customerid
-      };
-      
-      if (contactNumber) payload.mobileNo = contactNumber;
-      if (altContactNumber) payload.alternateNo = altContactNumber;
+    const response = await axiosInstance.put(
+      `/api/customer/update-customer/${appUser.customerid}`,
+      payload
+    );
 
-      console.log("📤 Sending update payload:", payload);
-      console.log("👤 Current appUser before update:", appUser);
+    console.log("✅ API Response:", response.data);
+    
+    // Update the appUser context with mobile numbers
+    const updatedUser = {
+      ...appUser,
+      mobileNo: contactNumber,
+      alternateNo: altContactNumber || null,
+    };
+    
+    setAppUser(updatedUser);
 
-      const response = await axiosInstance.put(
-        `/api/customer/update-customer/${appUser.customerid}`,
-        payload
-      );
+    // FIX: Pass true as argument to setHasMobileNumber
+    dispatch(setHasMobileNumber(true));
 
-      console.log("✅ API Response:", response.data);
-      
-      // Update the appUser context with mobile numbers
-      const updatedUser = {
-        ...appUser,
-        mobileNo: contactNumber,
-        alternateNo: altContactNumber || null,
-      };
-      
-      setAppUser(updatedUser);
+    console.log("✅ Updated appUser with mobile numbers:", updatedUser);
+    console.log("✅ Updated Redux state: hasMobileNumber = true");
 
-      console.log("✅ Updated appUser with mobile numbers:", updatedUser);
-      console.log("📱 Stored mobile numbers - Contact:", contactNumber, "Alternate:", altContactNumber || "None");
-
-      showSnackbar("Mobile number(s) updated successfully!", "success");
-      
-      // Reset validation states
-      setValidatedFields(new Set());
-      setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
-      setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
-      
-      // Close dialog after successful update
-      setTimeout(() => {
-        onClose();
-        if (onSuccess) onSuccess();
-      }, 1500); // Wait for user to see the success message
-    } catch (error: any) {
-      console.error("❌ Error updating mobile numbers:", error);
-      const errorMessage = error.response?.data?.message || "Something went wrong while updating!";
-      showSnackbar(errorMessage, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+    showSnackbar("Mobile number(s) updated successfully!", "success");
+    
+    // Reset validation states
+    setValidatedFields(new Set());
+    setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+    setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+    
+    // Close dialog after successful update
+    setTimeout(() => {
+      onClose();
+      if (onSuccess) onSuccess();
+    }, 1500);
+  } catch (error: any) {
+    console.error("❌ Error updating mobile numbers:", error);
+    const errorMessage = error.response?.data?.message || "Something went wrong while updating!";
+    showSnackbar(errorMessage, "error");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const isFormValid = (): boolean => {
     // Contact number validation
