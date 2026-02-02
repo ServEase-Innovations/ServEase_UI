@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon, Menu, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -42,6 +42,17 @@ interface TodayService {
   can_generate_otp: boolean;
   can_complete: boolean;
   otp_active: boolean;
+}
+
+interface Payment {
+  engagement_id: string;
+  base_amount: string;
+  platform_fee: string;
+  gst: string;
+  total_amount: string;
+  payment_mode: string;
+  status: string;
+  created_at: string;
 }
 
 interface Booking {
@@ -95,6 +106,7 @@ interface Booking {
     penalty?: number;
   }>;
   today_service?: TodayService;
+  payment?: Payment; // Added payment interface
 }
 
 const getServiceIcon = (type: string) => {
@@ -204,6 +216,11 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
 };
 
+// Function to handle payment completion
+const handleCompletePayment = async (booking: Booking) => {
+
+};
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
@@ -245,7 +262,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
-    type: 'cancel' | 'modify' | 'vacation' | null;
+    type: 'cancel' | 'modify' | 'vacation' | 'payment' | null;
     booking: Booking | null;
     message: string;
     title: string;
@@ -630,14 +647,15 @@ const renderScheduledMessage = (booking: Booking) => {
               ? item.vacation 
               : null,
             modifications: modifications,
-            today_service: item.today_service
+            today_service: item.today_service,
+            payment: item.payment // Added payment data
           };
         })
       : [];
   };
 
   const showConfirmation = (
-    type: 'cancel' | 'modify' | 'vacation',
+    type: 'cancel' | 'modify' | 'vacation' | 'payment',
     booking: Booking,
     title: string,
     message: string,
@@ -672,6 +690,9 @@ const renderScheduledMessage = (booking: Booking) => {
           setSelectedBookingForLeave(booking);
           setHolidayDialogOpen(true);
           break;
+        case 'payment':
+          await handleCompletePayment(booking);
+          break;
       }
     } catch (error) {
       console.error("Error performing action:", error);
@@ -688,6 +709,16 @@ const renderScheduledMessage = (booking: Booking) => {
       'Cancel Booking',
       `Are you sure you want to cancel your ${getServiceTitle(booking.service_type)} booking? This action cannot be undone.`,
       'warning'
+    );
+  };
+
+  const handlePaymentClick = (booking: Booking) => {
+    showConfirmation(
+      'payment',
+      booking,
+      'Complete Payment',
+      `Complete payment of ₹${booking.monthlyAmount} for your ${getServiceTitle(booking.service_type)} booking?`,
+      'info'
     );
   };
 
@@ -1285,6 +1316,12 @@ const renderScheduledMessage = (booking: Booking) => {
                               Awaiting
                             </Badge>
                           )}
+                          {/* Payment status badge */}
+                          {booking.payment && booking.payment.status === "PENDING" && (
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                              Payment Pending
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground pt-1">
                           Booking Date:{" "}
@@ -1380,7 +1417,28 @@ const renderScheduledMessage = (booking: Booking) => {
                         </div>
                         
                         <div className="text-right">
-                          <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                          {/* Check if payment status is PENDING */}
+                          {booking.payment && booking.payment.status === "PENDING" ? (
+                            <div className="flex flex-col items-end gap-3">
+                              <p className="text-sm text-red-600 font-medium mb-1">
+                                Payment Required
+                              </p>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handlePaymentClick(booking)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Complete Payment
+                              </Button>
+                              <p className="text-xs text-gray-500">
+                                Complete payment to confirm your booking
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1476,6 +1534,12 @@ const renderScheduledMessage = (booking: Booking) => {
                             Modified
                           </Badge>
                         )}
+                        {/* Payment status badge for past bookings */}
+                        {booking.payment && booking.payment.status === "PENDING" && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                            Payment Pending
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -1551,7 +1615,28 @@ const renderScheduledMessage = (booking: Booking) => {
                         </div>
 
                         <div className="text-right">
-                          <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                          {/* Check if payment status is PENDING */}
+                          {booking.payment && booking.payment.status === "PENDING" ? (
+                            <div className="flex flex-col items-end gap-3">
+                              <p className="text-sm text-red-600 font-medium mb-1">
+                                Payment Required
+                              </p>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handlePaymentClick(booking)}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Complete Payment
+                              </Button>
+                              <p className="text-xs text-gray-500">
+                                Complete payment to confirm your booking
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                          )}
                         </div>
                       </div>
                     </div>
