@@ -128,6 +128,7 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   mobileNo?: string;
+  AlternateNumber?: string;
   buildingName?: string;
   locality?: string;
   street?: string;
@@ -648,6 +649,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           AlternateNumber: "Please enter a valid 10-digit mobile number.",
         }));
         resetValidation('alternate');
+      } else if (trimmedValue === formData.mobileNo) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          AlternateNumber: "Alternate number must be different from primary mobile number.",
+        }));
+        resetValidation('alternate');
       } else if (trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -664,12 +671,22 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
 
     if (name === "AADHAR") {
-      if (!value) {
+      // Only allow numeric input and limit to 12 digits
+      const numericValue = value.replace(/\D/g, "");
+      const trimmedValue = numericValue.slice(0, 12);
+      
+      // Update form data with trimmed value
+      setFormData(prev => ({
+        ...prev,
+        AADHAR: trimmedValue,
+      }));
+      
+      if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AADHAR: "Aadhaar number is required.",
         }));
-      } else if (!aadhaarPattern.test(value)) {
+      } else if (!aadhaarPattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AADHAR: "Aadhaar number must be exactly 12 digits.",
@@ -710,7 +727,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
 
     // Handle other fields
-    if (name !== "pincode") {
+    if (name !== "pincode" && name !== "AADHAR") {
       setFormData((prevData) => ({
         ...prevData,
         [name]: value,
@@ -788,6 +805,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         tempErrors.mobileNo = validationResults.mobile.error;
       } else if (!validationResults.mobile.isAvailable) {
         tempErrors.mobileNo = "Mobile number is not available.";
+      }
+      
+      // Validate alternate number if provided
+      if (formData.AlternateNumber.trim()) {
+        if (!phoneRegex.test(formData.AlternateNumber.trim())) {
+          tempErrors.AlternateNumber = "Please enter a valid 10-digit mobile number.";
+        } else if (formData.AlternateNumber.trim() === formData.mobileNo.trim()) {
+          tempErrors.AlternateNumber = "Alternate number must be different from primary mobile number.";
+        } else if (!validationResults.alternate.isAvailable) {
+          tempErrors.AlternateNumber = "Alternate number is not available.";
+        }
       }
     }
 
@@ -1514,8 +1542,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 fullWidth
                 value={formData.AlternateNumber}
                 onChange={handleRealTimeValidation}
-                error={validationResults.alternate.isAvailable === false}
+                error={!!errors.AlternateNumber || validationResults.alternate.isAvailable === false}
                 helperText={
+                  errors.AlternateNumber ||
                   (validationResults.alternate.loading ? "Checking availability..." :
                     validationResults.alternate.error ||
                     (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
@@ -1846,6 +1875,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 onFocus={() => handleFieldFocus("AADHAR")}
                 error={!!errors.AADHAR}
                 helperText={errors.AADHAR}
+                inputProps={{
+                  maxLength: 12,
+                  pattern: "[0-9]*",
+                  inputMode: "numeric"
+                }}
               />
             </Grid>
             <Grid item xs={12}>
