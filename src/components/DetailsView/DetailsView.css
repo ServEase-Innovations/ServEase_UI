@@ -1,97 +1,141 @@
-/* Container for the details view */
-body, html {
-  margin: 0;
-  padding: 0;
+/* ===============================
+   GLOBAL RESPONSIVE 
+================================ */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
-.details-view-container {
-  display: flex;
-  flex-direction: row; /* Sidebar and body side by side */
-  min-height: 100vh;
-  position: relative;
-  padding-top: 50px;
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===============================
+   MAIN CONTAINER FIX
+================================ */
+.main-container {
+  margin-top: 100px;            /* stable header offset */
+  height: auto;
+  min-height: calc(100vh - 64px);
   width: 100%;
-  
+  padding: 12px;
 }
 
-/* Sidebar styles */
-.sidebar {
-  /* width: 50px; */
-  justify-content: flex-start;
-  top: 50%;
-  left: 0;
-  /* width: 5px; */
-  height: 75%;
+/* ===============================
+   SIDEBAR + CONTENT STABILITY
+================================ */
+.details-view-container {
+  width: 100%;
   overflow-x: hidden;
-  transition: width 0.3s ease;
-  background-color: #f1f1f1;
 }
 
-.sidebar.open {
-  width: 50%; /* Opened sidebar width */
-  padding: 15px;
-}
-
-.sidebar.closed {
-  width: 0; /* Closed sidebar width */
-}
-
-/* Main content styles */
 .main-content {
-  flex-grow: 1;
-  padding: 10%;
-  transition: width 0.3s ease;
+  padding: 24px;
+  width: 100%;
 }
 
-.headers {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
+/* ===============================
+   PROVIDER CARD WRAPPING
+================================ */
 .providers-view {
-  /* display: flex; */
+  display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 12px;
 }
 
 .views {
- 
-  padding: 10px;
-  flex: 1 1 calc(50% - 10px); /* Two-column layout */
+  flex: 1 1 100%;
 }
 
-/* Responsive design: stack sidebar and content vertically on smaller screens */
-@media (max-width: 768px) {
+/* ===============================
+   MOBILE VIEW (≤ 480px)
+================================ */
+@media (max-width: 480px) {
   .details-view-container {
-    display: flex;
-    flex-direction: row;
+    flex-direction: column;
   }
 
   .sidebar {
-    width: 40%; /* Sidebar takes full width */
-    padding: 5px;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    height: calc(100vh - 64px);
+    width: 100%;
+    z-index: 1000;
+  }
+
+  .sidebar.open {
+    width: 100%;
+  }
+
+  .sidebar.closed {
+    width: 0;
   }
 
   .main-content {
-    width: 40%;
-     /* Main content also takes full width */
+    padding: 12px;
   }
 
   .views {
     flex: 1 1 100%;
-     /* Stack service provider details */
+  }
+
+  /* Center loaders & empty state properly */
+  .main-container > div[style*="position: absolute"] {
+    position: relative !important;
+    top: auto !important;
   }
 }
 
-.main-container{
-  margin-top: 6%;
-  height : 85%;
-  width: 100%; 
-  padding: 1%;
+/* ===============================
+   TABLET VIEW (481px – 768px)
+================================ */
+@media (min-width: 481px) and (max-width: 768px) {
+  .details-view-container {
+    flex-direction: row;
   }
 
-  .search{
-    background-color: #e7f1ff;
-    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+  .sidebar {
+    width: 35%;
   }
+
+  .sidebar.open {
+    width: 35%;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
+  .views {
+    flex: 1 1 100%;
+  }
+}
+
+/* ===============================
+   SMALL DESKTOP (769px – 1024px)
+================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar.open {
+    width: 30%;
+  }
+
+  .views {
+    flex: 1 1 calc(50% - 12px);
+  }
+}
+
+/* ===============================
+   LARGE DESKTOP (≥ 1025px)
+================================ */
+@media (min-width: 1025px) {
+  .sidebar.open {
+    width: 25%;
+  }
+
+  .views {
+    flex: 1 1 calc(33.33% - 12px);
+  }
+}

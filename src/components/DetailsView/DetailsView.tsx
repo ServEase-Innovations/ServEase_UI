@@ -208,6 +208,39 @@ useEffect(() => {
   console.log("Service Providers Data:", serviceProviderData);
 
   return (
+    <div style={{ position: "relative" }}>
+      {/* Back Button - Only shown when service providers are present */}
+      {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 && (
+        <div
+          onClick={handleBackClick}
+          style={{
+            position: "absolute",
+            top: "-10px",
+            left: "15px",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            color: "#333",
+            fontSize: "16px",
+            fontWeight: "500",
+            padding: "8px 12px",
+            borderRadius: "4px",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#f5f5f5";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <span style={{ fontSize: "20px" }}></span>
+          <span>Back</span>
+        </div>
+      )}
+
     <main className="main-container" pt-16>
       {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 ? (
   serviceProviderData.map((provider, index) => (
@@ -282,7 +315,8 @@ useEffect(() => {
   </div>
 )}
 
-    </main>  
+    </main> 
+    </div> 
   );
 };
 

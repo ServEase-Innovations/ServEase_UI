@@ -1081,6 +1081,50 @@ const renderScheduledMessage = (booking: Booking) => {
   }}
 >
   <div className="container mx-auto">
+    {/* Back Button Row */}
+    <div className="mb-4">
+      <button
+        onClick={() => window.history.back()}
+        className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200 hover:border-blue-200"
+        style={{ color: "rgb(14, 48, 92)" }}
+      >
+        {/* Animated arrow */}
+        <div className="relative h-5 w-5 overflow-hidden">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 absolute inset-0 transition-all duration-300 group-hover:-translate-x-full"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 absolute inset-0 translate-x-full transition-all duration-300 group-hover:translate-x-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </div>
+        
+        <span className="font-medium transition-colors duration-200 group-hover:text-blue-700">
+          Back
+        </span>
+        
+        {/* Hover effect line */}
+        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></div>
+      </button>
+    </div>
+
     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
       {/* Left side - empty on mobile, logo on desktop if needed */}
       <div className="hidden md:block w-1/3"></div>
@@ -1095,102 +1139,102 @@ const renderScheduledMessage = (booking: Booking) => {
         </p>
       </div>
 
-{/* Right side - Search and Wallet */}
-<div className="flex items-center justify-end w-full md:w-1/3 order-2 md:order-3 gap-3">
-  {/* Search Container */}
-  <div className="relative flex-1 md:flex-none w-full md:w-64">
-    {/* Desktop Search - Always visible */}
-    <div className="hidden md:block">
-      <input
-        type="text"
-        placeholder="Search bookings..."
-        className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-      {searchTerm && (
-        <button
-          onClick={() => setSearchTerm("")}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-        >
-          <XCircle className="h-5 w-5" />
-        </button>
-      )}
-    </div>
-    
-    {/* Mobile Search - Icon button that toggles search input */}
-    <div className="md:hidden">
-      <div className="flex items-center gap-2">
-        {/* Search input that appears when active */}
-        {showMobileSearch ? (
-          <div className="relative flex-1">
+      {/* Right side - Search and Wallet */}
+      <div className="flex items-center justify-end w-full md:w-1/3 order-2 md:order-3 gap-3">
+        {/* Search Container */}
+        <div className="relative flex-1 md:flex-none w-full md:w-64">
+          {/* Desktop Search - Always visible */}
+          <div className="hidden md:block">
             <input
               type="text"
               placeholder="Search bookings..."
-              className="w-full px-4 py-2.5 rounded-lg bg-white shadow-md text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+              className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              autoFocus
             />
-            <button
-              onClick={() => {
-                setShowMobileSearch(false);
-                setSearchTerm("");
-              }}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Show search icon button */}
-            <button
-              onClick={() => setShowMobileSearch(true)}
-              className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center hover:bg-blue-50 transition-colors duration-200"
-            >
-              <Search className="h-5 w-5 text-gray-600" />
-            </button>
-            {/* Show clear search button if there's an active search term */}
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="w-10 h-10 rounded-full bg-red-50 shadow-md border border-red-100 flex items-center justify-center hover:bg-red-100 transition-colors duration-200"
-                title="Clear search"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
-                <XCircle className="h-5 w-5 text-red-500" />
+                <XCircle className="h-5 w-5" />
               </button>
             )}
-          </>
-        )}
-      </div>
-    </div>
-  </div>
+          </div>
+          
+          {/* Mobile Search - Icon button that toggles search input */}
+          <div className="md:hidden">
+            <div className="flex items-center gap-2">
+              {/* Search input that appears when active */}
+              {showMobileSearch ? (
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search bookings..."
+                    className="w-full px-4 py-2.5 rounded-lg bg-white shadow-md text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setShowMobileSearch(false);
+                      setSearchTerm("");
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Show search icon button */}
+                  <button
+                    onClick={() => setShowMobileSearch(true)}
+                    className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center hover:bg-blue-50 transition-colors duration-200"
+                  >
+                    <Search className="h-5 w-5 text-gray-600" />
+                  </button>
+                  {/* Show clear search button if there's an active search term */}
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="w-10 h-10 rounded-full bg-red-50 shadow-md border border-red-100 flex items-center justify-center hover:bg-red-100 transition-colors duration-200"
+                      title="Clear search"
+                    >
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
-  {/* Wallet Button */}
-  <div className="flex flex-col items-center">
-    <button 
-      className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
-      onClick={() => setWalletDialogOpen(true)}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-5 w-5 md:h-6 md:w-6"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="rgb(14, 48, 92)"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-        />
-      </svg>
-    </button>
-    <span className="mt-1 text-xs" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
-  </div>
-</div>
+        {/* Wallet Button */}
+        <div className="flex flex-col items-center">
+          <button 
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50 transition-colors duration-200"
+            onClick={() => setWalletDialogOpen(true)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 md:h-6 md:w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="rgb(14, 48, 92)"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
+            </svg>
+          </button>
+          <span className="mt-1 text-xs" style={{ color: "rgb(14, 48, 92)" }}>Wallet</span>
+        </div>
+      </div>
     </div>
 
     {/* Mobile Search Bar (when active) */}
@@ -1217,12 +1261,12 @@ const renderScheduledMessage = (booking: Booking) => {
 </div>
 
       <div className="container mx-auto px-4 py-4 md:py-8">
-        {isLoading && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-            <ClipLoader color="#3b82f6" size={50} />
-            <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
-          </div>
-        )}
+       {isLoading && (
+  <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm" style={{ top: '64px' }}> {/* Adjust 64px to match your header height */}
+    <ClipLoader color="#3b82f6" size={50} />
+    <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
+  </div>
+)}
 
         {/* Upcoming Bookings Section */}
         <section className="mb-8">
