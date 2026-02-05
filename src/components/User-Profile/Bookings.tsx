@@ -1350,21 +1350,26 @@ const renderScheduledMessage = (booking: Booking) => {
                         <div className="flex flex-wrap gap-2">
                           {getBookingTypeBadge(booking.bookingType)}
                           {getStatusBadge(booking.taskStatus)}
-                          {booking.modifications && booking.modifications.length > 0 && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                              Modified
-                            </Badge>
-                          )}
-                          {booking.assignmentStatus === "UNASSIGNED" && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                              Awaiting
-                            </Badge>
-                          )}
-                          {/* Payment status badge */}
-                          {booking.payment && booking.payment.status === "PENDING" && (
-                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                              Payment Pending
-                            </Badge>
+                          {/* Hide these badges when taskStatus is CANCELLED */}
+                          {booking.taskStatus !== 'CANCELLED' && (
+                            <>
+                              {booking.modifications && booking.modifications.length > 0 && (
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                  Modified
+                                </Badge>
+                              )}
+                              {booking.assignmentStatus === "UNASSIGNED" && (
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                  Awaiting
+                                </Badge>
+                              )}
+                              {/* Payment status badge - only show when not cancelled */}
+                              {booking.payment && booking.payment.status === "PENDING" && (
+                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                                  Payment Pending
+                                </Badge>
+                              )}
+                            </>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground pt-1">
@@ -1403,7 +1408,8 @@ const renderScheduledMessage = (booking: Booking) => {
                               month: 'long',
                               day: 'numeric'
                             })}
-                            {booking.modifications && booking.modifications.length > 0 && (
+                            {/* Hide "Rescheduled" text when taskStatus is CANCELLED */}
+                            {booking.taskStatus !== 'CANCELLED' && booking.modifications && booking.modifications.length > 0 && (
                               <span className="ml-1 text-xs text-green-600 font-medium">
                                 (Rescheduled)
                               </span>
@@ -1472,6 +1478,7 @@ const renderScheduledMessage = (booking: Booking) => {
                                 size="sm"
                                 onClick={() => handlePaymentClick(booking)}
                                 className="bg-red-600 hover:bg-red-700 text-white"
+                                disabled={booking.taskStatus === 'CANCELLED'}
                               >
                                 <CreditCard className="h-4 w-4 mr-2" />
                                 Complete Payment
@@ -1573,16 +1580,21 @@ const renderScheduledMessage = (booking: Booking) => {
                       <div className="flex flex-wrap gap-2 ml-4">
                         {getBookingTypeBadge(booking.bookingType)}
                         {getStatusBadge(booking.taskStatus)}
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                            Modified
-                          </Badge>
-                        )}
-                        {/* Payment status badge for past bookings */}
-                        {booking.payment && booking.payment.status === "PENDING" && (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                            Payment Pending
-                          </Badge>
+                        {/* Hide these badges when taskStatus is CANCELLED */}
+                        {booking.taskStatus !== 'CANCELLED' && (
+                          <>
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                Modified
+                              </Badge>
+                            )}
+                            {/* Payment status badge for past bookings - only show when not cancelled */}
+                            {booking.payment && booking.payment.status === "PENDING" && (
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                                Payment Pending
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1601,7 +1613,8 @@ const renderScheduledMessage = (booking: Booking) => {
                               month: 'long',
                               day: 'numeric'
                             })}
-                            {booking.modifications && booking.modifications.length > 0 && (
+                            {/* Hide "Rescheduled" text when taskStatus is CANCELLED */}
+                            {booking.taskStatus !== 'CANCELLED' && booking.modifications && booking.modifications.length > 0 && (
                               <span className="ml-1 text-xs text-green-600 font-medium">
                                 (Rescheduled)
                               </span>
@@ -1670,6 +1683,7 @@ const renderScheduledMessage = (booking: Booking) => {
                                 size="sm"
                                 onClick={() => handlePaymentClick(booking)}
                                 className="bg-red-600 hover:bg-red-700 text-white"
+                                disabled={booking.taskStatus === 'CANCELLED'}
                               >
                                 <CreditCard className="h-4 w-4 mr-2" />
                                 Complete Payment
