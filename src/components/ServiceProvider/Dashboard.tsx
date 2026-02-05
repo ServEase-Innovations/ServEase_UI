@@ -20,7 +20,9 @@ import {
   Shield,
   CreditCard,
   Wallet,
-  Receipt
+  Receipt,
+  Phone,
+  MapPin
 } from "lucide-react";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
@@ -32,7 +34,7 @@ import ProviderCalendarBig from "./ProviderCalendarBig";
 import PaymentInstance from "src/services/paymentInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { OtpVerificationDialog } from "./OtpVerificationDialog";
-import WithdrawalDialog from "./WithdrawalDialog"; // Add this import
+import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
 
 // Types for API response
@@ -312,7 +314,6 @@ export default function Dashboard() {
   const [currentBooking, setCurrentBooking] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [withdrawalHistoryDialogOpen, setWithdrawalHistoryDialogOpen] = useState(false);
-  // Add state for withdrawal dialog
   const [withdrawalDialogOpen, setWithdrawalDialogOpen] = useState(false);
 
   const metrics = [
@@ -409,9 +410,7 @@ export default function Dashboard() {
     }
   }, [serviceProviderId, toast]);
 
-  // Add function to handle withdrawal success
   const handleWithdrawalSuccess = async () => {
-    // Refresh payout data after successful withdrawal
     if (serviceProviderId) {
       try {
         const currentMonthYear = getCurrentMonthYear();
@@ -431,12 +430,43 @@ export default function Dashboard() {
     }
   };
 
-  const handleContactClient = (booking: any) => {
-    const contactInfo = booking.contact || booking.bookingData?.mobileno || "Contact info not available";
+  const handleCallCustomer = (phoneNumber: string, clientName: string) => {
+    if (!phoneNumber || phoneNumber === "Contact info not available") {
+      toast({
+        title: "No Contact Info",
+        description: "Customer contact information is not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const telLink = `tel:${phoneNumber}`;
+    window.open(telLink, '_blank');
     
     toast({
-      title: "Contact Information",
-      description: `Call ${booking.clientName} at ${contactInfo}`,
+      title: "Calling Customer",
+      description: `Calling ${clientName} at ${phoneNumber}`,
+    });
+  };
+
+  const handleTrackAddress = (address: string) => {
+    if (!address || address === "Address not provided") {
+      toast({
+        title: "No Address",
+        description: "Address is not provided for this booking.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const encodedAddress = encodeURIComponent(address);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    
+    window.open(googleMapsUrl, '_blank');
+    
+    toast({
+      title: "Opening Maps",
+      description: "Opening address in Google Maps for tracking.",
     });
   };
 
@@ -588,7 +618,7 @@ export default function Dashboard() {
       </header>
 
       <div
-        className="mb-6 p-3 sm:p-6 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
+        className="mb-4 p-3 sm:p-4 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
         style={{
           background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
           color: "white",
@@ -617,7 +647,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
+        {/* <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
           <div className="flex flex-col items-center">
             <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
               <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-500" />
@@ -671,55 +701,54 @@ export default function Dashboard() {
               Completion
             </span>
           </div>
-        </div>
+        </div> */}
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {metrics.map((metric, index) => (
             <DashboardMetricCard key={index} {...metric} />
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl font-semibold">Recent Booking</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between py-3">
+                <CardTitle className="text-lg font-semibold">Recent Booking</CardTitle>
                 {!loading && latestBooking.length > 0 && (
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
                     Latest
                   </Badge>
                 )}
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="pt-1">
                 {loading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="flex justify-center items-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
                 ) : error ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Failed to load bookings. Please try again.</p>
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">Failed to load bookings. Please try again.</p>
                     <Button
                       variant="outline"
-                      className="mt-4"
+                      size="sm"
+                      className="mt-2"
                       onClick={fetchData}
                     >
                       Retry
                     </Button>
                   </div>
                 ) : latestBooking.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No upcoming bookings found.</p>
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">No upcoming bookings found.</p>
                   </div>
                 ) : (
                   latestBooking.map((booking) => {
-                    // FIX: Check today_service status instead of just task_status
                     const todayServiceStatus = booking.bookingData?.today_service?.status;
                     const taskStatusOriginal = booking.task_status?.toUpperCase();
                     
-                    // Check if service is in progress
                     const isInProgress = todayServiceStatus === 'IN_PROGRESS' || 
                                          taskStatus[booking.id] === 'IN_PROGRESS' || 
                                          taskStatusOriginal === 'IN_PROGRESS' || 
@@ -731,24 +760,22 @@ export default function Dashboard() {
                     const isNotStarted = todayServiceStatus === 'SCHEDULED' || 
                                          taskStatusOriginal === 'NOT_STARTED';
 
-                    // Check if service can be started based on today_service
                     const canStart = booking.bookingData?.today_service?.can_start === true;
                     
-                    // Determine which button to show
                     const showStartButton = isNotStarted && canStart;
                     const showCompleteButton = isInProgress;
                     const showCompletedButton = isCompleted;
 
                     return (
-                      <div key={booking.id} className="border rounded-xl p-6 mb-6 shadow-sm bg-white">
+                      <div key={booking.id} className="border rounded-lg p-4 mb-3 shadow-sm bg-white">
                         
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">
                               Booking ID: {booking.bookingId || "N/A"}
                             </p>
-                            <h2 className="text-lg font-semibold">{booking.clientName}</h2>
-                            <p className="text-sm text-muted-foreground">{booking.service}</p>
+                            <h2 className="text-base font-semibold">{booking.clientName}</h2>
+                            <p className="text-xs text-muted-foreground">{booking.service}</p>
                           </div>
                           <div className="flex gap-2 items-center">
                             {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
@@ -756,24 +783,37 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
-                            <p className="text-sm">
-                              {booking.date} at {booking.time}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Amount</p>
-                            <p className="text-sm font-semibold">
-                              {booking.amount}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+  <div>
+    <p className="text-xs font-medium text-muted-foreground">Date & Time</p>
+    <p className="text-xs">
+      {booking.date} at {booking.time}
+    </p>
+  </div>
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-xs font-medium text-muted-foreground">Amount</p>
+      <p className="text-xs font-semibold">
+        {booking.amount}
+      </p>
+    </div>
+    {booking.bookingData?.mobileno && (
+      <Button
+        variant="ghost"
+        size="sm"
+         className="h-6 px-2"
+        onClick={() => handleCallCustomer(booking.bookingData.mobileno, booking.clientName)}
+        title={`Call ${booking.clientName}`}
+      >
+        <Phone className="h-3 w-3" />
+      </Button>
+    )}
+  </div>
+</div>
 
-                        <div className="mb-4">
-                          <p className="text-sm font-medium text-muted-foreground mb-1">Responsibilities</p>
-                          <div className="flex flex-wrap gap-2">
+                        <div className="mb-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Responsibilities</p>
+                          <div className="flex flex-wrap gap-1">
                             {booking.bookingData?.responsibilities?.tasks?.map((task: any, index: number) => {
                               const taskLabel = task.persons ? `${task.persons} persons` : "";
                               return (
@@ -793,26 +833,33 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="mb-4">
-                          <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
-                          <p className="text-sm">
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-medium text-muted-foreground">Address</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => handleTrackAddress(booking.location)}
+                            >
+                              <MapPin className="h-3 w-3 mr-1" />
+                              Track Address
+                            </Button>
+                          </div>
+                          <p className="text-xs">
                             {booking.location || "Address not provided"}
                           </p>
-                          {booking.bookingData?.mobileno && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Contact: {booking.bookingData.mobileno}
-                            </p>
-                          )}
+                       
                         </div>
 
-                        {/* Today's Service Status Badge */}
                         {todayServiceStatus && (
-                          <div className="mb-4">
+                          <div className="mb-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-muted-foreground">Today's Service:</span>
+                              <span className="text-xs font-medium text-muted-foreground">Today's Service:</span>
                               <Badge 
                                 variant="outline"
                                 className={`
+                                  text-xs
                                   ${todayServiceStatus === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
                                   ${todayServiceStatus === 'IN_PROGRESS' ? 'bg-green-50 text-green-700 border-green-200' : ''}
                                   ${todayServiceStatus === 'COMPLETED' ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
@@ -824,8 +871,8 @@ export default function Dashboard() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-sm font-medium text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-muted-foreground">
                             {isInProgress 
                               ? "Task In Progress" 
                               : isCompleted 
@@ -838,12 +885,13 @@ export default function Dashboard() {
                           <div className="flex gap-2">
                             {taskStatusUpdating[booking.id] ? (
                               <Button variant="ghost" size="sm" disabled>
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-3 w-3 animate-spin" />
                               </Button>
                             ) : showCompleteButton ? (
                               <Button 
                                 variant="destructive" 
-                                size="sm" 
+                                size="sm"
+                                className="h-7 text-xs px-2"
                                 onClick={() => handleStopTask(booking.id, booking.bookingData)}
                               >
                                 Complete Task
@@ -851,17 +899,18 @@ export default function Dashboard() {
                             ) : showCompletedButton ? (
                               <Button 
                                 variant="outline" 
-                                size="sm" 
+                                size="sm"
+                                className="h-7 text-xs px-2 bg-green-50 text-green-700 border-green-200"
                                 disabled
-                                className="bg-green-50 text-green-700 border-green-200"
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
+                                <CheckCircle className="h-3 w-3 mr-1" />
                                 Completed
                               </Button>
                             ) : showStartButton ? (
                               <Button 
                                 variant="outline" 
-                                size="sm" 
+                                size="sm"
+                                className="h-7 text-xs px-2"
                                 onClick={() => handleStartTask(booking.id, booking.bookingData)}
                               >
                                 Start Task
@@ -869,24 +918,15 @@ export default function Dashboard() {
                             ) : (
                               <Button 
                                 variant="outline" 
-                                size="sm" 
+                                size="sm"
+                                className="h-7 text-xs px-2 bg-gray-50 text-gray-500 border-gray-200"
                                 disabled
-                                className="bg-gray-50 text-gray-500 border-gray-200"
                               >
                                 Cannot Start Yet
                               </Button>
                             )}
                           </div>
                         </div>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleContactClient(booking)}
-                        >
-                          Contact Client
-                        </Button>
                       </div>
                     );
                   })
@@ -896,81 +936,76 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <Card className="border-0 shadow-sm mb-6">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Quick Actions</CardTitle>
+            <Card className="border-0 shadow-sm mb-4">
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <AllBookingsDialog
                   bookings={bookings}
                   serviceProviderId={serviceProviderId}
                   trigger={
-                    <Button className="w-full justify-start" variant="outline">
-                      <Users className="h-4 w-4 mr-2" />
+                    <Button className="w-full justify-start text-sm" variant="outline" size="sm">
+                      <Users className="h-3 w-3 mr-2" />
                       View All Bookings
                     </Button>
                   }
                 />
-                {/* Updated Request Withdrawal Button */}
                 <Button 
-                  className="w-full justify-start" 
+                  className="w-full justify-start text-sm" 
                   variant="outline"
+                  size="sm"
                   onClick={() => setWithdrawalDialogOpen(true)}
-                  // disabled={!payout?.summary?.available_to_withdraw || payout.summary.available_to_withdraw < 500}
                 >
-                  <IndianRupee className="h-4 w-4 mr-2" />
+                  <IndianRupee className="h-3 w-3 mr-2" />
                   Request Withdrawal
-                  {/* {(payout?.summary?.available_to_withdraw || 0) < 500 && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
-                      Min ₹500
-                    </span>
-                  )} */}
                 </Button>
-               <Button 
-  className="w-full justify-start" 
-  variant="outline"
-  onClick={() => setWithdrawalHistoryDialogOpen(true)}
->
-  <Receipt className="h-4 w-4 mr-2" /> {/* You might want to use a different icon */}
-  Withdrawal History
-</Button> 
-                <Button className="w-full justify-start" variant="outline">
-                  <Calendar className="h-4 w-4 mr-2" />
+                <Button 
+                  className="w-full justify-start text-sm" 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWithdrawalHistoryDialogOpen(true)}
+                >
+                  <Receipt className="h-3 w-3 mr-2" />
+                  Withdrawal History
+                </Button> 
+                <Button className="w-full justify-start text-sm" variant="outline" size="sm">
+                  <Calendar className="h-3 w-3 mr-2" />
                   Apply Leave
                 </Button>
-
-                <Button className="w-full justify-start" variant="outline">
-                  <Clock className="h-4 w-4 mr-2" />
+                <Button className="w-full justify-start text-sm" variant="outline" size="sm">
+                  <Clock className="h-3 w-3 mr-2" />
                   Update Availability
                 </Button>
                 <Button
-                  className="w-full justify-start"
+                  className="w-full justify-start text-sm"
                   variant="outline"
+                  size="sm"
                   onClick={() => setReviewsDialogOpen(true)}
                 >
-                  <Star className="h-4 w-4 mr-2" />
+                  <Star className="h-3 w-3 mr-2" />
                   View Reviews
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Service Status</CardTitle>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg font-semibold">Service Status</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="pt-1">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Profile Status</span>
-                    <Badge className="bg-success text-success-foreground">Active</Badge>
+                    <span className="text-xs text-muted-foreground">Profile Status</span>
+                    <Badge className="bg-success text-success-foreground text-xs">Active</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Verification</span>
-                    <Badge className="bg-success text-success-foreground">Verified</Badge>
+                    <span className="text-xs text-muted-foreground">Verification</span>
+                    <Badge className="bg-success text-success-foreground text-xs">Verified</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Availability</span>
-                    <Badge className="bg-primary text-primary-foreground">Available</Badge>
+                    <span className="text-xs text-muted-foreground">Availability</span>
+                    <Badge className="bg-primary text-primary-foreground text-xs">Available</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -978,11 +1013,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div 
+        // className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        >
           {serviceProviderId !== null && (
             <ProviderCalendarBig providerId={serviceProviderId} />
           )}
-          <PaymentHistory payments={paymentHistory} />
+          {/* <PaymentHistory payments={paymentHistory} /> */}
         </div>
         
         <ReviewsDialog
@@ -1002,12 +1039,13 @@ export default function Dashboard() {
             bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.id,
           } : undefined}
         />
-<WithdrawalHistoryDialog
-  open={withdrawalHistoryDialogOpen}
-  onOpenChange={setWithdrawalHistoryDialogOpen}
-  serviceProviderId={serviceProviderId}
-/>
-        {/* Add WithdrawalDialog here */}
+        
+        <WithdrawalHistoryDialog
+          open={withdrawalHistoryDialogOpen}
+          onOpenChange={setWithdrawalHistoryDialogOpen}
+          serviceProviderId={serviceProviderId}
+        />
+        
         <WithdrawalDialog
           open={withdrawalDialogOpen}
           onOpenChange={setWithdrawalDialogOpen}

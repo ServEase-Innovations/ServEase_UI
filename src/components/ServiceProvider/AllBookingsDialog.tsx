@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "../../components/Common/Badge";
 import { Button } from "../../components/Button";
-import { Calendar, MapPin, X, Phone, Clock, Loader2, CheckCircle } from "lucide-react";
+import { Calendar, MapPin, X, Phone, Loader2, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent, Tabs, Tab } from "@mui/material";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/Common/Card";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
@@ -24,51 +24,71 @@ interface AllBookingsDialogProps {
   trigger: React.ReactNode;
 }
 
-// Helper function to convert epoch to formatted date and time
-const formatEpochToDateTime = (epochSeconds: number) => {
-  const date = new Date(epochSeconds * 1000);
-  
-  // Format date
-  const formattedDate = date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
-  
-  // Format time in 12-hour format with AM/PM
-  const formattedTime = date.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
-  
-  return { formattedDate, formattedTime, date };
-};
-
 // Function to format time string to AM/PM format
 const formatTimeToAMPM = (timeString: string): string => {
   if (!timeString) return '';
   
   try {
-    // Handle both "HH:mm:ss" and "HH:mm" formats
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours, 10);
     const minute = parseInt(minutes, 10);
     
     const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12; // Convert 0 to 12, 13 to 1, etc.
+    const displayHour = hour % 12 || 12;
     const displayMinute = minute.toString().padStart(2, '0');
     
     return `${displayHour}:${displayMinute} ${period}`;
   } catch (error) {
     console.error('Error formatting time:', error);
-    return timeString; // Return original if parsing fails
+    return timeString;
   }
 };
 
 // Function to format time range from start and end time strings
 const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
+};
+
+// Function to handle calling customer
+const handleCallCustomer = (phoneNumber: string, clientName: string, toast: any) => {
+  if (!phoneNumber || phoneNumber === "Contact info not available") {
+    toast({
+      title: "No Contact Info",
+      description: "Customer contact information is not available.",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  const telLink = `tel:${phoneNumber}`;
+  window.open(telLink, '_blank');
+  
+  toast({
+    title: "Calling Customer",
+    description: `Calling ${clientName} at ${phoneNumber}`,
+  });
+};
+
+// Function to handle tracking address
+const handleTrackAddress = (address: string, toast: any) => {
+  if (!address || address === "Address not provided") {
+    toast({
+      title: "No Address",
+      description: "Address is not provided for this booking.",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  const encodedAddress = encodeURIComponent(address);
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  
+  window.open(googleMapsUrl, '_blank');
+  
+  toast({
+    title: "Opening Maps",
+    description: "Opening address in Google Maps for tracking.",
+  });
 };
 
 export function AllBookingsDialog({
@@ -78,7 +98,7 @@ export function AllBookingsDialog({
 }: AllBookingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"ongoing" | "future" | "past">("ongoing");
-  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(dayjs()); // Set default to current month
+  const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(dayjs());
   const [data, setData] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalBookings, setTotalBookings] = useState(0);
@@ -92,23 +112,24 @@ export function AllBookingsDialog({
   const [currentBooking, setCurrentBooking] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   
+  // Function to get default month for each tab
+  const getDefaultMonthForTab = (tabType: "ongoing" | "future" | "past"): Dayjs => {
+    return dayjs().startOf('month');
+  };
+
   const mapApiBookingToBooking = (apiBooking: any): Booking => {
-    // Use epoch time if available, otherwise fall back to date strings
     let date, timeRange;
     
     if (apiBooking.start_epoch && apiBooking.end_epoch) {
-      // Convert epoch seconds to Date objects
       const startDate = new Date(apiBooking.start_epoch * 1000);
       const endDate = new Date(apiBooking.end_epoch * 1000);
       
-      // Format date
       const formattedDate = startDate.toLocaleDateString("en-IN", {
         day: "2-digit",
         month: "short",
         year: "numeric"
       });
       
-      // Format time range
       timeRange = `${startDate.toLocaleTimeString("en-IN", {
         hour: "2-digit",
         minute: "2-digit",
@@ -121,7 +142,6 @@ export function AllBookingsDialog({
       
       date = formattedDate;
     } else {
-      // Fallback to using date strings and time strings
       const startDateRaw = apiBooking.startDate || apiBooking.start_date;
       const startTimeStr = apiBooking.startTime || "00:00";
       const endTimeStr = apiBooking.endTime || "00:00";
@@ -144,17 +164,14 @@ export function AllBookingsDialog({
       });
     }
 
-    // Get client name - prioritize firstname + lastname, then email
     const clientName = apiBooking.firstname && apiBooking.lastname 
       ? `${apiBooking.firstname} ${apiBooking.lastname}`.trim()
       : apiBooking.firstname 
         ? apiBooking.firstname
         : apiBooking.email || "Client";
 
-    // Get booking ID - use engagement_id
     const bookingId = apiBooking.engagement_id || apiBooking.id;
 
-    // Get amount - use base_amount, format properly
     const amount = apiBooking.base_amount ? 
       `₹${parseFloat(apiBooking.base_amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
       "₹0";
@@ -238,7 +255,6 @@ export function AllBookingsDialog({
     }
   };
 
-  // Fetch data based on selected tab and month
   const fetchDataForTab = async (tab: "ongoing" | "future" | "past", monthDate: Dayjs) => {
     if (!serviceProviderId) return;
 
@@ -250,17 +266,14 @@ export function AllBookingsDialog({
       const apiResponse = await fetchBookingsByMonth(month, year);
       
       if (tab === "ongoing") {
-        // For ongoing tab, show current bookings from current month
         const currentBookings = apiResponse.current || [];
         setData(currentBookings.map(mapApiBookingToBooking));
         setTotalBookings(currentBookings.length);
       } else if (tab === "future") {
-        // For future tab, show upcoming bookings from selected month
         const upcomingBookings = apiResponse.upcoming || [];
         setData(upcomingBookings.map(mapApiBookingToBooking));
         setTotalBookings(upcomingBookings.length);
       } else if (tab === "past") {
-        // For past tab, show past bookings from selected month
         const pastBookings = apiResponse.past || [];
         setData(pastBookings.map(mapApiBookingToBooking));
         setTotalBookings(pastBookings.length);
@@ -272,7 +285,6 @@ export function AllBookingsDialog({
     }
   };
 
-  // Add functions for task management
   const handleStartTask = async (bookingId: string, bookingData: any) => {
     if (!bookingId || !bookingData) return;
 
@@ -309,7 +321,6 @@ export function AllBookingsDialog({
         variant: "default",
       });
 
-      // Refresh current month data after starting task
       await fetchDataForTab(tab, selectedMonth || dayjs());
     } catch (err) {
       setTaskStatus(prev => ({ ...prev, [bookingId]: previousStatus }));
@@ -368,7 +379,6 @@ export function AllBookingsDialog({
 
       setTaskStatus(prev => ({ ...prev, [currentBooking.bookingId]: "COMPLETED" }));
       
-      // Refresh current month data after completing task
       await fetchDataForTab(tab, selectedMonth || dayjs());
       
       return Promise.resolve();
@@ -390,19 +400,23 @@ export function AllBookingsDialog({
     }
   };
 
-  // Initialize data when dialog opens
+  // Handle tab change with month reset
+  const handleTabChange = (_: React.SyntheticEvent, newValue: "ongoing" | "future" | "past") => {
+    // Reset month to default for the new tab
+    const defaultMonth = getDefaultMonthForTab(newValue);
+    setSelectedMonth(defaultMonth);
+    setTab(newValue);
+  };
+
   useEffect(() => {
     if (!open) return;
     
-    // Reset data when dialog opens
     setData([]);
     setTotalBookings(0);
-    
-    // Always set to current month when dialog opens
-    setSelectedMonth(dayjs());
+    // Set initial month based on current tab
+    setSelectedMonth(getDefaultMonthForTab(tab));
   }, [open]);
 
-  // Fetch data when selectedMonth or tab changes
   useEffect(() => {
     if (!open || !selectedMonth) return;
     
@@ -411,15 +425,6 @@ export function AllBookingsDialog({
 
   const getMonthName = (date: Dayjs) => {
     return date.format("MMMM YYYY");
-  };
-
-  const handleContactClient = (booking: Booking) => {
-    const contactInfo = booking.bookingData?.mobileno || booking.bookingData?.contact || "Contact info not available";
-    
-    toast({
-      title: "Contact Information",
-      description: `Call ${booking.clientName} at ${contactInfo}`,
-    });
   };
 
   const handleMonthChange = (newDate: Dayjs | null) => {
@@ -462,7 +467,7 @@ export function AllBookingsDialog({
 
         <Tabs 
           value={tab} 
-          onChange={(_, newValue) => setTab(newValue)} 
+          onChange={handleTabChange} 
           centered
           sx={{
             "& .MuiTab-root": {
@@ -479,10 +484,25 @@ export function AllBookingsDialog({
         <div className="px-4 pt-3 flex justify-between items-center">
           <LocalizationProvider dateAdapter={AdapterDayjs}>   
             <DatePicker
-              views={["year", "month"]}
+              views={["month", "year"]}
+              openTo="month"
               label="Select Month"
               value={selectedMonth}
               onChange={handleMonthChange}
+              shouldDisableMonth={(date) => {
+                const currentMonth = dayjs().startOf('month');
+                const targetMonth = date.startOf('month');
+                
+                if (tab === "future") {
+                  // For upcoming tab: disable past months
+                  return targetMonth.isBefore(currentMonth, 'month');
+                } else if (tab === "past") {
+                  // For past tab: disable future months
+                  return targetMonth.isAfter(currentMonth, 'month');
+                }
+                // For ongoing tab: all months enabled
+                return false;
+              }}
               slotProps={{
                 textField: { 
                   size: "small", 
@@ -544,44 +564,35 @@ export function AllBookingsDialog({
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {data.map((booking) => {
-                // For ongoing tab only, check task status for today's service
-                let showTaskActions = false;
-                let todayServiceStatus = null;
-                let isInProgress = false;
-                let isCompleted = false;
-                let isNotStarted = false;
-                let canStart = false;
+                // Use the EXACT SAME LOGIC as in Dashboard
+                const todayServiceStatus = booking.bookingData?.today_service?.status;
+                const taskStatusOriginal = booking.taskStatus?.toUpperCase();
                 
-                if (tab === "ongoing") {
-                  todayServiceStatus = booking.bookingData?.today_service?.status;
-                  const taskStatusOriginal = booking.taskStatus?.toUpperCase();
-                  
-                  // Check if service is in progress
-                  isInProgress = todayServiceStatus === 'IN_PROGRESS' || 
-                                taskStatus[booking.id.toString()] === 'IN_PROGRESS' || 
-                                taskStatusOriginal === 'IN_PROGRESS' || 
-                                taskStatusOriginal === 'STARTED';
-                  
-                  isCompleted = todayServiceStatus === 'COMPLETED' || 
-                               taskStatusOriginal === 'COMPLETED';
-                  
-                  isNotStarted = todayServiceStatus === 'SCHEDULED' || 
-                                taskStatusOriginal === 'NOT_STARTED';
+                const isInProgress = todayServiceStatus === 'IN_PROGRESS' || 
+                                     taskStatus[booking.id.toString()] === 'IN_PROGRESS' || 
+                                     taskStatusOriginal === 'IN_PROGRESS' || 
+                                     taskStatusOriginal === 'STARTED';
+                
+                const isCompleted = todayServiceStatus === 'COMPLETED' || 
+                                   taskStatusOriginal === 'COMPLETED';
+                
+                const isNotStarted = todayServiceStatus === 'SCHEDULED' || 
+                                     taskStatusOriginal === 'NOT_STARTED';
 
-                  // Check if service can be started based on today_service
-                  canStart = booking.bookingData?.today_service?.can_start === true;
-                  
-                  showTaskActions = true;
-                }
+                const canStart = booking.bookingData?.today_service?.can_start === true;
+                
+                const showStartButton = isNotStarted && canStart;
+                const showCompleteButton = isInProgress;
+                const showCompletedButton = isCompleted;
 
                 return (
                   <Card
                     key={booking.id}
-                    className="shadow-sm border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                    className="shadow-sm border border-gray-200 rounded-lg hover:shadow-md transition-shadow mb-3"
                   >
-                    <CardHeader className="flex flex-row items-start justify-between pb-2">
+                    <CardHeader className="flex flex-row items-start justify-between py-3">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <p className="text-xs text-gray-500">Booking ID: {booking.id}</p>
@@ -590,7 +601,7 @@ export function AllBookingsDialog({
                             {getStatusBadge(booking.taskStatus)}
                           </div>
                         </div>
-                        <CardTitle className="font-semibold text-gray-800 text-lg mb-1">
+                        <CardTitle className="font-semibold text-gray-800 text-base mb-1">
                           {booking.clientName}
                         </CardTitle>
                         <div className="flex items-center gap-2">
@@ -601,37 +612,40 @@ export function AllBookingsDialog({
                       </div>
                     </CardHeader>
 
-                    <CardContent className="pt-2">
-                      {/* Date, Time and Amount */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <CardContent className="pt-1">
+                      {/* Date, Time and Amount with Phone Icon */}
+                      <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span>{booking.date}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span>{booking.time}</span>
-                          </div>
-                        </div>
-                        <div className="text-right md:text-left">
-                          <p className="text-sm font-medium text-gray-500 mb-1">Amount</p>
-                          <p className="text-lg font-semibold text-gray-800">
-                            {booking.amount}
+                          <p className="text-xs font-medium text-gray-500 mb-1">Date & Time</p>
+                          <p className="text-xs text-gray-600">
+                            {booking.date} at {booking.time}
                           </p>
                         </div>
-                      </div>
-
-                      {/* Location */}
-                      <div className="flex items-start gap-2 text-sm mb-4 text-gray-600">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span className="flex-1">{booking.location}</span>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 mb-1">Amount</p>
+                            <p className="text-xs font-semibold text-gray-800">
+                              {booking.amount}
+                            </p>
+                          </div>
+                          {booking.bookingData?.mobileno && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2"
+                              onClick={() => handleCallCustomer(booking.bookingData.mobileno, booking.clientName, toast)}
+                              title={`Call ${booking.clientName}`}
+                            >
+                              <Phone className="h-3 w-3 text-gray-600" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Responsibilities Section */}
-                      <div className="mb-4">
-                        <p className="font-medium text-sm text-gray-700 mb-2">Responsibilities:</p>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Responsibilities</p>
+                        <div className="flex flex-wrap gap-1">
                           {booking.responsibilities?.tasks?.map((task: any, index: number) => {
                             const taskLabel = task.persons ? `${task.persons} persons` : "";
                             return (
@@ -651,14 +665,34 @@ export function AllBookingsDialog({
                         </div>
                       </div>
 
-                      {/* Today's Service Status Badge - Only for ongoing tab */}
-                      {tab === "ongoing" && todayServiceStatus && (
-                        <div className="mb-4">
+                      {/* Location with Track Address Button */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-medium text-gray-500">Address</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => handleTrackAddress(booking.location, toast)}
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Track Address
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {booking.location || "Address not provided"}
+                        </p>
+                      </div>
+
+                      {/* Today's Service Status Badge - Only show if we have today_service */}
+                      {todayServiceStatus && (
+                        <div className="mb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-600">Today's Service:</span>
+                            <span className="text-xs font-medium text-gray-500">Today's Service:</span>
                             <Badge 
                               variant="outline"
                               className={`
+                                text-xs
                                 ${todayServiceStatus === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
                                 ${todayServiceStatus === 'IN_PROGRESS' ? 'bg-green-50 text-green-700 border-green-200' : ''}
                                 ${todayServiceStatus === 'COMPLETED' ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
@@ -670,74 +704,63 @@ export function AllBookingsDialog({
                         </div>
                       )}
 
-                      {/* Task Action Buttons - Only for ongoing tab */}
-                      {showTaskActions && (
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-sm font-medium text-gray-500">
-                            {isInProgress 
-                              ? "Task In Progress" 
-                              : isCompleted 
-                                ? 'Task Completed' 
-                                : isNotStarted
-                                  ? 'Not Started' 
-                                  : 'Upcoming'
-                            }
-                          </p>
-                          <div className="flex gap-2">
-                            {taskStatusUpdating[booking.id.toString()] ? (
-                              <Button variant="ghost" size="sm" disabled>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              </Button>
-                            ) : isInProgress ? (
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => handleStopTask(booking.id.toString(), booking.bookingData)}
-                              >
-                                Complete Task
-                              </Button>
-                            ) : isCompleted ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                disabled
-                                className="bg-green-50 text-green-700 border-green-200"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Completed
-                              </Button>
-                            ) : isNotStarted && canStart ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleStartTask(booking.id.toString(), booking.bookingData)}
-                              >
-                                Start Task
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                disabled
-                                className="bg-gray-50 text-gray-500 border-gray-200"
-                              >
-                                Cannot Start Yet
-                              </Button>
-                            )}
-                          </div>
+                      {/* Task Action Buttons - EXACT SAME LOGIC AS DASHBOARD */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-500">
+                          {isInProgress 
+                            ? "Task In Progress" 
+                            : isCompleted 
+                              ? 'Task Completed' 
+                              : isNotStarted
+                                ? 'Not Started' 
+                                : 'Upcoming'
+                          }
+                        </p>
+                        <div className="flex gap-2">
+                          {taskStatusUpdating[booking.id.toString()] ? (
+                            <Button variant="ghost" size="sm" disabled>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            </Button>
+                          ) : showCompleteButton ? (
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              className="h-7 text-xs px-2"
+                              onClick={() => handleStopTask(booking.id.toString(), booking.bookingData)}
+                            >
+                              Complete Task
+                            </Button>
+                          ) : showCompletedButton ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-7 text-xs px-2 bg-green-50 text-green-700 border-green-200"
+                              disabled
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Completed
+                            </Button>
+                          ) : showStartButton ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-7 text-xs px-2"
+                              onClick={() => handleStartTask(booking.id.toString(), booking.bookingData)}
+                            >
+                              Start Task
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-7 text-xs px-2 bg-gray-50 text-gray-500 border-gray-200"
+                              disabled
+                            >
+                              Cannot Start Yet
+                            </Button>
+                          )}
                         </div>
-                      )}
-
-                      {/* Contact Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-                        onClick={() => handleContactClient(booking)}
-                      >
-                        <Phone className="h-4 w-4 mr-2" />
-                        Contact Client
-                      </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
