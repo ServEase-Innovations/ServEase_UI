@@ -147,6 +147,13 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const currentLocation = users?.customerDetails?.currentLocation;
   const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
 
+  // FIX: Add useEffect to reset loading when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+    }
+  }, [open]);
+
   const toggleCart = useCallback((key: string, pkg: NannyPackage) => {
     // Detect package type from key
     const packageType = key.includes("day") ? "day" 
@@ -377,99 +384,99 @@ useEffect(() => {
     handleClose();
     setCartDialogOpen(false);
   };
-console.log("dataaa",bookingType?.endTime);
-  const handleCheckout = async () => {
-  try {
-    setLoading(true);
 
-    // 1. Filter selected packages
-    const selectedPackages = Object.entries(packages)
-      .filter(([_, pkg]) => pkg.selected)
-      .map(([key, pkg]) => ({
-        key,
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+
+      // 1. Filter selected packages
+      const selectedPackages = Object.entries(packages)
+        .filter(([_, pkg]) => pkg.selected)
+        .map(([key, pkg]) => ({
+          key,
+          age: pkg.age,
+          price: pkg.calculatedPrice,
+          category: pkg.category,
+          packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+        }));
+
+      const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+      if (baseTotal === 0) {
+        setSnackbarMessage("Please select at least one service");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return;
+      }
+
+      const customerId = user?.customerid || "guest-id";
+
+      const responsibilities = selectedPackages.map(pkg => ({
+        taskType: `${pkg.category} care - ${pkg.packageType} service`,
         age: pkg.age,
-        price: pkg.calculatedPrice,
-        category: pkg.category,
-        packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+        careType: activeTab,
       }));
 
-    const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-    if (baseTotal === 0) {
-      setSnackbarMessage("Please select at least one service");
-      setSnackbarSeverity("warning");
-      setSnackbarOpen(true);
-      return;
-    }
+      const payload: BookingPayload = {
+        customerid: customerId,
+        serviceproviderid: providerDetails?.serviceproviderId
+          ? Number(providerDetails.serviceproviderId)
+          : 0,
+        start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
+        end_date: bookingType?.endDate || "",
+        start_time: bookingType?.startTime || '',
+        responsibilities: { tasks: responsibilities },
+        booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+        taskStatus: "NOT_STARTED",
+        service_type: "NANNY",
+        base_amount: baseTotal,
+        payment_mode: "razorpay",
+        // Fix: Use consistent booking preference check
+        ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+          end_time: bookingType?.endTime || "",
+        }),
+      };
 
-    const customerId = user?.customerid || "guest-id";
+      const result = await BookingService.bookAndPay(payload);
 
-    const responsibilities = selectedPackages.map(pkg => ({
-      taskType: `${pkg.category} care - ${pkg.packageType} service`,
-      age: pkg.age,
-      careType: activeTab,
-    }));
+      // ✅ Set success details and show success dialog instead of snackbar
+      setBookingSuccessDetails({
+        providerName: providerFullName,
+        serviceType: 'Caregiver Service',
+        totalAmount: baseTotal,
+        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        persons: selectedPackages.length,
+        message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+      });
+      
+      // Close ALL dialogs and open success dialog
+      setCartDialogOpen(false);
+      handleClose();
+      setSuccessDialogOpen(true);
 
-  const payload: BookingPayload = {
-  customerid: customerId,
-  serviceproviderid: providerDetails?.serviceproviderId
-    ? Number(providerDetails.serviceproviderId)
-    : 0,
-  start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-  end_date: bookingType?.endDate || "",
-  start_time: bookingType?.startTime || '',
-  responsibilities: { tasks: responsibilities },
-  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-  taskStatus: "NOT_STARTED",
-  service_type: "NANNY",
-  base_amount: baseTotal,
-  payment_mode: "razorpay",
-  // Fix: Use consistent booking preference check
-  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
-    end_time: bookingType?.endTime || "",
-  }),
-};
+    } catch (err: any) {
+      console.error("Checkout error:", err);
 
-    const result = await BookingService.bookAndPay(payload);
-
-    // ✅ Set success details and show success dialog instead of snackbar
-    setBookingSuccessDetails({
-      providerName: providerFullName,
-      serviceType: 'Caregiver Service',
-      totalAmount: baseTotal,
-      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
-      persons: selectedPackages.length,
-      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
-    });
-    
-    // Close ALL dialogs and open success dialog
-    setCartDialogOpen(false);
-    handleClose();
-    setSuccessDialogOpen(true);
-
-  } catch (err: any) {
-    console.error("Checkout error:", err);
-
-    // ✅ Still use snackbar for errors
-    let backendMessage = "Payment failed. Please try again.";
-    if (err?.response?.data) {
-      if (typeof err.response.data === "string") {
-        backendMessage = err.response.data;
-      } else if (err.response.data.error) {
-        backendMessage = err.response.data.error;
-      } else if (err.response.data.message) {
-        backendMessage = err.response.data.message;
+      // ✅ Still use snackbar for errors
+      let backendMessage = "Payment failed. Please try again.";
+      if (err?.response?.data) {
+        if (typeof err.response.data === "string") {
+          backendMessage = err.response.data;
+        } else if (err.response.data.error) {
+          backendMessage = err.response.data.error;
+        } else if (err.response.data.message) {
+          backendMessage = err.response.data.message;
+        }
+      } else if (err.message) {
+        backendMessage = err.message;
       }
-    } else if (err.message) {
-      backendMessage = err.message;
-    }
 
-    setSnackbarMessage(backendMessage);
-    setSnackbarSeverity("error");
-    setSnackbarOpen(true);
-  } finally {
-    setLoading(false);
-  }
-};
+      setSnackbarMessage(backendMessage);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calculateTotal = () => {
     return Object.entries(packages)
@@ -528,6 +535,12 @@ console.log("dataaa",bookingType?.endTime);
 
   const handleApplyVoucher = () => {
     // Voucher logic here
+  };
+
+  const handleDialogClose = () => {
+    // FIX: Reset loading when dialog closes
+    setLoading(false);
+    handleClose();
   };
 
   // ✅ Rendering Baby & Elderly Tabs with Age Limits
@@ -613,7 +626,14 @@ console.log("dataaa",bookingType?.endTime);
 
   return (
     <>
-      <StyledDialog open={open} onClose={handleClose}>
+      <StyledDialog 
+        open={open} 
+        onClose={(event, reason) => {
+          // FIX: Reset loading when dialog closes via backdrop click
+          setLoading(false);
+          handleClose();
+        }}
+      >
         <StyledDialogContent>
           <DialogContainer>
             <DialogHeader  style={{
@@ -627,7 +647,15 @@ console.log("dataaa",bookingType?.endTime);
                 }}
             className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
               <h1>❤️ Caregiver Service</h1>
-              <CloseButton aria-label="close" onClick={handleClose} size="small">
+              <CloseButton 
+                aria-label="close" 
+                onClick={() => {
+                  // FIX: Reset loading when close button is clicked
+                  setLoading(false);
+                  handleClose();
+                }} 
+                size="small"
+              >
                 <CloseIcon style={{ color: 'white' }} />
               </CloseButton>
             </DialogHeader>
@@ -682,7 +710,7 @@ console.log("dataaa",bookingType?.endTime);
               ) : (
                 <CheckoutButton
                   onClick={handleOpenCartDialog}
-                  disabled={calculateTotal() === 0 || loading}
+                  disabled={calculateTotal() === 0 || loading} // FIX: Add loading to disabled condition
                 >
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
                 </CheckoutButton>

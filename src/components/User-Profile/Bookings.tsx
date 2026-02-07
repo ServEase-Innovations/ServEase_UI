@@ -125,7 +125,7 @@ const getServiceIcon = (type: string) => {
 
 // Modification restriction functions
 const isModificationTimeAllowed = (startEpoch: any): boolean => {
-  // console.log("Start epoch ", startEpoch )
+  console.log("Start epoch ", startEpoch )
   const now = dayjs().unix(); // current time in seconds
   const cutoff = startEpoch - 30 * 60; // 30 minutes before booking start
 
@@ -216,7 +216,10 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
 };
 
+// Function to handle payment completion
+const handleCompletePayment = async (booking: Booking) => {
 
+};
 
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -345,58 +348,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       setOtpLoading(null);
     }
   };
-
-  // Function to handle payment completion
-  const handleCompletePayment = async (booking: Booking) => {
-  try {
-    // 1️⃣ Call resume-payment API
-    const resumeRes = await PaymentInstance.get(
-      `/api/payments/${booking.payment?.engagement_id}/resume`
-    );
-
-    const {
-      razorpay_order_id,
-      amount,
-      currency,
-      engagement_id,
-      customer
-    } = resumeRes.data;
-
-    // 2️⃣ Open Razorpay Checkout
-    const options = {
-      key: "rzp_test_lTdgjtSRlEwreA",
-      amount: amount * 100, // paise
-      currency,
-      order_id: razorpay_order_id,
-      name: "Serveaso",
-      description: "Complete your payment",
-      prefill: {
-        name: customer?.firstname || booking.customerName,
-        contact:  customer?.contact || '9999999999',
-      },
-      handler: async function (response: any) {
-        // 3️⃣ Verify payment
-        await PaymentInstance.post("/api/payments/verify", {
-          engagementId: engagement_id,
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature,
-        });
-        refreshBookings();
-      },
-      theme: {
-        color: "#0A7CFF",
-      },
-    };
-
-    const razorpay = new (window as any).Razorpay(options);
-    razorpay.open();
-
-  } catch (err: any) {
-    console.error("Complete payment error:", err);
-    alert("Unable to resume payment. Please try again.");
-  }
-};
 
 const renderScheduledMessage = (booking: Booking) => {
   if (booking.today_service && booking.today_service.status === "SCHEDULED") {

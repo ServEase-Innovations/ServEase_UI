@@ -43,7 +43,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user, loginWithRedirect, isAuthenticated } = useAuth0();
-const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
+  const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
   const { getBookingType, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -51,6 +51,13 @@ const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+
+  // FIX: Reset loading state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+    }
+  }, [open]);
 
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
     if (persons <= 3) return basePrice;
@@ -214,7 +221,7 @@ const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?
     prepareCartForCheckout();
     setCartDialogOpen(true);
   };
-console.log("providerDetails?.serviceproviderId",providerDetails?.serviceproviderId)
+
   const handleCheckout = async () => {
     try {
       setLoading(true);
@@ -235,25 +242,25 @@ console.log("providerDetails?.serviceproviderId",providerDetails?.serviceprovide
         persons: pkg.persons
       }));
 
-   const payload: BookingPayload = {
-  customerid: customerId,
-  serviceproviderid: providerDetails?.serviceproviderId
-    ? Number(providerDetails.serviceproviderId)
-    : 0,
-  start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
-  end_date: bookingType?.endDate || "",
-  responsibilities: { tasks: responsibilities },
-  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-  taskStatus: "NOT_STARTED",
-  service_type: "COOK",
-  base_amount: baseTotal,
-  payment_mode: "razorpay",
-  start_time: bookingType?.startTime || "",
-  // ✅ FIXED: Use consistent booking preference check
-  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
-    end_time: bookingType?.endTime || "",
-  }),
-};
+      const payload: BookingPayload = {
+        customerid: customerId,
+        serviceproviderid: providerDetails?.serviceproviderId
+          ? Number(providerDetails.serviceproviderId)
+          : 0,
+        start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        end_date: bookingType?.endDate || "",
+        responsibilities: { tasks: responsibilities },
+        booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+        taskStatus: "NOT_STARTED",
+        service_type: "COOK",
+        base_amount: baseTotal,
+        payment_mode: "razorpay",
+        start_time: bookingType?.startTime || "",
+        ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+          end_time: bookingType?.endTime || "",
+        }),
+      };
+      
       const result = await BookingService.bookAndPay(payload);
 
       setBookingSuccessDetails({
@@ -288,6 +295,7 @@ console.log("providerDetails?.serviceproviderId",providerDetails?.serviceprovide
       setSnackbarOpen(true);
 
     } finally {
+      // FIX: Only reset loading here, not on error
       setLoading(false);
     }
   };
@@ -401,10 +409,13 @@ console.log("providerDetails?.serviceproviderId",providerDetails?.serviceprovide
     <>
       <StyledDialog
         open={open}
-        onClose={handleClose}
+        onClose={(event, reason) => {
+          // FIX: Reset loading when dialog closes via backdrop click
+          setLoading(false);
+          handleClose();
+        }}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
-        
       >
         <StyledDialogContent>
           <DialogContainer>
@@ -419,11 +430,16 @@ console.log("providerDetails?.serviceproviderId",providerDetails?.serviceprovide
               }}>
               <h1>👩‍🍳Home Cook</h1>
               <CloseButton 
-               aria-label="close" 
-              onClick={handleClose} 
-              size="small">
-              <CloseIcon sx={{ color: 'white' }} />
-            </CloseButton>
+                aria-label="close" 
+                onClick={() => {
+                  // FIX: Reset loading when close button is clicked
+                  setLoading(false);
+                  handleClose();
+                }} 
+                size="small"
+              >
+                <CloseIcon sx={{ color: 'white' }} />
+              </CloseButton>
             </DialogHeader>         
             <PackagesContainer>
               {renderPackageSections()}
@@ -460,7 +476,7 @@ console.log("providerDetails?.serviceproviderId",providerDetails?.serviceprovide
                 {isAuthenticated && (
                   <CheckoutButton
                     onClick={handleOpenCartDialog}
-                    disabled={totalItems === 0}
+                    disabled={totalItems === 0 || loading} // FIX: Disable when loading
                   >
                     {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
                   </CheckoutButton>

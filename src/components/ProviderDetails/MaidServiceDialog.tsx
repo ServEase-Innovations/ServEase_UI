@@ -80,11 +80,11 @@ interface MaidServiceDialogProps {
 
 // --- Pricing helper ---
 const getBasePrice = (service: any, bookingType: any) => {
-const basePrice =
-bookingType?.bookingPreference?.toLowerCase() === 'date'
-? service?.["Price /Day (INR)"]
-: service?.["Price /Month (INR)"];
-return basePrice || 0;
+  const basePrice =
+    bookingType?.bookingPreference?.toLowerCase() === 'date'
+      ? service?.["Price /Day (INR)"]
+      : service?.["Price /Month (INR)"];
+  return basePrice || 0;
 };
 // --- Types that mirror the pricing dataset ---
 interface MaidPricingRow {
@@ -140,6 +140,13 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const maidCartItems = allCartItems.filter(isMaidCartItem);
   const [loading, setLoading] = useState(false);
 
+  // FIX: Add useEffect to reset loading when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+    }
+  }, [open]);
+
   const [cartItems, setCartItems] = useState<Record<string, boolean>>(() => {
     const initialCartItems: Record<string, boolean> = {
       utensilCleaning: false,
@@ -192,7 +199,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const currentLocation = users?.customerDetails?.currentLocation;
 
   const { getPricingData, getFilteredPricing } = usePricingFilterService();
- const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
+  const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
   const filtered = getFilteredPricing('maid');
 
@@ -351,58 +358,58 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   };
 
   // ------- DYNAMIC PRICING HELPERS -------
- const findRow = (
-  category: string,
-  subCategory?: string,
-  sizeLabelOrBand?: string,
-  numericForBand?: number,
-  preferOnDemand: boolean = false  // <--- add this
-): MaidPricingRow | undefined => {
-  if (!maidPricingRows.length) return undefined;
+  const findRow = (
+    category: string,
+    subCategory?: string,
+    sizeLabelOrBand?: string,
+    numericForBand?: number,
+    preferOnDemand: boolean = false  // <--- add this
+  ): MaidPricingRow | undefined => {
+    if (!maidPricingRows.length) return undefined;
 
-  // base rows for the category
-  const rows = maidPricingRows.filter(
-    (r) =>
-      String(r.Service || '').toLowerCase() === 'maid' &&
-      String(r.Categories || '').toLowerCase() === category.toLowerCase()
-  );
-
-  if (!rows.length) return undefined;
-
-  // filter by sub-category if provided
-  const rowsSub = subCategory
-    ? rows.filter((r) => String(r['Sub-Categories'] || '').toLowerCase() === subCategory.toLowerCase())
-    : rows;
-
-  if (!rowsSub.length) return undefined;
-
-  // prefer rows based on booking type
-  const prefStr = preferOnDemand ? 'on demand' : 'regular';
-const prefCandidates = rowsSub.filter(
-  (r) => String(r.Type || '').toLowerCase().includes(prefStr)
-);
-
-  const candidates = prefCandidates.length ? prefCandidates : rowsSub;
-
-  // Prefer exact size label match
-  if (sizeLabelOrBand) {
-    const exact = candidates.find(
-      (r) => String(r['Numbers/Size'] || '').toLowerCase() === String(sizeLabelOrBand).toLowerCase()
+    // base rows for the category
+    const rows = maidPricingRows.filter(
+      (r) =>
+        String(r.Service || '').toLowerCase() === 'maid' &&
+        String(r.Categories || '').toLowerCase() === category.toLowerCase()
     );
-    if (exact) return exact;
 
-    if (numericForBand) {
-      const bandHit = candidates.find(
-        (r) =>
-          r['Numbers/Size'] &&
-          matchesNumericBand(String(r['Numbers/Size']), numericForBand)
+    if (!rows.length) return undefined;
+
+    // filter by sub-category if provided
+    const rowsSub = subCategory
+      ? rows.filter((r) => String(r['Sub-Categories'] || '').toLowerCase() === subCategory.toLowerCase())
+      : rows;
+
+    if (!rowsSub.length) return undefined;
+
+    // prefer rows based on booking type
+    const prefStr = preferOnDemand ? 'on demand' : 'regular';
+    const prefCandidates = rowsSub.filter(
+      (r) => String(r.Type || '').toLowerCase().includes(prefStr)
+    );
+
+    const candidates = prefCandidates.length ? prefCandidates : rowsSub;
+
+    // Prefer exact size label match
+    if (sizeLabelOrBand) {
+      const exact = candidates.find(
+        (r) => String(r['Numbers/Size'] || '').toLowerCase() === String(sizeLabelOrBand).toLowerCase()
       );
-      if (bandHit) return bandHit;
-    }
-  }
+      if (exact) return exact;
 
-  return candidates[0];
-};
+      if (numericForBand) {
+        const bandHit = candidates.find(
+          (r) =>
+            r['Numbers/Size'] &&
+            matchesNumericBand(String(r['Numbers/Size']), numericForBand)
+        );
+        if (bandHit) return bandHit;
+      }
+    }
+
+    return candidates[0];
+  };
 
   const priceToMonthly = (row?: MaidPricingRow): number => {
     if (!row) return 0;
@@ -413,38 +420,36 @@ const prefCandidates = rowsSub.filter(
     return 0;
   };
 
- const getPackagePrice = (packageName: string): number => {
-  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+  const getPackagePrice = (packageName: string): number => {
+    const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
 
-  switch (packageName) {
-    case 'utensilCleaning': {
-      const persons = packageStates.utensilCleaning.persons;
-      const row = findRow('Utensil Cleaning', 'People', undefined, persons, preferOnDemand);
-      return getBasePrice(row, bookingType) || 1200;
+    switch (packageName) {
+      case 'utensilCleaning': {
+        const persons = packageStates.utensilCleaning.persons;
+        const row = findRow('Utensil Cleaning', 'People', undefined, persons, preferOnDemand);
+        return getBasePrice(row, bookingType) || 1200;
+      }
+      case 'sweepingMopping': {
+        const size = packageStates.sweepingMopping.houseSize;
+        const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+
+        // use "House" instead of "House Size"
+        const row = findRow('Sweeping & Mopping', 'House', size, undefined, preferOnDemand);
+
+        return getBasePrice(row, bookingType) || 1200;
+      }
+      case 'bathroomCleaning': {
+        const bathrooms = packageStates.bathroomCleaning.bathrooms;
+        const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+
+        const row = findRow('Bathroom', 'Number', undefined, bathrooms, preferOnDemand);
+
+        return getBasePrice(row, bookingType) || 600;
+      }
+      default:
+        return 0;
     }
-  case 'sweepingMopping': {
-  const size = packageStates.sweepingMopping.houseSize;
-  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
-
-  // use "House" instead of "House Size"
-  const row = findRow('Sweeping & Mopping', 'House', size, undefined, preferOnDemand);
-
-  return getBasePrice(row, bookingType) || 1200;
-}
-
-  case 'bathroomCleaning': {
-  const bathrooms = packageStates.bathroomCleaning.bathrooms;
-  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
-
-  const row = findRow('Bathroom', 'Number', undefined, bathrooms, preferOnDemand);
-
-  return getBasePrice(row, bookingType) || 600;
-}
-
-    default:
-      return 0;
-  }
-};
+  };
 
   const getPackageDescription = (packageName: string): string => {
     switch(packageName) {
@@ -464,30 +469,30 @@ const prefCandidates = rowsSub.filter(
     }
   };
 
-const getAddOnPrice = (addOnName: string): number => {
-  const map: Record<string, { cat: string; sub?: string; size?: string }> = {
-    bathroomDeepCleaning: { cat: 'Bathroom -Deep Cleaning', sub: 'Number' },
-    normalDusting:        { cat: 'Normal Dusting', sub: 'House' },
-    deepDusting:          { cat: 'Deep Dusting', sub: 'House' },
-    utensilDrying:        { cat: 'Utensil Drying & Arrangements', sub: 'People', size: '<=3' },
-    clothesDrying:        { cat: 'Clothes Drying and Folding', sub: 'People', size: '<=3' },
+  const getAddOnPrice = (addOnName: string): number => {
+    const map: Record<string, { cat: string; sub?: string; size?: string }> = {
+      bathroomDeepCleaning: { cat: 'Bathroom -Deep Cleaning', sub: 'Number' },
+      normalDusting:        { cat: 'Normal Dusting', sub: 'House' },
+      deepDusting:          { cat: 'Deep Dusting', sub: 'House' },
+      utensilDrying:        { cat: 'Utensil Drying & Arrangements', sub: 'People', size: '<=3' },
+      clothesDrying:        { cat: 'Clothes Drying and Folding', sub: 'People', size: '<=3' },
+    };
+
+    const meta = map[addOnName];
+    if (!meta) return 0;
+
+    const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
+    const row = findRow(meta.cat, meta.sub, meta.size, undefined, preferOnDemand);
+
+    const price = getBasePrice(row, bookingType);
+    if (price && price > 0) return price;
+
+    // fallback defaults
+    switch (addOnName) {
+      case 'deepDusting': return 1500;
+      default: return 1000;
+    }
   };
-
-  const meta = map[addOnName];
-  if (!meta) return 0;
-
-  const preferOnDemand = bookingType?.bookingPreference?.toLowerCase() === 'date';
-  const row = findRow(meta.cat, meta.sub, meta.size, undefined, preferOnDemand);
-
-  const price = getBasePrice(row, bookingType);
-  if (price && price > 0) return price;
-
-  // fallback defaults
-  switch (addOnName) {
-    case 'deepDusting': return 1500;
-    default: return 1000;
-  }
-};
 
   const getAddOnDescription = (addOnName: string): string => {
     switch(addOnName) {
@@ -697,106 +702,116 @@ const getAddOnPrice = (addOnName: string): number => {
     setCartDialogOpen(false);
   };
 
-const handleCheckout = async () => {
-  try {
-    setLoading(true);
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
 
-    const selectedServices = allCartItems.filter(isMaidCartItem);
-    const baseTotal = selectedServices.reduce((sum, item) => sum + (item.price || 0), 0);
-    if (baseTotal <= 0) {
-      setSnackbarMessage("No items selected for checkout");
-      setSnackbarSeverity("warning");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    const customerId = user?.customerid || "guest-id";
-    const packages = selectedServices.filter(item => item.serviceType === "package");
-    const addOns = selectedServices.filter(item => item.serviceType === "addon");
-
-    const responsibilities = {
-      tasks: packages.map(item => {
-        if (item.name === "utensilCleaning") {
-          return { taskType: "Utensil Cleaning", persons: item.details?.persons || 1 };
-        }
-        if (item.name === "sweepingMopping") {
-          return { taskType: "Sweeping & Mopping", houseSize: item.details?.houseSize || "2BHK" };
-        }
-        if (item.name === "bathroomCleaning") {
-          return { taskType: "Bathroom Cleaning", bathrooms: item.details?.bathrooms || 1 };
-        }
-        return { taskType: item.name };
-      }),
-      add_ons: addOns.map(item => ({ taskType: item.name }))
-    };
-
-const payload: BookingPayload = {
-  customerid: customerId,
-  serviceproviderid: providerDetails?.serviceproviderId
-    ? Number(providerDetails.serviceproviderId)
-    : 0,
-  start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
-  end_date: bookingType?.endDate || "",
-  start_time: bookingType?.startTime || "",
-  responsibilities,
-  booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
-  taskStatus: "NOT_STARTED",
-  service_type: "MAID",
-  base_amount: baseTotal,
-  payment_mode: "razorpay",
-  // ✅ FIXED: Use consistent booking preference check
-  ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
-    end_time: bookingType?.endTime || "",
-  }),
-};
-    const result = await BookingService.bookAndPay(payload);
-
-    // ✅ Set success details and show success dialog instead of snackbar
-    setBookingSuccessDetails({
-      providerName: providerFullName,
-      serviceType: 'Cleaning Help Service',
-      totalAmount: baseTotal,
-      bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
-      persons: 1, // For maid service, we can use 1 as default or calculate based on services
-      message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
-    });
-    
-    // Close ALL dialogs and open success dialog
-    setCartDialogOpen(false);
-    handleClose();
-    setSuccessDialogOpen(true);
-
-  } catch (error: any) {
-    console.error("Checkout error:", error);
-
-    // ✅ Still use snackbar for errors
-    let backendMessage = "Failed to initiate payment";
-    if (error?.response?.data) {
-      if (typeof error.response.data === "string") {
-        backendMessage = error.response.data;
-      } else if (error.response.data.error) {
-        backendMessage = error.response.data.error;
-      } else if (error.response.data.message) {
-        backendMessage = error.response.data.message;
+      const selectedServices = allCartItems.filter(isMaidCartItem);
+      const baseTotal = selectedServices.reduce((sum, item) => sum + (item.price || 0), 0);
+      if (baseTotal <= 0) {
+        setSnackbarMessage("No items selected for checkout");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return;
       }
-    } else if (error.message) {
-      backendMessage = error.message;
+
+      const customerId = user?.customerid || "guest-id";
+      const packages = selectedServices.filter(item => item.serviceType === "package");
+      const addOns = selectedServices.filter(item => item.serviceType === "addon");
+
+      const responsibilities = {
+        tasks: packages.map(item => {
+          if (item.name === "utensilCleaning") {
+            return { taskType: "Utensil Cleaning", persons: item.details?.persons || 1 };
+          }
+          if (item.name === "sweepingMopping") {
+            return { taskType: "Sweeping & Mopping", houseSize: item.details?.houseSize || "2BHK" };
+          }
+          if (item.name === "bathroomCleaning") {
+            return { taskType: "Bathroom Cleaning", bathrooms: item.details?.bathrooms || 1 };
+          }
+          return { taskType: item.name };
+        }),
+        add_ons: addOns.map(item => ({ taskType: item.name }))
+      };
+
+      const payload: BookingPayload = {
+        customerid: customerId,
+        serviceproviderid: providerDetails?.serviceproviderId
+          ? Number(providerDetails.serviceproviderId)
+          : 0,
+        start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        end_date: bookingType?.endDate || "",
+        start_time: bookingType?.startTime || "",
+        responsibilities,
+        booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
+        taskStatus: "NOT_STARTED",
+        service_type: "MAID",
+        base_amount: baseTotal,
+        payment_mode: "razorpay",
+        // ✅ FIXED: Use consistent booking preference check
+        ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
+          end_time: bookingType?.endTime || "",
+        }),
+      };
+      const result = await BookingService.bookAndPay(payload);
+
+      // ✅ Set success details and show success dialog instead of snackbar
+      setBookingSuccessDetails({
+        providerName: providerFullName,
+        serviceType: 'Cleaning Help Service',
+        totalAmount: baseTotal,
+        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        persons: 1, // For maid service, we can use 1 as default or calculate based on services
+        message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
+      });
+      
+      // Close ALL dialogs and open success dialog
+      setCartDialogOpen(false);
+      handleClose();
+      setSuccessDialogOpen(true);
+
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+
+      // ✅ Still use snackbar for errors
+      let backendMessage = "Failed to initiate payment";
+      if (error?.response?.data) {
+        if (typeof error.response.data === "string") {
+          backendMessage = error.response.data;
+        } else if (error.response.data.error) {
+          backendMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          backendMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        backendMessage = error.message;
+      }
+
+      setSnackbarMessage(backendMessage);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setSnackbarMessage(backendMessage);
-    setSnackbarSeverity("error");
-    setSnackbarOpen(true);
-
-  } finally {
+  const handleDialogClose = () => {
+    // FIX: Reset loading state when dialog is closing
     setLoading(false);
-  }
-};
+    handleClose();
+  };
 
   return (
     <>
       <StyledDialog 
         open={open}
-        onClose={handleClose}
+        onClose={(event, reason) => {
+          // FIX: Reset loading when dialog closes via backdrop click
+          setLoading(false);
+          handleClose();
+        }}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -812,15 +827,18 @@ const payload: BookingPayload = {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
               <h1>🧹Maid Service</h1>
-             <CloseButton
-  aria-label="close"
-  onClick={handleClose}
-  size="small"
-  className="!text-white"
->
-  <CloseIcon />
-</CloseButton>
-
+              <CloseButton
+                aria-label="close"
+                onClick={() => {
+                  // FIX: Reset loading when close button is clicked
+                  setLoading(false);
+                  handleClose();
+                }}
+                size="small"
+                className="!text-white"
+              >
+                <CloseIcon />
+              </CloseButton>
             </DialogHeader>
 
             <PackagesContainer>
@@ -1048,7 +1066,10 @@ const payload: BookingPayload = {
                 )}
 
                 {isAuthenticated && (
-                  <CheckoutButton onClick={handleOpenCartDialog} disabled={calculateTotal() === 0}>
+                  <CheckoutButton 
+                    onClick={handleOpenCartDialog} 
+                    disabled={calculateTotal() === 0 || loading} // FIX: Add loading to disabled condition
+                  >
                     {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
                   </CheckoutButton>
                 )}
