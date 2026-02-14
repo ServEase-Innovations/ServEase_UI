@@ -33,7 +33,6 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
-    "@types/lodash": "^4.17.20",
     "@types/node": "^16.18.104",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
@@ -89,10 +88,9 @@
     "start:qa": "env-cmd -f .env.qa react-app-rewired start",
     "start:prod": "env-cmd -f .env.prod react-app-rewired start",
     "build": "react-app-rewired build",
-"build:dev": "env-cmd -f .env.dev npm run build",
-"build:qa": "env-cmd -f .env.qa npm run build",
-"build:prod": "env-cmd -f .env.prod npm run build",
-
+    "build:dev": "env-cmd -f .env.dev npm run build",
+    "build:qa": "env-cmd -f .env.qa npm run build",
+    "build:prod": "env-cmd -f .env.prod npm run build",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "lint": "eslint . || true"
@@ -119,6 +117,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
+    "@types/lodash": "^4.17.23",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-easy-crop": "^1.16.0",
     "@types/react-places-autocomplete": "^7.2.14",

@@ -3,8 +3,24 @@ import React, { useState, useRef, useEffect } from "react";
 import { X, Send, ArrowLeft, ChevronDown, MessageCircle, Phone, Mail } from "lucide-react";
 import Draggable from "react-draggable";
 import { Button, Card, CardContent } from "@mui/material";
-import { useDispatch, useSelector } from "react-redux";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { useAppUser } from "../../context/AppUserContext";
+import axios from "axios";
+import { io, Socket } from "socket.io-client";
+
+const ENDPOINT = "https://chat-b3wl.onrender.com";
+const ADMIN_ID = "698ace8b8ea84c91bdc93678";
+
+interface ChatbotProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+interface MessageType {
+  _id?: string;
+  content: string;
+  sender: "user" | "admin" | "bot";
+}
 
 const generalFaqData = [
   { question: "What services do you offer?", answer: "We offer services for HomeCook, Cleanning Help, and Caregiver." },
@@ -20,190 +36,243 @@ const customerFaqData = [
   { question: "How do I make a payment?", answer: "Payments can be made via credit card, debit card, or UPI." }
 ];
 
-interface ChatbotProps {
-  open: boolean;
-  onClose: () => void;
-}
 
 const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
-  const user = useSelector((state: any) => state.user?.value);
-  const dispatch = useDispatch();
-  const role = user?.role;
-  const faqData = role === "CUSTOMER" ? [...generalFaqData, ...customerFaqData] : generalFaqData;
+  const { appUser } = useAppUser();
 
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { text: `Namaste ! Welcome to ServEaso. How can we assist you today?`, sender: "bot" }
+  const [isLiveChat, setIsLiveChat] = useState(false);
+  const [messages, setMessages] = useState<MessageType[]>([
+    { content: "Namaste! Welcome to ServEaso. How can we assist you today?", sender: "bot" }
   ]);
   const [inputText, setInputText] = useState("");
   const [showAllFaq, setShowAllFaq] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+
+  const [selectedChat, setSelectedChat] = useState<any>(null);
+  const [mongoUser, setMongoUser] = useState<any>(null);
+
+  const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  /* ---------------- SOCKET CONNECT ---------------- */
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+    socketRef.current = io(ENDPOINT, { transports: ["websocket"] });
+
+    socketRef.current.on("message recieved", (newMessage: any) => {
+      setMessages((prev) => [
+        ...prev,
+        { content: newMessage.content, sender: "admin" }
+      ]);
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
     };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  /* ---------------- AUTO SCROLL ---------------- */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* ---------------- FAQ CLICK ---------------- */
   const handleQuestionClick = (faq: any) => {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { text: faq.question, sender: "user" },
-      { text: faq.answer, sender: "bot" }
+    setMessages((prev) => [
+      ...prev,
+      { content: faq.question, sender: "user" },
+      { content: faq.answer, sender: "bot" }
     ]);
     setShowAllFaq(false);
   };
 
-  const handleSendMessage = () => {
-    if (inputText.trim() !== "") {
-      setMessages((prevMessages) => [...prevMessages, { text: inputText, sender: "user" }]);
-      setInputText("");
+  /* ---------------- START LIVE CHAT ---------------- */
+  const startLiveChat = async () => {
+    if (!appUser) return;
+
+    try {
+      // find or create Mongo user
+      const { data: userData } = await axios.post(
+        `${ENDPOINT}/api/user/find-or-create`,
+        {
+          name: appUser.name,
+          email: appUser.email,
+        }
+      );
+
+      setMongoUser(userData);
+
+      // access chat with admin
+      const { data: chatData } = await axios.post(
+        `${ENDPOINT}/api/chat`,
+        {
+          userId: ADMIN_ID,
+          currentUserId: userData._id,
+        }
+      );
+
+      setSelectedChat(chatData);
+
+      socketRef.current?.emit("join chat", chatData._id);
+
+      // load previous messages
+      const messageData = await axios.get(
+        `${ENDPOINT}/api/message/${chatData._id}`
+      );
+
+      const formatted = messageData.data.map((m: any) => ({
+        content: m.content,
+        sender: m.sender._id === userData._id ? "user" : "admin"
+      }));
+
+      setMessages((prev) => [...prev, ...formatted]);
+
+      setIsLiveChat(true);
+      setChatOpen(true);
+
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Disable dragging for mobile
+  /* ---------------- SEND MESSAGE ---------------- */
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
+
+    // If not in live chat, treat as FAQ conversation
+    if (!isLiveChat) {
+      setMessages((prev) => [
+        ...prev,
+        { content: inputText, sender: "user" }
+      ]);
+      setInputText("");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post(
+        `${ENDPOINT}/api/message`,
+        {
+          content: inputText,
+          chatId: selectedChat._id,
+          senderId: mongoUser._id,
+        }
+      );
+
+      socketRef.current?.emit("new message", data);
+
+      setMessages((prev) => [
+        ...prev,
+        { content: data.content, sender: "user" }
+      ]);
+
+      setInputText("");
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (!open) return null;
 
   return (
-    <Draggable disabled={isMobile} bounds="parent" handle=".chatbot-header">
-      <div className="fixed bottom-20 right-2 sm:right-10 z-[9998] flex flex-col items-end w-full sm:w-auto">
-        <Card
-          className="
-            w-[90%] max-w-[320px]
-            sm:w-[26rem] sm:max-w-none
-            shadow-2xl border border-gray-300 rounded-xl
-            p-2 sm:p-4 bg-white
-            max-h-[70vh] sm:max-h-[75vh]
-            flex flex-col overflow-hidden
-            chatbot-container
-          "
-        >
-          {/* Header Section with DialogHeader */}
+    <Draggable bounds="parent" handle=".chatbot-header">
+      <div className="fixed bottom-20 right-2 z-[9998] w-[320px]">
+        <Card className="shadow-2xl border rounded-xl bg-white flex flex-col max-h-[75vh] overflow-hidden">
+
           <DialogHeader className="chatbot-header">
             <div className="flex justify-between items-center w-full">
               {chatOpen && (
-                <Button onClick={() => setChatOpen(false)} className="min-w-0 mr-2">
-                  <ArrowLeft size={22} />
+                <Button onClick={() => setChatOpen(false)}>
+                  <ArrowLeft size={20} />
                 </Button>
               )}
-              <h2 className="text-sm sm:text-lg font-bold text-white-800 flex-grow text-center">
+              <h2 className="text-sm font-bold flex-grow text-center">
                 Chat Support
               </h2>
-              <button
-                onClick={onClose}
-                className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
-                aria-label="Close"
-              >
-                <X size={22} />
+              <button onClick={onClose}>
+                <X size={20} />
               </button>
             </div>
           </DialogHeader>
-          
+
           <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
-            {/* Messages + FAQ + Contact */}
-            <div
-              className="flex flex-col flex-grow overflow-y-auto space-y-2 p-2 bg-gray-50"
-              style={{ scrollbarWidth: "thin" }}
-            >
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm shadow-md max-w-[75%] transition-opacity duration-300 ease-in-out ${
-                    msg.sender === "user"
-                      ? "bg-blue-500 text-white self-end rounded-br-none"
-                      : "bg-gray-200 text-gray-800 self-start rounded-bl-none"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              ))}
 
-              {!chatOpen && (
-                <>
-                  {/* FAQs */}
-                  {showAllFaq ? (
-                    faqData.map((faq, index) => (
-                      <Button
-                        key={index}
-                        variant="outlined"
-                        className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 normal-case text-xs sm:text-sm"
-                        onClick={() => handleQuestionClick(faq)}
-                      >
-                        {faq.question}
-                      </Button>
-                    ))
-                  ) : (
-                    <Button
-                      variant="outlined"
-                      className="w-full text-left px-2 py-1 sm:px-4 sm:py-2 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-between normal-case text-xs sm:text-sm"
-                      onClick={() => setShowAllFaq(true)}
-                    >
-                      View All FAQs
-                      <ChevronDown size={14} className="ml-2" />
-                    </Button>
-                  )}
+            {/* MESSAGE AREA */}
+            {/* MESSAGE AREA */}
+<div className="flex flex-col flex-grow overflow-y-auto p-3 bg-gray-50 space-y-2">
 
-                  {/* Divider */}
-                  <div className="border-t border-gray-300 my-2"></div>
+  {/* Chat Messages */}
+  {messages.map((msg, index) => (
+    <div
+      key={index}
+      className={`p-2 rounded-xl text-sm max-w-[75%] ${
+        msg.sender === "user"
+          ? "bg-blue-500 text-white self-end"
+          : msg.sender === "admin"
+          ? "bg-gray-300 text-black self-start"
+          : "bg-gray-200 text-gray-800 self-start"
+      }`}
+    >
+      {msg.content}
+    </div>
+  ))}
 
-                  {/* Email Support */}
-                  <div
-                    className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
-                    onClick={() => window.open("mailto:support@serveaso.com")}
-                  >
-                    <Mail size={18} className="text-blue-600" />
-                    <span className="text-xs sm:text-sm text-gray-700 font-medium">
-                      support@serveaso.com
-                    </span>
-                  </div>
+  {/* FAQ SECTION (Only before live chat starts) */}
+  {!isLiveChat && (
+    <>
+      <div className="mt-3 space-y-2">
+        {(appUser?.role === "CUSTOMER"
+          ? [...generalFaqData, ...customerFaqData]
+          : generalFaqData
+        ).map((faq, index) => (
+          <Button
+            key={index}
+            variant="outlined"
+            className="w-full text-left normal-case"
+            onClick={() => handleQuestionClick(faq)}
+          >
+            {faq.question}
+          </Button>
+        ))}
+      </div>
 
-                  {/* Call Support */}
-                  <div
-                    className="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50 w-full"
-                    onClick={() => window.open("tel:080123456789")}
-                  >
-                    <Phone size={18} className="text-green-600" />
-                    <span className="text-xs sm:text-sm text-gray-700 font-medium">
-                      080-123456789
-                    </span>
-                  </div>
+      <div className="border-t my-3"></div>
 
-                  {/* Chat with Assistant */}
-                  <Button
-                    variant="contained"
-                    className="w-full text-left px-2 py-2 sm:px-4 sm:py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 normal-case text-xs sm:text-sm flex items-center justify-center"
-                    onClick={() => setChatOpen(true)}
-                  >
-                    <MessageCircle size={16} className="mr-2" />
-                    Chat with Assistant
-                  </Button>
-                </>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+      {/* Live Chat Button */}
+      {appUser ? (
+        <Button
+          variant="contained"
+          onClick={startLiveChat}
+          className="w-full"
+        >
+          <MessageCircle size={16} className="mr-2" />
+          Chat with Assistant
+        </Button>
+      ) : (
+        <div className="text-sm text-center text-gray-500">
+          Please login to chat with our support team.
+        </div>
+      )}
+    </>
+  )}
 
-            {/* Input */}
+  <div ref={messagesEndRef} />
+</div>
+
+
+            {/* INPUT */}
             {chatOpen && (
-              <div className="flex items-center border-t p-2 sm:p-3 bg-gray-100">
+              <div className="flex items-center border-t p-2 bg-gray-100">
                 <input
-                  type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type your question..."
-                  className="flex-grow p-2 border rounded-lg outline-none text-xs sm:text-sm"
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleSendMessage()
+                  }
+                  className="flex-grow p-2 border rounded-lg outline-none"
+                  placeholder="Type your message..."
                 />
-                <Button onClick={handleSendMessage} className="ml-2 min-w-0 p-2">
+                <Button onClick={handleSendMessage}>
                   <Send size={18} />
                 </Button>
               </div>
