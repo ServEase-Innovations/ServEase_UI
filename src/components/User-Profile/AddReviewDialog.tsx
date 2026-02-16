@@ -3,10 +3,10 @@ import React, { useState } from "react";
 import { X, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, Alert, Snackbar } from "@mui/material";
 import { Button } from "../Button/button";
-import axiosInstance from "../../services/axiosInstance";
 import { useAuth0 } from "@auth0/auth0-react";
 import { ClipLoader } from "react-spinners";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import reviewsInstance from "src/services/reviewsInstance";
 
 interface AddReviewDialogProps {
   open: boolean;
@@ -51,10 +51,11 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
       return;
     }
 
-    if (!booking.serviceProviderId) {
+    // Check if engagementId exists (required by the API)
+    if (!booking.engagementId && !booking.id) {
       setSnackbar({
         open: true,
-        message: "Service provider information is missing",
+        message: "Service engagement information is missing",
         severity: "error",
       });
       return;
@@ -63,15 +64,15 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Prepare payload according to the API specification
       const payload = {
-        customerId: auth0User.customerid,
-        customerName: auth0User.customerName,
-        serviceProviderId: booking.serviceProviderId,
-        rating,
-        comment: review.trim() || "No comment provided",
+        engagementId: booking.engagementId || booking.id, // Use engagementId if available, fallback to booking.id
+        rating: rating,
+        review: review.trim() || "No review provided" // Using "review" instead of "comment" per API spec
       };
 
-      await axiosInstance.post("/api/customer/add-feedback", payload);
+      // Make POST request to the reviews endpoint
+      await reviewsInstance.post("/reviews", payload);
 
       onReviewSubmitted(booking.id);
 
@@ -90,6 +91,7 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
       console.error("Error submitting review:", error);
       const errorMessage =
         error.response?.data?.message ||
+        error.response?.data?.error ||
         "Failed to submit review. Please try again.";
       setSnackbar({ open: true, message: errorMessage, severity: "error" });
     } finally {
@@ -141,7 +143,7 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
                 : "Unknown Service"}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Provider: {booking.serviceProviderName || "Not specified"}
+              Engagement ID: {booking.engagementId || booking.id || "Not specified"}
             </p>
           </div>
         )}
