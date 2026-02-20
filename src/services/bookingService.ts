@@ -3,6 +3,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import store from "src/store/userStore";
 import PaymentInstance from "./paymentInstance";
+import dayjs from "dayjs";
 
 declare global {
   interface Window {
@@ -48,22 +49,23 @@ export const BookingService = {
 
   
   createEngagement: async (payload: BookingPayload) => {
-    const res = await PaymentInstance.post(`/api/engagements`, payload, {
+    const res = await PaymentInstance.post(`/api/v2/createEngagements`, payload, {
       headers: { "Content-Type": "application/json" },
     });
     return res.data;
   },
 
-  openRazorpay: async (orderId: string, amountPaise: number, currency = "INR") => {
+  openRazorpay: async (razorpay_order_id: string, amountPaise: number, currency = "INR") => {
     const ok = await loadRazorpayScript();
     if (!ok) throw new Error("Failed to load Razorpay SDK");
 
     return new Promise<RazorpayPaymentResponse>((resolve, reject) => {
+      console.log("Opening Razorpay with order id:", razorpay_order_id, "and amount (paise):", amountPaise);
       const rzp = new window.Razorpay({
-        key: "rzp_test_lTdgjtSRlEwreA",
+        key: "rzp_test_SHU1MPGbiCzst9",
         amount: amountPaise,
         currency,
-        order_id: orderId,
+        order_id: razorpay_order_id,
         name: "Serveaso",
         description: "Booking Payment",
         handler: function (resp: RazorpayPaymentResponse) {
@@ -84,7 +86,7 @@ export const BookingService = {
   },
 
   verifyPayment: async (paymentData: RazorpayPaymentResponse) => {
-    const res = await PaymentInstance.post(`/api/payments/verify`, paymentData, {
+    const res = await PaymentInstance.post(`/api/v2/createEngagements/verify`, paymentData, {
       headers: { "Content-Type": "application/json" },
     });
     return res.data;
@@ -94,6 +96,17 @@ export const BookingService = {
    * Full flow: create engagement -> open Razorpay -> verify
    */
   bookAndPay: async (payload: BookingPayload) => {
+
+
+    console.log("Booking payload before processing:", payload);
+
+    payload.duration_minutes = payload.duration_minutes || 60; // Default to 60 minutes if not provided
+
+    if(payload.start_time && payload.end_time){
+      const start = dayjs(`${payload.start_date} ${payload.start_time}`);
+      const end = dayjs(`${payload.end_date} ${payload.end_time}`);
+      payload.duration_minutes = Math.round(end.diff(start, 'minute'));
+    }
 
     const state = store.getState();
     const location : any = state.geoLocation.value; 
@@ -122,8 +135,7 @@ export const BookingService = {
 
     // Extract order id & amount
     const orderId =
-      engagementData?.payment?.razorpay_order_id ||
-      engagementData?.razorpayOrder?.id;
+      engagementData?.razorpay_order_id;
 
     if (!orderId) throw new Error("Razorpay order id not found in response");
 
@@ -139,7 +151,7 @@ export const BookingService = {
     // Open Razorpay
     const paymentResponse = await BookingService.openRazorpay(orderId, amountPaise);
 
-    paymentResponse.engagementId = engagementData?.engagement?.engagement_id;
+    paymentResponse.engagementId = engagementData?.engagement_id;
 
     // Verify payment on backend
     const verifyResult = await BookingService.verifyPayment(paymentResponse);
