@@ -6,11 +6,14 @@ import { Separator } from '../../components/Common/Separator/Separator';
 import { getServiceTitle, getBookingTypeBadge, getStatusBadge } from '../Common/Booking/BookingUtils';
 import dayjs from 'dayjs';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
+import PaymentInstance from 'src/services/paymentInstance';
+import { Button } from '../../components/Button/button';
 
 interface EngagementDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   booking: any; // Replace with proper Booking type
+  onPaymentComplete?: () => void; // Callback to refresh bookings after payment
 }
 
 const formatTimeToAMPM = (timeString: string): string => {
@@ -32,7 +35,14 @@ const formatDate = (dateString: string) => {
   return dayjs(dateString).format('MMMM D, YYYY');
 };
 
-const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ isOpen, onClose, booking }) => {
+const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ 
+  isOpen, 
+  onClose, 
+  booking,
+  onPaymentComplete 
+}) => {
+  const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
+
   if (!isOpen || !booking) return null;
 
   const getPaymentStatusColor = (status: string) => {
@@ -41,6 +51,71 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ isOpe
       case 'PENDING': return 'text-yellow-600 bg-yellow-50';
       case 'FAILED': return 'text-red-600 bg-red-50';
       default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const handleCompletePayment = async () => {
+    try {
+      setIsProcessingPayment(true);
+      
+      const resumeRes = await PaymentInstance.get(
+        `/api/payments/${booking.payment?.engagement_id}/resume`
+      );
+
+      const {
+        razorpay_order_id,
+        amount,
+        currency,
+        engagement_id,
+        customer
+      } = resumeRes.data;
+
+      const options = {
+        key: "rzp_test_lTdgjtSRlEwreA",
+        amount: amount * 100,
+        currency,
+        order_id: razorpay_order_id,
+        name: "Serveaso",
+        description: "Complete your payment",
+        prefill: {
+          name: customer?.firstname || booking.customerName,
+          contact: customer?.contact || '9999999999',
+        },
+        handler: async function (response: any) {
+          try {
+            await PaymentInstance.post("/api/payments/verify", {
+              engagementId: engagement_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            
+            // Call the callback to refresh bookings if provided
+            if (onPaymentComplete) {
+              onPaymentComplete();
+            }
+            
+            // Show success message (you can add a toast/snackbar here)
+            console.log('Payment completed successfully');
+            
+          } catch (verifyError) {
+            console.error("Payment verification error:", verifyError);
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        theme: {
+          color: "#0A7CFF",
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+
+    } catch (err: any) {
+      console.error("Complete payment error:", err);
+      alert("Unable to resume payment. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -61,21 +136,19 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ isOpe
         }`}
       >
         {/* Header */}
-     
-      <DialogHeader className="flex items-center justify-between bg-gray-900 px-4 py-3">
-  <h2 className="text-xl font-semibold text-white">
-    Booking Details
-  </h2>
+        <DialogHeader className="flex items-center justify-between bg-gray-900 px-4 py-3">
+          <h2 className="text-xl font-semibold text-white">
+            Booking Details
+          </h2>
 
-  <button
-    onClick={onClose}
-    className="p-2 rounded-full transition-colors hover:bg-gray-800 absolute top-3 right-3"
-    aria-label="Close"
-  >
-    <X className="h-5 w-5 text-white" />
-  </button>
-</DialogHeader>
-
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full transition-colors hover:bg-gray-800 absolute top-3 right-3"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6 space-y-6">
@@ -242,6 +315,25 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ isOpe
                   <span className="text-gray-600">Payment Mode</span>
                   <span className="font-medium capitalize">{booking.payment.payment_mode}</span>
                 </div>
+
+                {/* Complete Payment Button - Show only for PENDING status */}
+                {booking.payment.status === 'PENDING' && booking.taskStatus !== 'CANCELLED' && (
+                  <div className="mt-4">
+                    <Button
+                      variant="default"
+                      size="lg"
+                      onClick={handleCompletePayment}
+                      disabled={isProcessingPayment}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3"
+                    >
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      {isProcessingPayment ? 'Processing...' : 'Complete Payment Now'}
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Complete payment to confirm your booking
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
