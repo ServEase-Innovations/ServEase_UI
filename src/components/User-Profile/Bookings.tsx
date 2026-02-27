@@ -25,6 +25,7 @@ import { useAppUser } from 'src/context/AppUserContext';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
+import ChatInterface from './ChatInterface';
 
 interface Task {
   taskType: string;
@@ -241,6 +242,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
   const [selectedBookingForVacationManagement, setSelectedBookingForVacationManagement] = useState<Booking | null>(null);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
+
+  // Chat state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1071,6 +1076,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setDetailsDrawerOpen(true);
   };
 
+  // Handle opening chat
+  const handleOpenChat = (booking: Booking) => {
+    setSelectedChatBooking(booking);
+    setChatOpen(true);
+  };
+
   const renderActionButtons = (booking: Booking) => {
     const modificationDisabled = isModificationDisabled(booking);
     const modificationTooltip = getModificationTooltip(booking);
@@ -1110,6 +1121,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               variant="outline"
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+              onClick={() => handleOpenChat(booking)}
             >
               <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Message</span>
@@ -1192,6 +1204,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               variant="outline"
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+              onClick={() => handleOpenChat(booking)}
             >
               <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Message</span>
@@ -1974,6 +1987,21 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           setSelectedBooking(null);
         }}
         booking={selectedBooking}
+      />
+
+      {/* Chat Interface */}
+      <ChatInterface
+        open={chatOpen}
+        onClose={() => {
+          setChatOpen(false);
+          setSelectedChatBooking(null);
+        }}
+        bookingDetails={selectedChatBooking ? {
+          id: selectedChatBooking.id,
+          serviceType: getServiceTitle(selectedChatBooking.service_type),
+          providerName: selectedChatBooking.serviceProviderName,
+          bookingDate: selectedChatBooking.startDate
+        } : null}
       />
 
       {/* Dialogs */}

@@ -1,65 +1,46 @@
 /* eslint-disable */
-
 import React, { useEffect, useState, useCallback } from "react";
 import moment from "moment";
 import {
-  TextField,
-  Input,
-  InputAdornment,
-  IconButton,
   Grid,
   Typography,
   Box,
   Stepper,
   Step,
   StepLabel,
-  Checkbox,
-  FormControlLabel,
-  MenuItem,
   Alert,
   AlertColor,
-  RadioGroup,
-  Radio,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  FormGroup,
-  Slider,
-  Autocomplete,
-  Tooltip,
   Snackbar,
   Dialog,
   CircularProgress,
-  CardContent,
+  IconButton,
+  Tooltip,
   Card,
+  CardContent,
+  Slider,
 } from "@mui/material";
 import {
-  Visibility,
-  VisibilityOff,
   ArrowForward,
   ArrowBack,
+  Close as CloseIcon,
+  LocationOn as LocationOnIcon,
+  MyLocation as MyLocationIcon,
+  CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
-import ProfileImageUpload from "./ProfileImageUpload";
 import axios from "axios";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
-import CustomFileInput from "./CustomFileInput";
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { Close as CloseIcon } from "@mui/icons-material";
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { debounce } from "src/utils/debounce";
 import { useFieldValidation } from "./useFieldValidation";
-import {  CheckIcon } from "lucide-react";
-import {
-  Home as HomeIcon,
-  LocationOn as LocationOnIcon,
-  ContentCopy as CopyIcon,
-  MyLocation as MyLocationIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+
+// Import the components
+import BasicInformation from "./BasicInformation";
+import ServiceDetails from "./ServiceDetails";
+import KYCVerification from "./KYCVerification";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -83,7 +64,7 @@ interface FormData {
   AADHAR: string;
   pan: string;
   panImage: File | null;
-  housekeepingRole: string;
+  housekeepingRole: string[];
   description: string;
   experience: string;
   kyc: string;
@@ -91,6 +72,7 @@ interface FormData {
   otherDetails: string;
   profileImage: File | null;
   cookingSpeciality: string;
+  nannyCareType: string;
   age: string;
   diet: string;
   dob: string;
@@ -101,6 +83,8 @@ interface FormData {
   terms: boolean;
   privacy: boolean;
   keyFacts: boolean;
+  kycType: string;
+  kycNumber: string;
   permanentAddress: {
     apartment: string;
     street: string;
@@ -146,7 +130,11 @@ interface FormErrors {
   kyc?: string;
   documentImage?: string;
   cookingSpeciality?: string;
+  nannyCareType?: string;
   diet?: string;
+  dob?: string;
+  kycType?: string;
+  kycNumber?: string;
   permanentAddress?: {
     apartment?: string;
     street?: string;
@@ -173,6 +161,10 @@ const strongPasswordRegex =
 const phoneRegex = /^[0-9]{10}$/;
 const pincodeRegex = /^[0-9]{6}$/;
 const aadhaarRegex = /^[0-9]{12}$/;
+const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const drivingLicenseRegex = /^[A-Z]{2}[0-9]{2}[0-9]{4,11}$/;
+const voterIdRegex = /^[A-Z]{3}[0-9]{7}$/;
+const passportRegex = /^[A-Z]{1}[0-9]{7}$/;
 const MAX_NAME_LENGTH = 30;
 
 const steps = [
@@ -191,22 +183,26 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   onBackToLogin,
 }) => {
   const [activeStep, setActiveStep] = useState(0);
-  const [isFieldsDisabled, setIsFieldsDisabled] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] =
     useState<AlertColor>("success");
-  const [sliderDisabled, setSliderDisabled] = useState(true);
-  const [sliderValueMorning, setSliderValueMorning] = useState([6, 12]);
-  const [sliderValueEvening, setSliderValueEvening] = useState([12, 20]);
   const [isCookSelected, setIsCookSelected] = useState(false);
+  const [isNannySelected, setIsNannySelected] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
     longitude: number;
     address: string;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSameAddress, setIsSameAddress] = useState(false); // Move state here
+  const [isSameAddress, setIsSameAddress] = useState(false);
+  const [isDobValid, setIsDobValid] = useState(true);
+  
+  // New state variables for multi-slot time selection
+  const [morningSlots, setMorningSlots] = useState<number[][]>([[6, 12]]);
+  const [eveningSlots, setEveningSlots] = useState<number[][]>([[12, 20]]);
+  const [isFullTime, setIsFullTime] = useState(true);
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string>("06:00-20:00");
 
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
@@ -229,7 +225,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     AADHAR: "",
     pan: "",
     panImage: null,
-    housekeepingRole: "",
+    housekeepingRole: [],
     description: "",
     experience: "",
     kyc: "AADHAR",
@@ -237,6 +233,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     otherDetails: "",
     profileImage: null,
     cookingSpeciality: "",
+    nannyCareType: "",
     age: "",
     diet: "",
     dob: "",
@@ -247,6 +244,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     terms: false,
     privacy: false,
     keyFacts: false,
+    kycType: "AADHAR",
+    kycNumber: "",
     permanentAddress: {
       apartment: "",
       street: "",
@@ -269,6 +268,346 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [image, setImage] = useState<Blob | null>(null);
+
+  // Helper function to check if two time ranges overlap
+  const isRangeOverlapping = (range1: number[], range2: number[]): boolean => {
+    return !(range1[1] <= range2[0] || range1[0] >= range2[1]);
+  };
+
+  // Get disabled ranges for a specific slot (all other slots)
+  const getDisabledRangesForSlot = (slots: number[][], currentIndex: number): number[][] => {
+    return slots.filter((_, index) => index !== currentIndex);
+  };
+
+  // Helper function to format time display
+  const formatDisplayTime = (value: number): string => {
+    const hour = Math.floor(value);
+    const minute = Math.round((value - hour) * 60);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour;
+    const displayHourFormatted = displayHour === 0 ? 12 : displayHour;
+    const minuteFormatted = minute === 30 ? '30' : '00';
+    return `${displayHourFormatted}:${minuteFormatted} ${period}`;
+  };
+
+  // Helper function to format time for storage (24-hour format)
+  const formatTimeForStorage = (value: number): string => {
+    const hour = Math.floor(value);
+    const minute = value % 1 === 0.5 ? "30" : "00";
+    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
+    return `${formattedHour}:${minute}`;
+  };
+
+  // Custom Slider component with disabled ranges
+  const TimeSliderWithDisabledRanges: React.FC<{
+    value: number[];
+    onChange: (newValue: number[]) => void;
+    min: number;
+    max: number;
+    marks: Array<{ value: number; label: string }>;
+    disabledRanges: number[][];
+  }> = ({ value, onChange, min, max, marks, disabledRanges }) => {
+    
+    const handleSliderChange = (event: Event, newValue: number | number[]) => {
+      const range = newValue as number[];
+      const [start, end] = range;
+      
+      // Check if the new range overlaps with any disabled ranges
+      const hasOverlap = disabledRanges.some(disabledRange => 
+        isRangeOverlapping([start, end], disabledRange)
+      );
+      
+      if (!hasOverlap) {
+        onChange(range);
+      } else {
+        setSnackbarMessage("This time range overlaps with another selected slot");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+      }
+    };
+
+    return (
+      <Slider
+        value={value}
+        onChange={handleSliderChange}
+        valueLabelDisplay="on"
+        valueLabelFormat={(value) => formatDisplayTime(value)}
+        min={min}
+        max={max}
+        step={0.5}
+        marks={marks}
+        sx={{
+          color: "primary.main",
+          '& .MuiSlider-markLabel': {
+            fontSize: '0.75rem'
+          },
+          '& .MuiSlider-mark': {
+            backgroundColor: '#bfbfbf',
+            height: 8,
+            width: 2,
+          },
+          '& .MuiSlider-rail': {
+            opacity: 0.3,
+            backgroundColor: '#bfbfbf',
+          },
+          '& .MuiSlider-track': {
+            backgroundColor: '#1976d2',
+          },
+        }}
+      />
+    );
+  };
+
+  // Component to visually show disabled ranges
+  const DisabledRangesIndicator: React.FC<{
+    ranges: number[][];
+    min: number;
+    max: number;
+  }> = ({ ranges, min, max }) => {
+    if (ranges.length === 0) return null;
+
+    const totalWidth = max - min;
+    
+    return (
+      <Box sx={{ position: 'relative', width: '100%', height: 4, mt: 1, mb: 2 }}>
+        <Box sx={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#e0e0e0', borderRadius: 2 }} />
+        {ranges.map((range, index) => {
+          const startPercent = ((range[0] - min) / totalWidth) * 100;
+          const widthPercent = ((range[1] - range[0]) / totalWidth) * 100;
+          
+          return (
+            <Tooltip
+              key={index}
+              title={`Already selected: ${formatDisplayTime(range[0])} - ${formatDisplayTime(range[1])}`}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: `${startPercent}%`,
+                  width: `${widthPercent}%`,
+                  height: '100%',
+                  backgroundColor: '#ff9800',
+                  opacity: 0.5,
+                  borderRadius: 2,
+                  cursor: 'not-allowed',
+                }}
+              />
+            </Tooltip>
+          );
+        })}
+      </Box>
+    );
+  };
+
+  // Update selected time slots summary
+  const updateSelectedTimeSlots = useCallback(() => {
+    if (isFullTime) {
+      setSelectedTimeSlots("06:00 - 20:00 (Full Day)");
+      setFormData((prev) => ({ ...prev, timeslot: "06:00-20:00" }));
+      return;
+    }
+
+    const morningSlotStrings = morningSlots.map(([start, end]) => 
+      `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
+    );
+    
+    const eveningSlotStrings = eveningSlots.map(([start, end]) => 
+      `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
+    );
+
+    let displaySlots: string[] = [];
+    let storageSlots: string[] = [];
+
+    // Format for display (with AM/PM)
+    morningSlots.forEach(([start, end]) => {
+      displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
+    });
+    
+    eveningSlots.forEach(([start, end]) => {
+      displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
+    });
+
+    // Format for storage (24-hour format)
+    morningSlotStrings.forEach(slot => storageSlots.push(slot));
+    eveningSlotStrings.forEach(slot => storageSlots.push(slot));
+
+    if (displaySlots.length > 0) {
+      setSelectedTimeSlots(displaySlots.join(', '));
+      setFormData((prev) => ({ ...prev, timeslot: storageSlots.join(', ') }));
+    } else {
+      setSelectedTimeSlots('No slots selected');
+      setFormData((prev) => ({ ...prev, timeslot: '' }));
+    }
+  }, [isFullTime, morningSlots, eveningSlots]);
+
+  // Update slots when they change
+  useEffect(() => {
+    updateSelectedTimeSlots();
+  }, [morningSlots, eveningSlots, isFullTime, updateSelectedTimeSlots]);
+
+  const handleAddMorningSlot = () => {
+    setMorningSlots(prevSlots => {
+      // Find an available time range that doesn't conflict with existing slots
+      const existingRanges = prevSlots;
+      let newStart = 6;
+      let newEnd = 6.5;
+      let foundAvailableSlot = false;
+
+      // Try to find an available 30-minute slot
+      for (let time = 6; time < 12; time += 0.5) {
+        const potentialEnd = time + 0.5;
+        const hasConflict = existingRanges.some(range => 
+          isRangeOverlapping([time, potentialEnd], range)
+        );
+        
+        if (!hasConflict) {
+          newStart = time;
+          newEnd = potentialEnd;
+          foundAvailableSlot = true;
+          break;
+        }
+      }
+
+      // If no 30-minute slot available, try to find any non-overlapping range
+      if (!foundAvailableSlot) {
+        for (let time = 6; time < 12; time += 0.5) {
+          for (let endTime = time + 0.5; endTime <= 12; endTime += 0.5) {
+            const hasConflict = existingRanges.some(range => 
+              isRangeOverlapping([time, endTime], range)
+            );
+            
+            if (!hasConflict) {
+              newStart = time;
+              newEnd = endTime;
+              foundAvailableSlot = true;
+              break;
+            }
+          }
+          if (foundAvailableSlot) break;
+        }
+      }
+
+      // If still no slot found
+      if (!foundAvailableSlot) {
+        setSnackbarMessage("No available time slots remaining in morning");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return prevSlots;
+      }
+
+      return [...prevSlots, [newStart, newEnd]];
+    });
+  };
+
+  const handleRemoveMorningSlot = (index: number) => {
+    const newSlots = morningSlots.filter((_, i) => i !== index);
+    setMorningSlots(newSlots.length > 0 ? newSlots : []);
+  };
+
+  const handleAddEveningSlot = () => {
+    setEveningSlots(prevSlots => {
+      // Find an available time range that doesn't conflict with existing slots
+      const existingRanges = prevSlots;
+      let newStart = 12;
+      let newEnd = 12.5;
+      let foundAvailableSlot = false;
+
+      // Try to find an available 30-minute slot
+      for (let time = 12; time < 20; time += 0.5) {
+        const potentialEnd = time + 0.5;
+        const hasConflict = existingRanges.some(range => 
+          isRangeOverlapping([time, potentialEnd], range)
+        );
+        
+        if (!hasConflict) {
+          newStart = time;
+          newEnd = potentialEnd;
+          foundAvailableSlot = true;
+          break;
+        }
+      }
+
+      // If no 30-minute slot available, try to find any non-overlapping range
+      if (!foundAvailableSlot) {
+        for (let time = 12; time < 20; time += 0.5) {
+          for (let endTime = time + 0.5; endTime <= 20; endTime += 0.5) {
+            const hasConflict = existingRanges.some(range => 
+              isRangeOverlapping([time, endTime], range)
+            );
+            
+            if (!hasConflict) {
+              newStart = time;
+              newEnd = endTime;
+              foundAvailableSlot = true;
+              break;
+            }
+          }
+          if (foundAvailableSlot) break;
+        }
+      }
+
+      // If still no slot found
+      if (!foundAvailableSlot) {
+        setSnackbarMessage("No available time slots remaining in evening");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return prevSlots;
+      }
+
+      return [...prevSlots, [newStart, newEnd]];
+    });
+  };
+
+  const handleRemoveEveningSlot = (index: number) => {
+    const newSlots = eveningSlots.filter((_, i) => i !== index);
+    setEveningSlots(newSlots.length > 0 ? newSlots : []);
+  };
+
+  const handleClearMorningSlots = () => {
+    setMorningSlots([]);
+  };
+
+  const handleClearEveningSlots = () => {
+    setEveningSlots([]);
+  };
+
+  const handleMorningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...morningSlots];
+    const otherSlots = updatedSlots.filter((_, i) => i !== index);
+    
+    // Check if new range overlaps with any other slots
+    const hasOverlap = otherSlots.some(slot => 
+      isRangeOverlapping(newValue, slot)
+    );
+    
+    if (!hasOverlap && newValue[0] <= newValue[1]) {
+      updatedSlots[index] = newValue;
+      setMorningSlots(updatedSlots);
+    }
+  };
+
+  const handleEveningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...eveningSlots];
+    const otherSlots = updatedSlots.filter((_, i) => i !== index);
+    
+    // Check if new range overlaps with any other slots
+    const hasOverlap = otherSlots.some(slot => 
+      isRangeOverlapping(newValue, slot)
+    );
+    
+    if (!hasOverlap && newValue[0] <= newValue[1]) {
+      updatedSlots[index] = newValue;
+      setEveningSlots(updatedSlots);
+    }
+  };
+
+  const handleFullTimeToggle = (checked: boolean) => {
+    setIsFullTime(checked);
+    if (checked) {
+      setMorningSlots([[6, 12]]);
+      setEveningSlots([[12, 20]]);
+    }
+  };
 
   const handleImageSelect = (file: Blob | null) => {
     if (file) {
@@ -341,7 +680,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         ...prev,
         permanentAddress: undefined
       }));
-    } else if (!isSameAddress) { // Only clear correspondence errors if not same address
+    } else if (!isSameAddress) {
       setErrors(prev => ({
         ...prev,
         correspondenceAddress: undefined
@@ -404,6 +743,32 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation();
 
+  // Handler for KYC type change
+  const handleKycTypeChange = (kycType: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      kycType,
+      kycNumber: "" // Clear the number when type changes
+    }));
+    setErrors(prev => ({ 
+      ...prev, 
+      kycType: "",
+      kycNumber: "" 
+    }));
+  };
+
+  // Helper function to get KYC label
+  const getKycLabel = (kycType: string): string => {
+    const labels: Record<string, string> = {
+      "AADHAR": "Aadhaar",
+      "PAN": "PAN",
+      "DRIVING_LICENSE": "Driving License",
+      "VOTER_ID": "Voter ID",
+      "PASSPORT": "Passport"
+    };
+    return labels[kycType] || "KYC";
+  };
+
   // Add debounced validation functions
   const debouncedEmailValidation = useCallback(
     debounce((email: string) => {
@@ -456,15 +821,37 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                                  formData.emailId.trim() && 
                                  formData.password.trim() && 
                                  formData.confirmPassword.trim() && 
-                                 formData.mobileNo.trim();
+                                 formData.mobileNo.trim() &&
+                                 formData.dob.trim();
 
     // Check if there are any validation errors
     const hasValidationErrors = validationResults.email.error || 
                                validationResults.mobile.error ||
                                !validationResults.email.isAvailable ||
-                               !validationResults.mobile.isAvailable;
+                               !validationResults.mobile.isAvailable ||
+                               !!errors.dob;
 
-    return requiredFieldsFilled && !hasValidationErrors;
+    // Check if DOB is valid
+    const isDobFieldValid = isDobValid && !errors.dob;
+
+    return requiredFieldsFilled && !hasValidationErrors && isDobFieldValid;
+  };
+
+  // Validate age function
+  const validateAge = (dob: string): { isValid: boolean; message: string } => {
+    if (!dob) {
+      return { isValid: false, message: "Date of Birth is required." };
+    }
+
+    const birthDate = moment(dob, "YYYY-MM-DD");
+    const today = moment();
+    const age = today.diff(birthDate, "years");
+
+    if (age < 18) {
+      return { isValid: false, message: "You must be at least 18 years old to register." };
+    }
+
+    return { isValid: true, message: "" };
   };
 
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -670,32 +1057,45 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "AADHAR") {
-      // Only allow numeric input and limit to 12 digits
-      const numericValue = value.replace(/\D/g, "");
-      const trimmedValue = numericValue.slice(0, 12);
+    if (name === "kycNumber") {
+      const trimmedValue = value.trim();
+      setFormData(prev => ({ ...prev, kycNumber: trimmedValue }));
       
-      // Update form data with trimmed value
-      setFormData(prev => ({
-        ...prev,
-        AADHAR: trimmedValue,
-      }));
-      
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          AADHAR: "Aadhaar number is required.",
-        }));
-      } else if (!aadhaarPattern.test(trimmedValue)) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          AADHAR: "Aadhaar number must be exactly 12 digits.",
-        }));
+      // Validate based on kycType
+      if (trimmedValue) {
+        let isValid = true;
+        let errorMessage = "";
+        
+        switch(formData.kycType) {
+          case "AADHAR":
+            isValid = /^[0-9]{12}$/.test(trimmedValue);
+            errorMessage = "Aadhaar number must be exactly 12 digits.";
+            break;
+          case "PAN":
+            isValid = panRegex.test(trimmedValue);
+            errorMessage = "Please enter a valid PAN (e.g., ABCDE1234F).";
+            break;
+          case "DRIVING_LICENSE":
+            isValid = trimmedValue.length >= 8;
+            errorMessage = "Please enter a valid driving license number.";
+            break;
+          case "VOTER_ID":
+            isValid = voterIdRegex.test(trimmedValue);
+            errorMessage = "Please enter a valid 10-digit Voter ID.";
+            break;
+          case "PASSPORT":
+            isValid = passportRegex.test(trimmedValue);
+            errorMessage = "Please enter a valid 8-character passport number.";
+            break;
+        }
+        
+        if (!isValid) {
+          setErrors(prev => ({ ...prev, kycNumber: errorMessage }));
+        } else {
+          setErrors(prev => ({ ...prev, kycNumber: "" }));
+        }
       } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          AADHAR: "",
-        }));
+        setErrors(prev => ({ ...prev, kycNumber: `${getKycLabel(formData.kycType)} number is required.` }));
       }
     }
 
@@ -727,10 +1127,37 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
 
     // Handle other fields
-    if (name !== "pincode" && name !== "AADHAR") {
+    if (name !== "pincode" && name !== "kycNumber" && name !== "AADHAR") {
       setFormData((prevData) => ({
         ...prevData,
         [name]: value,
+      }));
+    }
+  };
+
+  // Separate handler for DOB field
+  const handleDobChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    // Update form data
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+
+    // Validate DOB
+    const { isValid, message } = validateAge(value);
+    setIsDobValid(isValid);
+
+    if (!isValid) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        dob: message,
+      }));
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        dob: "",
       }));
     }
   };
@@ -749,6 +1176,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, cookingSpeciality: value }));
     setErrors(prevErrors => ({ ...prevErrors, cookingSpeciality: "" }));
+  };
+
+  // Handler for nanny care type
+  const handleNannyCareTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, nannyCareType: value }));
+    setErrors(prev => ({ ...prev, nannyCareType: "" }));
   };
 
   const validateStep = (step: number): boolean => {
@@ -817,6 +1251,16 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           tempErrors.AlternateNumber = "Alternate number is not available.";
         }
       }
+
+      // Validate DOB
+      if (!formData.dob.trim()) {
+        tempErrors.dob = "Date of Birth is required.";
+      } else {
+        const { isValid, message } = validateAge(formData.dob);
+        if (!isValid) {
+          tempErrors.dob = message;
+        }
+      }
     }
 
     if (step === 1) {
@@ -877,12 +1321,16 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
 
     if (step === 2) {
-      if (!formData.housekeepingRole) {
-        tempErrors.housekeepingRole = "Please select a service type.";
+      if (formData.housekeepingRole.length === 0) {
+        tempErrors.housekeepingRole = "Please select at least one service type.";
       }
-      if (formData.housekeepingRole === "COOK" && !formData.cookingSpeciality) {
+      if (formData.housekeepingRole.includes("COOK") && !formData.cookingSpeciality) {
         tempErrors.cookingSpeciality =
           "Please select a speciality for the cook service.";
+      }
+      if (formData.housekeepingRole.includes("NANNY") && !formData.nannyCareType) {
+        tempErrors.nannyCareType =
+          "Please select a care type for the nanny service.";
       }
       if (!formData.diet) {
         tempErrors.diet = "Please select diet.";
@@ -893,10 +1341,43 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
 
     if (step === 3) {
-      if (!formData.AADHAR) {
-        tempErrors.AADHAR = "Aadhaar number is required.";
-      } else if (!aadhaarRegex.test(formData.AADHAR)) {
-        tempErrors.AADHAR = "Aadhaar number must be exactly 12 digits.";
+      if (!formData.kycType) {
+        tempErrors.kycType = "Please select a KYC document type.";
+      }
+      if (!formData.kycNumber) {
+        tempErrors.kycNumber = `${getKycLabel(formData.kycType)} number is required.`;
+      } else {
+        // Add specific validation based on KYC type
+        switch(formData.kycType) {
+          case "AADHAR":
+            if (!aadhaarRegex.test(formData.kycNumber)) {
+              tempErrors.kycNumber = "Aadhaar number must be exactly 12 digits.";
+            }
+            break;
+          case "PAN":
+            if (!panRegex.test(formData.kycNumber)) {
+              tempErrors.kycNumber = "Please enter a valid PAN (e.g., ABCDE1234F).";
+            }
+            break;
+          case "DRIVING_LICENSE":
+            if (formData.kycNumber.length < 8) {
+              tempErrors.kycNumber = "Please enter a valid driving license number.";
+            }
+            break;
+          case "VOTER_ID":
+            if (!voterIdRegex.test(formData.kycNumber)) {
+              tempErrors.kycNumber = "Please enter a valid 10-digit Voter ID.";
+            }
+            break;
+          case "PASSPORT":
+            if (!passportRegex.test(formData.kycNumber)) {
+              tempErrors.kycNumber = "Please enter a valid 8-character passport number.";
+            }
+            break;
+        }
+      }
+      if (!formData.documentImage) {
+        tempErrors.documentImage = "Please upload your KYC document.";
       }
     }
 
@@ -938,7 +1419,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       
       // Additional check for validation results
       if (!isStep0ReadyForNext()) {
-        setSnackbarMessage("Please fix email/mobile validation errors before proceeding.");
+        setSnackbarMessage("Please fix all validation errors before proceeding.");
         setSnackbarSeverity("error");
         setSnackbarOpen(true);
         return;
@@ -954,22 +1435,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     if (activeStep === steps.length - 1) {
       setSnackbarMessage("Registration Successful!");
       setSnackbarOpen(true);
-    }
-  };
-
-  const handleChangeCheckbox = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = event.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: checked,
-    }));
-    
-    // Clear the error when checkbox is checked
-    if (checked) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
     }
   };
 
@@ -1010,6 +1475,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           }
         }
         
+        const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
+        
         const payload = {
           firstName: formData.firstName,
           middleName: formData.middleName,
@@ -1027,10 +1494,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           currentLocation: formData.currentLocation,
           nearbyLocation: formData.nearbyLocation,
           location: formData.currentLocation,
-          housekeepingRole: formData.housekeepingRole,
+          housekeepingRole: primaryRole,
+          serviceTypes: formData.housekeepingRole,
           diet: formData.diet,
-          ...(formData.housekeepingRole === "COOK" && {
+          ...(formData.housekeepingRole.includes("COOK") && {
             cookingSpeciality: formData.cookingSpeciality
+          }),
+          ...(formData.housekeepingRole.includes("NANNY") && {
+            nannyCareType: formData.nannyCareType
           }),
           timeslot: formData.timeslot,
           expectedSalary: 0,
@@ -1056,7 +1527,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             country: formData.correspondenceAddress.country
           },
           active: true,
-          kyc: formData.kyc,
+          kycType: formData.kycType,
+          kycNumber: formData.kycNumber,
           dob: formData.dob
         };
 
@@ -1187,7 +1659,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               buildingName: apartment || ""
             }));
 
-            // Also set isSameAddress to true since we're using the same address
             setIsSameAddress(true);
 
             setSnackbarMessage("Location fetched successfully!");
@@ -1221,56 +1692,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
-  const validateAge = (dob: string) => {
-    if (!dob) return false;
-
-    const birthDate = moment(dob, "YYYY-MM-DD");
-    const today = moment();
-    const age = today.diff(birthDate, "years");
-
-    return age >= 18;
-  };
-
-  const formatDisplayTime = (value: number) => {
-    const hour = Math.floor(value);
-    const minutes = value % 1 === 0.5 ? "30" : "00";
-    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
-    return `${formattedHour}:${minutes}`;
-  };
-
-  const updateFormTimeSlot = (
-    morningRange: number[],
-    eveningRange: number[]
-  ) => {
-    const startMorning = formatDisplayTime(morningRange[0]);
-    const endMorning = formatDisplayTime(morningRange[1]);
-    const startEvening = formatDisplayTime(eveningRange[0]);
-    const endEvening = formatDisplayTime(eveningRange[1]);
-
-    const formattedTimeSlot = `${startMorning}-${endMorning}, ${startEvening}-${endEvening}`;
-    setFormData((prev) => ({ ...prev, timeslot: formattedTimeSlot }));
-  };
-
   const handledietChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, diet: value }));
     setErrors(prevErrors => ({ ...prevErrors, diet: "" }));
-  };
-
-  const handleDOBChange = (dob: string) => {
-    setFormData((prev) => ({ ...prev, dob }));
-
-    const isValidAge = validateAge(dob);
-
-    if (!isValidAge) {
-      setIsFieldsDisabled(true);
-      setSnackbarMessage("You must be at least 18 years old to proceed.");
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-    } else {
-      setIsFieldsDisabled(false);
-      setSnackbarOpen(false);
-    }
   };
 
   const handleTermsChange = useCallback((allAccepted: boolean) => {
@@ -1291,11 +1716,34 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   }, []);
 
+  // Handler for service type selection
   const handleServiceTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setFormData(prev => ({ ...prev, housekeepingRole: value }));
-    setIsCookSelected(value === "COOK");
-    setErrors(prev => ({ ...prev, housekeepingRole: "" }));
+    let updatedRoles: string[];
+    
+    if (formData.housekeepingRole.includes(value)) {
+      // Remove if already selected
+      updatedRoles = formData.housekeepingRole.filter(role => role !== value);
+      // Clear related fields when service is deselected
+      if (value === "COOK") {
+        setFormData(prev => ({ ...prev, cookingSpeciality: "" }));
+      }
+      if (value === "NANNY") {
+        setFormData(prev => ({ ...prev, nannyCareType: "" }));
+      }
+    } else {
+      // Add if not selected
+      updatedRoles = [...formData.housekeepingRole, value];
+    }
+    
+    setFormData(prev => ({ ...prev, housekeepingRole: updatedRoles }));
+    setIsCookSelected(updatedRoles.includes("COOK"));
+    setIsNannySelected(updatedRoles.includes("NANNY"));
+    
+    // Clear error if at least one role is selected
+    if (updatedRoles.length > 0) {
+      setErrors(prev => ({ ...prev, housekeepingRole: "" }));
+    }
   };
 
   const handleExperienceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1308,272 +1756,23 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     switch (step) {
       case 0:
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} >
-              <ProfileImageUpload onImageSelect={handleImageSelect} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="First Name *"
-                name="firstName"
-                fullWidth
-                required
-                value={formData.firstName}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("firstName")}
-                error={!!errors.firstName}
-                helperText={errors.firstName}
-                inputProps={{ maxLength: MAX_NAME_LENGTH }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Middle Name"
-                name="middleName"
-                fullWidth
-                value={formData.middleName}
-                onChange={handleChange}
-                disabled={isFieldsDisabled}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Last Name *"
-                name="lastName"
-                fullWidth
-                required
-                value={formData.lastName}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("lastName")}
-                error={!!errors.lastName}
-                helperText={errors.lastName}
-                inputProps={{ maxLength: MAX_NAME_LENGTH }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Date of Birth"
-                name="dob"
-                type="date"
-                fullWidth
-                required
-                value={formData.dob}
-                onChange={(e) => handleDOBChange(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl component="fieldset" error={!!errors.gender}>
-                <FormLabel component="legend">Gender *</FormLabel>
-                <RadioGroup
-                  row
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                >
-                  <FormControlLabel
-                    value="MALE"
-                    control={<Radio />}
-                    label="Male"
-                  />
-                  <FormControlLabel
-                    value="FEMALE"
-                    control={<Radio />}
-                    label="Female"
-                  />
-                  <FormControlLabel
-                    value="OTHER"
-                    control={<Radio />}
-                    label="Other"
-                  />
-                </RadioGroup>
-                {errors.gender && (
-                  <FormHelperText>{errors.gender}</FormHelperText>
-                )}
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Email *"
-                name="emailId"
-                fullWidth
-                required
-                value={formData.emailId}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("emailId")}
-                error={!!errors.emailId || validationResults.email.isAvailable === false}
-                helperText={
-                  errors.emailId ||
-                  (validationResults.email.loading ? "Checking availability..." :
-                    validationResults.email.error ||
-                    (validationResults.email.isAvailable ? "Email is available" : ""))
-                }
-                InputProps={{
-                  endAdornment: validationResults.email.loading ? (
-                    <InputAdornment position="end">
-                      <CircularProgress size={20} />
-                    </InputAdornment>
-                  ) : validationResults.email.isAvailable ? (
-                    <InputAdornment position="end">
-                      <CheckIcon color="success" />
-                    </InputAdornment>
-                  ) : validationResults.email.isAvailable === false ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={handleClearEmail}
-                        edge="end"
-                        aria-label="clear email"
-                      >
-                        <CloseIcon color="error" fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Password *"
-                type={showPassword ? "text" : "password"}
-                name="password"
-                fullWidth
-                required
-                value={formData.password}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("password")}
-                error={!!errors.password}
-                helperText={errors.password}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={handleTogglePasswordVisibility}
-                        edge="end"
-                        aria-label="toggle password visibility"
-                      >
-                        {showPassword ? <Visibility /> : <VisibilityOff />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Confirm Password *"
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                fullWidth
-                required
-                value={formData.confirmPassword}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("confirmPassword")}
-                error={!!errors.confirmPassword}
-                helperText={errors.confirmPassword}
-                onPaste={(e) => e.preventDefault()}
-                onCopy={(e) => e.preventDefault()}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={handleToggleConfirmPasswordVisibility}
-                        edge="end"
-                        aria-label="toggle confirm password visibility"
-                      >
-                        {showConfirmPassword ? (
-                          <Visibility />
-                        ) : (
-                          <VisibilityOff />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Mobile Number *"
-                name="mobileNo"
-                fullWidth
-                required
-                value={formData.mobileNo}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("mobileNo")}
-                error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
-                helperText={
-                  errors.mobileNo ||
-                  (validationResults.mobile.loading ? "Checking availability..." :
-                    validationResults.mobile.error ||
-                    (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
-                }
-                InputProps={{
-                  endAdornment: validationResults.mobile.loading ? (
-                    <InputAdornment position="end">
-                      <CircularProgress size={20} />
-                    </InputAdornment>
-                  ) : validationResults.mobile.isAvailable ? (
-                    <InputAdornment position="end">
-                      <CheckIcon color="success" />
-                    </InputAdornment>
-                  ) : validationResults.mobile.isAvailable === false ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={handleClearMobile}
-                        edge="end"
-                        aria-label="clear mobile number"
-                      >
-                        <CloseIcon color="error" fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                placeholder="Alternate Number"
-                name="AlternateNumber"
-                fullWidth
-                value={formData.AlternateNumber}
-                onChange={handleRealTimeValidation}
-                error={!!errors.AlternateNumber || validationResults.alternate.isAvailable === false}
-                helperText={
-                  errors.AlternateNumber ||
-                  (validationResults.alternate.loading ? "Checking availability..." :
-                    validationResults.alternate.error ||
-                    (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
-                }
-                InputProps={{
-                  endAdornment: validationResults.alternate.loading ? (
-                    <InputAdornment position="end">
-                      <CircularProgress size={20} />
-                    </InputAdornment>
-                  ) : validationResults.alternate.isAvailable ? (
-                    <InputAdornment position="end">
-                      <CheckIcon color="success" />
-                    </InputAdornment>
-                  ) : validationResults.alternate.isAvailable === false ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={handleClearAlternate}
-                        edge="end"
-                        aria-label="clear alternate number"
-                      >
-                        <CloseIcon color="error" fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-              />
-            </Grid>
-          </Grid>
+          <BasicInformation
+            formData={formData}
+            errors={errors}
+            validationResults={validationResults}
+            showPassword={showPassword}
+            showConfirmPassword={showConfirmPassword}
+            isDobValid={isDobValid}
+            onImageSelect={handleImageSelect}
+            onFieldChange={handleRealTimeValidation}
+            onFieldFocus={handleFieldFocus}
+            onDobChange={handleDobChange}
+            onTogglePasswordVisibility={handleTogglePasswordVisibility}
+            onToggleConfirmPasswordVisibility={handleToggleConfirmPasswordVisibility}
+            onClearEmail={handleClearEmail}
+            onClearMobile={handleClearMobile}
+            onClearAlternate={handleClearAlternate}
+          />
         );
       
       case 1:
@@ -1644,256 +1843,53 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             </Grid>
           </Grid>
         );
+      
       case 2:
         return (
-          <Grid container spacing={2}>
-            <Grid
-              item
-              xs={12}
-              sm={12}
-              className="mt-4 flex justify-center items-center ml-10"
-            >
-              <TextField
-                select
-                label="Select Service Type"
-                name="housekeepingRole"
-                fullWidth
-                value={formData.housekeepingRole}
-                onChange={handleServiceTypeChange}
-                error={!!errors.housekeepingRole}
-                helperText={errors.housekeepingRole}
-                required
-              >
-                <MenuItem value="" disabled>
-                  Select Service Type
-                </MenuItem>
-                <MenuItem value="COOK">Cook</MenuItem>
-                <MenuItem value="NANNY">Nanny</MenuItem>
-                <MenuItem value="MAID">Maid</MenuItem>
-              </TextField>
-            </Grid>
-            {isCookSelected && (
-              <Grid item xs={12} >
-                <FormControl
-                  component="fieldset"
-                  error={!!errors.cookingSpeciality}
-                  required
-                >
-                  <FormLabel component="legend">Cooking Speciality</FormLabel>
-                  <RadioGroup
-                    name="cookingSpeciality"
-                    value={formData.cookingSpeciality}
-                    onChange={handleCookingSpecialityChange}
-                  >
-                    <FormControlLabel
-                      value="VEG"
-                      control={<Radio />}
-                      label="Veg"
-                    />
-                    <FormControlLabel
-                      value="NONVEG"
-                      control={<Radio />}
-                      label="Non-Veg"
-                    />
-                    <FormControlLabel
-                      value="BOTH"
-                      control={<Radio />}
-                      label="Both"
-                    />
-                  </RadioGroup>
-                  <FormHelperText>{errors.cookingSpeciality}</FormHelperText>
-                </FormControl>
-              </Grid>
-            )}
-            <Grid item xs={12}>
-              <FormControl component="fieldset" error={!!errors.diet} required>
-                <FormLabel component="legend">Diet</FormLabel>
-                <RadioGroup
-                  name="diet"
-                  value={formData.diet}
-                  onChange={handledietChange}
-                >
-                  <FormControlLabel
-                    value="VEG"
-                    control={<Radio />}
-                    label="Veg"
-                  />
-                  <FormControlLabel
-                    value="NONVEG"
-                    control={<Radio />}
-                    label="Non-Veg"
-                  />
-                  <FormControlLabel
-                    value="BOTH"
-                    control={<Radio />}
-                    label="Both"
-                  />
-                </RadioGroup>
-                <FormHelperText>{errors.diet}</FormHelperText>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} >
-              <TextField
-                placeholder="Description"
-                name="description"
-                fullWidth
-                value={formData.description}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Experience *"
-                name="experience"
-                fullWidth
-                required
-                value={formData.experience}
-                onChange={handleExperienceChange}
-                error={!!errors.experience}
-                helperText={
-                  errors.experience ||
-                  "Years in business or relevant experience"
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                placeholder="Referral Code (Optional)"
-                name="referralCode"
-                fullWidth
-                value={formData.referralCode || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl component="fieldset" fullWidth>
-                <FormLabel component="legend" >
-                  Select Time Slot
-                </FormLabel>
-                <FormGroup>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formData.timeslot === "06:00-20:00"}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              timeslot: "06:00-20:00",
-                            });
-                            setSliderDisabled(true);
-                          } else {
-                            setFormData({ ...formData, timeslot: "" });
-                            setSliderDisabled(false);
-                          }
-                        }}
-                      />
-                    }
-                    label="Choose Full Time Availability (6:00 AM - 8:00 PM)"
-                    style={{ width: '100%', marginLeft: 0 }}
-                  />
-
-                  <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
-                    <Typography align="center" gutterBottom>
-                      Morning (6:00 AM - 12:00 PM)
-                    </Typography>
-                    <Slider
-                      value={sliderValueMorning}
-                      onChange={(e, newValue) => {
-                        const selectedRange = newValue as number[];
-                        setSliderValueMorning(selectedRange);
-                        updateFormTimeSlot(selectedRange, sliderValueEvening);
-                      }}
-                      valueLabelDisplay="on"
-                      valueLabelFormat={(value) => formatDisplayTime(value)}
-                      min={6}
-                      max={12}
-                      step={0.5}
-                      marks={[
-                        { value: 6, label: "6:00 AM" },
-                        { value: 8, label: "8:00 AM" },
-                        { value: 10, label: "10:00 AM" },
-                        { value: 12, label: "12:00 PM" },
-                      ]}
-                      disabled={sliderDisabled}
-                      sx={{
-                        color: sliderDisabled ? "grey.500" : "primary.main",
-                        width: '95%',
-                        mx: 'auto',
-                      }}
-                      aria-labelledby="morning-slider"
-                    />
-                  </Box>
-
-                  <Box sx={{ width: '100%', mt: 2, pl: 2 }}>
-                    <Typography align="center" gutterBottom>
-                      Evening (12:00 PM - 8:00 PM)
-                    </Typography>
-                    <Slider
-                      value={sliderValueEvening}
-                      onChange={(e, newValue) => {
-                        const selectedRange = newValue as number[];
-                        setSliderValueEvening(selectedRange);
-                        updateFormTimeSlot(sliderValueMorning, selectedRange);
-                      }}
-                      valueLabelDisplay="on"
-                      valueLabelFormat={(value) => formatDisplayTime(value)}
-                      min={12}
-                      max={20}
-                      step={0.5}
-                      marks={[
-                        { value: 12, label: "12:00 PM" },
-                        { value: 14, label: "2:00 PM" },
-                        { value: 16, label: "4:00 PM" },
-                        { value: 20, label: "8:00 PM" },
-                      ]}
-                      disabled={sliderDisabled}
-                      sx={{
-                        color: sliderDisabled ? "grey.500" : "primary.main",
-                        width: '95%',
-                        mx: 'auto',
-                      }}
-                      aria-labelledby="evening-slider"
-                    />
-                  </Box>
-                </FormGroup>
-              </FormControl>
-            </Grid>
-          </Grid>
+          <ServiceDetails
+            formData={formData}
+            errors={errors}
+            isCookSelected={isCookSelected}
+            isNannySelected={isNannySelected}
+            morningSlots={morningSlots}
+            eveningSlots={eveningSlots}
+            isFullTime={isFullTime}
+            selectedTimeSlots={selectedTimeSlots}
+            onServiceTypeChange={handleServiceTypeChange}
+            onCookingSpecialityChange={handleCookingSpecialityChange}
+            onNannyCareTypeChange={handleNannyCareTypeChange}
+            onDietChange={handledietChange}
+            onExperienceChange={handleExperienceChange}
+            onDescriptionChange={handleChange}
+            onReferralCodeChange={handleChange}
+            onFullTimeToggle={handleFullTimeToggle}
+            onAddMorningSlot={handleAddMorningSlot}
+            onRemoveMorningSlot={handleRemoveMorningSlot}
+            onClearMorningSlots={handleClearMorningSlots}
+            onAddEveningSlot={handleAddEveningSlot}
+            onRemoveEveningSlot={handleRemoveEveningSlot}
+            onClearEveningSlots={handleClearEveningSlots}
+            onMorningSlotChange={handleMorningSlotChange}
+            onEveningSlotChange={handleEveningSlotChange}
+            TimeSliderWithDisabledRanges={TimeSliderWithDisabledRanges}
+            DisabledRangesIndicator={DisabledRangesIndicator}
+            getDisabledRangesForSlot={getDisabledRangesForSlot}
+            formatDisplayTime={formatDisplayTime}
+          />
         );
+      
       case 3:
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sx={{ mt: 2 }}>
-              <TextField
-                placeholder="Aadhaar Number *"
-                name="AADHAR"
-                fullWidth
-                required
-                value={formData.AADHAR || ""}
-                onChange={handleRealTimeValidation}
-                onFocus={() => handleFieldFocus("AADHAR")}
-                error={!!errors.AADHAR}
-                helperText={errors.AADHAR}
-                inputProps={{
-                  maxLength: 12,
-                  pattern: "[0-9]*",
-                  inputMode: "numeric"
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <CustomFileInput
-                name="documentImage"
-                accept="image/*"
-                required
-                value={formData.documentImage}
-                onChange={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
-                buttonText="Upload Aadhaar Document"
-              />
-            </Grid>
-          </Grid>
+          <KYCVerification
+            formData={formData}
+            errors={errors}
+            onFieldChange={handleRealTimeValidation}
+            onFieldFocus={handleFieldFocus}
+            onDocumentUpload={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
+            onKycTypeChange={handleKycTypeChange}
+          />
         );
+      
       case 4:
         return (
           <Grid container spacing={1}>
@@ -1908,6 +1904,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             </Grid>
           </Grid>
         );
+      
       default:
         return "Unknown step";
     }
@@ -1915,7 +1912,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   return (
     <>
-      <Dialog fullWidth maxWidth="sm" open={true} >
+      <Dialog fullWidth maxWidth="sm" open={true}>
         <DialogHeader
           style={{
             position: 'relative',
@@ -2004,9 +2001,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                     activeStep === 0 && !isStep0ReadyForNext()
                       ? validationResults.email.loading || validationResults.mobile.loading
                         ? "Validating email/mobile, please wait..."
-                        : !isStep0ValidationsComplete()
-                        ? "Please fix email/mobile validation errors"
-                        : "Please complete all required fields"
+                        : !isStep0ValidationsComplete() || !isDobValid
+                        ? "Please fix all validation errors including Date of Birth (must be 18+ years)"
+                        : "Please complete all required fields including Date of Birth"
+                      : activeStep === 2 && formData.housekeepingRole.length === 0
+                      ? "Please select at least one service type"
+                      : activeStep === 3 && (!formData.kycNumber || !formData.documentImage)
+                      ? "Please complete KYC verification"
                       : ""
                   }
                 >
@@ -2021,7 +2022,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                       endIcon={<ArrowForward />}
                       disabled={
                         isSubmitting || 
-                        (activeStep === 0 && !isStep0ReadyForNext())
+                        (activeStep === 0 && !isStep0ReadyForNext()) ||
+                        (activeStep === 2 && formData.housekeepingRole.length === 0)
                       }
                     >
                       Next
