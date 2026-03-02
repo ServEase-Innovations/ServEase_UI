@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -15,49 +15,136 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  InputLabel,
+  FormHelperText,
 } from "@mui/material";
-import { Visibility, VisibilityOff, FileCopy } from "@mui/icons-material";
-import axiosInstance from "../../services/axiosInstance";
+import { 
+  Visibility, 
+  VisibilityOff, 
+  FileCopy,
+  CheckCircle,
+  Error as ErrorIcon 
+} from "@mui/icons-material";
+
 import { Button } from "../Button/button";
 import { ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-material";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { useFieldValidation } from "./useFieldValidation";
+import providerInstance from "src/services/providerInstance";
+
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
+  onClose?: () => void; // Add onClose prop
+}
+
+interface FormData {
+  companyName: string;
+  phoneNo: string;
+  emailId: string;
+  address: string;
+  registrationId: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface ValidationErrors {
+  phoneNo: string;
+  emailId: string;
+  registrationId: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface ApiResponse {
+  registrationId?: string;
+  message?: string;
+  error?: string;
+}
+
+// API Request Payload Interface
+interface ApiRequestPayload {
+  companyName: string;
+  address: string;
+  emailId: string;
+  phoneNo: string;
+  registrationId: string;
 }
 
 const AgentRegistrationForm: React.FC<RegistrationProps> = ({
   onBackToLogin,
+  onClose, // Add onClose prop
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     companyName: "",
-    mobileNumber: "",
-    email: "",
+    phoneNo: "",
+    emailId: "",
+    address: "",
+    registrationId: "",
     password: "",
     confirmPassword: "",
-    address: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [validationErrors, setValidationErrors] = useState({
-    mobileNumber: "",
-    email: "",
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({
+    phoneNo: "",
+    emailId: "",
+    registrationId: "",
     password: "",
     confirmPassword: "",
   });
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [message, setMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
-  const [referralCode, setReferralCode] = useState("");
+  const [returnedRegistrationId, setReturnedRegistrationId] = useState("");
+  
+  // Loading state for submit button
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
+  // Use the field validation hook
+  const { validationResults, validateField, resetValidation } = useFieldValidation();
+
+  // Debounce timers
+  const [emailTimer, setEmailTimer] = useState<NodeJS.Timeout | null>(null);
+  const [mobileTimer, setMobileTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
+
+    // Clear validation error for the field
+    setValidationErrors({
+      ...validationErrors,
+      [name]: "",
+    });
+
+    // Handle real-time validation for email and phone
+    if (name === "emailId") {
+      if (emailTimer) clearTimeout(emailTimer);
+      const timer = setTimeout(() => {
+        if (value && emailRegex.test(value)) {
+          validateField("email", value);
+        }
+      }, 500);
+      setEmailTimer(timer);
+    }
+
+    if (name === "phoneNo") {
+      if (mobileTimer) clearTimeout(mobileTimer);
+      const timer = setTimeout(() => {
+        if (value && mobileRegex.test(value)) {
+          validateField("mobile", value);
+        }
+      }, 500);
+      setMobileTimer(timer);
+    }
 
     validateForm(name, value);
   };
@@ -72,182 +159,355 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
 
   const mobileRegex = /^[0-9]{10}$/;
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const passwordRegex =
-    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const registrationIdRegex = /^[A-Z0-9]{10,20}$/;
 
-  const validateForm = (field, value) => {
+  const validateForm = (field: string, value: string) => {
     switch (field) {
-      case "mobileNumber":
-        setValidationErrors({
-          ...validationErrors,
-          mobileNumber: !mobileRegex.test(value)
+      case "phoneNo":
+        setValidationErrors((prev) => ({
+          ...prev,
+          phoneNo: !mobileRegex.test(value)
             ? "Enter a valid 10-digit mobile number"
             : "",
-        });
+        }));
         break;
-      case "email":
-        setValidationErrors({
-          ...validationErrors,
-          email: !emailRegex.test(value) ? "Enter a valid email address" : "",
-        });
+      case "emailId":
+        setValidationErrors((prev) => ({
+          ...prev,
+          emailId: !emailRegex.test(value) ? "Enter a valid email address" : "",
+        }));
+        break;
+      case "registrationId":
+        setValidationErrors((prev) => ({
+          ...prev,
+          registrationId: !value.trim() 
+            ? "Registration ID is required" 
+            : !registrationIdRegex.test(value)
+            ? "Registration ID should be alphanumeric and 10-20 characters long"
+            : "",
+        }));
         break;
       case "password":
-        setValidationErrors({
-          ...validationErrors,
+        setValidationErrors((prev) => ({
+          ...prev,
           password: !passwordRegex.test(value)
             ? "Password must contain at least 8 characters, including 1 letter, 1 number, and 1 special character"
             : "",
-        });
+        }));
         break;
       case "confirmPassword":
-        setValidationErrors({
-          ...validationErrors,
+        setValidationErrors((prev) => ({
+          ...prev,
           confirmPassword:
             value !== formData.password ? "Passwords do not match" : "",
-        });
+        }));
         break;
       default:
         break;
     }
   };
 
-  const handleSubmit = async (e) => {
+  // Check if all validations pass
+  const isFormValid = () => {
+    // Check basic field validations
+    const basicValidations = 
+      !validationErrors.phoneNo &&
+      !validationErrors.emailId &&
+      !validationErrors.registrationId &&
+      !validationErrors.password &&
+      !validationErrors.confirmPassword &&
+      formData.companyName &&
+      formData.phoneNo &&
+      formData.emailId &&
+      formData.address &&
+      formData.registrationId &&
+      formData.password &&
+      formData.confirmPassword;
+
+    // Check availability validations
+    const availabilityValidations = 
+      validationResults.email.isAvailable === true &&
+      validationResults.mobile.isAvailable === true;
+
+    return basicValidations && availabilityValidations;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prepare the request body to match the API format
-    const requestData = {
+    // Validate all fields before submission
+    if (!formData.companyName || !formData.address) {
+      setMessage("Please fill in all required fields");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    if (!isFormValid()) {
+      setMessage("Please ensure all fields are valid and email/mobile are available");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    // Set submitting state to true
+    setIsSubmitting(true);
+
+    // Prepare the request body
+    const requestData: ApiRequestPayload = {
       companyName: formData.companyName,
-      emailId: formData.email, // Change 'email' to 'emailId'
-      phoneNo: Number(formData.mobileNumber), // Change 'mobileNumber' to 'phoneNo' and ensure it's a number
       address: formData.address,
-      password: formData.password,
+      emailId: formData.emailId,
+      phoneNo: formData.phoneNo,
+      registrationId: formData.registrationId,
     };
 
     try {
-      const response = await axiosInstance.post("vendors/add", requestData, {
+      const response = await providerInstance.post<ApiResponse>("/api/vendor/add", requestData, {
         headers: {
           "Content-Type": "application/json",
         },
       });
 
-      if (response.status === 200) {
-        const generatedReferralCode =
-          response.data.referralCode || "REF1234567"; // Use referral code from response
-        setReferralCode(generatedReferralCode);
+      if (response.status === 200 || response.status === 201) {
+        const apiReturnedId = response.data.registrationId || formData.registrationId;
+        setReturnedRegistrationId(apiReturnedId);
         setMessage("Vendor added successfully!");
+        setSnackbarSeverity("success");
         setOpenSnackbar(true);
 
-        // Automatically copy the referral code to the clipboard
-        navigator.clipboard
-          .writeText(generatedReferralCode)
-          .then(() => {
-            alert("Referral code copied to clipboard!");
-          })
-          .catch((err) => {
-            console.error("Failed to copy referral code: ", err);
-          });
+        try {
+          await navigator.clipboard.writeText(apiReturnedId);
+        } catch (err) {
+          console.error("Failed to copy registration ID: ", err);
+        }
+
+        // Reset form
+        setFormData({
+          companyName: "",
+          phoneNo: "",
+          emailId: "",
+          address: "",
+          registrationId: "",
+          password: "",
+          confirmPassword: "",
+        });
+
+        // Reset validations
+        resetValidation();
+
+        // Close the dialog after 2 seconds (to allow user to see success message)
+        setTimeout(() => {
+          setIsSubmitting(false);
+          if (onClose) {
+            onClose(); // Call onClose to close the dialog
+          } else {
+            onBackToLogin(true); // Fallback to onBackToLogin
+          }
+        }, 2000);
       } else {
         setMessage(response.data.error || "Failed to add vendor.");
+        setSnackbarSeverity("error");
         setOpenSnackbar(true);
+        setIsSubmitting(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("API Error:", error);
-      setMessage("An error occurred while connecting to the API.");
+      
+      if (error.response) {
+        setMessage(error.response.data.error || "Server error occurred");
+      } else if (error.request) {
+        setMessage("No response from server. Please check your connection.");
+      } else {
+        setMessage("An error occurred while connecting to the API.");
+      }
+      
+      setSnackbarSeverity("error");
       setOpenSnackbar(true);
+      setIsSubmitting(false);
     }
   };
 
-  // Close the Snackbar when clicked
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
 
-  // Manually copy the referral code to clipboard
-  const handleCopyReferralCode = () => {
+  const handleCopyRegistrationId = () => {
     navigator.clipboard
-      .writeText(referralCode)
+      .writeText(returnedRegistrationId)
       .then(() => {
-        alert("Referral code copied to clipboard!");
+        setMessage("Registration ID copied to clipboard!");
+        setSnackbarSeverity("success");
+        setOpenSnackbar(true);
       })
       .catch((err) => {
-        console.error("Failed to copy referral code: ", err);
+        console.error("Failed to copy registration ID: ", err);
       });
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (emailTimer) clearTimeout(emailTimer);
+      if (mobileTimer) clearTimeout(mobileTimer);
+    };
+  }, [emailTimer, mobileTimer]);
+
+  // Helper to render validation status icon
+  const renderValidationIcon = (fieldType: 'email' | 'mobile') => {
+    const result = validationResults[fieldType];
+    
+    if (result.loading) {
+      return <CircularProgress size={20} />;
+    }
+    
+    if (result.isAvailable === true && result.isValidated) {
+      return <CheckCircle sx={{ color: 'success.main' }} />;
+    }
+    
+    if (result.isAvailable === false && result.isValidated) {
+      return <ErrorIcon sx={{ color: 'error.main' }} />;
+    }
+    
+    return null;
   };
 
   return (
     <Dialog fullWidth maxWidth="sm" open={true}>
-        <DialogHeader
-  style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
->
-  <IconButton
-    aria-label="back"
-    onClick={() => onBackToLogin(true)}
-    sx={{ color: (theme) => theme.palette.grey[500], position: 'absolute', left: 8 }}
-  >
-    <ArrowBackIcon />
-  </IconButton>
+      <DialogHeader
+        style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+      >
+        <IconButton
+          aria-label="back"
+          onClick={() => onBackToLogin(true)}
+          sx={{ color: (theme) => theme.palette.grey[500], position: 'absolute', left: 8 }}
+          disabled={isSubmitting}
+        >
+          <ArrowBackIcon />
+        </IconButton>
 
-  <Typography variant="h5" align="center">
-    Agent Registration
-  </Typography>
+        <Typography variant="h5" align="center">
+          Agent Registration
+        </Typography>
 
-  <IconButton
-    aria-label="close"
-    onClick={() => onBackToLogin(true)}
-    sx={{
-      position: 'absolute',
-      right: 8,
-       color: '#fff',
-    }}
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogHeader>
+        <IconButton
+          aria-label="close"
+          onClick={() => onBackToLogin(true)}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            color: '#fff',
+          }}
+          disabled={isSubmitting}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogHeader>
 
       <DialogContent>
         <Box sx={{ padding: 2 }}>
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={4}>
+            <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  placeholder="Name of the Company *"
+                  label="Company Name *"
                   name="companyName"
                   value={formData.companyName}
                   onChange={handleChange}
                   required
+                  variant="outlined"
+                  size="small"
+                  disabled={isSubmitting}
                 />
               </Grid>
+              
+              <Grid item xs={12}>
+                <Box sx={{ position: 'relative' }}>
+                  <TextField
+                    fullWidth
+                    label="Mobile Number *"
+                    name="phoneNo"
+                    value={formData.phoneNo}
+                    onChange={handleChange}
+                    required
+                    type="tel"
+                    error={!!validationErrors.phoneNo || validationResults.mobile.isAvailable === false}
+                    helperText={
+                      validationErrors.phoneNo || 
+                      (validationResults.mobile.error) ||
+                      (validationResults.mobile.isAvailable === false ? "This mobile number is already registered" : "")
+                    }
+                    variant="outlined"
+                    size="small"
+                    inputProps={{ maxLength: 10 }}
+                    disabled={isSubmitting}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {renderValidationIcon('mobile')}
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box sx={{ position: 'relative' }}>
+                  <TextField
+                    fullWidth
+                    label="Email ID *"
+                    name="emailId"
+                    value={formData.emailId}
+                    onChange={handleChange}
+                    required
+                    type="email"
+                    error={!!validationErrors.emailId || validationResults.email.isAvailable === false}
+                    helperText={
+                      validationErrors.emailId || 
+                      (validationResults.email.error) ||
+                      (validationResults.email.isAvailable === false ? "This email is already registered" : "")
+                    }
+                    variant="outlined"
+                    size="small"
+                    disabled={isSubmitting}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {renderValidationIcon('email')}
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+              </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  placeholder="Mobile Number *"
-                  name="mobileNumber"
-                  value={formData.mobileNumber}
+                  label="Registration ID *"
+                  name="registrationId"
+                  value={formData.registrationId}
                   onChange={handleChange}
                   required
-                  type="tel"
-                  error={!!validationErrors.mobileNumber}
-                  helperText={validationErrors.mobileNumber}
+                  error={!!validationErrors.registrationId}
+                  helperText={validationErrors.registrationId}
+                  variant="outlined"
+                  size="small"
+                  inputProps={{ 
+                    maxLength: 20,
+                    style: { textTransform: 'uppercase' }
+                  }}
+                  disabled={isSubmitting}
                 />
               </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  placeholder="Email ID *"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  type="email"
-                  error={!!validationErrors.email}
-                  helperText={validationErrors.email}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  placeholder="Password *"
+                  label="Password *"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -255,24 +515,30 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                   type={showPassword ? "text" : "password"}
                   error={!!validationErrors.password}
                   helperText={validationErrors.password}
+                  variant="outlined"
+                  size="small"
+                  disabled={isSubmitting}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
                           onClick={handleTogglePasswordVisibility}
                           edge="end"
+                          size="small"
+                          disabled={isSubmitting}
                         >
-                          {showPassword ? <Visibility /> : <VisibilityOff />}
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  placeholder="Confirm Password *"
+                  label="Confirm Password *"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -280,59 +546,71 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                   type={showConfirmPassword ? "text" : "password"}
                   error={!!validationErrors.confirmPassword}
                   helperText={validationErrors.confirmPassword}
+                  variant="outlined"
+                  size="small"
+                  disabled={isSubmitting}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
                           onClick={handleToggleConfirmPasswordVisibility}
                           edge="end"
+                          size="small"
+                          disabled={isSubmitting}
                         >
-                          {showConfirmPassword ? (
-                            <Visibility />
-                          ) : (
-                            <VisibilityOff />
-                          )}
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  placeholder="Company Address *"
+                  label="Company Address *"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   required
+                  variant="outlined"
+                  multiline
+                  rows={3}
+                  size="small"
+                  disabled={isSubmitting}
                 />
               </Grid>
             </Grid>
 
-              <Box
-  sx={{
-    marginTop: "1.5rem",
-    display: "flex",
-    justifyContent: "center", // Changed from "space-between" to "center"
-    height: "100%",
-  }}
->
-   {/* <Button
-                variant="contained"
+            <Box
+              sx={{
+                marginTop: "2rem",
+                display: "flex",
+                justifyContent: "center",
+                gap: 2,
+              }}
+            >
+              <Button 
+                type="submit" 
+                variant="contained" 
                 color="primary"
-                onClick={() => onBackToLogin(true)}
+                disabled={!isFormValid() || isSubmitting}
               >
-                Back
-              </Button> */}
-  <Button type="submit" variant="contained" color="primary">
-    Submit
-  </Button>
-</Box>
+                {isSubmitting ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit'
+                )}
+              </Button>
+            </Box>
           </form>
 
-          {/* Referral Code Box */}
-          {referralCode && (
+          {/* Registration ID Display Box */}
+          {returnedRegistrationId && (
             <Box
               sx={{
                 marginTop: 4,
@@ -340,32 +618,37 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                backgroundColor: "#f0f0f0",
+                backgroundColor: "#e8f5e9",
                 borderRadius: "8px",
                 boxShadow: 1,
+                border: "1px solid #4caf50"
               }}
             >
-              <Typography variant="body1">
-                Referral Code: {referralCode}
-              </Typography>
-              <IconButton onClick={handleCopyReferralCode}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Registration ID
+                </Typography>
+                <Typography variant="h6" color="primary">
+                  {returnedRegistrationId}
+                </Typography>
+              </Box>
+              <IconButton onClick={handleCopyRegistrationId} color="primary" size="small" disabled={isSubmitting}>
                 <FileCopy />
               </IconButton>
             </Box>
           )}
         </Box>
 
-        {/* Success Snackbar */}
         <Snackbar
           open={openSnackbar}
           autoHideDuration={6000}
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }} // Position top-right
-          sx={{ marginTop: "60px" }} // Adjust margin-top if needed
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          sx={{ marginTop: "60px" }}
         >
           <Alert
             onClose={handleCloseSnackbar}
-            severity="success"
+            severity={snackbarSeverity}
             variant="filled"
             sx={{ width: "100%" }}
           >
