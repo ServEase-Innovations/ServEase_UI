@@ -41,6 +41,7 @@ import { useFieldValidation } from "./useFieldValidation";
 import BasicInformation from "./BasicInformation";
 import ServiceDetails from "./ServiceDetails";
 import KYCVerification from "./KYCVerification";
+import providerInstance from "src/services/providerInstance";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -1532,8 +1533,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           dob: formData.dob
         };
 
-        const response = await axiosInstance.post(
-          "/api/serviceproviders/serviceprovider/add",
+        const response = await providerInstance.post(
+          "/api/service-providers/serviceprovider/add",
           payload,
           {
             headers: {
