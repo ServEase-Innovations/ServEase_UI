@@ -126,7 +126,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
             <Typography variant="body1" color="text.secondary">
-              {provider.firstname} {provider.lastname}
+              {provider.firstName} {provider.lastName}
             </Typography>
             {provider.bestMatch && (
               <Chip

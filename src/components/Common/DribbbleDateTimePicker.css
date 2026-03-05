@@ -4,17 +4,20 @@
   padding: 16px;
   width: 360px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
 .dtp-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
 }
 
 .dtp-header h3 {
   margin: 0;
   font-weight: 700;
+  font-size: 16px;
 }
 
 .dtp-header button {
@@ -23,6 +26,12 @@
   font-size: 22px;
   color: #3e57d0;
   cursor: pointer;
+  padding: 0 10px;
+  transition: opacity 0.2s ease;
+}
+
+.dtp-header button:hover {
+  opacity: 0.7;
 }
 
 .dtp-week {
@@ -38,6 +47,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   margin-top: 8px;
+  gap: 2px;
 }
 
 .dtp-day {
@@ -47,6 +57,12 @@
   align-items: center;
   cursor: pointer;
   border-radius: 50%;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.dtp-day:hover:not(.disabled):not(.empty) {
+  background: rgba(62, 87, 208, 0.1);
 }
 
 .dtp-day.active {
@@ -55,45 +71,118 @@
   font-weight: 700;
 }
 
+.dtp-day.range-start {
+  background: #3e57d0;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.dtp-day.range-end {
+  background: #3e57d0;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.dtp-day.range-middle {
+  background: rgba(62, 87, 208, 0.15);
+  color: #3e57d0;
+  border-radius: 6px;
+}
+
+.dtp-day.disabled {
+  pointer-events: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: #999;
+}
+
+.dtp-day.empty {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.dtp-range-hint {
+  font-size: 11px;
+  color: #FF3B30;
+  text-align: center;
+  margin: 8px 0 4px 0;
+  padding: 4px;
+  background: rgba(255, 59, 48, 0.1);
+  border-radius: 4px;
+  animation: fadeInOut 3s ease;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
 .dtp-divider {
   height: 1px;
   background: #eee;
-  margin: 16px 0;
+  margin: 16px 0 12px 0;
+}
+
+.dtp-time-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .dtp-time-title {
   font-size: 14px;
-  margin-bottom: 10px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dtp-time-hint {
+  font-size: 11px;
+  color: #FF3B30;
+  font-style: italic;
+  background: rgba(255, 59, 48, 0.05);
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .dtp-time-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .dtp-time {
-  padding: 10px;
+  padding: 10px 4px;
   border-radius: 20px;
   border: none;
   background: #f4f6fb;
   cursor: pointer;
+  font-size: 13px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.dtp-time:hover:not(.disabled) {
+  background: #e0e5f0;
+  transform: scale(1.02);
 }
 
 .dtp-time.active {
   background: #3e57d0;
   color: white;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .dtp-time.disabled {
   opacity: 0.35;
   cursor: not-allowed;
   background: #f1f1f1;
-}
-
-.dtp-day.empty {
   pointer-events: none;
+  color: #999;
 }
 
 .dtp-time.in-range {
@@ -101,38 +190,50 @@
   color: #3e57d0;
 }
 
-.dtp-time.active {
-  background: #3e57d0;
-  color: white;
-  font-weight: 600;
+/* Selected state for range preview */
+.dtp-time.preview {
+  background: rgba(62, 87, 208, 0.25);
+  border: 1px solid #3e57d0;
 }
 
-.dtp-time.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-.range-start,
-.range-end {
-  background: #3e57d0;
-  color: white;
-  border-radius: 50%;
-  font-weight: 600;
-}
-
-.range-middle {
-  background: rgba(62, 87, 208, 0.15);
-  color: #3e57d0;
-  border-radius: 6px;
-}
-
-.dtp-day {
-  transition: background 0.2s ease;
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .dtp-card {
+    width: 100%;
+    max-width: 360px;
+    padding: 12px;
+  }
+  
+  .dtp-time {
+    font-size: 12px;
+    padding: 8px 2px;
+  }
+  
+  .dtp-day {
+    font-size: 13px;
+  }
 }
 
-.dtp-day.disabled {
-  pointer-events: none;
-  opacity: 0.35;
-  cursor: not-allowed;
+/* Focus states for accessibility */
+.dtp-header button:focus-visible,
+.dtp-day:focus-visible,
+.dtp-time:focus-visible {
+  outline: 2px solid #3e57d0;
+  outline-offset: 2px;
 }
 
-
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .dtp-day:hover:not(.disabled):not(.empty),
+  .dtp-time:hover:not(.disabled) {
+    transform: none;
+  }
+  
+  .dtp-day:active:not(.disabled):not(.empty) {
+    background: rgba(62, 87, 208, 0.2);
+  }
+  
+  .dtp-time:active:not(.disabled) {
+    background: #d0d5e8;
+  }
+}

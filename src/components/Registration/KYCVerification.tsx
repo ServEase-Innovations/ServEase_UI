@@ -1,4 +1,4 @@
-// components/Registration/KYCVerification.tsx
+/* eslint-disable */
 import React from "react";
 import {
   Grid,

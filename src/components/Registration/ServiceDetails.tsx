@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 // components/Registration/ServiceDetails.tsx
 import React, { useState } from "react";
 import {

@@ -458,7 +458,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const gender = props.gender === "MALE" ? "M" : "F";
   
   const getInitials = () => {
-    return `${props.firstname?.[0] || ''}${props.lastname?.[0] || ''}`.toUpperCase();
+    return `${props.firstName?.[0] || ''}${props.lastName?.[0] || ''}`.toUpperCase();
   };
 
   return (
@@ -531,7 +531,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         fontSize: '1rem',
                       }
                     }}>
-                      {props.firstname} {props.lastname}
+                      {props.firstName} {props.lastName}
                     </Typography>
                     <Chip 
                       label={`${gender}, ${age}`}
