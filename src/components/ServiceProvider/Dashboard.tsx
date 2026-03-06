@@ -1,4 +1,4 @@
-/* eslint-disable */
+// Dashboard.tsx
 import { useState, useEffect } from "react";
 import { DashboardMetricCard } from "./DashboardMetricCard";
 import { PaymentHistory } from "./PaymentHistory";
@@ -36,6 +36,10 @@ import { useAppUser } from "src/context/AppUserContext";
 import { OtpVerificationDialog } from "./OtpVerificationDialog";
 import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
+import TrackAddress from "./TrackAddress";
+
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBWoIIAX-gE7fvfAkiquz70WFgDaL7YXSk';
 
 // Types for API response
 interface CustomerHoliday {
@@ -284,7 +288,7 @@ const formatBookingForCard = (booking: any) => {
     service: getServiceTitle(booking.service_type || booking.serviceType),
     date: date,
     time: timeRange,
-    location: booking.address || booking.location || "Address not provided",
+    location: booking.address || booking.location || "R4J8+WCR, Bazar, Haripal Station Rd, opposite to state bank, Haripal, Jejur, West Bengal 712405, India",
     status: booking.task_status === "COMPLETED" ? "completed" : 
             booking.task_status === "IN_PROGRESS" || booking.task_status === "STARTED" ? "in-progress" : 
             booking.task_status === "NOT_STARTED" ? "upcoming" : "upcoming",
@@ -315,6 +319,10 @@ export default function Dashboard() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [withdrawalHistoryDialogOpen, setWithdrawalHistoryDialogOpen] = useState(false);
   const [withdrawalDialogOpen, setWithdrawalDialogOpen] = useState(false);
+  
+  // Add state for Track Address dialog
+  const [trackAddressDialogOpen, setTrackAddressDialogOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
 
   const metrics = [
     {
@@ -445,30 +453,27 @@ export default function Dashboard() {
     
     toast({
       title: "Calling Customer",
-      description: `Calling ${clientName} at ${phoneNumber}`,
+      description: `Calling ${clientName}`,
     });
   };
 
-  const handleTrackAddress = (address: string) => {
-    if (!address || address === "Address not provided") {
-      toast({
-        title: "No Address",
-        description: "Address is not provided for this booking.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const encodedAddress = encodeURIComponent(address);
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    
-    window.open(googleMapsUrl, '_blank');
-    
+const handleTrackAddress = (address: string) => {
+  console.log("Track Address clicked with address:", address);
+  
+  if (!address || address === "Address not provided" || address === "Contact info not available") {
+    console.log("Address validation failed");
     toast({
-      title: "Opening Maps",
-      description: "Opening address in Google Maps for tracking.",
+      title: "No Address",
+      description: "Address is not provided for this booking.",
+      variant: "destructive",
     });
-  };
+    return;
+  }
+  
+  console.log("Setting trackAddressDialogOpen to true with address:", address);
+  setSelectedAddress(address);
+  setTrackAddressDialogOpen(true);
+};
 
   const handleStartTask = async (bookingId: string, bookingData: any) => {
     if (!bookingId || !bookingData) return;
@@ -646,62 +651,6 @@ export default function Dashboard() {
             Here's what's happening with your services today.
           </p>
         </div>
-
-        {/* <div className="flex gap-3 sm:gap-6 justify-center md:justify-end mt-2 md:mt-0">
-          <div className="flex flex-col items-center">
-            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-              <Calendar className="h-3.5 w-3.5 md:h-5 md:w-5 text-blue-500" />
-              <span
-                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-                style={{ color: "rgb(14, 48, 92)" }}
-              >
-                +3
-              </span>
-            </div>
-            <span
-              className="text-[9px] sm:text-[10px] mt-1"
-              style={{ color: "rgb(14, 48, 92)" }}
-            >
-              Bookings
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-              <Star className="h-3.5 w-3.5 md:h-5 md:w-5 text-yellow-500" />
-              <span
-                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-                style={{ color: "rgb(14, 48, 92)" }}
-              >
-                +2%
-              </span>
-            </div>
-            <span
-              className="text-[9px] sm:text-[10px] mt-1"
-              style={{ color: "rgb(14, 48, 92)" }}
-            >
-              Rating
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <div className="relative bg-white rounded-full p-1.5 md:p-2 shadow-md">
-              <TrendingUp className="h-3.5 w-3.5 md:h-5 md:w-5 text-green-500" />
-              <span
-                className="absolute -top-1 -right-1 bg-sky-300 rounded-full text-[9px] md:text-[10px] h-3.5 w-3.5 md:h-4 md:w-4 flex items-center justify-center"
-                style={{ color: "rgb(14, 48, 92)" }}
-              >
-                +2%
-              </span>
-            </div>
-            <span
-              className="text-[9px] sm:text-[10px] mt-1"
-              style={{ color: "rgb(14, 48, 92)" }}
-            >
-              Completion
-            </span>
-          </div>
-        </div> */}
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -783,33 +732,33 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-  <div>
-    <p className="text-xs font-medium text-muted-foreground">Date & Time</p>
-    <p className="text-xs">
-      {booking.date} at {booking.time}
-    </p>
-  </div>
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-xs font-medium text-muted-foreground">Amount</p>
-      <p className="text-xs font-semibold">
-        {booking.amount}
-      </p>
-    </div>
-    {booking.bookingData?.mobileno && (
-      <Button
-        variant="ghost"
-        size="sm"
-         className="h-6 px-2"
-        onClick={() => handleCallCustomer(booking.bookingData.mobileno, booking.clientName)}
-        title={`Call ${booking.clientName}`}
-      >
-        <Phone className="h-3 w-3" />
-      </Button>
-    )}
-  </div>
-</div>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground">Date & Time</p>
+                            <p className="text-xs">
+                              {booking.date} at {booking.time}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground">Amount</p>
+                              <p className="text-xs font-semibold">
+                                {booking.amount}
+                              </p>
+                            </div>
+                            {booking.bookingData?.mobileno && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2"
+                                onClick={() => handleCallCustomer(booking.bookingData.mobileno, booking.clientName)}
+                                title={`Call ${booking.clientName}`}
+                              >
+                                <Phone className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
 
                         <div className="mb-3">
                           <p className="text-xs font-medium text-muted-foreground mb-1">Responsibilities</p>
@@ -847,9 +796,8 @@ export default function Dashboard() {
                             </Button>
                           </div>
                           <p className="text-xs">
-                            {booking.location || "Address not provided"}
+                            {booking.location || "R4J8+WCR, Bazar, Haripal Station Rd, opposite to state bank, Haripal, Jejur, West Bengal 712405, India"}
                           </p>
-                       
                         </div>
 
                         {todayServiceStatus && (
@@ -1013,13 +961,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div 
-        // className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-        >
+        <div>
           {serviceProviderId !== null && (
             <ProviderCalendarBig providerId={serviceProviderId} />
           )}
-          {/* <PaymentHistory payments={paymentHistory} /> */}
         </div>
         
         <ReviewsDialog
@@ -1053,6 +998,19 @@ export default function Dashboard() {
           availableBalance={payout?.summary?.available_to_withdraw || 0}
           onWithdrawalSuccess={handleWithdrawalSuccess}
         />
+
+        {/* Track Address Dialog - Simplified */}
+       {trackAddressDialogOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+      <TrackAddress 
+        onClose={() => setTrackAddressDialogOpen(false)}
+        googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+        destinationAddress={selectedAddress}
+      />
+    </div>
+  </div>
+)}
       </main>
     </div>
   );
