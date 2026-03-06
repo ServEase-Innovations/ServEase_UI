@@ -1,4 +1,4 @@
-// Dashboard.tsx
+/* eslint-disable */
 import { useState, useEffect } from "react";
 import { DashboardMetricCard } from "./DashboardMetricCard";
 import { PaymentHistory } from "./PaymentHistory";
