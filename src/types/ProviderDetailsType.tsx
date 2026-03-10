@@ -66,7 +66,7 @@ export interface ServiceProviderDTO {
   age: number;
   otherServices: string | null;
 
-  housekeepingrole: string;
+  housekeepingRole: string;
 
   // Preferences
   diet: "VEG" | "NON_VEG" | "BOTH";

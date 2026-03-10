@@ -128,7 +128,6 @@ const getServiceIcon = (type: string) => {
 
 // Modification restriction functions
 const isModificationTimeAllowed = (startEpoch: any): boolean => {
-  console.log("Start epoch ", startEpoch )
   const now = dayjs().unix();
   const cutoff = startEpoch - 30 * 60;
   return now < cutoff;
@@ -816,16 +815,15 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
-          console.log("Mapping booking item:", item);
           const hasVacation = item?.vacations?.length > 0;
           const modifications = item.modifications || [];
           const hasModifications = modifications.length > 0;
 
           let serviceProviderName = "Not Assigned";
           let providerRating = 0;
-          
-          if (item.provider && item.provider.firstname && item.provider.lastname) {
-            serviceProviderName = `${item.provider.firstname} ${item.provider.lastname}`;
+          if (item?.provider?.firstName && item?.provider?.lastName) {
+            serviceProviderName = `${item.provider.firstName} ${item.provider.lastName}`;
+
             providerRating = item.provider.rating || 0;
           } else if (item.assignment_status === "UNASSIGNED") {
             serviceProviderName = "Awaiting Assignment";

@@ -276,7 +276,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const handleBookNow = () => {
     let booking: Bookingtype;
 
-    if (props.housekeepingrole !== "NANNY") {
+    if (props.housekeepingRole !== "NANNY") {
       booking = {
         serviceproviderId: props.serviceproviderid,
         eveningSelection: eveningSelectionTime,
@@ -315,6 +315,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   };
 
   const handleLogin = () => {
+    console.log("Login button clicked");
     setOpen(true);
   };
 
@@ -876,9 +877,9 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 mt: 2,
               })
             }}>
-              {props.housekeepingrole && (
+              {props.housekeepingRole && (
                 <Chip 
-                  label={props.housekeepingrole}
+                  label={props.housekeepingRole}
                   color="primary"
                   variant="filled"
                   size="small"
@@ -949,7 +950,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         provider={props}
       />
 
-      {props.housekeepingrole === "COOK" && 
+      {props.housekeepingRole === "COOK" && 
         <CookServicesDialog 
           open={open} 
           handleClose={handleClose} 
@@ -958,7 +959,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         />
       }
       
-      {props.housekeepingrole === "MAID" && 
+      {props.housekeepingRole === "MAID" && 
         <MaidServiceDialog 
           open={open} 
           handleClose={handleClose} 
@@ -967,7 +968,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         />
       }
       
-      {props.housekeepingrole === "NANNY" && 
+      {props.housekeepingRole === "NANNY" && 
         <NannyServicesDialog 
           open={open} 
           handleClose={handleClose} 
