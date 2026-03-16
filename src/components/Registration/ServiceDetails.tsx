@@ -483,7 +483,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
         />
       </Grid>
 
-      {/* Language Selection Section */}
+      {/* Language  Section */}
       <Grid item xs={12}>
         <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
           <CardContent>

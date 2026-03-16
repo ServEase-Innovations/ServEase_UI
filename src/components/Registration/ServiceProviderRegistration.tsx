@@ -204,7 +204,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [isSameAddress, setIsSameAddress] = useState(false);
   const [isDobValid, setIsDobValid] = useState(true);
   
-  // New state for language
+  
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   
   // New state variables for multi-slot time selection
