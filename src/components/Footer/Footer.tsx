@@ -31,7 +31,7 @@ const Footer: React.FC<FooterProps> = ({
   };
 
   // Get available languages
-  const languages: Language[] = ['en', 'es', 'fr', 'de', 'it', 'pt', 'hi', 'ar', 'zh', 'ja', 'bn'];
+  const languages: Language[] = ['en', 'kn', 'fr', 'de', 'it', 'pt', 'hi', 'ar', 'zh', 'ja', 'bn'];
   
   return (
     <>

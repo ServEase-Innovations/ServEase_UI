@@ -1,8 +1,8 @@
 // contexts/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Define available languages - ADDED 'bn' for Bengali
-export type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'hi' | 'ar' | 'zh' | 'ja' | 'bn';
+// Define available languages - ADDED 'bn' for Bengali and 'kn' for Kannada
+export type Language = 'en' | 'kn' | 'fr' | 'de' | 'it' | 'pt' | 'hi' | 'ar' | 'zh' | 'ja' | 'bn';
 
 // Define the translation structure
 interface Translations {
@@ -16,7 +16,7 @@ export const translations: Translations = {
   // Footer translations
   description: {
     en: "Book trusted, trained house-help instantly. ServEaso provides safe, affordable maids, cooks, and caregivers.",
-    es: "Reserve ayuda doméstica confiable y capacitada al instante. ServEaso proporciona empleadas domésticas, cocineros y cuidadores seguros y asequibles.",
+    kn: "ವಿಶ್ವಾಸಾರ್ಹ, ತರಬೇತಿ ಪಡೆದ ಮನೆ ಸಹಾಯಕರನ್ನು ತಕ್ಷಣವೇ ಬುಕ್ ಮಾಡಿ. ServEaso ಸುರಕ್ಷಿತ, ಕೈಗೆಟುಕುವ ದರದಲ್ಲಿ ಮನೆಕೆಲಸದವರು, ಅಡುಗೆಯವರು ಮತ್ತು ಆರೈಕೆದಾರರನ್ನು ಒದಗಿಸುತ್ತದೆ.",
     fr: "Réservez instantanément une aide ménagère fiable et formée. ServEaso fournit des femmes de ménage, des cuisiniers et des aidants sûrs et abordables.",
     de: "Buchen Sie sofort vertrauenswürdige, ausgebildete Haushaltshilfen. ServEaso bietet sichere, erschwingliche Haushaltshilfen, Köche und Betreuer.",
     it: "Prenota assistenza domestica affidabile e formata istantaneamente. ServEaso fornisce colf, cuochi e badanti sicuri e convenienti.",
@@ -29,7 +29,7 @@ export const translations: Translations = {
   },
   termsOfService: {
     en: "Terms of Service",
-    es: "Términos de Servicio",
+    kn: "ಸೇವಾ ನಿಯಮಗಳು",
     fr: "Conditions d'utilisation",
     de: "Nutzungsbedingungen",
     it: "Termini di servizio",
@@ -42,7 +42,7 @@ export const translations: Translations = {
   },
   privacyPolicy: {
     en: "Privacy Policy",
-    es: "Política de Privacidad",
+    kn: "ಗೌಪ್ಯತಾ ನೀತಿ",
     fr: "Politique de confidentialité",
     de: "Datenschutzrichtlinie",
     it: "Informativa sulla privacy",
@@ -55,7 +55,7 @@ export const translations: Translations = {
   },
   tutorials: {
     en: "Tutorials",
-    es: "Tutoriales",
+    kn: "ಟ್ಯುಟೋರಿಯಲ್ಗಳು",
     fr: "Tutoriels",
     de: "Tutorials",
     it: "Tutorial",
@@ -68,7 +68,7 @@ export const translations: Translations = {
   },
   blog: {
     en: "Blog",
-    es: "Blog",
+    kn: "ಬ್ಲಾಗ್",
     fr: "Blog",
     de: "Blog",
     it: "Blog",
@@ -81,7 +81,7 @@ export const translations: Translations = {
   },
   contactUs: {
     en: "Contact Us",
-    es: "Contáctenos",
+    kn: "ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ",
     fr: "Contactez-nous",
     de: "Kontakt",
     it: "Contattaci",
@@ -94,7 +94,7 @@ export const translations: Translations = {
   },
   partners: {
     en: "Partners",
-    es: "Socios",
+    kn: "ಪಾಲುದಾರರು",
     fr: "Partenaires",
     de: "Partner",
     it: "Partner",
@@ -107,7 +107,7 @@ export const translations: Translations = {
   },
   pricing: {
     en: "Pricing",
-    es: "Precios",
+    kn: "ಬೆಲೆಗಳು",
     fr: "Tarifs",
     de: "Preise",
     it: "Prezzi",
@@ -120,7 +120,7 @@ export const translations: Translations = {
   },
   about: {
     en: "About",
-    es: "Acerca de",
+    kn: "ನಮ್ಮ ಬಗ್ಗೆ",
     fr: "À propos",
     de: "Über uns",
     it: "Chi siamo",
@@ -133,7 +133,7 @@ export const translations: Translations = {
   },
   copyright: {
     en: "© 2025 ServEaso. All rights reserved.",
-    es: "© 2025 ServEaso. Todos los derechos reservados.",
+    kn: "© 2025 ServEaso. ಎಲ್ಲಾ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ.",
     fr: "© 2025 ServEaso. Tous droits réservés.",
     de: "© 2025 ServEaso. Alle Rechte vorbehalten.",
     it: "© 2025 ServEaso. Tutti i diritti riservati.",
@@ -146,7 +146,7 @@ export const translations: Translations = {
   },
   language: {
     en: "Language",
-    es: "Idioma",
+    kn: "ಭಾಷೆ",
     fr: "Langue",
     de: "Sprache",
     it: "Lingua",
@@ -161,7 +161,7 @@ export const translations: Translations = {
   // ============ HEADER TRANSLATIONS ============
   home: {
     en: "Home",
-    es: "Inicio",
+    kn: "ಮುಖಪುಟ",
     fr: "Accueil",
     de: "Startseite",
     it: "Home",
@@ -175,7 +175,7 @@ export const translations: Translations = {
   
   ourServices: {
     en: "Our Services",
-    es: "Nuestros Servicios",
+    kn: "ನಮ್ಮ ಸೇವೆಗಳು",
     fr: "Nos Services",
     de: "Unsere Dienstleistungen",
     it: "I Nostri Servizi",
@@ -189,7 +189,7 @@ export const translations: Translations = {
   
   homeCook: {
     en: "Home Cook",
-    es: "Cocinero a Domicilio",
+    kn: "ಮನೆ ಅಡುಗೆಯವರು",
     fr: "Cuisinier à Domicile",
     de: "Hauskoch",
     it: "Cuoco a Domicilio",
@@ -203,7 +203,7 @@ export const translations: Translations = {
   
   cleaningHelp: {
     en: "Cleaning Help",
-    es: "Ayuda de Limpieza",
+    kn: "ಸ್ವಚ್ಛತಾ ಸಹಾಯ",
     fr: "Aide au Nettoyage",
     de: "Reinigungshilfe",
     it: "Aiuto per le Pulizie",
@@ -217,7 +217,7 @@ export const translations: Translations = {
   
   caregiver: {
     en: "Caregiver",
-    es: "Cuidador",
+    kn: "ಆರೈಕೆದಾರ",
     fr: "Aidant",
     de: "Pflegekraft",
     it: "Badante",
@@ -231,7 +231,7 @@ export const translations: Translations = {
   
   myBookings: {
     en: "My Bookings",
-    es: "Mis Reservas",
+    kn: "ನನ್ನ ಬುಕಿಂಗ್ಗಳು",
     fr: "Mes Réservations",
     de: "Meine Buchungen",
     it: "Le Mie Prenotazioni",
@@ -245,7 +245,7 @@ export const translations: Translations = {
   
   dashboard: {
     en: "Dashboard",
-    es: "Panel de Control",
+    kn: "ಡ್ಯಾಶ್ಬೋರ್ಡ್",
     fr: "Tableau de Bord",
     de: "Dashboard",
     it: "Dashboard",
@@ -259,7 +259,7 @@ export const translations: Translations = {
   
   aboutUs: {
     en: "About Us",
-    es: "Sobre Nosotros",
+    kn: "ನಮ್ಮ ಬಗ್ಗೆ",
     fr: "À Propos de Nous",
     de: "Über Uns",
     it: "Chi Siamo",
@@ -273,7 +273,7 @@ export const translations: Translations = {
   
   location: {
     en: "Location",
-    es: "Ubicación",
+    kn: "ಸ್ಥಳ",
     fr: "Emplacement",
     de: "Standort",
     it: "Posizione",
@@ -287,7 +287,7 @@ export const translations: Translations = {
   
   detectLocation: {
     en: "Detect Location",
-    es: "Detectar Ubicación",
+    kn: "ಸ್ಥಳ ಪತ್ತೆ ಮಾಡಿ",
     fr: "Détecter la Position",
     de: "Standort erkennen",
     it: "Rileva Posizione",
@@ -301,7 +301,7 @@ export const translations: Translations = {
   
   addAddress: {
     en: "Add Address",
-    es: "Añadir Dirección",
+    kn: "ವಿಳಾಸ ಸೇರಿಸಿ",
     fr: "Ajouter une Adresse",
     de: "Adresse hinzufügen",
     it: "Aggiungi Indirizzo",
@@ -315,7 +315,7 @@ export const translations: Translations = {
   
   locationNotFound: {
     en: "Location not found",
-    es: "Ubicación no encontrada",
+    kn: "ಸ್ಥಳ ಕಂಡುಬಂದಿಲ್ಲ",
     fr: "Emplacement non trouvé",
     de: "Standort nicht gefunden",
     it: "Posizione non trovata",
@@ -329,7 +329,7 @@ export const translations: Translations = {
   
   loading: {
     en: "Loading",
-    es: "Cargando",
+    kn: "ಲೋಡ್ ಆಗುತ್ತಿದೆ",
     fr: "Chargement",
     de: "Laden",
     it: "Caricamento",
@@ -343,7 +343,7 @@ export const translations: Translations = {
   
   profile: {
     en: "Profile",
-    es: "Perfil",
+    kn: "ಪ್ರೊಫೈಲ್",
     fr: "Profil",
     de: "Profil",
     it: "Profilo",
@@ -357,7 +357,7 @@ export const translations: Translations = {
   
   logout: {
     en: "Logout",
-    es: "Cerrar Sesión",
+    kn: "ನಿರ್ಗಮಿಸಿ",
     fr: "Déconnexion",
     de: "Abmelden",
     it: "Esci",
@@ -371,7 +371,7 @@ export const translations: Translations = {
   
   setLocation: {
     en: "Set Location",
-    es: "Establecer Ubicación",
+    kn: "ಸ್ಥಳ ಹೊಂದಿಸಿ",
     fr: "Définir l'Emplacement",
     de: "Standort festlegen",
     it: "Imposta Posizione",
@@ -385,7 +385,7 @@ export const translations: Translations = {
   
   cancel: {
     en: "Cancel",
-    es: "Cancelar",
+    kn: "ರದ್ದುಮಾಡಿ",
     fr: "Annuler",
     de: "Abbrechen",
     it: "Annulla",
@@ -399,7 +399,7 @@ export const translations: Translations = {
   
   save: {
     en: "Save",
-    es: "Guardar",
+    kn: "ಉಳಿಸಿ",
     fr: "Enregistrer",
     de: "Speichern",
     it: "Salva",
@@ -413,7 +413,7 @@ export const translations: Translations = {
   
   saveAs: {
     en: "Save As",
-    es: "Guardar Como",
+    kn: "ಹೀಗೆ ಉಳಿಸಿ",
     fr: "Enregistrer Sous",
     de: "Speichern Als",
     it: "Salva Come",
@@ -427,7 +427,7 @@ export const translations: Translations = {
   
   office: {
     en: "Office",
-    es: "Oficina",
+    kn: "ಕಚೇರಿ",
     fr: "Bureau",
     de: "Büro",
     it: "Ufficio",
@@ -441,7 +441,7 @@ export const translations: Translations = {
   
   others: {
     en: "Others",
-    es: "Otros",
+    kn: "ಇತರೆ",
     fr: "Autres",
     de: "Andere",
     it: "Altri",
@@ -455,7 +455,7 @@ export const translations: Translations = {
   
   enterLocationName: {
     en: "Enter Location Name",
-    es: "Ingrese el Nombre de la Ubicación",
+    kn: "ಸ್ಥಳದ ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
     fr: "Entrez le Nom de l'Emplacement",
     de: "Standortnamen eingeben",
     it: "Inserisci il Nome della Posizione",
@@ -469,7 +469,7 @@ export const translations: Translations = {
   
   saving: {
     en: "Saving...",
-    es: "Guardando...",
+    kn: "ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
     fr: "Enregistrement...",
     de: "Speichern...",
     it: "Salvataggio...",
@@ -483,7 +483,7 @@ export const translations: Translations = {
   
   locationSavedSuccess: {
     en: "Location saved successfully!",
-    es: "¡Ubicación guardada exitosamente!",
+    kn: "ಸ್ಥಳವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ!",
     fr: "Emplacement enregistré avec succès!",
     de: "Standort erfolgreich gespeichert!",
     it: "Posizione salvata con successo!",
@@ -497,7 +497,7 @@ export const translations: Translations = {
   
   locationSaveError: {
     en: "Failed to save location. Please try again.",
-    es: "Error al guardar la ubicación. Por favor, inténtelo de nuevo.",
+    kn: "ಸ್ಥಳವನ್ನು ಉಳಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     fr: "Échec de l'enregistrement de l'emplacement. Veuillez réessayer.",
     de: "Fehler beim Speichern des Standorts. Bitte versuchen Sie es erneut.",
     it: "Impossibile salvare la posizione. Per favore riprova.",
@@ -513,7 +513,7 @@ export const translations: Translations = {
   // ============ HOMEPAGE TRANSLATIONS ============
   heroTitle: {
     en: "Book trusted and trained house-help in minutes",
-    es: "Reserve ayuda doméstica confiable y capacitada en minutos",
+    kn: "ವಿಶ್ವಾಸಾರ್ಹ ಮತ್ತು ತರಬೇತಿ ಪಡೆದ ಮನೆ ಸಹಾಯಕರನ್ನು ನಿಮಿಷಗಳಲ್ಲಿ ಬುಕ್ ಮಾಡಿ",
     fr: "Réservez une aide ménagère fiable et formée en quelques minutes",
     de: "Buchen Sie vertrauenswürdige, ausgebildete Haushaltshilfen in Minuten",
     it: "Prenota assistenza domestica affidabile e formata in pochi minuti",
@@ -527,7 +527,7 @@ export const translations: Translations = {
 
   heroDescription: {
     en: "ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.",
-    es: "ServEaso brinda acceso instantáneo, regular y a corto plazo a empleadas domésticas, cocineros y cuidadores seguros, asequibles y capacitados.",
+    kn: "ServEaso ಸುರಕ್ಷಿತ, ಕೈಗೆಟುಕುವ ಮತ್ತು ತರಬೇತಿ ಪಡೆದ ಮನೆಕೆಲಸದವರು, ಅಡುಗೆಯವರು ಮತ್ತು ಆರೈಕೆದಾರರಿಗೆ ತಕ್ಷಣದ, ನಿಯಮಿತ ಮತ್ತು ಅಲ್ಪಾವಧಿಯ ಪ್ರವೇಶವನ್ನು ಒದಗಿಸುತ್ತದೆ.",
     fr: "ServEaso offre un accès instantané, régulier et à court terme à des femmes de ménage, des cuisiniers et des aidants sûrs, abordables et formés.",
     de: "ServEaso bietet sofortigen, regelmäßigen und kurzfristigen Zugang zu sicheren, erschwinglichen und ausgebildeten Haushaltshilfen, Köchen und Betreuern.",
     it: "ServEaso fornisce accesso istantaneo, regolare e a breve termine a colf, cuochi e badanti sicuri, convenienti e formati.",
@@ -541,7 +541,7 @@ export const translations: Translations = {
 
   registerAsUser: {
     en: "Register as a User",
-    es: "Registrarse como Usuario",
+    kn: "ಬಳಕೆದಾರರಾಗಿ ನೋಂದಾಯಿಸಿ",
     fr: "S'inscrire en tant qu'Utilisateur",
     de: "Als Benutzer registrieren",
     it: "Registrati come Utente",
@@ -555,7 +555,7 @@ export const translations: Translations = {
 
   registerAsProvider: {
     en: "Register as a Provider",
-    es: "Registrarse como Proveedor",
+    kn: "ಸೇವೆ ಒದಗಿಸುವವರಾಗಿ ನೋಂದಾಯಿಸಿ",
     fr: "S'inscrire en tant que Prestataire",
     de: "Als Anbieter registrieren",
     it: "Registrati come Fornitore",
@@ -569,7 +569,7 @@ export const translations: Translations = {
 
   registerAsAgent: {
     en: "Register as an Agent",
-    es: "Registrarse como Agente",
+    kn: "ಏಜೆಂಟ್ ಆಗಿ ನೋಂದಾಯಿಸಿ",
     fr: "S'inscrire en tant qu'Agent",
     de: "Als Agent registrieren",
     it: "Registrati come Agente",
@@ -583,7 +583,7 @@ export const translations: Translations = {
 
   service: {
     en: "Service",
-    es: "Servicio",
+    kn: "ಸೇವೆ",
     fr: "Service",
     de: "Dienstleistung",
     it: "Servizio",
@@ -597,7 +597,7 @@ export const translations: Translations = {
 
   previousSlide: {
     en: "Previous slide",
-    es: "Diapositiva anterior",
+    kn: "ಹಿಂದಿನ ಸ್ಲೈಡ್",
     fr: "Diapositive précédente",
     de: "Vorherige Folie",
     it: "Diapositiva precedente",
@@ -611,7 +611,7 @@ export const translations: Translations = {
 
   nextSlide: {
     en: "Next slide",
-    es: "Siguiente diapositiva",
+    kn: "ಮುಂದಿನ ಸ್ಲೈಡ್",
     fr: "Diapositive suivante",
     de: "Nächste Folie",
     it: "Prossima diapositiva",
@@ -625,7 +625,7 @@ export const translations: Translations = {
 
   goToSlide: {
     en: "Go to slide",
-    es: "Ir a la diapositiva",
+    kn: "ಸ್ಲೈಡ್ಗೆ ಹೋಗಿ",
     fr: "Aller à la diapositive",
     de: "Gehe zu Folie",
     it: "Vai alla diapositiva",
@@ -639,7 +639,7 @@ export const translations: Translations = {
 
   popularServices: {
     en: "Popular Services",
-    es: "Servicios Populares",
+    kn: "ಜನಪ್ರಿಯ ಸೇವೆಗಳು",
     fr: "Services Populaires",
     de: "Beliebte Dienstleistungen",
     it: "Servizi Popolari",
@@ -653,7 +653,7 @@ export const translations: Translations = {
 
   homeCookDesc: {
     en: "Skilled and hygienic cooks who specialize in home-style meals.",
-    es: "Cocineros hábiles e higiénicos que se especializan en comidas caseras.",
+    kn: "ಮನೆ ಶೈಲಿಯ ಊಟಗಳಲ್ಲಿ ಪರಿಣತಿ ಹೊಂದಿರುವ ಕುಶಲ ಮತ್ತು ಸ್ವಚ್ಛತೆಯ ಅಡುಗೆಯವರು.",
     fr: "Cuisiniers qualifiés et hygiéniques spécialisés dans les repas faits maison.",
     de: "Geschickte und hygienische Köche, die sich auf hausgemachte Mahlzeiten spezialisiert haben.",
     it: "Cuochi qualificati e igienici specializzati in pasti casalinghi.",
@@ -667,7 +667,7 @@ export const translations: Translations = {
 
   cleaningHelpDesc: {
     en: "Reliable maids for daily, deep, or special occasion cleaning.",
-    es: "Empleadas domésticas confiables para limpieza diaria, profunda o de ocasiones especiales.",
+    kn: "ದೈನಂದಿನ, ಆಳವಾದ, ಅಥವಾ ವಿಶೇಷ ಸಂದರ್ಭಗಳ ಸ್ವಚ್ಛತೆಗಾಗಿ ವಿಶ್ವಾಸಾರ್ಹ ಮನೆಕೆಲಸದವರು.",
     fr: "Femmes de ménage fiables pour le nettoyage quotidien, en profondeur ou pour des occasions spéciales.",
     de: "Zuverlässige Haushaltshilfen für die tägliche, gründliche oder besondere Reinigung.",
     it: "Colf affidabili per pulizie quotidiane, approfondite o per occasioni speciali.",
@@ -681,7 +681,7 @@ export const translations: Translations = {
 
   caregiverDesc: {
     en: "Trained support for children, seniors, or patients at home.",
-    es: "Apoyo capacitado para niños, personas mayores o pacientes en el hogar.",
+    kn: "ಮನೆಯಲ್ಲಿ ಮಕ್ಕಳು, ಹಿರಿಯರು ಅಥವಾ ರೋಗಿಗಳಿಗೆ ತರಬೇತಿ ಪಡೆದ ಬೆಂಬಲ.",
     fr: "Soutien formé pour les enfants, les personnes âgées ou les patients à domicile.",
     de: "Geschulte Unterstützung für Kinder, Senioren oder Patienten zu Hause.",
     it: "Supporto formato per bambini, anziani o pazienti a casa.",
@@ -695,7 +695,7 @@ export const translations: Translations = {
 
   learnMore: {
     en: "Learn More",
-    es: "Saber Más",
+    kn: "ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ",
     fr: "En Savoir Plus",
     de: "Mehr Erfahren",
     it: "Scopri di Più",
@@ -709,7 +709,7 @@ export const translations: Translations = {
 
   howItWorks: {
     en: "How It Works",
-    es: "Cómo Funciona",
+    kn: "ಇದು ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ",
     fr: "Comment Ça Marche",
     de: "So Funktioniert's",
     it: "Come Funziona",
@@ -723,7 +723,7 @@ export const translations: Translations = {
 
   chooseService: {
     en: "Choose your service",
-    es: "Elige tu servicio",
+    kn: "ನಿಮ್ಮ ಸೇವೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
     fr: "Choisissez votre service",
     de: "Wählen Sie Ihren Service",
     it: "Scegli il tuo servizio",
@@ -737,7 +737,7 @@ export const translations: Translations = {
 
   chooseServiceDesc: {
     en: "Select from a variety of tasks that suit your needs.",
-    es: "Seleccione entre una variedad de tareas que se adapten a sus necesidades.",
+    kn: "ನಿಮ್ಮ ಅಗತ್ಯಗಳಿಗೆ ಸೂಕ್ತವಾದ ವಿವಿಧ ಕಾರ್ಯಗಳಿಂದ ಆಯ್ಕೆಮಾಡಿ.",
     fr: "Choisissez parmi une variété de tâches qui correspondent à vos besoins.",
     de: "Wählen Sie aus einer Vielzahl von Aufgaben, die Ihren Bedürfnissen entsprechen.",
     it: "Scegli tra una varietà di attività che si adattano alle tue esigenze.",
@@ -751,7 +751,7 @@ export const translations: Translations = {
 
   scheduleInMinutes: {
     en: "Schedule in minutes",
-    es: "Programa en minutos",
+    kn: "ನಿಮಿಷಗಳಲ್ಲಿ ವೇಳಾಪಟ್ಟಿ ಮಾಡಿ",
     fr: "Planifiez en quelques minutes",
     de: "In Minuten planen",
     it: "Pianifica in pochi minuti",
@@ -765,7 +765,7 @@ export const translations: Translations = {
 
   scheduleInMinutesDesc: {
     en: "Book a time that works for you, quickly and easily.",
-    es: "Reserve un horario que funcione para usted, rápida y fácilmente.",
+    kn: "ನಿಮಗೆ ಅನುಕೂಲಕರವಾದ ಸಮಯವನ್ನು ತ್ವರಿತವಾಗಿ ಮತ್ತು ಸುಲಭವಾಗಿ ಬುಕ್ ಮಾಡಿ.",
     fr: "Réservez un créneau qui vous convient, rapidement et facilement.",
     de: "Buchen Sie schnell und einfach einen Termin, der für Sie passt.",
     it: "Prenota un orario che funziona per te, rapidamente e facilmente.",
@@ -779,7 +779,7 @@ export const translations: Translations = {
 
   relaxWeHandle: {
     en: "Relax, we'll handle the rest",
-    es: "Relájate, nosotros nos encargamos del resto",
+    kn: "ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ, ಉಳಿದುದನ್ನು ನಾವು ನೋಡಿಕೊಳ್ಳುತ್ತೇವೆ",
     fr: "Détendez-vous, nous nous occupons du reste",
     de: "Entspannen Sie sich, wir kümmern uns um den Rest",
     it: "Rilassati, al resto ci pensiamo noi",
@@ -793,7 +793,7 @@ export const translations: Translations = {
 
   relaxWeHandleDesc: {
     en: "Our verified professionals ensure your peace of mind.",
-    es: "Nuestros profesionales verificados le garantizan tranquilidad.",
+    kn: "ನಮ್ಮ ಪರಿಶೀಲಿತ ವೃತ್ತಿಪರರು ನಿಮ್ಮ ಮನಸ್ಸಿನ ಶಾಂತಿಯನ್ನು ಖಚಿತಪಡಿಸುತ್ತಾರೆ.",
     fr: "Nos professionnels vérifiés vous assurent la tranquillité d'esprit.",
     de: "Unsere geprüften Fachkräfte sorgen für Ihre Ruhe.",
     it: "I nostri professionisti verificati ti garantiscono la tranquillità.",
@@ -807,7 +807,7 @@ export const translations: Translations = {
 
   serviceProviderRegistration: {
     en: "Service Provider Registration",
-    es: "Registro de Proveedor de Servicios",
+    kn: "ಸೇವೆ ಒದಗಿಸುವವರ ನೋಂದಣಿ",
     fr: "Inscription du Prestataire de Services",
     de: "Dienstleister Registrierung",
     it: "Registrazione Fornitore di Servizi",
@@ -827,7 +827,7 @@ export const translations: Translations = {
 // Service Details Dialog Translations
 maidServicesTitle: {
   en: "ServEaso Maid Services",
-  es: "Servicios de Empleada Doméstica ServEaso",
+  kn: "ServEaso ಮನೆಕೆಲಸದವರ ಸೇವೆಗಳು",
   fr: "Services de Femme de Ménage ServEaso",
   de: "ServEaso Haushaltshilfe-Dienste",
   it: "Servizi di Colf ServEaso",
@@ -840,7 +840,7 @@ maidServicesTitle: {
 },
 maidServicesDescription: {
   en: "Professional cleaning and household services",
-  es: "Servicios profesionales de limpieza y hogar",
+  kn: "ವೃತ್ತಿಪರ ಸ್ವಚ್ಛತೆ ಮತ್ತು ಮನೆಕೆಲಸ ಸೇವೆಗಳು",
   fr: "Services professionnels de nettoyage et d'entretien ménager",
   de: "Professionelle Reinigungs- und Haushaltsdienstleistungen",
   it: "Servizi professionali di pulizia e cura della casa",
@@ -853,7 +853,7 @@ maidServicesDescription: {
 },
 cleaning: {
   en: "Cleaning",
-  es: "Limpieza",
+  kn: "ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage",
   de: "Reinigung",
   it: "Pulizia",
@@ -866,7 +866,7 @@ cleaning: {
 },
 utensilsCleaning: {
   en: "Utensils cleaning",
-  es: "Limpieza de utensilios",
+  kn: "ಪಾತ್ರೆಗಳನ್ನು ಸ್ವಚ್ಛಗೊಳಿಸುವುದು",
   fr: "Nettoyage des ustensiles",
   de: "Reinigung von Utensilien",
   it: "Pulizia degli utensili",
@@ -879,7 +879,7 @@ utensilsCleaning: {
 },
 dusting: {
   en: "Dusting",
-  es: "Quitar el polvo",
+  kn: "ಧೂಳು ಒರೆಸುವುದು",
   fr: "Dépoussiérage",
   de: "Staubwischen",
   it: "Spolveratura",
@@ -892,7 +892,7 @@ dusting: {
 },
 vacuuming: {
   en: "Vacuuming",
-  es: "Aspirar",
+  kn: "ವ್ಯಾಕ್ಯೂಮ್ ಮಾಡುವುದು",
   fr: "Passer l'aspirateur",
   de: "Staubsaugen",
   it: "Aspirare",
@@ -905,7 +905,7 @@ vacuuming: {
 },
 mopping: {
   en: "Mopping",
-  es: "Trapear",
+  kn: "ಒರೆಸುವುದು",
   fr: "Nettoyer le sol",
   de: "Wischen",
   it: "Lavare il pavimento",
@@ -918,7 +918,7 @@ mopping: {
 },
 sweeping: {
   en: "Sweeping",
-  es: "Barrer",
+  kn: "ಗುಡಿಸುವುದು",
   fr: "Balayer",
   de: "Kehren",
   it: "Spazzare",
@@ -931,7 +931,7 @@ sweeping: {
 },
 cleaningBathroomsKitchens: {
   en: "Cleaning bathrooms and kitchens",
-  es: "Limpieza de baños y cocinas",
+  kn: "ಸ್ನಾನಗೃಹಗಳು ಮತ್ತು ಅಡುಗೆಮನೆಗಳನ್ನು ಸ್ವಚ್ಛಗೊಳಿಸುವುದು",
   fr: "Nettoyage des salles de bain et des cuisines",
   de: "Reinigung von Bädern und Küchen",
   it: "Pulizia di bagni e cucine",
@@ -944,7 +944,7 @@ cleaningBathroomsKitchens: {
 },
 laundry: {
   en: "Laundry",
-  es: "Lavandería",
+  kn: "ಬಟ್ಟೆ ಒಗೆಯುವುದು",
   fr: "Buanderie",
   de: "Wäsche",
   it: "Bucato",
@@ -957,7 +957,7 @@ laundry: {
 },
 washingClothes: {
   en: "Washing clothes",
-  es: "Lavar ropa",
+  kn: "ಬಟ್ಟೆಗಳನ್ನು ತೊಳೆಯುವುದು",
   fr: "Laver les vêtements",
   de: "Kleidung waschen",
   it: "Lavare i vestiti",
@@ -970,7 +970,7 @@ washingClothes: {
 },
 dryingClothes: {
   en: "Drying clothes",
-  es: "Secar ropa",
+  kn: "ಬಟ್ಟೆಗಳನ್ನು ಒಣಗಿಸುವುದು",
   fr: "Sécher les vêtements",
   de: "Kleidung trocknen",
   it: "Asciugare i vestiti",
@@ -983,7 +983,7 @@ dryingClothes: {
 },
 foldingClothes: {
   en: "Folding clothes",
-  es: "Doblar ropa",
+  kn: "ಬಟ್ಟೆಗಳನ್ನು ಮಡಚುವುದು",
   fr: "Plier les vêtements",
   de: "Kleidung falten",
   it: "Piegare i vestiti",
@@ -996,7 +996,7 @@ foldingClothes: {
 },
 ironingClothes: {
   en: "Ironing clothes",
-  es: "Planchar ropa",
+  kn: "ಬಟ್ಟೆಗಳನ್ನು ಇಸ್ತ್ರಿ ಮಾಡುವುದು",
   fr: "Repasser les vêtements",
   de: "Kleidung bügeln",
   it: "Stirare i vestiti",
@@ -1009,7 +1009,7 @@ ironingClothes: {
 },
 errands: {
   en: "Errands",
-  es: "Recados",
+  kn: "ಕೆಲಸಗಳು",
   fr: "Commissions",
   de: "Besorgungen",
   it: "Commissioni",
@@ -1022,7 +1022,7 @@ errands: {
 },
 runningErrands: {
   en: "Running errands for customers",
-  es: "Hacer recados para los clientes",
+  kn: "ಗ್ರಾಹಕರಿಗಾಗಿ ಕೆಲಸಗಳನ್ನು ಮಾಡುವುದು",
   fr: "Faire des courses pour les clients",
   de: "Besorgungen für Kunden erledigen",
   it: "Fare commissioni per i clienti",
@@ -1035,7 +1035,7 @@ runningErrands: {
 },
 pickingGroceries: {
   en: "Picking up groceries",
-  es: "Recoger comestibles",
+  kn: "ಕಿರಾಣಿ ಸಾಮಾನುಗಳನ್ನು ತರುವುದು",
   fr: "Faire les courses",
   de: "Lebensmittel abholen",
   it: "Fare la spesa",
@@ -1048,7 +1048,7 @@ pickingGroceries: {
 },
 dryCleaningPickup: {
   en: "Dry cleaning pickup/dropoff",
-  es: "Recogida/entrega de tintorería",
+  kn: "ಡ್ರೈ ಕ್ಲೀನಿಂಗ್ ಪಿಕಪ್/ಡ್ರಾಪ್ಆಫ್",
   fr: "Ramassage/dépôt de nettoyage à sec",
   de: "Abholung/Abgabe von chemischer Reinigung",
   it: "Ritiro/consegna in lavanderia",
@@ -1061,7 +1061,7 @@ dryCleaningPickup: {
 },
 respectfulProperty: {
   en: "Respectful of customer's property",
-  es: "Respetuoso de la propiedad del cliente",
+  kn: "ಗ್ರಾಹಕರ ಆಸ್ತಿಯನ್ನು ಗೌರವಿಸುವುದು",
   fr: "Respectueux de la propriété du client",
   de: "Respektvoll mit dem Eigentum des Kunden",
   it: "Rispettoso della proprietà del cliente",
@@ -1074,7 +1074,7 @@ respectfulProperty: {
 },
 punctualReliable: {
   en: "Punctual and reliable",
-  es: "Puntual y confiable",
+  kn: "ಸಮಯಪಾಲನೆ ಮತ್ತು ವಿಶ್ವಾಸಾರ್ಹ",
   fr: "Ponctuel et fiable",
   de: "Pünktlich und zuverlässig",
   it: "Puntuale e affidabile",
@@ -1087,7 +1087,7 @@ punctualReliable: {
 },
 professionalCourteous: {
   en: "Professional and courteous",
-  es: "Profesional y cortés",
+  kn: "ವೃತ್ತಿಪರ ಮತ್ತು ಸೌಜನ್ಯಯುತ",
   fr: "Professionnel et courtois",
   de: "Professionell und höflich",
   it: "Professionale e cortese",
@@ -1100,7 +1100,7 @@ professionalCourteous: {
 },
 discreetRespectful: {
   en: "Discreet and respectful of privacy",
-  es: "Discreto y respetuoso de la privacidad",
+  kn: "ವಿವೇಚನೆಯುಳ್ಳ ಮತ್ತು ಗೌಪ್ಯತೆಯನ್ನು ಗೌರವಿಸುವ",
   fr: "Discret et respectueux de la vie privée",
   de: "Diskret und respektvoll der Privatsphäre gegenüber",
   it: "Discreto e rispettoso della privacy",
@@ -1113,7 +1113,7 @@ discreetRespectful: {
 },
 cookServicesTitle: {
   en: "ServEaso Cook Services",
-  es: "Servicios de Cocina ServEaso",
+  kn: "ServEaso ಅಡುಗೆಯವರ ಸೇವೆಗಳು",
   fr: "Services de Cuisine ServEaso",
   de: "ServEaso Kochdienste",
   it: "Servizi di Cucina ServEaso",
@@ -1126,7 +1126,7 @@ cookServicesTitle: {
 },
 cookServicesDescription: {
   en: "Professional cooking services with strict standards",
-  es: "Servicios profesionales de cocina con estrictos estándares",
+  kn: "ಕಟ್ಟುನಿಟ್ಟಾದ ಮಾನದಂಡಗಳೊಂದಿಗೆ ವೃತ್ತಿಪರ ಅಡುಗೆ ಸೇವೆಗಳು",
   fr: "Services de cuisine professionnels avec des normes strictes",
   de: "Professionelle Kochdienste mit strengen Standards",
   it: "Servizi di cucina professionali con standard rigorosi",
@@ -1139,7 +1139,7 @@ cookServicesDescription: {
 },
 hygiene: {
   en: "Hygiene",
-  es: "Higiene",
+  kn: "ಸ್ವಚ್ಛತೆ",
   fr: "Hygiène",
   de: "Hygiene",
   it: "Igiene",
@@ -1152,7 +1152,7 @@ hygiene: {
 },
 strictHygiene: {
   en: "Adhere to strict hygiene standards",
-  es: "Cumplir con estrictos estándares de higiene",
+  kn: "ಕಟ್ಟುನಿಟ್ಟಾದ ಸ್ವಚ್ಛತಾ ಮಾನದಂಡಗಳನ್ನು ಅನುಸರಿಸಿ",
   fr: "Respecter des normes d'hygiène strictes",
   de: "Einhaltung strenger Hygienestandards",
   it: "Rispettare rigorosi standard igienici",
@@ -1165,7 +1165,7 @@ strictHygiene: {
 },
 frequentHandwashing: {
   en: "Frequent handwashing",
-  es: "Lavado frecuente de manos",
+  kn: "ಆಗಾಗ್ಗೆ ಕೈ ತೊಳೆಯುವುದು",
   fr: "Lavage fréquent des mains",
   de: "Häufiges Händewaschen",
   it: "Lavaggio frequente delle mani",
@@ -1178,7 +1178,7 @@ frequentHandwashing: {
 },
 cleanUniforms: {
   en: "Wear clean uniforms and hairnets",
-  es: "Usar uniformes limpios y redecillas",
+  kn: "ಸ್ವಚ್ಛ ಸಮವಸ್ತ್ರ ಮತ್ತು ಕೂದಲಿನ ಜಾಲರಿ ಧರಿಸಿ",
   fr: "Porter des uniformes propres et des charlottes",
   de: "Tragen sauberer Uniformen und Haarnetze",
   it: "Indossare uniformi pulite e retine per capelli",
@@ -1191,7 +1191,7 @@ cleanUniforms: {
 },
 spotlessEnvironment: {
   en: "Maintain spotless work environment",
-  es: "Mantener un entorno de trabajo impecable",
+  kn: "ನಿರ್ಮಲ ಕಾರ್ಯ ವಾತಾವರಣವನ್ನು ಕಾಪಾಡಿಕೊಳ್ಳಿ",
   fr: "Maintenir un environnement de travail impeccable",
   de: "Aufrechterhaltung einer makellosen Arbeitsumgebung",
   it: "Mantenere un ambiente di lavoro impeccabile",
@@ -1204,7 +1204,7 @@ spotlessEnvironment: {
 },
 temperatureControl: {
   en: "Temperature Control",
-  es: "Control de Temperatura",
+  kn: "ತಾಪಮಾನ ನಿಯಂತ್ರಣ",
   fr: "Contrôle de la Température",
   de: "Temperaturkontrolle",
   it: "Controllo della Temperatura",
@@ -1217,7 +1217,7 @@ temperatureControl: {
 },
 monitorTemperatures: {
   en: "Meticulously monitor food temperatures",
-  es: "Monitorear meticulosamente las temperaturas de los alimentos",
+  kn: "ಆಹಾರದ ತಾಪಮಾನವನ್ನು ನಿಖರವಾಗಿ ಮೇಲ್ವಿಚಾರಣೆ ಮಾಡಿ",
   fr: "Surveiller méticuleusement les températures des aliments",
   de: "Akribische Überwachung der Lebensmitteltemperaturen",
   it: "Monitorare meticolosamente le temperature degli alimenti",
@@ -1230,7 +1230,7 @@ monitorTemperatures: {
 },
 preventBacterialGrowth: {
   en: "Prevent bacterial growth",
-  es: "Prevenir el crecimiento bacteriano",
+  kn: "ಬ್ಯಾಕ್ಟೀರಿಯಾದ ಬೆಳವಣಿಗೆಯನ್ನು ತಡೆಗಟ್ಟಿ",
   fr: "Prévenir la croissance bactérienne",
   de: "Bakterienwachstum verhindern",
   it: "Prevenire la crescita batterica",
@@ -1243,7 +1243,7 @@ preventBacterialGrowth: {
 },
 properCookingStorage: {
   en: "Ensure proper cooking, storage, and reheating",
-  es: "Asegurar una cocción, almacenamiento y recalentamiento adecuados",
+  kn: "ಸರಿಯಾದ ಅಡುಗೆ, ಸಂಗ್ರಹಣೆ ಮತ್ತು ಮತ್ತೆ ಬಿಸಿಮಾಡುವುದನ್ನು ಖಚಿತಪಡಿಸಿ",
   fr: "Assurer une cuisson, un stockage et un réchauffage appropriés",
   de: "Sicherstellung ordnungsgemäßen Kochens, Lagerns und Aufwärmens",
   it: "Garantire una corretta cottura, conservazione e riscaldamento",
@@ -1256,7 +1256,7 @@ properCookingStorage: {
 },
 allergenAwareness: {
   en: "Allergen Awareness",
-  es: "Conciencia de Alérgenos",
+  kn: "ಅಲರ್ಜಿನ್ ಅರಿವು",
   fr: "Sensibilisation aux Allergènes",
   de: "Allergenbewusstsein",
   it: "Consapevolezza degli Allergeni",
@@ -1269,7 +1269,7 @@ allergenAwareness: {
 },
 handleAllergens: {
   en: "Handle allergens carefully",
-  es: "Manejar los alérgenos con cuidado",
+  kn: "ಅಲರ್ಜಿನ್ಗಳನ್ನು ಎಚ್ಚರಿಕೆಯಿಂದ ನಿರ್ವಹಿಸಿ",
   fr: "Manipuler les allergènes avec soin",
   de: "Sorgfältiger Umgang mit Allergenen",
   it: "Maneggiare gli allergeni con cura",
@@ -1282,7 +1282,7 @@ handleAllergens: {
 },
 preventCrossContamination: {
   en: "Prevent cross-contamination",
-  es: "Prevenir la contaminación cruzada",
+  kn: "ಅಡ್ಡ-ಮಾಲಿನ್ಯವನ್ನು ತಡೆಗಟ್ಟಿ",
   fr: "Prévenir la contamination croisée",
   de: "Kreuzkontamination verhindern",
   it: "Prevenire la contaminazione incrociata",
@@ -1295,7 +1295,7 @@ preventCrossContamination: {
 },
 accurateAllergenInfo: {
   en: "Provide accurate allergen information",
-  es: "Proporcionar información precisa sobre alérgenos",
+  kn: "ನಿಖರವಾದ ಅಲರ್ಜಿನ್ ಮಾಹಿತಿಯನ್ನು ಒದಗಿಸಿ",
   fr: "Fournir des informations précises sur les allergènes",
   de: "Bereitstellung genauer Allergeninformationen",
   it: "Fornire informazioni accurate sugli allergeni",
@@ -1308,7 +1308,7 @@ accurateAllergenInfo: {
 },
 safeFoodHandling: {
   en: "Safe Food Handling",
-  es: "Manejo Seguro de Alimentos",
+  kn: "ಸುರಕ್ಷಿತ ಆಹಾರ ನಿರ್ವಹಣೆ",
   fr: "Manipulation Sécuritaire des Aliments",
   de: "Sicherer Umgang mit Lebensmitteln",
   it: "Manipolazione Sicura degli Alimenti",
@@ -1321,7 +1321,7 @@ safeFoodHandling: {
 },
 followProcedures: {
   en: "Follow proper procedures for raw and cooked foods",
-  es: "Seguir los procedimientos adecuados para alimentos crudos y cocidos",
+  kn: "ಕಚ್ಚಾ ಮತ್ತು ಬೇಯಿಸಿದ ಆಹಾರಗಳಿಗೆ ಸರಿಯಾದ ಕಾರ್ಯವಿಧಾನಗಳನ್ನು ಅನುಸರಿಸಿ",
   fr: "Suivre les procédures appropriées pour les aliments crus et cuits",
   de: "Befolgung der richtigen Verfahren für rohe und gekochte Lebensmittel",
   it: "Seguire le procedure corrette per alimenti crudi e cotti",
@@ -1334,7 +1334,7 @@ followProcedures: {
 },
 minimizeContamination: {
   en: "Minimize contamination risk",
-  es: "Minimizar el riesgo de contaminación",
+  kn: "ಮಾಲಿನ್ಯದ ಅಪಾಯವನ್ನು ಕಡಿಮೆ ಮಾಡಿ",
   fr: "Minimiser les risques de contamination",
   de: "Minimierung des Kontaminationsrisikos",
   it: "Minimizzare il rischio di contaminazione",
@@ -1347,7 +1347,7 @@ minimizeContamination: {
 },
 freshness: {
   en: "Freshness",
-  es: "Frescura",
+  kn: "ತಾಜಾತನ",
   fr: "Fraîcheur",
   de: "Frische",
   it: "Freschezza",
@@ -1360,7 +1360,7 @@ freshness: {
 },
 freshIngredients: {
   en: "Use fresh, high-quality ingredients",
-  es: "Usar ingredientes frescos y de alta calidad",
+  kn: "ತಾಜಾ, ಉತ್ತಮ ಗುಣಮಟ್ಟದ ಪದಾರ್ಥಗಳನ್ನು ಬಳಸಿ",
   fr: "Utiliser des ingrédients frais et de haute qualité",
   de: "Verwendung frischer, hochwertiger Zutaten",
   it: "Usare ingredienti freschi e di alta qualità",
@@ -1373,7 +1373,7 @@ freshIngredients: {
 },
 selectBestProduce: {
   en: "Select best produce, meats, and components",
-  es: "Seleccionar los mejores productos, carnes y componentes",
+  kn: "ಅತ್ಯುತ್ತಮ ಉತ್ಪನ್ನಗಳು, ಮಾಂಸಗಳು ಮತ್ತು ಘಟಕಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
   fr: "Sélectionner les meilleurs produits, viandes et composants",
   de: "Auswahl der besten Produkte, Fleischsorten und Komponenten",
   it: "Selezionare i migliori prodotti, carni e componenti",
@@ -1386,7 +1386,7 @@ selectBestProduce: {
 },
 properTechniques: {
   en: "Proper Techniques",
-  es: "Técnicas Adecuadas",
+  kn: "ಸರಿಯಾದ ತಂತ್ರಗಳು",
   fr: "Techniques Appropriées",
   de: "Richtige Techniken",
   it: "Tecniche Adeguate",
@@ -1399,7 +1399,7 @@ properTechniques: {
 },
 employTechniques: {
   en: "Employ proper cooking techniques",
-  es: "Emplear técnicas de cocina adecuadas",
+  kn: "ಸರಿಯಾದ ಅಡುಗೆ ತಂತ್ರಗಳನ್ನು ಬಳಸಿ",
   fr: "Employer des techniques de cuisson appropriées",
   de: "Anwendung richtiger Kochtechniken",
   it: "Impiegare tecniche di cottura adeguate",
@@ -1412,7 +1412,7 @@ employTechniques: {
 },
 maximizeFlavor: {
   en: "Maximize flavor, texture, and nutritional value",
-  es: "Maximizar el sabor, la textura y el valor nutricional",
+  kn: "ರುಚಿ, ವಿನ್ಯಾಸ ಮತ್ತು ಪೌಷ್ಟಿಕಾಂಶದ ಮೌಲ್ಯವನ್ನು ಗರಿಷ್ಠಗೊಳಿಸಿ",
   fr: "Maximiser la saveur, la texture et la valeur nutritionnelle",
   de: "Maximierung von Geschmack, Textur und Nährwert",
   it: "Massimizzare sapore, consistenza e valore nutrizionale",
@@ -1425,7 +1425,7 @@ maximizeFlavor: {
 },
 highestStandards: {
   en: "Ensure highest preparation standards",
-  es: "Asegurar los más altos estándares de preparación",
+  kn: "ಅತ್ಯುನ್ನತ ತಯಾರಿ ಮಾನದಂಡಗಳನ್ನು ಖಚಿತಪಡಿಸಿ",
   fr: "Assurer les normes de préparation les plus élevées",
   de: "Gewährleistung höchster Zubereitungsstandards",
   it: "Garantire i più alti standard di preparazione",
@@ -1438,7 +1438,7 @@ highestStandards: {
 },
 attentionToDetail: {
   en: "Attention to Detail",
-  es: "Atención al Detalle",
+  kn: "ವಿವರಗಳಿಗೆ ಗಮನ",
   fr: "Attention aux Détails",
   de: "Liebe zum Detail",
   it: "Attenzione ai Dettagli",
@@ -1451,7 +1451,7 @@ attentionToDetail: {
 },
 closeAttention: {
   en: "Pay close attention to every step",
-  es: "Prestar mucha atención a cada paso",
+  kn: "ಪ್ರತಿ ಹಂತಕ್ಕೂ ನಿಕಟ ಗಮನ ಕೊಡಿ",
   fr: "Prêter une attention particulière à chaque étape",
   de: "Jeden Schritt genau beachten",
   it: "Prestare molta attenzione ad ogni passaggio",
@@ -1464,7 +1464,7 @@ closeAttention: {
 },
 choppingToPlating: {
   en: "From chopping vegetables to final plating",
-  es: "Desde picar verduras hasta el emplatado final",
+  kn: "ತರಕಾರಿಗಳನ್ನು ಕತ್ತರಿಸುವುದರಿಂದ ಹಿಡಿದು ಅಂತಿಮ ಪ್ಲೇಟಿಂಗ್ವರೆಗೆ",
   fr: "De la coupe des légumes à la présentation finale",
   de: "Vom Gemüseschneiden bis zum finalen Anrichten",
   it: "Dal taglio delle verdure all'impiattamento finale",
@@ -1477,7 +1477,7 @@ choppingToPlating: {
 },
 consistencyVisual: {
   en: "Ensure consistency and visual appeal",
-  es: "Asegurar consistencia y atractivo visual",
+  kn: "ಸ್ಥಿರತೆ ಮತ್ತು ದೃಶ್ಯ ಆಕರ್ಷಣೆಯನ್ನು ಖಚಿತಪಡಿಸಿ",
   fr: "Assurer la cohérence et l'attrait visuel",
   de: "Sicherstellung von Konsistenz und optischer Attraktivität",
   it: "Garantire coerenza e appeal visivo",
@@ -1490,7 +1490,7 @@ consistencyVisual: {
 },
 dietaryRestrictions: {
   en: "Dietary Restrictions",
-  es: "Restricciones Dietéticas",
+  kn: "ಆಹಾರ ನಿರ್ಬಂಧಗಳು",
   fr: "Restrictions Alimentaires",
   de: "Ernährungsbeschränkungen",
   it: "Restrizioni Dietetiche",
@@ -1503,7 +1503,7 @@ dietaryRestrictions: {
 },
 accommodateGlutenFree: {
   en: "Accommodate gluten-free needs",
-  es: "Atender necesidades sin gluten",
+  kn: "ಗ್ಲುಟನ್-ಮುಕ್ತ ಅಗತ್ಯಗಳನ್ನು ಪೂರೈಸಿ",
   fr: "Répondre aux besoins sans gluten",
   de: "Berücksichtigung glutenfreier Bedürfnisse",
   it: "Soddisfare esigenze senza glutine",
@@ -1516,7 +1516,7 @@ accommodateGlutenFree: {
 },
 vegetarianVegan: {
   en: "Prepare vegetarian and vegan meals",
-  es: "Preparar comidas vegetarianas y veganas",
+  kn: "ಸಸ್ಯಾಹಾರಿ ಮತ್ತು ವೇಗನ್ ಊಟಗಳನ್ನು ತಯಾರಿಸಿ",
   fr: "Préparer des repas végétariens et végétaliens",
   de: "Zubereitung vegetarischer und veganer Mahlzeiten",
   it: "Preparare pasti vegetariani e vegani",
@@ -1529,7 +1529,7 @@ vegetarianVegan: {
 },
 specificAllergies: {
   en: "Tailor to specific allergies/intolerances",
-  es: "Adaptar a alergias/intolerancias específicas",
+  kn: "ನಿರ್ದಿಷ್ಟ ಅಲರ್ಜಿಗಳು/ಅಸಹಿಷ್ಣುತೆಗಳಿಗೆ ಹೊಂದಿಸಿ",
   fr: "Adapter aux allergies/intolérances spécifiques",
   de: "Anpassung an spezifische Allergien/Unverträglichkeiten",
   it: "Adattare ad allergie/intolleranze specifiche",
@@ -1542,7 +1542,7 @@ specificAllergies: {
 },
 customization: {
   en: "Customization",
-  es: "Personalización",
+  kn: "ಗ್ರಾಹಕೀಕರಣ",
   fr: "Personnalisation",
   de: "Anpassung",
   it: "Personalizzazione",
@@ -1555,7 +1555,7 @@ customization: {
 },
 adjustSpice: {
   en: "Adjust spice levels",
-  es: "Ajustar niveles de especias",
+  kn: "ಮಸಾಲೆಯ ಮಟ್ಟವನ್ನು ಹೊಂದಿಸಿ",
   fr: "Ajuster les niveaux d'épices",
   de: "Anpassung der Schärfegrade",
   it: "Regolare i livelli di spezie",
@@ -1568,7 +1568,7 @@ adjustSpice: {
 },
 modifyIngredients: {
   en: "Modify ingredients",
-  es: "Modificar ingredientes",
+  kn: "ಪದಾರ್ಥಗಳನ್ನು ಮಾರ್ಪಡಿಸಿ",
   fr: "Modifier les ingrédients",
   de: "Zutaten ändern",
   it: "Modificare gli ingredienti",
@@ -1581,7 +1581,7 @@ modifyIngredients: {
 },
 customizePortions: {
   en: "Customize portion sizes",
-  es: "Personalizar tamaños de porción",
+  kn: "ಭಾಗದ ಗಾತ್ರಗಳನ್ನು ಗ್ರಾಹಕೀಕರಿಸಿ",
   fr: "Personnaliser les tailles des portions",
   de: "Anpassung der Portionsgrößen",
   it: "Personalizzare le dimensioni delle porzioni",
@@ -1594,7 +1594,7 @@ customizePortions: {
 },
 caregiverServicesTitle: {
   en: "ServEaso Caregiver Services",
-  es: "Servicios de Cuidador ServEaso",
+  kn: "ServEaso ಆರೈಕೆದಾರ ಸೇವೆಗಳು",
   fr: "Services de Soignant ServEaso",
   de: "ServEaso Pflegedienste",
   it: "Servizi di Assistenza ServEaso",
@@ -1607,7 +1607,7 @@ caregiverServicesTitle: {
 },
 caregiverServicesDescription: {
   en: "Professional child care services",
-  es: "Servicios profesionales de cuidado infantil",
+  kn: "ವೃತ್ತಿಪರ ಮಕ್ಕಳ ಆರೈಕೆ ಸೇವೆಗಳು",
   fr: "Services professionnels de garde d'enfants",
   de: "Professionelle Kinderbetreuungsdienste",
   it: "Servizi professionali per la cura dei bambini",
@@ -1620,7 +1620,7 @@ caregiverServicesDescription: {
 },
 nurtureEnvironment: {
   en: "Nurture and Safe Environment",
-  es: "Entorno Nutritivo y Seguro",
+  kn: "ಪೋಷಣೆ ಮತ್ತು ಸುರಕ್ಷಿತ ವಾತಾವರಣ",
   fr: "Environnement Nourrissant et Sûr",
   de: "Fürsorgliche und sichere Umgebung",
   it: "Ambiente Nutriente e Sicuro",
@@ -1633,7 +1633,7 @@ nurtureEnvironment: {
 },
 lovingSupportive: {
   en: "Provide loving and supportive environment",
-  es: "Proporcionar un ambiente amoroso y de apoyo",
+  kn: "ಪ್ರೀತಿಯ ಮತ್ತು ಬೆಂಬಲಿಸುವ ವಾತಾವರಣವನ್ನು ಒದಗಿಸಿ",
   fr: "Fournir un environnement aimant et favorable",
   de: "Bereitstellung einer liebevollen und unterstützenden Umgebung",
   it: "Fornire un ambiente amorevole e di supporto",
@@ -1646,7 +1646,7 @@ lovingSupportive: {
 },
 safeSecure: {
   en: "Children feel safe, secure, and understood",
-  es: "Los niños se sienten seguros, protegidos y comprendidos",
+  kn: "ಮಕ್ಕಳು ಸುರಕ್ಷಿತ, ಭದ್ರ ಮತ್ತು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲ್ಪಟ್ಟ ಭಾವನೆ ಹೊಂದಿರುತ್ತಾರೆ",
   fr: "Les enfants se sentent en sécurité, protégés et compris",
   de: "Kinder fühlen sich sicher, geborgen und verstanden",
   it: "I bambini si sentono al sicuro, protetti e compresi",
@@ -1659,7 +1659,7 @@ safeSecure: {
 },
 comfortEncouragement: {
   en: "Offer comfort and encouragement",
-  es: "Ofrecer consuelo y ánimo",
+  kn: "ಆಶ್ವಾಸನೆ ಮತ್ತು ಪ್ರೋತ್ಸಾಹವನ್ನು ನೀಡಿ",
   fr: "Offrir réconfort et encouragement",
   de: "Trost und Ermutigung bieten",
   it: "Offrire conforto e incoraggiamento",
@@ -1672,7 +1672,7 @@ comfortEncouragement: {
 },
 emotionalConnection: {
   en: "Build strong emotional connection",
-  es: "Construir una fuerte conexión emocional",
+  kn: "ಬಲವಾದ ಭಾವನಾತ್ಮಕ ಸಂಪರ್ಕವನ್ನು ನಿರ್ಮಿಸಿ",
   fr: "Établir un lien émotionnel fort",
   de: "Aufbau einer starken emotionalen Verbindung",
   it: "Costruire un forte legame emotivo",
@@ -1685,7 +1685,7 @@ emotionalConnection: {
 },
 physicalSafety: {
   en: "Physical Safety",
-  es: "Seguridad Física",
+  kn: "ದೈಹಿಕ ಸುರಕ್ಷತೆ",
   fr: "Sécurité Physique",
   de: "Physische Sicherheit",
   it: "Sicurezza Fisica",
@@ -1698,7 +1698,7 @@ physicalSafety: {
 },
 hazardFree: {
   en: "Ensure hazard-free environment",
-  es: "Garantizar un entorno libre de peligros",
+  kn: "ಅಪಾಯ-ಮುಕ್ತ ವಾತಾವರಣವನ್ನು ಖಚಿತಪಡಿಸಿ",
   fr: "Assurer un environnement sans danger",
   de: "Gewährleistung einer gefahrenfreien Umgebung",
   it: "Garantire un ambiente privo di pericoli",
@@ -1711,7 +1711,7 @@ hazardFree: {
 },
 superviseActivities: {
   en: "Supervise all activities",
-  es: "Supervisar todas las actividades",
+  kn: "ಎಲ್ಲಾ ಚಟುವಟಿಕೆಗಳನ್ನು ಮೇಲ್ವಿಚಾರಣೆ ಮಾಡಿ",
   fr: "Superviser toutes les activités",
   de: "Überwachung aller Aktivitäten",
   it: "Supervisionare tutte le attività",
@@ -1724,7 +1724,7 @@ superviseActivities: {
 },
 emergencyPrepared: {
   en: "Prepare for emergencies",
-  es: "Prepararse para emergencias",
+  kn: "ತುರ್ತು ಸಂದರ್ಭಗಳಿಗೆ ಸಿದ್ಧರಾಗಿ",
   fr: "Se préparer aux urgences",
   de: "Vorbereitung auf Notfälle",
   it: "Prepararsi alle emergenze",
@@ -1737,7 +1737,7 @@ emergencyPrepared: {
 },
 medicalSafety: {
   en: "Medical Safety",
-  es: "Seguridad Médica",
+  kn: "ವೈದ್ಯಕೀಯ ಸುರಕ್ಷತೆ",
   fr: "Sécurité Médicale",
   de: "Medizinische Sicherheit",
   it: "Sicurezza Medica",
@@ -1750,7 +1750,7 @@ medicalSafety: {
 },
 trainedCPR: {
   en: "Trained in CPR",
-  es: "Capacitado en RCP",
+  kn: "CPR ನಲ್ಲಿ ತರಬೇತಿ ಪಡೆದಿದ್ದಾರೆ",
   fr: "Formé aux gestes de premiers secours",
   de: "In CPR geschult",
   it: "Addestrato al CPR",
@@ -1763,7 +1763,7 @@ trainedCPR: {
 },
 firstAidCertified: {
   en: "First aid certified for medical emergencies",
-  es: "Certificado en primeros auxilios para emergencias médicas",
+  kn: "ವೈದ್ಯಕೀಯ ತುರ್ತು ಸಂದರ್ಭಗಳಿಗೆ ಪ್ರಥಮ ಚಿಕಿತ್ಸಾ ಪ್ರಮಾಣೀಕೃತ",
   fr: "Certifié aux premiers secours pour les urgences médicales",
   de: "Zertifiziert in Erster Hilfe für medizinische Notfälle",
   it: "Certificato al primo soccorso per emergenze mediche",
@@ -1776,7 +1776,7 @@ firstAidCertified: {
 },
 cognitiveDevelopment: {
   en: "Cognitive Development",
-  es: "Desarrollo Cognitivo",
+  kn: "ಅರಿವಿನ ಬೆಳವಣಿಗೆ",
   fr: "Développement Cognitif",
   de: "Kognitive Entwicklung",
   it: "Sviluppo Cognitivo",
@@ -1789,7 +1789,7 @@ cognitiveDevelopment: {
 },
 ageAppropriateActivities: {
   en: "Engage in age-appropriate activities",
-  es: "Participar en actividades apropiadas para la edad",
+  kn: "ವಯಸ್ಸಿಗೆ ಸೂಕ್ತವಾದ ಚಟುವಟಿಕೆಗಳಲ್ಲಿ ತೊಡಗಿಸಿಕೊಳ್ಳಿ",
   fr: "Participer à des activités adaptées à l'âge",
   de: "Teilnahme an altersgerechten Aktivitäten",
   it: "Impegnarsi in attività adatte all'età",
@@ -1802,7 +1802,7 @@ ageAppropriateActivities: {
 },
 readingEducational: {
   en: "Reading and educational games",
-  es: "Lectura y juegos educativos",
+  kn: "ಓದುವುದು ಮತ್ತು ಶೈಕ್ಷಣಿಕ ಆಟಗಳು",
   fr: "Lecture et jeux éducatifs",
   de: "Lesen und Lernspiele",
   it: "Lettura e giochi educativi",
@@ -1815,7 +1815,7 @@ readingEducational: {
 },
 exploreInterests: {
   en: "Explore children's interests",
-  es: "Explorar los intereses de los niños",
+  kn: "ಮಕ್ಕಳ ಆಸಕ್ತಿಗಳನ್ನು ಅನ್ವೇಷಿಸಿ",
   fr: "Explorer les intérêts des enfants",
   de: "Erkundung der Interessen von Kindern",
   it: "Esplorare gli interessi dei bambini",
@@ -1828,7 +1828,7 @@ exploreInterests: {
 },
 homeworkHelp: {
   en: "Help with homework",
-  es: "Ayuda con la tarea",
+  kn: "ಮನೆಕೆಲಸದಲ್ಲಿ ಸಹಾಯ",
   fr: "Aide aux devoirs",
   de: "Hilfe bei Hausaufgaben",
   it: "Aiuto con i compiti",
@@ -1841,7 +1841,7 @@ homeworkHelp: {
 },
 encourageLearning: {
   en: "Encourage learning",
-  es: "Fomentar el aprendizaje",
+  kn: "ಕಲಿಕೆಯನ್ನು ಪ್ರೋತ್ಸಾಹಿಸಿ",
   fr: "Encourager l'apprentissage",
   de: "Förderung des Lernens",
   it: "Incoraggiare l'apprendimento",
@@ -1854,7 +1854,7 @@ encourageLearning: {
 },
 socialEmotional: {
   en: "Social/Emotional Development",
-  es: "Desarrollo Social/Emocional",
+  kn: "ಸಾಮಾಜಿಕ/ಭಾವನಾತ್ಮಕ ಬೆಳವಣಿಗೆ",
   fr: "Développement Social/Émotionnel",
   de: "Soziale/Emotionale Entwicklung",
   it: "Sviluppo Sociale/Emotivo",
@@ -1867,7 +1867,7 @@ socialEmotional: {
 },
 teachSharing: {
   en: "Teach sharing and empathy",
-  es: "Enseñar a compartir y la empatía",
+  kn: "ಹಂಚಿಕೊಳ್ಳುವುದು ಮತ್ತು ಸಹಾನುಭೂತಿಯನ್ನು ಕಲಿಸಿ",
   fr: "Apprendre le partage et l'empathie",
   de: "Teilen und Empathie lehren",
   it: "Insegnare a condividere e l'empatia",
@@ -1880,7 +1880,7 @@ teachSharing: {
 },
 conflictResolution: {
   en: "Conflict resolution skills",
-  es: "Habilidades de resolución de conflictos",
+  kn: "ಸಂಘರ್ಷ ಪರಿಹಾರ ಕೌಶಲ್ಯಗಳು",
   fr: "Compétences en résolution de conflits",
   de: "Konfliktlösungsfähigkeiten",
   it: "Capacità di risoluzione dei conflitti",
@@ -1893,7 +1893,7 @@ conflictResolution: {
 },
 selfConfidence: {
   en: "Develop self-confidence",
-  es: "Desarrollar la confianza en sí mismos",
+  kn: "ಆತ್ಮವಿಶ್ವಾಸವನ್ನು ಬೆಳೆಸಿಕೊಳ್ಳಿ",
   fr: "Développer la confiance en soi",
   de: "Entwicklung von Selbstvertrauen",
   it: "Sviluppare la fiducia in se stessi",
@@ -1906,7 +1906,7 @@ selfConfidence: {
 },
 emotionalIntelligence: {
   en: "Build emotional intelligence",
-  es: "Construir inteligencia emocional",
+  kn: "ಭಾವನಾತ್ಮಕ ಬುದ್ಧಿಮತ್ತೆಯನ್ನು ನಿರ್ಮಿಸಿ",
   fr: "Développer l'intelligence émotionnelle",
   de: "Aufbau emotionaler Intelligenz",
   it: "Sviluppare l'intelligenza emotiva",
@@ -1919,7 +1919,7 @@ emotionalIntelligence: {
 },
 physicalDevelopment: {
   en: "Physical Development",
-  es: "Desarrollo Físico",
+  kn: "ದೈಹಿಕ ಬೆಳವಣಿಗೆ",
   fr: "Développement Physique",
   de: "Körperliche Entwicklung",
   it: "Sviluppo Fisico",
@@ -1932,7 +1932,7 @@ physicalDevelopment: {
 },
 encourageActivity: {
   en: "Encourage physical activity",
-  es: "Fomentar la actividad física",
+  kn: "ದೈಹಿಕ ಚಟುವಟಿಕೆಯನ್ನು ಪ್ರೋತ್ಸಾಹಿಸಿ",
   fr: "Encourager l'activité physique",
   de: "Förderung körperlicher Aktivität",
   it: "Incoraggiare l'attività fisica",
@@ -1945,7 +1945,7 @@ encourageActivity: {
 },
 outdoorAdventures: {
   en: "Outdoor adventures",
-  es: "Aventuras al aire libre",
+  kn: "ಹೊರಾಂಗಣ ಸಾಹಸಗಳು",
   fr: "Aventures en plein air",
   de: "Abenteuer im Freien",
   it: "Avventure all'aperto",
@@ -1958,7 +1958,7 @@ outdoorAdventures: {
 },
 ageSports: {
   en: "Age-appropriate sports",
-  es: "Deportes apropiados para la edad",
+  kn: "ವಯಸ್ಸಿಗೆ ಸೂಕ್ತವಾದ ಕ್ರೀಡೆಗಳು",
   fr: "Sports adaptés à l'âge",
   de: "Altersgerechte Sportarten",
   it: "Sport adatti all'età",
@@ -1971,7 +1971,7 @@ ageSports: {
 },
 healthyMeals: {
   en: "Prepare healthy meals and snacks",
-  es: "Preparar comidas y refrigerios saludables",
+  kn: "ಆರೋಗ್ಯಕರ ಊಟ ಮತ್ತು ತಿಂಡಿಗಳನ್ನು ತಯಾರಿಸಿ",
   fr: "Préparer des repas et collations sains",
   de: "Zubereitung gesunder Mahlzeiten und Snacks",
   it: "Preparare pasti e spuntini sani",
@@ -1984,7 +1984,7 @@ healthyMeals: {
 },
 communication: {
   en: "Communication",
-  es: "Comunicación",
+  kn: "ಸಂವಹನ",
   fr: "Communication",
   de: "Kommunikation",
   it: "Comunicazione",
@@ -1997,7 +1997,7 @@ communication: {
 },
 openCommunication: {
   en: "Maintain open communication with parents",
-  es: "Mantener comunicación abierta con los padres",
+  kn: "ಪೋಷಕರೊಂದಿಗೆ ಮುಕ್ತ ಸಂವಹನವನ್ನು ಕಾಪಾಡಿಕೊಳ್ಳಿ",
   fr: "Maintenir une communication ouverte avec les parents",
   de: "Aufrechterhaltung einer offenen Kommunikation mit den Eltern",
   it: "Mantenere una comunicazione aperta con i genitori",
@@ -2010,7 +2010,7 @@ openCommunication: {
 },
 dailyUpdates: {
   en: "Share daily updates",
-  es: "Compartir actualizaciones diarias",
+  kn: "ದೈನಂದಿನ ನವೀಕರಣಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ",
   fr: "Partager des mises à jour quotidiennes",
   de: "Tägliche Updates teilen",
   it: "Condividere aggiornamenti quotidiani",
@@ -2023,7 +2023,7 @@ dailyUpdates: {
 },
 discussProgress: {
   en: "Discuss development progress",
-  es: "Discutir el progreso del desarrollo",
+  kn: "ಬೆಳವಣಿಗೆಯ ಪ್ರಗತಿಯನ್ನು ಚರ್ಚಿಸಿ",
   fr: "Discuter des progrès du développement",
   de: "Besprechung des Entwicklungsfortschritts",
   it: "Discutere i progressi dello sviluppo",
@@ -2036,7 +2036,7 @@ discussProgress: {
 },
 listenAttentively: {
   en: "Listen attentively to child",
-  es: "Escuchar atentamente al niño",
+  kn: "ಮಗುವಿಗೆ ಗಮನವಿಟ್ಟು ಕೇಳಿ",
   fr: "Écouter attentivement l'enfant",
   de: "Dem Kind aufmerksam zuhören",
   it: "Ascoltare attentamente il bambino",
@@ -2049,7 +2049,7 @@ listenAttentively: {
 },
 respondEmpathy: {
   en: "Respond with empathy",
-  es: "Responder con empatía",
+  kn: "ಸಹಾನುಭೂತಿಯಿಂದ ಪ್ರತಿಕ್ರಿಯಿಸಿ",
   fr: "Répondre avec empathie",
   de: "Mit Empathie reagieren",
   it: "Rispondere con empatia",
@@ -2062,7 +2062,7 @@ respondEmpathy: {
 },
 collaboration: {
   en: "Collaboration",
-  es: "Colaboración",
+  kn: "ಸಹಯೋಗ",
   fr: "Collaboration",
   de: "Zusammenarbeit",
   it: "Collaborazione",
@@ -2075,7 +2075,7 @@ collaboration: {
 },
 workPartnership: {
   en: "Work in partnership with parents",
-  es: "Trabajar en asociación con los padres",
+  kn: "ಪೋಷಕರೊಂದಿಗೆ ಪಾಲುದಾರಿಕೆಯಲ್ಲಿ ಕೆಲಸ ಮಾಡಿ",
   fr: "Travailler en partenariat avec les parents",
   de: "Zusammenarbeit mit den Eltern",
   it: "Lavorare in collaborazione con i genitori",
@@ -2088,7 +2088,7 @@ workPartnership: {
 },
 consistencyCare: {
   en: "Ensure consistency in care",
-  es: "Asegurar la consistencia en el cuidado",
+  kn: "ಆರೈಕೆಯಲ್ಲಿ ಸ್ಥಿರತೆಯನ್ನು ಖಚಿತಪಡಿಸಿ",
   fr: "Assurer la cohérence des soins",
   de: "Sicherstellung der Konsistenz in der Pflege",
   it: "Garantire coerenza nella cura",
@@ -2101,7 +2101,7 @@ consistencyCare: {
 },
 respectValues: {
   en: "Respect parents' values",
-  es: "Respetar los valores de los padres",
+  kn: "ಪೋಷಕರ ಮೌಲ್ಯಗಳನ್ನು ಗೌರವಿಸಿ",
   fr: "Respecter les valeurs des parents",
   de: "Respektierung der Werte der Eltern",
   it: "Rispettare i valori dei genitori",
@@ -2114,7 +2114,7 @@ respectValues: {
 },
 followStyles: {
   en: "Follow parenting styles",
-  es: "Seguir estilos de crianza",
+  kn: "ಪೋಷಕತ್ವ ಶೈಲಿಗಳನ್ನು ಅನುಸರಿಸಿ",
   fr: "Suivre les styles parentaux",
   de: "Befolgung der Erziehungsstile",
   it: "Seguire gli stili genitoriali",
@@ -2127,7 +2127,7 @@ followStyles: {
 },
 close: {
   en: "Close",
-  es: "Cerrar",
+  kn: "ಮುಚ್ಚಿ",
   fr: "Fermer",
   de: "Schließen",
   it: "Chiudi",
@@ -2142,7 +2142,7 @@ close: {
   // ============ ABOUT US PAGE TRANSLATIONS ============
   backToHome: {
     en: "Back to Home",
-    es: "Volver a Inicio",
+    kn: "ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
     fr: "Retour à l'Accueil",
     de: "Zurück zur Startseite",
     it: "Torna alla Home",
@@ -2156,7 +2156,7 @@ close: {
 
   aboutUsHero1: {
     en: "We are",
-    es: "Somos",
+    kn: "ನಾವು",
     fr: "Nous sommes",
     de: "Wir sind",
     it: "Siamo",
@@ -2170,7 +2170,7 @@ close: {
 
   aboutUsHero2: {
     en: "– a house helps service provider. 'ServEaso' collectively means 'Service Made Easy' or 'Easy Services.' We simplify the process of connecting customers who need home services with reliable and verified professionals.",
-    es: "– un proveedor de servicios de ayuda doméstica. 'ServEaso' significa colectivamente 'Servicio Hecho Fácil' o 'Servicios Fáciles'. Simplificamos el proceso de conectar a los clientes que necesitan servicios domésticos con profesionales confiables y verificados.",
+    kn: "– ಮನೆ ಸಹಾಯಕ ಸೇವೆ ಒದಗಿಸುವವರು. 'ServEaso' ಒಟ್ಟಾರೆಯಾಗಿ 'ಸೇವೆಯನ್ನು ಸುಲಭಗೊಳಿಸಲಾಗಿದೆ' ಅಥವಾ 'ಸುಲಭ ಸೇವೆಗಳು' ಎಂದರ್ಥ. ಮನೆ ಸೇವೆಗಳ ಅಗತ್ಯವಿರುವ ಗ್ರಾಹಕರನ್ನು ವಿಶ್ವಾಸಾರ್ಹ ಮತ್ತು ಪರಿಶೀಲಿತ ವೃತ್ತಿಪರರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸುವ ಪ್ರಕ್ರಿಯೆಯನ್ನು ನಾವು ಸರಳಗೊಳಿಸುತ್ತೇವೆ.",
     fr: "– un fournisseur de services d'aide ménagère. 'ServEaso' signifie collectivement 'Service Rendu Facile' ou 'Services Faciles'. Nous simplifions le processus de mise en relation des clients ayant besoin de services à domicile avec des professionnels fiables et vérifiés.",
     de: "– ein Dienstleister für Haushaltshilfen. 'ServEaso' bedeutet gemeinsam 'Service leicht gemacht' oder 'Einfache Dienstleistungen'. Wir vereinfachen den Prozess, Kunden, die Haushaltsdienstleistungen benötigen, mit zuverlässigen und geprüften Fachleuten zu verbinden.",
     it: "– un fornitore di servizi di assistenza domestica. 'ServEaso' significa collettivamente 'Servizio Semplificato' o 'Servizi Facili'. Semplifichiamo il processo di connessione dei clienti che necessitano di servizi domestici con professionisti affidabili e verificati.",
@@ -2184,7 +2184,7 @@ close: {
 
   ourStory: {
     en: "Our Story",
-    es: "Nuestra Historia",
+    kn: "ನಮ್ಮ ಕಥೆ",
     fr: "Notre Histoire",
     de: "Unsere Geschichte",
     it: "La Nostra Storia",
@@ -2198,7 +2198,7 @@ close: {
 
   ourStory1: {
     en: "ServEaso provides trained and verified house helps to simplify the lives of individuals and families who struggle to balance their professional commitments with household responsibilities.",
-    es: "ServEaso proporciona ayudas domésticas capacitadas y verificadas para simplificar la vida de individuos y familias que luchan por equilibrar sus compromisos profesionales con las responsabilidades del hogar.",
+    kn: "ವೃತ್ತಿಪರ ಬದ್ಧತೆಗಳನ್ನು ಮನೆಯ ಜವಾಬ್ದಾರಿಗಳೊಂದಿಗೆ ಸಮತೋಲನಗೊಳಿಸಲು ಹೆಣಗಾಡುವ ವ್ಯಕ್ತಿಗಳು ಮತ್ತು ಕುಟುಂಬಗಳ ಜೀವನವನ್ನು ಸರಳಗೊಳಿಸಲು ServEaso ತರಬೇತಿ ಪಡೆದ ಮತ್ತು ಪರಿಶೀಲಿತ ಮನೆ ಸಹಾಯಕರನ್ನು ಒದಗಿಸುತ್ತದೆ.",
     fr: "ServEaso fournit des aides ménagères formées et vérifiées pour simplifier la vie des personnes et des familles qui ont du mal à concilier leurs engagements professionnels et leurs responsabilités ménagères.",
     de: "ServEaso bietet geschulte und geprüfte Haushaltshilfen, um das Leben von Einzelpersonen und Familien zu vereinfachen, die Schwierigkeiten haben, ihre beruflichen Verpflichtungen mit den Haushaltspflichten in Einklang zu bringen.",
     it: "ServEaso fornisce assistenti domestici formati e verificati per semplificare la vita di individui e famiglie che faticano a bilanciare i propri impegni professionali con le responsabilità domestiche.",
@@ -2212,7 +2212,7 @@ close: {
 
   ourStory2: {
     en: "ServEaso offers a convenient and reliable solution for those in need of house care services, ensuring peace of mind and quality care for customers.",
-    es: "ServEaso ofrece una solución conveniente y confiable para aquellos que necesitan servicios de cuidado del hogar, garantizando tranquilidad y atención de calidad para los clientes.",
+    kn: "ServEaso ಮನೆ ಆರೈಕೆ ಸೇವೆಗಳ ಅಗತ್ಯವಿರುವವರಿಗೆ ಅನುಕೂಲಕರ ಮತ್ತು ವಿಶ್ವಾಸಾರ್ಹ ಪರಿಹಾರವನ್ನು ನೀಡುತ್ತದೆ, ಗ್ರಾಹಕರಿಗೆ ಮನಸ್ಸಿನ ಶಾಂತಿ ಮತ್ತು ಗುಣಮಟ್ಟದ ಆರೈಕೆಯನ್ನು ಖಚಿತಪಡಿಸುತ್ತದೆ.",
     fr: "ServEaso offre une solution pratique et fiable pour ceux qui ont besoin de services de soins à domicile, garantissant tranquillité d'esprit et soins de qualité pour les clients.",
     de: "ServEaso bietet eine bequeme und zuverlässige Lösung für diejenigen, die häusliche Pflegedienste benötigen, und gewährleistet Ruhe und qualitativ hochwertige Betreuung für die Kunden.",
     it: "ServEaso offre una soluzione conveniente e affidabile per coloro che necessitano di servizi di assistenza domiciliare, garantendo tranquillità e cure di qualità per i clienti.",
@@ -2221,12 +2221,12 @@ close: {
     ar: "تقدم ServEaso حلاً مريحًا وموثوقًا لمن يحتاجون إلى خدمات الرعاية المنزلية، مما يضمن راحة البال ورعاية عالية الجودة للعملاء.",
     zh: "ServEaso 为需要家庭护理服务的人提供方便可靠的解决方案，确保客户安心并获得优质护理。",
     ja: "ServEasoは、在宅ケアサービスを必要とする人々に便利で信頼性の高いソリューションを提供し、顧客に安心と質の高いケアを保証します。",
-    bn: "ServEaso গৃহস্থালি যত্ন সেবার প্রয়োজন那些人দের জন্য একটি সুবিধাজনক এবং নির্ভরযোগ্য সমাধান প্রদান করে, গ্রাহকদের জন্য মানসিক শান্তি এবং মানসম্পন্ন যত্ন নিশ্চিত করে।"
+    bn: "ServEaso গৃহস্থালি যত্ন সেবার প্রয়োজন那些দের জন্য একটি সুবিধাজনক এবং নির্ভরযোগ্য সমাধান প্রদান করে, গ্রাহকদের জন্য মানসিক শান্তি এবং মানসম্পন্ন যত্ন নিশ্চিত করে।"
   },
 
   challengesWeSolve: {
     en: "Challenges We Solve",
-    es: "Desafíos que Resolvemos",
+    kn: "ನಾವು ಪರಿಹರಿಸುವ ಸವಾಲುಗಳು",
     fr: "Défis que Nous Résolvons",
     de: "Herausforderungen, die Wir Lösen",
     it: "Sfide che Risolviamo",
@@ -2240,7 +2240,7 @@ close: {
 
   highTurnover: {
     en: "High Turnover",
-    es: "Alta Rotación",
+    kn: "ಅಧಿಕ ವಹಿವಾಟು",
     fr: "Rotation Élevée",
     de: "Hohe Fluktuation",
     it: "Alto Turnover",
@@ -2254,7 +2254,7 @@ close: {
 
   highTurnoverDesc: {
     en: "Difficulty in retaining house helps due to factors like demanding work conditions, low wages, or lack of work-life balance.",
-    es: "Dificultad para retener ayudas domésticas debido a factores como condiciones de trabajo exigentes, bajos salarios o falta de equilibrio entre el trabajo y la vida personal.",
+    kn: "ಕಠಿಣ ಕೆಲಸದ ಪರಿಸ್ಥಿತಿಗಳು, ಕಡಿಮೆ ವೇತನ, ಅಥವಾ ಕೆಲಸ-ಜೀವನ ಸಮತೋಲನದ ಕೊರತೆಯಂತಹ ಅಂಶಗಳಿಂದ ಮನೆ ಸಹಾಯಕರನ್ನು ಉಳಿಸಿಕೊಳ್ಳುವಲ್ಲಿ ತೊಂದರೆ.",
     fr: "Difficulté à retenir les aides ménagères en raison de facteurs tels que des conditions de travail exigeantes, des bas salaires ou un manque d'équilibre entre vie professionnelle et vie privée.",
     de: "Schwierigkeiten, Haushaltshilfen zu halten, aufgrund von Faktoren wie anspruchsvollen Arbeitsbedingungen, niedrigen Löhnen oder mangelnder Work-Life-Balance.",
     it: "Difficoltà nel trattenere gli assistenti domestici a causa di fattori come condizioni di lavoro impegnative, bassi salari o mancanza di equilibrio tra lavoro e vita privata.",
@@ -2268,7 +2268,7 @@ close: {
 
   skillsGap: {
     en: "Skills Gap",
-    es: "Brecha de Habilidades",
+    kn: "ಕೌಶಲ್ಯ ಅಂತರ",
     fr: "Déficit de Compétences",
     de: "Qualifikationslücke",
     it: "Divario di Competenze",
@@ -2282,7 +2282,7 @@ close: {
 
   skillsGapDesc: {
     en: "Lack of necessary skills or training for specific tasks, leading to subpar performance or safety concerns.",
-    es: "Falta de habilidades o capacitación necesarias para tareas específicas, lo que lleva a un rendimiento inferior o problemas de seguridad.",
+    kn: "ನಿರ್ದಿಷ್ಟ ಕಾರ್ಯಗಳಿಗೆ ಅಗತ್ಯ ಕೌಶಲ್ಯಗಳು ಅಥವಾ ತರಬೇತಿಯ ಕೊರತೆ, ಇದು ಕಳಪೆ ಕಾರ್ಯಕ್ಷಮತೆ ಅಥವಾ ಸುರಕ್ಷತಾ ಕಾಳಜಿಗಳಿಗೆ ಕಾರಣವಾಗುತ್ತದೆ.",
     fr: "Manque de compétences ou de formation nécessaires pour des tâches spécifiques, entraînant des performances médiocres ou des problèmes de sécurité.",
     de: "Mangel an erforderlichen Fähigkeiten oder Schulungen für bestimmte Aufgaben, was zu unterdurchschnittlicher Leistung oder Sicherheitsbedenken führt.",
     it: "Mancanza delle competenze o della formazione necessarie per compiti specifici, che portano a prestazioni insufficienti o problemi di sicurezza.",
@@ -2296,7 +2296,7 @@ close: {
 
   communicationBarriers: {
     en: "Communication Barriers",
-    es: "Barreras de Comunicación",
+    kn: "ಸಂವಹನ ಅಡೆತಡೆಗಳು",
     fr: "Barrières de Communication",
     de: "Kommunikationsbarrieren",
     it: "Barriere Comunicative",
@@ -2310,8 +2310,8 @@ close: {
 
   communicationBarriersDesc: {
     en: "Language or cultural differences hindering effective communication.",
-    es: "Diferencias de idioma o culturales que dificultan la comunicación efectiva.",
-    fr: "Différences linguistiques ou culturelles entravant une communication efficace.",
+    kn: "ಭಾಷೆ ಅಥವಾ ಸಾಂಸ್ಕೃತಿಕ ವ್ಯತ್ಯಾಸಗಳು ಪರಿಣಾಮಕಾರಿ ಸಂವಹನಕ್ಕೆ ಅಡ್ಡಿಯಾಗುತ್ತವೆ.",
+    fr: "Differences linguistiques ou culturelles entravant une communication efficace.",
     de: "Sprachliche oder kulturelle Unterschiede, die eine effektive Kommunikation behindern.",
     it: "Differenze linguistiche o culturali che ostacolano una comunicazione efficace.",
     pt: "Diferenças de idioma ou culturais que dificultam a comunicação eficaz.",
@@ -2324,7 +2324,7 @@ close: {
 
   trustAndSecurity: {
     en: "Trust and Security",
-    es: "Confianza y Seguridad",
+    kn: "ನಂಬಿಕೆ ಮತ್ತು ಸುರಕ್ಷತೆ",
     fr: "Confiance et Sécurité",
     de: "Vertrauen und Sicherheit",
     it: "Fiducia e Sicurezza",
@@ -2338,7 +2338,7 @@ close: {
 
   trustAndSecurityDesc: {
     en: "Concerns about theft, privacy violations, or family safety.",
-    es: "Preocupaciones sobre robos, violaciones de privacidad o seguridad familiar.",
+    kn: "ಕಳ್ಳತನ, ಗೌಪ್ಯತೆ ಉಲ್ಲಂಘನೆಗಳು ಅಥವಾ ಕುಟುಂಬದ ಸುರಕ್ಷತೆಯ ಬಗ್ಗೆ ಕಾಳಜಿಗಳು.",
     fr: "Préoccupations concernant le vol, les violations de la vie privée ou la sécurité familiale.",
     de: "Bedenken hinsichtlich Diebstahl, Verletzung der Privatsphäre oder Familiensicherheit.",
     it: "Preoccupazioni per furti, violazioni della privacy o sicurezza familiare.",
@@ -2352,7 +2352,7 @@ close: {
 
   dependenceAndEntitlement: {
     en: "Dependence and Entitlement",
-    es: "Dependencia y Derecho",
+    kn: "ಅವಲಂಬನೆ ಮತ್ತು ಹಕ್ಕು",
     fr: "Dépendance et Droit",
     de: "Abhängigkeit und Anspruchsdenken",
     it: "Dipendenza e Diritto",
@@ -2366,7 +2366,7 @@ close: {
 
   dependenceAndEntitlementDesc: {
     en: "Overreliance on employers, reducing household independence.",
-    es: "Dependencia excesiva de los empleadores, reduciendo la independencia del hogar.",
+    kn: "ಉದ್ಯೋಗದಾತರ ಮೇಲೆ ಅತಿಯಾದ ಅವಲಂಬನೆ, ಮನೆಯ ಸ್ವಾತಂತ್ರ್ಯವನ್ನು ಕಡಿಮೆ ಮಾಡುತ್ತದೆ.",
     fr: "Dépendance excessive envers les employeurs, réduisant l'indépendance du ménage.",
     de: "Übermäßige Abhängigkeit von Arbeitgebern, die die Unabhängigkeit des Haushalts verringert.",
     it: "Eccessiva dipendenza dai datori di lavoro, riducendo l'indipendenza domestica.",
@@ -2380,7 +2380,7 @@ close: {
 
   lackOfLegalProtection: {
     en: "Lack of Legal Protection",
-    es: "Falta de Protección Legal",
+    kn: "ಕಾನೂನು ರಕ್ಷಣೆಯ ಕೊರತೆ",
     fr: "Manque de Protection Juridique",
     de: "Mangel an Rechtsschutz",
     it: "Mancanza di Protezione Legale",
@@ -2394,7 +2394,7 @@ close: {
 
   lackOfLegalProtectionDesc: {
     en: "Exploitation due to unclear legal frameworks or poor enforcement.",
-    es: "Explotación debido a marcos legales poco claros o mala aplicación.",
+    kn: "ಅಸ್ಪಷ್ಟ ಕಾನೂನು ಚೌಕಟ್ಟುಗಳು ಅಥವಾ ಕಳಪೆ ಜಾರಿಯಿಂದಾಗಿ ಶೋಷಣೆ.",
     fr: "Exploitation due à des cadres juridiques flous ou à une mauvaise application.",
     de: "Ausbeutung aufgrund unklarer rechtlicher Rahmenbedingungen oder schlechter Durchsetzung.",
     it: "Sfruttamento a causa di quadri giuridici poco chiari o scarsa applicazione.",
@@ -2408,7 +2408,7 @@ close: {
 
   socialIsolation: {
     en: "Social Isolation",
-    es: "Aislamiento Social",
+    kn: "ಸಾಮಾಜಿಕ ಪ್ರತ್ಯೇಕತೆ",
     fr: "Isolement Social",
     de: "Soziale Isolation",
     it: "Isolamento Sociale",
@@ -2422,7 +2422,7 @@ close: {
 
   socialIsolationDesc: {
     en: "Loneliness from living away from families and communities.",
-    es: "Soledad por vivir lejos de familias y comunidades.",
+    kn: "ಕುಟುಂಬಗಳು ಮತ್ತು ಸಮುದಾಯಗಳಿಂದ ದೂರವಿರುವುದರಿಂದ ಒಂಟಿತನ.",
     fr: "Solitude due à l'éloignement des familles et des communautés.",
     de: "Einsamkeit durch das Leben fern von Familie und Gemeinschaft.",
     it: "Solitudine per vivere lontano da famiglie e comunità.",
@@ -2436,7 +2436,7 @@ close: {
 
   employerMaidRelationship: {
     en: "Employer-Maid Relationship Dynamics",
-    es: "Dinámica de la Relación Empleador-Empleada",
+    kn: "ಉದ್ಯೋಗದಾತ-ಮನೆಕೆಲಸದವರ ಸಂಬಂಧದ ಡೈನಾಮಿಕ್ಸ್",
     fr: "Dynamique de la Relation Employeur-Femme de Ménage",
     de: "Dynamik der Arbeitgeber-Haushaltshilfe-Beziehung",
     it: "Dinamiche del Rapporto Datore di Lavoro-Colf",
@@ -2450,7 +2450,7 @@ close: {
 
   employerMaidRelationshipDesc: {
     en: "Difficulty in building respectful, trust-based relationships.",
-    es: "Dificultad para construir relaciones respetuosas y basadas en la confianza.",
+    kn: "ಗೌರವಯುತ, ವಿಶ್ವಾಸ-ಆಧಾರಿತ ಸಂಬಂಧಗಳನ್ನು ನಿರ್ಮಿಸುವಲ್ಲಿ ತೊಂದರೆ.",
     fr: "Difficulté à établir des relations respectueuses et fondées sur la confiance.",
     de: "Schwierigkeiten beim Aufbau respektvoller, vertrauensbasierter Beziehungen.",
     it: "Difficoltà nel costruire relazioni rispettose e basate sulla fiducia.",
@@ -2464,7 +2464,7 @@ close: {
 
   limitedAccessToHealthcare: {
     en: "Limited Access to Healthcare",
-    es: "Acceso Limitado a la Atención Médica",
+    kn: "ಆರೋಗ್ಯ ರಕ್ಷಣೆಗೆ ಸೀಮಿತ ಪ್ರವೇಶ",
     fr: "Accès Limité aux Soins de Santé",
     de: "Eingeschränkter Zugang zur Gesundheitsversorgung",
     it: "Accesso Limitato all'Assistenza Sanitaria",
@@ -2478,7 +2478,7 @@ close: {
 
   limitedAccessToHealthcareDesc: {
     en: "Lack of affordable healthcare or insurance coverage.",
-    es: "Falta de atención médica asequible o cobertura de seguro.",
+    kn: "ಕೈಗೆಟುಕುವ ಆರೋಗ್ಯ ರಕ್ಷಣೆ ಅಥವಾ ವಿಮಾ ರಕ್ಷಣೆಯ ಕೊರತೆ.",
     fr: "Manque de soins de santé abordables ou de couverture d'assurance.",
     de: "Mangel an erschwinglicher Gesundheitsversorgung oder Versicherungsschutz.",
     it: "Mancanza di assistenza sanitaria a prezzi accessibili o copertura assicurativa.",
@@ -2492,7 +2492,7 @@ close: {
 
   lackOfStandardizedPractices: {
     en: "Lack of Standardized Practices",
-    es: "Falta de Prácticas Estandarizadas",
+    kn: "ಪ್ರಮಾಣೀಕೃತ ಅಭ್ಯಾಸಗಳ ಕೊರತೆ",
     fr: "Manque de Pratiques Standardisées",
     de: "Mangel an standardisierten Praktiken",
     it: "Mancanza di Pratiche Standardizzate",
@@ -2506,7 +2506,7 @@ close: {
 
   lackOfStandardizedPracticesDesc: {
     en: "No clear guidelines for hiring, training, and managing domestic workers.",
-    es: "No hay pautas claras para contratar, capacitar y gestionar trabajadores domésticos.",
+    kn: "ಗೃಹ ಕಾರ್ಮಿಕರನ್ನು ನೇಮಿಸಿಕೊಳ್ಳುವುದು, ತರಬೇತಿ ನೀಡುವುದು ಮತ್ತು ನಿರ್ವಹಿಸುವುದಕ್ಕಾಗಿ ಸ್ಪಷ್ಟ ಮಾರ್ಗಸೂಚಿಗಳಿಲ್ಲ.",
     fr: "Absence de directives claires pour l'embauche, la formation et la gestion des travailleurs domestiques.",
     de: "Keine klaren Richtlinien für die Einstellung, Schulung und Verwaltung von Hausangestellten.",
     it: "Nessuna linea guida chiara per l'assunzione, la formazione e la gestione dei lavoratori domestici.",
@@ -2522,7 +2522,7 @@ close: {
   // ============ CONTACT US PAGE TRANSLATIONS ============
   requestSubmitted: {
     en: "Your request has been submitted!",
-    es: "¡Tu solicitud ha sido enviada!",
+    kn: "ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಸಲ್ಲಿಸಲಾಗಿದೆ!",
     fr: "Votre demande a été soumise !",
     de: "Ihre Anfrage wurde übermittelt!",
     it: "La tua richiesta è stata inviata!",
@@ -2536,7 +2536,7 @@ close: {
 
   back: {
     en: "Back",
-    es: "Atrás",
+    kn: "ಹಿಂದೆ",
     fr: "Retour",
     de: "Zurück",
     it: "Indietro",
@@ -2550,7 +2550,7 @@ close: {
 
   getInTouch: {
     en: "Get in touch with us",
-    es: "Ponte en contacto con nosotros",
+    kn: "ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ",
     fr: "Entrez en contact avec nous",
     de: "Setzen Sie sich mit uns in Verbindung",
     it: "Mettiti in contatto con noi",
@@ -2564,7 +2564,7 @@ close: {
 
   contactDescription: {
     en: "Fill out the form below or schedule a meeting with us at your convenience.",
-    es: "Complete el formulario a continuación o programe una reunión con nosotros cuando le convenga.",
+    kn: "ಕೆಳಗಿನ ಫಾರ್ಮ್ ಅನ್ನು ಭರ್ತಿ ಮಾಡಿ ಅಥವಾ ನಿಮ್ಮ ಅನುಕೂಲಕ್ಕೆ ತಕ್ಕಂತೆ ನಮ್ಮೊಂದಿಗೆ ಸಭೆಯನ್ನು ನಿಗದಿಪಡಿಸಿ.",
     fr: "Remplissez le formulaire ci-dessous ou planifiez une réunion avec nous à votre convenance.",
     de: "Füllen Sie das untenstehende Formular aus oder vereinbaren Sie einen Termin mit uns nach Ihren Wünschen.",
     it: "Compila il modulo sottostante o pianifica un incontro con noi quando preferisci.",
@@ -2578,7 +2578,7 @@ close: {
 
   name: {
     en: "Name",
-    es: "Nombre",
+    kn: "ಹೆಸರು",
     fr: "Nom",
     de: "Name",
     it: "Nome",
@@ -2592,7 +2592,7 @@ close: {
 
   yourName: {
     en: "Your name",
-    es: "Tu nombre",
+    kn: "ನಿಮ್ಮ ಹೆಸರು",
     fr: "Votre nom",
     de: "Ihr Name",
     it: "Il tuo nome",
@@ -2606,7 +2606,7 @@ close: {
 
   email: {
     en: "Email",
-    es: "Correo Electrónico",
+    kn: "ಇಮೇಲ್",
     fr: "E-mail",
     de: "E-Mail",
     it: "Email",
@@ -2620,7 +2620,7 @@ close: {
 
   enterEmail: {
     en: "Enter Your Email",
-    es: "Ingrese su Correo Electrónico",
+    kn: "ನಿಮ್ಮ ಇಮೇಲ್ ನಮೂದಿಸಿ",
     fr: "Entrez votre E-mail",
     de: "Geben Sie Ihre E-Mail ein",
     it: "Inserisci la tua Email",
@@ -2634,7 +2634,7 @@ close: {
 
   message: {
     en: "Message",
-    es: "Mensaje",
+    kn: "ಸಂದೇಶ",
     fr: "Message",
     de: "Nachricht",
     it: "Messaggio",
@@ -2648,7 +2648,7 @@ close: {
 
   enterMessage: {
     en: "Enter Your Message",
-    es: "Ingrese su Mensaje",
+    kn: "ನಿಮ್ಮ ಸಂದೇಶವನ್ನು ನಮೂದಿಸಿ",
     fr: "Entrez votre Message",
     de: "Geben Sie Ihre Nachricht ein",
     it: "Inserisci il tuo Messaggio",
@@ -2662,7 +2662,7 @@ close: {
 
   iAgreeWith: {
     en: "I agree with",
-    es: "Estoy de acuerdo con",
+    kn: "ನಾನು ಸಮ್ಮತಿಸುತ್ತೇನೆ",
     fr: "J'accepte les",
     de: "Ich stimme zu",
     it: "Accetto i",
@@ -2676,7 +2676,7 @@ close: {
 
   termsAndConditions: {
     en: "Terms and Conditions",
-    es: "Términos y Condiciones",
+    kn: "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
     fr: "Termes et Conditions",
     de: "Allgemeine Geschäftsbedingungen",
     it: "Termini e Condizioni",
@@ -2690,7 +2690,7 @@ close: {
 
   sendRequest: {
     en: "Send Your Request",
-    es: "Enviar tu Solicitud",
+    kn: "ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಕಳುಹಿಸಿ",
     fr: "Envoyer votre Demande",
     de: "Anfrage senden",
     it: "Invia la tua Richiesta",
@@ -2704,7 +2704,7 @@ close: {
 
   contactVia: {
     en: "You can also contact us via",
-    es: "También puede contactarnos a través de",
+    kn: "ನೀವು ನಮ್ಮನ್ನು ಇವುಗಳ ಮೂಲಕವೂ ಸಂಪರ್ಕಿಸಬಹುದು",
     fr: "Vous pouvez également nous contacter via",
     de: "Sie können uns auch kontaktieren über",
     it: "Puoi anche contattarci tramite",
@@ -2718,7 +2718,7 @@ close: {
 
   withOurServices: {
     en: "With our services you can",
-    es: "Con nuestros servicios puedes",
+    kn: "ನಮ್ಮ ಸೇವೆಗಳೊಂದಿಗೆ ನೀವು",
     fr: "Avec nos services, vous pouvez",
     de: "Mit unseren Dienstleistungen können Sie",
     it: "Con i nostri servizi puoi",
@@ -2732,7 +2732,7 @@ close: {
 
   benefit1: {
     en: "Improve usability of your product",
-    es: "Mejorar la usabilidad de tu producto",
+    kn: "ನಿಮ್ಮ ಉತ್ಪನ್ನದ ಬಳಕೆಯನ್ನು ಸುಧಾರಿಸಿ",
     fr: "Améliorer la convivialité de votre produit",
     de: "Verbessern Sie die Benutzerfreundlichkeit Ihres Produkts",
     it: "Migliorare l'usabilità del tuo prodotto",
@@ -2746,7 +2746,7 @@ close: {
 
   benefit2: {
     en: "Engage users at a higher level and outperform competition",
-    es: "Involucrar a los usuarios a un nivel superior y superar a la competencia",
+    kn: "ಬಳಕೆದಾರರನ್ನು ಉನ್ನತ ಮಟ್ಟದಲ್ಲಿ ತೊಡಗಿಸಿಕೊಳ್ಳಿ ಮತ್ತು ಸ್ಪರ್ಧೆಯನ್ನು ಮೀರಿಸಿ",
     fr: "Engager les utilisateurs à un niveau supérieur et surpasser la concurrence",
     de: "Binden Sie Benutzer auf einer höheren Ebene ein und übertreffen Sie die Konkurrenz",
     it: "Coinvolgere gli utenti a un livello superiore e superare la concorrenza",
@@ -2760,7 +2760,7 @@ close: {
 
   benefit3: {
     en: "Reduce onboarding time and improve sales",
-    es: "Reducir el tiempo de incorporación y mejorar las ventas",
+    kn: "ಆನ್ಬೋರ್ಡಿಂಗ್ ಸಮಯವನ್ನು ಕಡಿಮೆ ಮಾಡಿ ಮತ್ತು ಮಾರಾಟವನ್ನು ಸುಧಾರಿಸಿ",
     fr: "Réduire le temps d'intégration et améliorer les ventes",
     de: "Reduzieren Sie die Einarbeitungszeit und verbessern Sie den Umsatz",
     it: "Ridurre i tempi di onboarding e migliorare le vendite",
@@ -2774,7 +2774,7 @@ close: {
 
   benefit4: {
     en: "Balance user needs with your business goals",
-    es: "Equilibrar las necesidades de los usuarios con sus objetivos comerciales",
+    kn: "ಬಳಕೆದಾರರ ಅಗತ್ಯಗಳನ್ನು ನಿಮ್ಮ ವ್ಯಾಪಾರ ಗುರಿಗಳೊಂದಿಗೆ ಸಮತೋಲನಗೊಳಿಸಿ",
     fr: "Équilibrer les besoins des utilisateurs avec vos objectifs commerciaux",
     de: "Bringen Sie Benutzerbedürfnisse mit Ihren Geschäftszielen in Einklang",
     it: "Bilanciare le esigenze degli utenti con i tuoi obiettivi aziendali",
@@ -2788,7 +2788,7 @@ close: {
 
   followUs: {
     en: "Follow us",
-    es: "Síguenos",
+    kn: "ನಮ್ಮನ್ನು ಅನುಸರಿಸಿ",
     fr: "Suivez-nous",
     de: "Folgen Sie uns",
     it: "Seguici",
@@ -2802,7 +2802,7 @@ close: {
 
   downloadApp: {
     en: "Download Our App",
-    es: "Descarga Nuestra App",
+    kn: "ನಮ್ಮ ಅಪ್ಲಿಕೇಶನ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
     fr: "Téléchargez Notre Application",
     de: "Laden Sie Unsere App Herunter",
     it: "Scarica La Nostra App",
@@ -2819,7 +2819,7 @@ close: {
 // ============ AGENT REGISTRATION FORM TRANSLATIONS ============
 agentRegistration: {
   en: "Agent Registration",
-  es: "Registro de Agente",
+  kn: "ಏಜೆಂಟ್ ನೋಂದಣಿ",
   fr: "Inscription d'Agent",
   de: "Agentenregistrierung",
   it: "Registrazione Agente",
@@ -2833,7 +2833,7 @@ agentRegistration: {
 
 companyName: {
   en: "Company Name *",
-  es: "Nombre de la Empresa *",
+  kn: "ಕಂಪನಿ ಹೆಸರು *",
   fr: "Nom de l'Entreprise *",
   de: "Firmenname *",
   it: "Nome dell'Azienda *",
@@ -2847,7 +2847,7 @@ companyName: {
 
 mobileNumber: {
   en: "Mobile Number *",
-  es: "Número de Móvil *",
+  kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ *",
   fr: "Numéro de Mobile *",
   de: "Handynummer *",
   it: "Numero di Cellulare *",
@@ -2861,7 +2861,7 @@ mobileNumber: {
 
 emailId: {
   en: "Email ID *",
-  es: "Correo Electrónico *",
+  kn: "ಇಮೇಲ್ ಐಡಿ *",
   fr: "Adresse E-mail *",
   de: "E-Mail-Adresse *",
   it: "Indirizzo Email *",
@@ -2875,7 +2875,7 @@ emailId: {
 
 registrationId: {
   en: "Registration ID *",
-  es: "ID de Registro *",
+  kn: "ನೋಂದಣಿ ಐಡಿ *",
   fr: "ID d'Inscription *",
   de: "Registrierungs-ID *",
   it: "ID di Registrazione *",
@@ -2889,7 +2889,7 @@ registrationId: {
 
 password: {
   en: "Password *",
-  es: "Contraseña *",
+  kn: "ಪಾಸ್ವರ್ಡ್ *",
   fr: "Mot de Passe *",
   de: "Passwort *",
   it: "Password *",
@@ -2903,7 +2903,7 @@ password: {
 
 confirmPassword: {
   en: "Confirm Password *",
-  es: "Confirmar Contraseña *",
+  kn: "ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ *",
   fr: "Confirmer le Mot de Passe *",
   de: "Passwort Bestätigen *",
   it: "Conferma Password *",
@@ -2917,7 +2917,7 @@ confirmPassword: {
 
 companyAddress: {
   en: "Company Address *",
-  es: "Dirección de la Empresa *",
+  kn: "ಕಂಪನಿ ವಿಳಾಸ *",
   fr: "Adresse de l'Entreprise *",
   de: "Firmenadresse *",
   it: "Indirizzo dell'Azienda *",
@@ -2931,7 +2931,7 @@ companyAddress: {
 
 submit: {
   en: "Submit",
-  es: "Enviar",
+  kn: "ಸಲ್ಲಿಸಿ",
   fr: "Soumettre",
   de: "Einreichen",
   it: "Invia",
@@ -2945,7 +2945,7 @@ submit: {
 
 submitting: {
   en: "Submitting...",
-  es: "Enviando...",
+  kn: "ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...",
   fr: "Envoi en cours...",
   de: "Wird gesendet...",
   it: "Invio in corso...",
@@ -2959,7 +2959,7 @@ submitting: {
 
 phoneValidationError: {
   en: "Enter a valid 10-digit mobile number",
-  es: "Ingrese un número de móvil válido de 10 dígitos",
+  kn: "ಮಾನ್ಯವಾದ 10-ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez un numéro de mobile valide à 10 chiffres",
   de: "Geben Sie eine gültige 10-stellige Handynummer ein",
   it: "Inserisci un numero di cellulare valido di 10 cifre",
@@ -2973,7 +2973,7 @@ phoneValidationError: {
 
 emailValidationError: {
   en: "Enter a valid email address",
-  es: "Ingrese una dirección de correo electrónico válida",
+  kn: "ಮಾನ್ಯವಾದ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez une adresse e-mail valide",
   de: "Geben Sie eine gültige E-Mail-Adresse ein",
   it: "Inserisci un indirizzo email valido",
@@ -2987,7 +2987,7 @@ emailValidationError: {
 
 registrationIdRequired: {
   en: "Registration ID is required",
-  es: "Se requiere ID de registro",
+  kn: "ನೋಂದಣಿ ಐಡಿ ಅಗತ್ಯವಿದೆ",
   fr: "L'ID d'inscription est requis",
   de: "Registrierungs-ID ist erforderlich",
   it: "L'ID di registrazione è richiesto",
@@ -3001,7 +3001,7 @@ registrationIdRequired: {
 
 registrationIdValidationError: {
   en: "Registration ID should be alphanumeric and 10-20 characters long",
-  es: "El ID de registro debe ser alfanumérico y tener entre 10 y 20 caracteres",
+  kn: "ನೋಂದಣಿ ಐಡಿ ಅಕ್ಷರಸಂಖ್ಯಾತ್ಮಕವಾಗಿರಬೇಕು ಮತ್ತು 10-20 ಅಕ್ಷರಗಳ ಉದ್ದವಿರಬೇಕು",
   fr: "L'ID d'inscription doit être alphanumérique et comporter entre 10 et 20 caractères",
   de: "Die Registrierungs-ID muss alphanumerisch sein und 10-20 Zeichen lang sein",
   it: "L'ID di registrazione deve essere alfanumerico e lungo 10-20 caratteri",
@@ -3015,7 +3015,7 @@ registrationIdValidationError: {
 
 passwordValidationError: {
   en: "Password must contain at least 8 characters, including 1 letter, 1 number, and 1 special character",
-  es: "La contraseña debe contener al menos 8 caracteres, incluyendo 1 letra, 1 número y 1 carácter especial",
+  kn: "ಪಾಸ್ವರ್ಡ್ ಕನಿಷ್ಠ 8 ಅಕ್ಷರಗಳನ್ನು ಒಳಗೊಂಡಿರಬೇಕು, 1 ಅಕ್ಷರ, 1 ಸಂಖ್ಯೆ ಮತ್ತು 1 ವಿಶೇಷ ಅಕ್ಷರ ಸೇರಿದಂತೆ",
   fr: "Le mot de passe doit contenir au moins 8 caractères, dont 1 lettre, 1 chiffre et 1 caractère spécial",
   de: "Das Passwort muss mindestens 8 Zeichen enthalten, darunter 1 Buchstaben, 1 Zahl und 1 Sonderzeichen",
   it: "La password deve contenere almeno 8 caratteri, inclusi 1 lettera, 1 numero e 1 carattere speciale",
@@ -3029,7 +3029,7 @@ passwordValidationError: {
 
 passwordMismatch: {
   en: "Passwords do not match",
-  es: "Las contraseñas no coinciden",
+  kn: "ಪಾಸ್ವರ್ಡ್ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ",
   fr: "Les mots de passe ne correspondent pas",
   de: "Passwörter stimmen nicht überein",
   it: "Le password non corrispondono",
@@ -3043,7 +3043,7 @@ passwordMismatch: {
 
 fillRequiredFields: {
   en: "Please fill in all required fields",
-  es: "Por favor, complete todos los campos obligatorios",
+  kn: "ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಅಗತ್ಯ ಕ್ಷೇತ್ರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಿ",
   fr: "Veuillez remplir tous les champs obligatoires",
   de: "Bitte füllen Sie alle Pflichtfelder aus",
   it: "Si prega di compilare tutti i campi obbligatori",
@@ -3057,7 +3057,7 @@ fillRequiredFields: {
 
 ensureValidFields: {
   en: "Please ensure all fields are valid and email/mobile are available",
-  es: "Asegúrese de que todos los campos sean válidos y que el correo electrónico/teléfono estén disponibles",
+  kn: "ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಕ್ಷೇತ್ರಗಳು ಮಾನ್ಯವಾಗಿವೆ ಮತ್ತು ಇಮೇಲ್/ಮೊಬೈಲ್ ಲಭ್ಯವಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ",
   fr: "Veuillez vous assurer que tous les champs sont valides et que l'email/le mobile sont disponibles",
   de: "Bitte stellen Sie sicher, dass alle Felder gültig sind und E-Mail/Handy verfügbar sind",
   it: "Assicurati che tutti i campi siano validi e che email/cellulare siano disponibili",
@@ -3071,7 +3071,7 @@ ensureValidFields: {
 
 vendorAdded: {
   en: "Vendor added successfully!",
-  es: "¡Proveedor agregado exitosamente!",
+  kn: "ಮಾರಾಟಗಾರರನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ!",
   fr: "Fournisseur ajouté avec succès!",
   de: "Anbieter erfolgreich hinzugefügt!",
   it: "Fornitore aggiunto con successo!",
@@ -3085,7 +3085,7 @@ vendorAdded: {
 
 vendorAddFailed: {
   en: "Failed to add vendor.",
-  es: "Error al agregar proveedor.",
+  kn: "ಮಾರಾಟಗಾರರನ್ನು ಸೇರಿಸಲು ವಿಫಲವಾಗಿದೆ.",
   fr: "Échec de l'ajout du fournisseur.",
   de: "Fehler beim Hinzufügen des Anbieters.",
   it: "Impossibile aggiungere il fornitore.",
@@ -3099,7 +3099,7 @@ vendorAddFailed: {
 
 serverError: {
   en: "Server error occurred",
-  es: "Error del servidor",
+  kn: "ಸರ್ವರ್ ದೋಷ ಸಂಭವಿಸಿದೆ",
   fr: "Erreur du serveur",
   de: "Serverfehler aufgetreten",
   it: "Errore del server",
@@ -3113,7 +3113,7 @@ serverError: {
 
 noServerResponse: {
   en: "No response from server. Please check your connection.",
-  es: "No hay respuesta del servidor. Por favor, verifique su conexión.",
+  kn: "ಸರ್ವರ್‌ನಿಂದ ಪ್ರತಿಕ್ರಿಯೆ ಇಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.",
   fr: "Pas de réponse du serveur. Veuillez vérifier votre connexion.",
   de: "Keine Antwort vom Server. Bitte überprüfen Sie Ihre Verbindung.",
   it: "Nessuna risposta dal server. Per favore controlla la tua connessione.",
@@ -3127,7 +3127,7 @@ noServerResponse: {
 
 apiConnectionError: {
   en: "An error occurred while connecting to the API.",
-  es: "Ocurrió un error al conectarse a la API.",
+  kn: "API ಗೆ ಸಂಪರ್ಕಿಸುವಾಗ ದೋಷ ಸಂಭವಿಸಿದೆ.",
   fr: "Une erreur s'est produite lors de la connexion à l'API.",
   de: "Beim Verbinden mit der API ist ein Fehler aufgetreten.",
   it: "Si è verificato un errore durante la connessione all'API.",
@@ -3141,7 +3141,7 @@ apiConnectionError: {
 
 registrationIdCopied: {
   en: "Registration ID copied to clipboard!",
-  es: "¡ID de registro copiado al portapapeles!",
+  kn: "ನೋಂದಣಿ ಐಡಿಯನ್ನು ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ!",
   fr: "ID d'inscription copié dans le presse-papiers!",
   de: "Registrierungs-ID in die Zwischenablage kopiert!",
   it: "ID di registrazione copiato negli appunti!",
@@ -3155,7 +3155,7 @@ registrationIdCopied: {
 
 mobileAlreadyRegistered: {
   en: "This mobile number is already registered",
-  es: "Este número de móvil ya está registrado",
+  kn: "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲಾಗಿದೆ",
   fr: "Ce numéro de mobile est déjà enregistré",
   de: "Diese Handynummer ist bereits registriert",
   it: "Questo numero di cellulare è già registrato",
@@ -3169,7 +3169,7 @@ mobileAlreadyRegistered: {
 
 emailAlreadyRegistered: {
   en: "This email is already registered",
-  es: "Este correo electrónico ya está registrado",
+  kn: "ಈ ಇಮೇಲ್ ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಲಾಗಿದೆ",
   fr: "Cet e-mail est déjà enregistré",
   de: "Diese E-Mail ist bereits registriert",
   it: "Questa email è già registrata",
@@ -3185,7 +3185,7 @@ emailAlreadyRegistered: {
 // ============ ADDRESS COMPONENT TRANSLATIONS ============
 permanentAddress: {
   en: "Permanent Address *",
-  es: "Dirección Permanente *",
+  kn: "ಶಾಶ್ವತ ವಿಳಾಸ *",
   fr: "Adresse Permanente *",
   de: "Ständige Adresse *",
   it: "Indirizzo Permanente *",
@@ -3199,7 +3199,7 @@ permanentAddress: {
 
 correspondenceAddress: {
   en: "Correspondence Address *",
-  es: "Dirección de Correspondencia *",
+  kn: "ಪತ್ರ ವ್ಯವಹಾರದ ವಿಳಾಸ *",
   fr: "Adresse de Correspondance *",
   de: "Korrespondenzadresse *",
   it: "Indirizzo di Corrispondenza *",
@@ -3213,7 +3213,7 @@ correspondenceAddress: {
 
 apartmentLabel: {
   en: "Apartment/Flat Name or Number *",
-  es: "Nombre o Número de Apartamento *",
+  kn: "ಅಪಾರ್ಟ್‌ಮೆಂಟ್/ಫ್ಲಾಟ್ ಹೆಸರು ಅಥವಾ ಸಂಖ್ಯೆ *",
   fr: "Nom ou Numéro d'Appartement *",
   de: "Wohnungsname oder -nummer *",
   it: "Nome o Numero dell'Appartamento *",
@@ -3227,7 +3227,7 @@ apartmentLabel: {
 
 streetLabel: {
   en: "Street Name/Locality *",
-  es: "Nombre de la Calle/Localidad *",
+  kn: "ರಸ್ತೆ ಹೆಸರು/ಪ್ರದೇಶ *",
   fr: "Nom de la Rue/Localité *",
   de: "Straßenname/Ortsteil *",
   it: "Nome della Via/Località *",
@@ -3241,7 +3241,7 @@ streetLabel: {
 
 cityLabel: {
   en: "City *",
-  es: "Ciudad *",
+  kn: "ನಗರ *",
   fr: "Ville *",
   de: "Stadt *",
   it: "Città *",
@@ -3255,7 +3255,7 @@ cityLabel: {
 
 countryLabel: {
   en: "Country *",
-  es: "País *",
+  kn: "ದೇಶ *",
   fr: "Pays *",
   de: "Land *",
   it: "Paese *",
@@ -3269,7 +3269,7 @@ countryLabel: {
 
 stateLabel: {
   en: "State *",
-  es: "Estado *",
+  kn: "ರಾಜ್ಯ *",
   fr: "État *",
   de: "Bundesland *",
   it: "Stato *",
@@ -3283,7 +3283,7 @@ stateLabel: {
 
 pincodeLabel: {
   en: "Pincode *",
-  es: "Código Postal *",
+  kn: "ಪಿನ್‌ಕೋಡ್ *",
   fr: "Code Postal *",
   de: "Postleitzahl *",
   it: "Codice Postale *",
@@ -3297,7 +3297,7 @@ pincodeLabel: {
 
 pincodeHelper: {
   en: "6-digit code",
-  es: "Código de 6 dígitos",
+  kn: "6-ಅಂಕಿಯ ಕೋಡ್",
   fr: "Code à 6 chiffres",
   de: "6-stellige Code",
   it: "Codice a 6 cifre",
@@ -3311,7 +3311,7 @@ pincodeHelper: {
 
 pincodeHelp: {
   en: "Enter your 6-digit postal code. For international addresses, enter ZIP code.",
-  es: "Ingrese su código postal de 6 dígitos. Para direcciones internacionales, ingrese el código ZIP.",
+  kn: "ನಿಮ್ಮ 6-ಅಂಕಿಯ ಅಂಚೆ ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ. ಅಂತರರಾಷ್ಟ್ರೀಯ ವಿಳಾಸಗಳಿಗಾಗಿ, ZIP ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ.",
   fr: "Entrez votre code postal à 6 chiffres. Pour les adresses internationales, entrez le code ZIP.",
   de: "Geben Sie Ihre 6-stellige Postleitzahl ein. Für internationale Adressen geben Sie die ZIP-Code ein.",
   it: "Inserisci il tuo codice postale a 6 cifre. Per indirizzi internazionali, inserisci il codice ZIP.",
@@ -3325,7 +3325,7 @@ pincodeHelp: {
 
 useSameAddress: {
   en: "Use same address for correspondence",
-  es: "Usar la misma dirección para correspondencia",
+  kn: "ಪತ್ರ ವ್ಯವಹಾರಕ್ಕಾಗಿ ಅದೇ ವಿಳಾಸವನ್ನು ಬಳಸಿ",
   fr: "Utiliser la même adresse pour la correspondance",
   de: "Dieselbe Adresse für Korrespondenz verwenden",
   it: "Usa lo stesso indirizzo per la corrispondenza",
@@ -3339,7 +3339,7 @@ useSameAddress: {
 
 addressSynced: {
   en: "Correspondence address is currently synced with permanent address",
-  es: "La dirección de correspondencia está actualmente sincronizada con la dirección permanente",
+  kn: "ಪತ್ರ ವ್ಯವಹಾರದ ವಿಳಾಸವು ಪ್ರಸ್ತುತ ಶಾಶ್ವತ ವಿಳಾಸದೊಂದಿಗೆ ಸಿಂಕ್ ಆಗಿದೆ",
   fr: "L'adresse de correspondance est actuellement synchronisée avec l'adresse permanente",
   de: "Die Korrespondenzadresse ist derzeit mit der ständigen Adresse synchronisiert",
   it: "L'indirizzo di corrispondenza è attualmente sincronizzato con l'indirizzo permanente",
@@ -3353,7 +3353,7 @@ addressSynced: {
 
 correspondenceDescription: {
   en: "This is where we'll send your official documents and communications",
-  es: "Aquí es donde enviaremos sus documentos oficiales y comunicaciones",
+  kn: "ನಿಮ್ಮ ಅಧಿಕೃತ ದಾಖಲೆಗಳು ಮತ್ತು ಸಂವಹನಗಳನ್ನು ನಾವು ಇಲ್ಲಿಗೆ ಕಳುಹಿಸುತ್ತೇವೆ",
   fr: "C'est ici que nous enverrons vos documents officiels et communications",
   de: "Hierhin senden wir Ihre offiziellen Dokumente und Mitteilungen",
   it: "Qui invieremo i tuoi documenti ufficiali e comunicazioni",
@@ -3367,7 +3367,7 @@ correspondenceDescription: {
 
 selectCountryFirst: {
   en: "Select country first",
-  es: "Seleccione primero el país",
+  kn: "ಮೊದಲು ದೇಶವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
   fr: "Sélectionnez d'abord le pays",
   de: "Wählen Sie zuerst das Land",
   it: "Seleziona prima il paese",
@@ -3381,7 +3381,7 @@ selectCountryFirst: {
 
 noStatesAvailable: {
   en: "No states available for this country",
-  es: "No hay estados disponibles para este país",
+  kn: "ಈ ದೇಶಕ್ಕೆ ಯಾವುದೇ ರಾಜ್ಯಗಳು ಲಭ್ಯವಿಲ್ಲ",
   fr: "Aucun état disponible pour ce pays",
   de: "Keine Bundesländer für dieses Land verfügbar",
   it: "Nessuno stato disponibile per questo paese",
@@ -3395,7 +3395,7 @@ noStatesAvailable: {
 
 addressNote: {
   en: "Note: Please ensure your address details are accurate as they will be used for verification and communication purposes.",
-  es: "Nota: Asegúrese de que los detalles de su dirección sean precisos, ya que se utilizarán para fines de verificación y comunicación.",
+  kn: "ಸೂಚನೆ: ದಯವಿಟ್ಟು ನಿಮ್ಮ ವಿಳಾಸದ ವಿವರಗಳು ನಿಖರವಾಗಿವೆಯೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ ಏಕೆಂದರೆ ಅವುಗಳನ್ನು ಪರಿಶೀಲನೆ ಮತ್ತು ಸಂವಹನ ಉದ್ದೇಶಗಳಿಗಾಗಿ ಬಳಸಲಾಗುತ್ತದೆ.",
   fr: "Remarque : Veuillez vous assurer que les détails de votre adresse sont exacts car ils seront utilisés à des fins de vérification et de communication.",
   de: "Hinweis: Bitte stellen Sie sicher, dass Ihre Adressdaten korrekt sind, da sie für Verifizierungs- und Kommunikationszwecke verwendet werden.",
   it: "Nota: assicurati che i dettagli del tuo indirizzo siano accurati poiché verranno utilizzati per scopi di verifica e comunicazione.",
@@ -3409,7 +3409,7 @@ addressNote: {
 
 failedToLoadCountries: {
   en: "Failed to load countries. Using default list.",
-  es: "Error al cargar países. Usando lista predeterminada.",
+  kn: "ದೇಶಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ. ಡೀಫಾಲ್ಟ್ ಪಟ್ಟಿಯನ್ನು ಬಳಸಲಾಗುತ್ತಿದೆ.",
   fr: "Échec du chargement des pays. Utilisation de la liste par défaut.",
   de: "Laden der Länder fehlgeschlagen. Standardliste wird verwendet.",
   it: "Impossibile caricare i paesi. Utilizzo dell'elenco predefinito.",
@@ -3425,7 +3425,7 @@ failedToLoadCountries: {
 // ============ BASIC INFORMATION TRANSLATIONS ============
 firstNamePlaceholder: {
   en: "First Name *",
-  es: "Nombre *",
+  kn: "ಮೊದಲ ಹೆಸರು *",
   fr: "Prénom *",
   de: "Vorname *",
   it: "Nome *",
@@ -3439,7 +3439,7 @@ firstNamePlaceholder: {
 
 middleNamePlaceholder: {
   en: "Middle Name",
-  es: "Segundo Nombre",
+  kn: "ಮಧ್ಯದ ಹೆಸರು",
   fr: "Deuxième Prénom",
   de: "Zweiter Vorname",
   it: "Secondo Nome",
@@ -3453,7 +3453,7 @@ middleNamePlaceholder: {
 
 lastNamePlaceholder: {
   en: "Last Name *",
-  es: "Apellido *",
+  kn: "ಕೊನೆಯ ಹೆಸರು *",
   fr: "Nom de Famille *",
   de: "Nachname *",
   it: "Cognome *",
@@ -3467,7 +3467,7 @@ lastNamePlaceholder: {
 
 dobLabel: {
   en: "Date of Birth *",
-  es: "Fecha de Nacimiento *",
+  kn: "ಜನ್ಮ ದಿನಾಂಕ *",
   fr: "Date de Naissance *",
   de: "Geburtsdatum *",
   it: "Data di Nascita *",
@@ -3481,7 +3481,7 @@ dobLabel: {
 
 dobHelperText: {
   en: "You must be at least 18 years old",
-  es: "Debes tener al menos 18 años",
+  kn: "ನಿಮ್ಮ ವಯಸ್ಸು ಕನಿಷ್ಠ 18 ವರ್ಷ ಇರಬೇಕು",
   fr: "Vous devez avoir au moins 18 ans",
   de: "Sie müssen mindestens 18 Jahre alt sein",
   it: "Devi avere almeno 18 anni",
@@ -3495,7 +3495,7 @@ dobHelperText: {
 
 genderLabel: {
   en: "Gender *",
-  es: "Género *",
+  kn: "ಲಿಂಗ *",
   fr: "Genre *",
   de: "Geschlecht *",
   it: "Genere *",
@@ -3509,7 +3509,7 @@ genderLabel: {
 
 male: {
   en: "Male",
-  es: "Masculino",
+  kn: "ಪುರುಷ",
   fr: "Homme",
   de: "Männlich",
   it: "Maschio",
@@ -3523,7 +3523,7 @@ male: {
 
 female: {
   en: "Female",
-  es: "Femenino",
+  kn: "ಸ್ತ್ರೀ",
   fr: "Femme",
   de: "Weiblich",
   it: "Femmina",
@@ -3537,7 +3537,7 @@ female: {
 
 other: {
   en: "Other",
-  es: "Otro",
+  kn: "ಇತರೆ",
   fr: "Autre",
   de: "Andere",
   it: "Altro",
@@ -3551,7 +3551,7 @@ other: {
 
 emailPlaceholder: {
   en: "Email *",
-  es: "Correo Electrónico *",
+  kn: "ಇಮೇಲ್ *",
   fr: "E-mail *",
   de: "E-Mail *",
   it: "Email *",
@@ -3565,7 +3565,7 @@ emailPlaceholder: {
 
 checkingAvailability: {
   en: "Checking availability...",
-  es: "Verificando disponibilidad...",
+  kn: "ಲಭ್ಯತೆಯನ್ನು ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
   fr: "Vérification de la disponibilité...",
   de: "Verfügbarkeit wird geprüft...",
   it: "Controllo disponibilità...",
@@ -3579,7 +3579,7 @@ checkingAvailability: {
 
 emailAvailable: {
   en: "Email is available",
-  es: "El correo electrónico está disponible",
+  kn: "ಇಮೇಲ್ ಲಭ್ಯವಿದೆ",
   fr: "L'email est disponible",
   de: "E-Mail ist verfügbar",
   it: "L'email è disponibile",
@@ -3593,7 +3593,7 @@ emailAvailable: {
 
 passwordPlaceholder: {
   en: "Password *",
-  es: "Contraseña *",
+  kn: "ಪಾಸ್ವರ್ಡ್ *",
   fr: "Mot de Passe *",
   de: "Passwort *",
   it: "Password *",
@@ -3607,7 +3607,7 @@ passwordPlaceholder: {
 
 confirmPasswordPlaceholder: {
   en: "Confirm Password *",
-  es: "Confirmar Contraseña *",
+  kn: "ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ *",
   fr: "Confirmer le Mot de Passe *",
   de: "Passwort Bestätigen *",
   it: "Conferma Password *",
@@ -3621,7 +3621,7 @@ confirmPasswordPlaceholder: {
 
 mobilePlaceholder: {
   en: "Mobile Number *",
-  es: "Número de Móvil *",
+  kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ *",
   fr: "Numéro de Mobile *",
   de: "Handynummer *",
   it: "Numero di Cellulare *",
@@ -3635,7 +3635,7 @@ mobilePlaceholder: {
 
 mobileAvailable: {
   en: "Mobile number is available",
-  es: "El número de móvil está disponible",
+  kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಲಭ್ಯವಿದೆ",
   fr: "Le numéro de mobile est disponible",
   de: "Handynummer ist verfügbar",
   it: "Il numero di cellulare è disponibile",
@@ -3649,7 +3649,7 @@ mobileAvailable: {
 
 alternatePlaceholder: {
   en: "Alternate Number",
-  es: "Número Alternativo",
+  kn: "ಪರ್ಯಾಯ ಸಂಖ್ಯೆ",
   fr: "Numéro Alternatif",
   de: "Alternative Nummer",
   it: "Numero Alternativo",
@@ -3663,7 +3663,7 @@ alternatePlaceholder: {
 
 alternateAvailable: {
   en: "Alternate number is available",
-  es: "El número alternativo está disponible",
+  kn: "ಪರ್ಯಾಯ ಸಂಖ್ಯೆ ಲಭ್ಯವಿದೆ",
   fr: "Le numéro alternatif est disponible",
   de: "Alternative Nummer ist verfügbar",
   it: "Il numero alternativo è disponibile",
@@ -3679,7 +3679,7 @@ alternateAvailable: {
 // ============ CUSTOM FILE INPUT TRANSLATIONS ============
 chooseFile: {
   en: "Choose File",
-  es: "Elegir Archivo",
+  kn: "ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ",
   fr: "Choisir un Fichier",
   de: "Datei Auswählen",
   it: "Scegli File",
@@ -3693,7 +3693,7 @@ chooseFile: {
 
 selectedFile: {
   en: "Selected File:",
-  es: "Archivo Seleccionado:",
+  kn: "ಆಯ್ಕೆಮಾಡಿದ ಫೈಲ್:",
   fr: "Fichier Sélectionné:",
   de: "Ausgewählte Datei:",
   it: "File Selezionato:",
@@ -3707,7 +3707,7 @@ selectedFile: {
 
 removeFile: {
   en: "Remove file",
-  es: "Eliminar archivo",
+  kn: "ಫೈಲ್ ತೆಗೆದುಹಾಕಿ",
   fr: "Supprimer le fichier",
   de: "Datei entfernen",
   it: "Rimuovi file",
@@ -3721,7 +3721,7 @@ removeFile: {
 
 preview: {
   en: "Preview:",
-  es: "Vista previa:",
+  kn: "ಮುನ್ನೋಟ:",
   fr: "Aperçu:",
   de: "Vorschau:",
   it: "Anteprima:",
@@ -3735,7 +3735,7 @@ preview: {
 
 changeFile: {
   en: "Change File",
-  es: "Cambiar Archivo",
+  kn: "ಫೈಲ್ ಬದಲಾಯಿಸಿ",
   fr: "Changer de Fichier",
   de: "Datei ändern",
   it: "Cambia File",
@@ -3749,7 +3749,7 @@ changeFile: {
 
 documentPreview: {
   en: "Document preview",
-  es: "Vista previa del documento",
+  kn: "ಡಾಕ್ಯುಮೆಂಟ್ ಮುನ್ನೋಟ",
   fr: "Aperçu du document",
   de: "Dokumentenvorschau",
   it: "Anteprima del documento",
@@ -3765,7 +3765,7 @@ documentPreview: {
 // ============ KYC VERIFICATION TRANSLATIONS ============
 selectKycDocumentType: {
   en: "Select KYC Document Type *",
-  es: "Seleccione el Tipo de Documento KYC *",
+  kn: "KYC ಡಾಕ್ಯುಮೆಂಟ್ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ *",
   fr: "Sélectionnez le Type de Document KYC *",
   de: "Wählen Sie den KYC-Dokumenttyp *",
   it: "Seleziona il Tipo di Documento KYC *",
@@ -3779,7 +3779,7 @@ selectKycDocumentType: {
 
 aadhaarCard: {
   en: "Aadhaar Card",
-  es: "Tarjeta Aadhaar",
+  kn: "ಆಧಾರ್ ಕಾರ್ಡ್",
   fr: "Carte Aadhaar",
   de: "Aadhaar-Karte",
   it: "Carta Aadhaar",
@@ -3793,7 +3793,7 @@ aadhaarCard: {
 
 governmentIdProof: {
   en: "Government ID proof",
-  es: "Prueba de identidad gubernamental",
+  kn: "ಸರ್ಕಾರಿ ಗುರುತಿನ ಚೀಟಿ",
   fr: "Preuve d'identité gouvernementale",
   de: "Regierungsausweis",
   it: "Prova d'identità governativa",
@@ -3807,7 +3807,7 @@ governmentIdProof: {
 
 aadhaarNumberPlaceholder: {
   en: "Aadhaar Number *",
-  es: "Número de Aadhaar *",
+  kn: "ಆಧಾರ್ ಸಂಖ್ಯೆ *",
   fr: "Numéro Aadhaar *",
   de: "Aadhaar-Nummer *",
   it: "Numero Aadhaar *",
@@ -3821,7 +3821,7 @@ aadhaarNumberPlaceholder: {
 
 aadhaarHelperText: {
   en: "Enter 12-digit Aadhaar number",
-  es: "Ingrese el número de Aadhaar de 12 dígitos",
+  kn: "12-ಅಂಕಿಯ ಆಧಾರ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez le numéro Aadhaar à 12 chiffres",
   de: "Geben Sie die 12-stellige Aadhaar-Nummer ein",
   it: "Inserisci il numero Aadhaar a 12 cifre",
@@ -3835,7 +3835,7 @@ aadhaarHelperText: {
 
 panCard: {
   en: "PAN Card",
-  es: "Tarjeta PAN",
+  kn: "PAN ಕಾರ್ಡ್",
   fr: "Carte PAN",
   de: "PAN-Karte",
   it: "Carta PAN",
@@ -3849,7 +3849,7 @@ panCard: {
 
 panDescription: {
   en: "Permanent Account Number",
-  es: "Número de Cuenta Permanente",
+  kn: "ಶಾಶ್ವತ ಖಾತೆ ಸಂಖ್ಯೆ",
   fr: "Numéro de compte permanent",
   de: "Permanente Kontonummer",
   it: "Numero di conto permanente",
@@ -3863,7 +3863,7 @@ panDescription: {
 
 panNumberPlaceholder: {
   en: "PAN Number *",
-  es: "Número de PAN *",
+  kn: "PAN ಸಂಖ್ಯೆ *",
   fr: "Numéro PAN *",
   de: "PAN-Nummer *",
   it: "Numero PAN *",
@@ -3877,7 +3877,7 @@ panNumberPlaceholder: {
 
 panHelperText: {
   en: "Enter 10-digit PAN (e.g., ABCDE1234F)",
-  es: "Ingrese PAN de 10 dígitos (ej., ABCDE1234F)",
+  kn: "10-ಅಂಕಿಯ PAN ಅನ್ನು ನಮೂದಿಸಿ (ಉದಾ, ABCDE1234F)",
   fr: "Entrez le PAN à 10 chiffres (ex., ABCDE1234F)",
   de: "Geben Sie die 10-stellige PAN ein (z.B. ABCDE1234F)",
   it: "Inserisci il PAN a 10 cifre (es., ABCDE1234F)",
@@ -3891,7 +3891,7 @@ panHelperText: {
 
 drivingLicense: {
   en: "Driving License",
-  es: "Licencia de Conducir",
+  kn: "ಚಾಲನಾ ಪರವಾನಗಿ",
   fr: "Permis de Conduire",
   de: "Führerschein",
   it: "Patente di Guida",
@@ -3905,7 +3905,7 @@ drivingLicense: {
 
 drivingLicensePlaceholder: {
   en: "Driving License Number *",
-  es: "Número de Licencia de Conducir *",
+  kn: "ಚಾಲನಾ ಪರವಾನಗಿ ಸಂಖ್ಯೆ *",
   fr: "Numéro de Permis de Conduire *",
   de: "Führerscheinnummer *",
   it: "Numero di Patente *",
@@ -3919,7 +3919,7 @@ drivingLicensePlaceholder: {
 
 drivingLicenseHelperText: {
   en: "Enter your driving license number",
-  es: "Ingrese su número de licencia de conducir",
+  kn: "ನಿಮ್ಮ ಚಾಲನಾ ಪರವಾನಗಿ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez votre numéro de permis de conduire",
   de: "Geben Sie Ihre Führerscheinnummer ein",
   it: "Inserisci il numero della tua patente",
@@ -3933,7 +3933,7 @@ drivingLicenseHelperText: {
 
 voterId: {
   en: "Voter ID",
-  es: "Identificación de Votante",
+  kn: "ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ",
   fr: "Carte d'Électeur",
   de: "Wählerausweis",
   it: "Tessera Elettorale",
@@ -3947,7 +3947,7 @@ voterId: {
 
 voterIdDescription: {
   en: "Voter Identification Card",
-  es: "Tarjeta de Identificación de Votante",
+  kn: "ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ",
   fr: "Carte d'identification de l'électeur",
   de: "Wähleridentifikationskarte",
   it: "Carta di identificazione dell'elettore",
@@ -3961,7 +3961,7 @@ voterIdDescription: {
 
 voterIdPlaceholder: {
   en: "Voter ID Number *",
-  es: "Número de Identificación de Votante *",
+  kn: "ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ ಸಂಖ್ಯೆ *",
   fr: "Numéro de Carte d'Électeur *",
   de: "Wählerausweisnummer *",
   it: "Numero Tessera Elettorale *",
@@ -3975,7 +3975,7 @@ voterIdPlaceholder: {
 
 voterIdHelperText: {
   en: "Enter 10-digit Voter ID",
-  es: "Ingrese la identificación de votante de 10 dígitos",
+  kn: "10-ಅಂಕಿಯ ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez l'ID d'électeur à 10 chiffres",
   de: "Geben Sie die 10-stellige Wähler-ID ein",
   it: "Inserisci l'ID elettore a 10 cifre",
@@ -3989,7 +3989,7 @@ voterIdHelperText: {
 
 passport: {
   en: "Passport",
-  es: "Pasaporte",
+  kn: "ಪಾಸ್‌ಪೋರ್ಟ್",
   fr: "Passeport",
   de: "Reisepass",
   it: "Passaporto",
@@ -4003,7 +4003,7 @@ passport: {
 
 passportPlaceholder: {
   en: "Passport Number *",
-  es: "Número de Pasaporte *",
+  kn: "ಪಾಸ್‌ಪೋರ್ಟ್ ಸಂಖ್ಯೆ *",
   fr: "Numéro de Passeport *",
   de: "Reisepassnummer *",
   it: "Numero di Passaporto *",
@@ -4017,7 +4017,7 @@ passportPlaceholder: {
 
 passportHelperText: {
   en: "Enter 8-character passport number",
-  es: "Ingrese el número de pasaporte de 8 caracteres",
+  kn: "8-ಅಕ್ಷರದ ಪಾಸ್‌ಪೋರ್ಟ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
   fr: "Entrez le numéro de passeport à 8 caractères",
   de: "Geben Sie die 8-stellige Reisepassnummer ein",
   it: "Inserisci il numero di passaporto a 8 caratteri",
@@ -4031,7 +4031,7 @@ passportHelperText: {
 
 uploadDocument: {
   en: "Upload {documentName} Document",
-  es: "Subir Documento {documentName}",
+  kn: "{documentName} ದಾಖಲೆಯನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
   fr: "Télécharger le Document {documentName}",
   de: "{documentName} Dokument hochladen",
   it: "Carica Documento {documentName}",
@@ -4045,7 +4045,7 @@ uploadDocument: {
 
 kycNote: {
   en: "Note: Please upload a clear image of your {documentName}. Accepted formats: JPG, PNG, PDF. Max size: 5MB.",
-  es: "Nota: Por favor, suba una imagen clara de su {documentName}. Formatos aceptados: JPG, PNG, PDF. Tamaño máximo: 5MB.",
+  kn: "ಸೂಚನೆ: ದಯವಿಟ್ಟು ನಿಮ್ಮ {documentName} ನ ಸ್ಪಷ್ಟ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ. ಸ್ವೀಕರಿಸಿದ ಸ್ವರೂಪಗಳು: JPG, PNG, PDF. ಗರಿಷ್ಠ ಗಾತ್ರ: 5MB.",
   fr: "Remarque : Veuillez télécharger une image claire de votre {documentName}. Formats acceptés : JPG, PNG, PDF. Taille max : 5 Mo.",
   de: "Hinweis: Bitte laden Sie ein klares Bild Ihres {documentName} hoch. Akzeptierte Formate: JPG, PNG, PDF. Max. Größe: 5 MB.",
   it: "Nota: carica un'immagine chiara del tuo {documentName}. Formati accettati: JPG, PNG, PDF. Dimensione max: 5MB.",
@@ -4062,7 +4062,7 @@ kycNote: {
 // ============ PROFILE IMAGE UPLOAD TRANSLATIONS ============
 uploadProfilePicture: {
   en: "Upload Profile Picture",
-  es: "Subir Foto de Perfil",
+  kn: "ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
   fr: "Télécharger la Photo de Profil",
   de: "Profilbild Hochladen",
   it: "Carica Immagine del Profilo",
@@ -4076,7 +4076,7 @@ uploadProfilePicture: {
 
 confirm: {
   en: "Confirm",
-  es: "Confirmar",
+  kn: "ದೃಢೀಕರಿಸಿ",
   fr: "Confirmer",
   de: "Bestätigen",
   it: "Conferma",
@@ -4092,7 +4092,7 @@ confirm: {
 // ============ SERVICE DETAILS TRANSLATIONS ============
 serviceDetails: {
   en: "Service Details",
-  es: "Detalles del Servicio",
+  kn: "ಸೇವಾ ವಿವರಗಳು",
   fr: "Détails du Service",
   de: "Servicedetails",
   it: "Dettagli del Servizio",
@@ -4106,7 +4106,7 @@ serviceDetails: {
 
 selectServiceType: {
   en: "Select Service Type(s)",
-  es: "Seleccione Tipo(s) de Servicio",
+  kn: "ಸೇವಾ ಪ್ರಕಾರ(ಗಳನ್ನು) ಆಯ್ಕೆಮಾಡಿ",
   fr: "Sélectionnez le(s) Type(s) de Service",
   de: "Servicetyp(en) auswählen",
   it: "Seleziona Tipo(i) di Servizio",
@@ -4120,7 +4120,7 @@ selectServiceType: {
 
 cook: {
   en: "Cook",
-  es: "Cocinero",
+  kn: "ಅಡುಗೆಯವರು",
   fr: "Cuisinier",
   de: "Koch",
   it: "Cuoco",
@@ -4134,7 +4134,7 @@ cook: {
 
 nanny: {
   en: "Nanny",
-  es: "Niñera",
+  kn: "ದಾದಿ",
   fr: "Nounou",
   de: "Kindermädchen",
   it: "Tata",
@@ -4148,7 +4148,7 @@ nanny: {
 
 maid: {
   en: "Maid",
-  es: "Empleada",
+  kn: "ಮನೆಕೆಲಸದವರು",
   fr: "Femme de ménage",
   de: "Haushaltshilfe",
   it: "Colf",
@@ -4162,7 +4162,7 @@ maid: {
 
 cookingSpeciality: {
   en: "Cooking Speciality",
-  es: "Especialidad Culinaria",
+  kn: "ಅಡುಗೆ ವಿಶೇಷತೆ",
   fr: "Spécialité Culinaire",
   de: "Kochspezialität",
   it: "Specialità Culinaria",
@@ -4176,7 +4176,7 @@ cookingSpeciality: {
 
 veg: {
   en: "Veg",
-  es: "Vegetariano",
+  kn: "ಸಸ್ಯಾಹಾರಿ",
   fr: "Végétarien",
   de: "Vegetarisch",
   it: "Vegetariano",
@@ -4190,7 +4190,7 @@ veg: {
 
 nonVeg: {
   en: "Non-Veg",
-  es: "No Vegetariano",
+  kn: "ಮಾಂಸಾಹಾರಿ",
   fr: "Non Végétarien",
   de: "Nicht-vegetarisch",
   it: "Non Vegetariano",
@@ -4204,7 +4204,7 @@ nonVeg: {
 
 both: {
   en: "Both",
-  es: "Ambos",
+  kn: "ಎರಡೂ",
   fr: "Les Deux",
   de: "Beides",
   it: "Entrambi",
@@ -4218,7 +4218,7 @@ both: {
 
 careType: {
   en: "Care Type",
-  es: "Tipo de Cuidado",
+  kn: "ಆರೈಕೆಯ ಪ್ರಕಾರ",
   fr: "Type de Soin",
   de: "Betreuungsart",
   it: "Tipo di Assistenza",
@@ -4232,7 +4232,7 @@ careType: {
 
 babyCare: {
   en: "Baby Care",
-  es: "Cuidado de Bebés",
+  kn: "ಶಿಶು ಆರೈಕೆ",
   fr: "Soins pour Bébés",
   de: "Babypflege",
   it: "Cura del Bambino",
@@ -4246,7 +4246,7 @@ babyCare: {
 
 elderlyCare: {
   en: "Elderly Care",
-  es: "Cuidado de Ancianos",
+  kn: "ಹಿರಿಯರ ಆರೈಕೆ",
   fr: "Soins aux Personnes Âgées",
   de: "Seniorenbetreuung",
   it: "Cura degli Anziani",
@@ -4260,7 +4260,7 @@ elderlyCare: {
 
 dietPreference: {
   en: "Diet Preference",
-  es: "Preferencia Dietética",
+  kn: "ಆಹಾರದ ಆದ್ಯತೆ",
   fr: "Préférence Alimentaire",
   de: "Ernährungspräferenz",
   it: "Preferenza Alimentare",
@@ -4272,9 +4272,9 @@ dietPreference: {
   bn: "খাদ্য পছন্দ"
 },
 
-serviceDescription: {  // Changed from 'description' to 'serviceDescription'
+serviceDescription: {
   en: "Description",
-  es: "Descripción",
+  kn: "ವಿವರಣೆ",
   fr: "Description",
   de: "Beschreibung",
   it: "Descrizione",
@@ -4288,7 +4288,7 @@ serviceDescription: {  // Changed from 'description' to 'serviceDescription'
 
 experience: {
   en: "Experience *",
-  es: "Experiencia *",
+  kn: "ಅನುಭವ *",
   fr: "Expérience *",
   de: "Erfahrung *",
   it: "Esperienza *",
@@ -4302,7 +4302,7 @@ experience: {
 
 experienceHelperText: {
   en: "Years in business or relevant experience",
-  es: "Años de negocio o experiencia relevante",
+  kn: "ವ್ಯವಹಾರದಲ್ಲಿ ಅಥವಾ ಸಂಬಂಧಿತ ಅನುಭವದ ವರ್ಷಗಳು",
   fr: "Années d'activité ou expérience pertinente",
   de: "Jahre im Geschäft oder relevante Erfahrung",
   it: "Anni di attività o esperienza rilevante",
@@ -4316,7 +4316,7 @@ experienceHelperText: {
 
 referralCode: {
   en: "Referral Code (Optional)",
-  es: "Código de Referido (Opcional)",
+  kn: "ರೆಫರಲ್ ಕೋಡ್ (ಐಚ್ಛಿಕ)",
   fr: "Code de Parrainage (Optionnel)",
   de: "Empfehlungscode (Optional)",
   it: "Codice di Riferimento (Opzionale)",
@@ -4330,7 +4330,7 @@ referralCode: {
 
 selectAvailableTimeSlots: {
   en: "Select Your Available Time Slots",
-  es: "Seleccione Sus Horarios Disponibles",
+  kn: "ನಿಮ್ಮ ಲಭ್ಯವಿರುವ ಸಮಯದ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
   fr: "Sélectionnez Vos Créneaux Horaires Disponibles",
   de: "Wählen Sie Ihre Verfügbaren Zeitfenster",
   it: "Seleziona i Tuoi Slot Orari Disponibili",
@@ -4344,7 +4344,7 @@ selectAvailableTimeSlots: {
 
 fullTimeAvailability: {
   en: "Full Time Availability",
-  es: "Disponibilidad de Tiempo Completo",
+  kn: "ಪೂರ್ಣ ಸಮಯದ ಲಭ್ಯತೆ",
   fr: "Disponibilité à Temps Plein",
   de: "Vollzeitverfügbarkeit",
   it: "Disponibilità a Tempo Pieno",
@@ -4358,7 +4358,7 @@ fullTimeAvailability: {
 
 fullTimeDescription: {
   en: "6:00 AM - 8:00 PM (All slots covered)",
-  es: "6:00 AM - 8:00 PM (Todos los horarios cubiertos)",
+  kn: "ಬೆಳಿಗ್ಗೆ 6:00 - ರಾತ್ರಿ 8:00 (ಎಲ್ಲಾ ಸ್ಲಾಟ್‌ಗಳು ಆವರಿಸಲ್ಪಟ್ಟಿವೆ)",
   fr: "6h00 - 20h00 (Tous les créneaux couverts)",
   de: "6:00 - 20:00 Uhr (Alle Zeitfenster abgedeckt)",
   it: "6:00 - 20:00 (Tutti gli slot coperti)",
@@ -4372,7 +4372,7 @@ fullTimeDescription: {
 
 morningAvailability: {
   en: "Morning Availability",
-  es: "Disponibilidad Matutina",
+  kn: "ಬೆಳಗಿನ ಲಭ್ಯತೆ",
   fr: "Disponibilité Matinale",
   de: "Morgenverfügbarkeit",
   it: "Disponibilità Mattutina",
@@ -4386,7 +4386,7 @@ morningAvailability: {
 
 notAvailable: {
   en: "Not Available",
-  es: "No Disponible",
+  kn: "ಲಭ್ಯವಿಲ್ಲ",
   fr: "Non Disponible",
   de: "Nicht Verfügbar",
   it: "Non Disponibile",
@@ -4400,7 +4400,7 @@ notAvailable: {
 
 slot: {
   en: "slot(s)",
-  es: "horario(s)",
+  kn: "ಸ್ಲಾಟ್(ಗಳು)",
   fr: "créneau(x)",
   de: "Zeitfenster",
   it: "slot",
@@ -4414,7 +4414,7 @@ slot: {
 
 addSlot: {
   en: "Add Slot",
-  es: "Agregar Horario",
+  kn: "ಸ್ಲಾಟ್ ಸೇರಿಸಿ",
   fr: "Ajouter un Créneau",
   de: "Zeitfenster hinzufügen",
   it: "Aggiungi Slot",
@@ -4428,7 +4428,7 @@ addSlot: {
 
 clearAll: {
   en: "Clear All",
-  es: "Borrar Todo",
+  kn: "ಎಲ್ಲವನ್ನೂ ತೆರವುಗೊಳಿಸಿ",
   fr: "Tout Effacer",
   de: "Alle löschen",
   it: "Cancella Tutto",
@@ -4442,7 +4442,7 @@ clearAll: {
 
 notAvailableMorning: {
   en: "Not available in the morning",
-  es: "No disponible por la mañana",
+  kn: "ಬೆಳಿಗ್ಗೆ ಲಭ್ಯವಿಲ್ಲ",
   fr: "Non disponible le matin",
   de: "Morgens nicht verfügbar",
   it: "Non disponibile al mattino",
@@ -4456,7 +4456,7 @@ notAvailableMorning: {
 
 addMorningSlots: {
   en: "Add Morning Slots",
-  es: "Agregar Horarios Matutinos",
+  kn: "ಬೆಳಗಿನ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
   fr: "Ajouter des Créneaux Matinaux",
   de: "Morgenzeitfenster hinzufügen",
   it: "Aggiungi Slot Mattutini",
@@ -4470,7 +4470,7 @@ addMorningSlots: {
 
 timeSlot: {
   en: "Time Slot",
-  es: "Horario",
+  kn: "ಸಮಯ ಸ್ಲಾಟ್",
   fr: "Créneau Horaire",
   de: "Zeitfenster",
   it: "Slot Orario",
@@ -4484,7 +4484,7 @@ timeSlot: {
 
 selected: {
   en: "Selected:",
-  es: "Seleccionado:",
+  kn: "ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ:",
   fr: "Sélectionné:",
   de: "Ausgewählt:",
   it: "Selezionato:",
@@ -4498,7 +4498,7 @@ selected: {
 
 warningGrayAreas: {
   en: "⚠️ Gray areas are already selected in other slots",
-  es: "⚠️ Las áreas grises ya están seleccionadas en otros horarios",
+  kn: "⚠️ ಬೂದು ಪ್ರದೇಶಗಳು ಈಗಾಗಲೇ ಇತರ ಸ್ಲಾಟ್‌ಗಳಲ್ಲಿ ಆಯ್ಕೆಮಾಡಲ್ಪಟ್ಟಿವೆ",
   fr: "⚠️ Les zones grises sont déjà sélectionnées dans d'autres créneaux",
   de: "⚠️ Graue Bereiche sind bereits in anderen Zeitfenstern ausgewählt",
   it: "⚠️ Le aree grigie sono già selezionate in altri slot",
@@ -4512,7 +4512,7 @@ warningGrayAreas: {
 
 eveningAvailability: {
   en: "Evening Availability",
-  es: "Disponibilidad Vespertina",
+  kn: "ಸಂಜೆಯ ಲಭ್ಯತೆ",
   fr: "Disponibilité en Soirée",
   de: "Abendverfügbarkeit",
   it: "Disponibilità Serale",
@@ -4526,7 +4526,7 @@ eveningAvailability: {
 
 notAvailableEvening: {
   en: "Not available in the evening",
-  es: "No disponible por la tarde",
+  kn: "ಸಂಜೆ ಲಭ್ಯವಿಲ್ಲ",
   fr: "Non disponible le soir",
   de: "Abends nicht verfügbar",
   it: "Non disponibile la sera",
@@ -4540,7 +4540,7 @@ notAvailableEvening: {
 
 addEveningSlots: {
   en: "Add Evening Slots",
-  es: "Agregar Horarios Vespertinos",
+  kn: "ಸಂಜೆಯ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
   fr: "Ajouter des Créneaux en Soirée",
   de: "Abendzeitfenster hinzufügen",
   it: "Aggiungi Slot Serali",
@@ -4554,7 +4554,7 @@ addEveningSlots: {
 
 yourSelectedTimeSlots: {
   en: "Your Selected Time Slots:",
-  es: "Sus Horarios Seleccionados:",
+  kn: "ನಿಮ್ಮ ಆಯ್ಕೆಮಾಡಿದ ಸಮಯದ ಸ್ಲಾಟ್‌ಗಳು:",
   fr: "Vos Créneaux Horaires Sélectionnés:",
   de: "Ihre Ausgewählten Zeitfenster:",
   it: "I Tuoi Slot Orari Selezionati:",
@@ -4570,7 +4570,7 @@ yourSelectedTimeSlots: {
 // ============ SERVICE PROVIDER REGISTRATION TRANSLATIONS ============
 basicInformation: {
   en: "Basic Information",
-  es: "Información Básica",
+  kn: "ಮೂಲ ಮಾಹಿತಿ",
   fr: "Informations de Base",
   de: "Grundinformationen",
   it: "Informazioni di Base",
@@ -4584,7 +4584,7 @@ basicInformation: {
 
 addressInformation: {
   en: "Address Information",
-  es: "Información de Dirección",
+  kn: "ವಿಳಾಸ ಮಾಹಿತಿ",
   fr: "Informations d'Adresse",
   de: "Adressinformationen",
   it: "Informazioni sull'Indirizzo",
@@ -4598,7 +4598,7 @@ addressInformation: {
 
 additionalDetails: {
   en: "Additional Details",
-  es: "Detalles Adicionales",
+  kn: "ಹೆಚ್ಚುವರಿ ವಿವರಗಳು",
   fr: "Détails Supplémentaires",
   de: "Zusätzliche Details",
   it: "Dettagli Aggiuntivi",
@@ -4612,7 +4612,7 @@ additionalDetails: {
 
 kycVerification: {
   en: "KYC Verification",
-  es: "Verificación KYC",
+  kn: "KYC ಪರಿಶೀಲನೆ",
   fr: "Vérification KYC",
   de: "KYC-Verifizierung",
   it: "Verifica KYC",
@@ -4626,7 +4626,7 @@ kycVerification: {
 
 confirmation: {
   en: "Confirmation",
-  es: "Confirmación",
+  kn: "ದೃಢೀಕರಣ",
   fr: "Confirmation",
   de: "Bestätigung",
   it: "Conferma",
@@ -4639,7 +4639,7 @@ confirmation: {
 },
 timeRangeOverlaps: {
   en: "This time range overlaps with another selected slot",
-  es: "Este rango de tiempo se superpone con otro horario seleccionado",
+  kn: "ಈ ಸಮಯದ ವ್ಯಾಪ್ತಿಯು ಮತ್ತೊಂದು ಆಯ್ಕೆಮಾಡಿದ ಸ್ಲಾಟ್‌ನೊಂದಿಗೆ ಅತಿಕ್ರಮಿಸುತ್ತದೆ",
   fr: "Cette plage horaire chevauche un autre créneau sélectionné",
   de: "Dieser Zeitbereich überschneidet sich mit einem anderen ausgewählten Slot",
   it: "Questo intervallo di tempo si sovrappone a un altro slot selezionato",
@@ -4653,7 +4653,7 @@ timeRangeOverlaps: {
 
 alreadySelected: {
   en: "Already selected",
-  es: "Ya seleccionado",
+  kn: "ಈಗಾಗಲೇ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ",
   fr: "Déjà sélectionné",
   de: "Bereits ausgewählt",
   it: "Già selezionato",
@@ -4666,7 +4666,7 @@ alreadySelected: {
 },
 next: {
   en: "Next",
-  es: "Siguiente",
+  kn: "ಮುಂದೆ",
   fr: "Suivant",
   de: "Weiter",
   it: "Avanti",
@@ -4680,7 +4680,7 @@ next: {
 
 currentLocation: {
   en: "Current Location",
-  es: "Ubicación Actual",
+  kn: "ಪ್ರಸ್ತುತ ಸ್ಥಳ",
   fr: "Emplacement Actuel",
   de: "Aktueller Standort",
   it: "Posizione Attuale",
@@ -4694,7 +4694,7 @@ currentLocation: {
 
 useGpsToFetchLocation: {
   en: "Use GPS to automatically fetch your current location coordinates",
-  es: "Use GPS para obtener automáticamente las coordenadas de su ubicación actual",
+  kn: "ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಸ್ಥಳದ ನಿರ್ದೇಶಾಂಕಗಳನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಪಡೆಯಲು GPS ಬಳಸಿ",
   fr: "Utilisez le GPS pour récupérer automatiquement les coordonnées de votre position actuelle",
   de: "Verwenden Sie GPS, um automatisch Ihre aktuellen Standortkoordinaten abzurufen",
   it: "Usa il GPS per ottenere automaticamente le coordinate della tua posizione attuale",
@@ -4708,7 +4708,7 @@ useGpsToFetchLocation: {
 
 fetchMyLocation: {
   en: "Fetch My Location (GPS)",
-  es: "Obtener Mi Ubicación (GPS)",
+  kn: "ನನ್ನ ಸ್ಥಳವನ್ನು ಪಡೆದುಕೊಳ್ಳಿ (GPS)",
   fr: "Obtenir Ma Position (GPS)",
   de: "Meinen Standort abrufen (GPS)",
   it: "Ottieni La Mia Posizione (GPS)",
@@ -4722,7 +4722,7 @@ fetchMyLocation: {
 
 addressDetected: {
   en: "Address detected:",
-  es: "Dirección detectada:",
+  kn: "ವಿಳಾಸ ಪತ್ತೆಯಾಗಿದೆ:",
   fr: "Adresse détectée :",
   de: "Adresse erkannt:",
   it: "Indirizzo rilevato:",
@@ -4736,7 +4736,7 @@ addressDetected: {
 
 pleaseAgreeToFollowing: {
   en: "Please agree to the following before proceeding with your Registration:",
-  es: "Por favor, acepte lo siguiente antes de continuar con su Registro:",
+  kn: "ನಿಮ್ಮ ನೋಂದಣಿಯೊಂದಿಗೆ ಮುಂದುವರಿಯುವ ಮೊದಲು ದಯವಿಟ್ಟು ಈ ಕೆಳಗಿನವುಗಳಿಗೆ ಒಪ್ಪಿಕೊಳ್ಳಿ:",
   fr: "Veuillez accepter les conditions suivantes avant de procéder à votre inscription :",
   de: "Bitte stimmen Sie den folgenden Bedingungen zu, bevor Sie mit Ihrer Registrierung fortfahren:",
   it: "Accetta quanto segue prima di procedere con la registrazione:",
@@ -4750,7 +4750,7 @@ pleaseAgreeToFollowing: {
 
 validatingEmailMobile: {
   en: "Validating email/mobile, please wait...",
-  es: "Validando correo/teléfono, espere...",
+  kn: "ಇಮೇಲ್/ಮೊಬೈಲ್ ಅನ್ನು ಮೌಲ್ಯೀಕರಿಸಲಾಗುತ್ತಿದೆ, ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...",
   fr: "Validation de l'email/téléphone, veuillez patienter...",
   de: "E-Mail/Handy wird validiert, bitte warten...",
   it: "Convalida email/cellulare, attendere...",
@@ -4764,7 +4764,7 @@ validatingEmailMobile: {
 
 fixValidationErrors: {
   en: "Please fix all validation errors including Date of Birth (must be 18+ years)",
-  es: "Por favor, corrija todos los errores de validación, incluida la fecha de nacimiento (debe ser mayor de 18 años)",
+  kn: "ದಯವಿಟ್ಟು ಜನ್ಮ ದಿನಾಂಕ ಸೇರಿದಂತೆ ಎಲ್ಲಾ ಮೌಲ್ಯೀಕರಣ ದೋಷಗಳನ್ನು ಸರಿಪಡಿಸಿ (ವಯಸ್ಸು 18+ ವರ್ಷ ಇರಬೇಕು)",
   fr: "Veuillez corriger toutes les erreurs de validation, y compris la date de naissance (doit avoir 18 ans ou plus)",
   de: "Bitte beheben Sie alle Validierungsfehler, einschließlich des Geburtsdatums (muss 18+ Jahre alt sein)",
   it: "Correggi tutti gli errori di convalida, inclusa la data di nascita (deve avere 18+ anni)",
@@ -4778,7 +4778,7 @@ fixValidationErrors: {
 
 completeAllRequiredFields: {
   en: "Please complete all required fields including Date of Birth",
-  es: "Por favor, complete todos los campos obligatorios, incluida la fecha de nacimiento",
+  kn: "ದಯವಿಟ್ಟು ಜನ್ಮ ದಿನಾಂಕ ಸೇರಿದಂತೆ ಎಲ್ಲಾ ಅಗತ್ಯ ಕ್ಷೇತ್ರಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ",
   fr: "Veuillez remplir tous les champs obligatoires, y compris la date de naissance",
   de: "Bitte füllen Sie alle Pflichtfelder aus, einschließlich des Geburtsdatums",
   it: "Completa tutti i campi obbligatori, inclusa la data di nascita",
@@ -4792,7 +4792,7 @@ completeAllRequiredFields: {
 
 pleaseSelectServiceType: {
   en: "Please select at least one service type",
-  es: "Por favor, seleccione al menos un tipo de servicio",
+  kn: "ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಸೇವಾ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
   fr: "Veuillez sélectionner au moins un type de service",
   de: "Bitte wählen Sie mindestens einen Servicetyp aus",
   it: "Seleziona almeno un tipo di servizio",
@@ -4806,7 +4806,7 @@ pleaseSelectServiceType: {
 
 pleaseCompleteKyc: {
   en: "Please complete KYC verification",
-  es: "Por favor, complete la verificación KYC",
+  kn: "ದಯವಿಟ್ಟು KYC ಪರಿಶೀಲನೆಯನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ",
   fr: "Veuillez compléter la vérification KYC",
   de: "Bitte schließen Sie die KYC-Verifizierung ab",
   it: "Completa la verifica KYC",
@@ -4820,7 +4820,7 @@ pleaseCompleteKyc: {
 
 pleaseWaitForValidation: {
   en: "Please wait for email/mobile validation to complete.",
-  es: "Por favor, espere a que se complete la validación de correo/teléfono.",
+  kn: "ದಯವಿಟ್ಟು ಇಮೇಲ್/ಮೊಬೈಲ್ ಮೌಲ್ಯೀಕರಣ ಪೂರ್ಣಗೊಳ್ಳಲು ನಿರೀಕ್ಷಿಸಿ.",
   fr: "Veuillez attendre la fin de la validation de l'email/téléphone.",
   de: "Bitte warten Sie, bis die E-Mail/Handy-Validierung abgeschlossen ist.",
   it: "Attendi il completamento della convalida email/cellulare.",
@@ -4834,7 +4834,7 @@ pleaseWaitForValidation: {
 
 pleaseFixValidationErrors: {
   en: "Please fix all validation errors before proceeding.",
-  es: "Por favor, corrija todos los errores de validación antes de continuar.",
+  kn: "ಮುಂದುವರಿಯುವ ಮೊದಲು ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಮೌಲ್ಯೀಕರಣ ದೋಷಗಳನ್ನು ಸರಿಪಡಿಸಿ.",
   fr: "Veuillez corriger toutes les erreurs de validation avant de continuer.",
   de: "Bitte beheben Sie alle Validierungsfehler, bevor Sie fortfahren.",
   it: "Correggi tutti gli errori di convalida prima di procedere.",
@@ -4848,7 +4848,7 @@ pleaseFixValidationErrors: {
 
 registrationSuccessful: {
   en: "Registration Successful!",
-  es: "¡Registro Exitoso!",
+  kn: "ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!",
   fr: "Inscription Réussie !",
   de: "Registrierung Erfolgreich!",
   it: "Registrazione Completata!",
@@ -4862,7 +4862,7 @@ registrationSuccessful: {
 
 serviceProviderAdded: {
   en: "Service provider added successfully!",
-  es: "¡Proveedor de servicios agregado exitosamente!",
+  kn: "ಸೇವಾ ಒದಗಿಸುವವರನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ!",
   fr: "Prestataire de services ajouté avec succès !",
   de: "Dienstleister erfolgreich hinzugefügt!",
   it: "Fornitore di servizi aggiunto con successo!",
@@ -4876,7 +4876,7 @@ serviceProviderAdded: {
 
 failedToAddServiceProvider: {
   en: "Failed to add service provider. Please try again.",
-  es: "Error al agregar proveedor de servicios. Por favor, inténtelo de nuevo.",
+  kn: "ಸೇವಾ ಒದಗಿಸುವವರನ್ನು ಸೇರಿಸಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   fr: "Échec de l'ajout du prestataire de services. Veuillez réessayer.",
   de: "Fehler beim Hinzufügen des Dienstleisters. Bitte versuchen Sie es erneut.",
   it: "Impossibile aggiungere il fornitore di servizi. Per favore riprova.",
@@ -4890,7 +4890,7 @@ failedToAddServiceProvider: {
 
 locationFetchedSuccessfully: {
   en: "Location fetched successfully!",
-  es: "¡Ubicación obtenida exitosamente!",
+  kn: "ಸ್ಥಳವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಪಡೆಯಲಾಗಿದೆ!",
   fr: "Position récupérée avec succès !",
   de: "Standort erfolgreich abgerufen!",
   it: "Posizione ottenuta con successo!",
@@ -4904,7 +4904,7 @@ locationFetchedSuccessfully: {
 
 failedToFetchLocation: {
   en: "Failed to fetch location data. Please try again.",
-  es: "Error al obtener datos de ubicación. Por favor, inténtelo de nuevo.",
+  kn: "ಸ್ಥಳದ ಡೇಟಾವನ್ನು ಪಡೆಯಲು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
   fr: "Échec de la récupération des données de position. Veuillez réessayer.",
   de: "Fehler beim Abrufen der Standortdaten. Bitte versuchen Sie es erneut.",
   it: "Impossibile ottenere i dati sulla posizione. Per favore riprova.",
@@ -4918,7 +4918,7 @@ failedToFetchLocation: {
 
 geolocationFailed: {
   en: "Geolocation failed. Please check your browser permissions.",
-  es: "Geolocalización falló. Por favor, verifique los permisos de su navegador.",
+  kn: "ಜಿಯೋಲೊಕೇಷನ್ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಬ್ರೌಸರ್ ಅನುಮತಿಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
   fr: "La géolocalisation a échoué. Veuillez vérifier les autorisations de votre navigateur.",
   de: "Geolokalisierung fehlgeschlagen. Bitte überprüfen Sie Ihre Browser-Berechtigungen.",
   it: "Geolocalizzazione fallita. Controlla le autorizzazioni del browser.",
@@ -4932,7 +4932,7 @@ geolocationFailed: {
 
 geolocationNotSupported: {
   en: "Geolocation is not supported by your browser.",
-  es: "La geolocalización no es compatible con su navegador.",
+  kn: "ಜಿಯೋಲೊಕೇಷನ್ ಅನ್ನು ನಿಮ್ಮ ಬ್ರೌಸರ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ.",
   fr: "La géolocalisation n'est pas prise en charge par votre navigateur.",
   de: "Geolokalisierung wird von Ihrem Browser nicht unterstützt.",
   it: "La geolocalizzazione non è supportata dal tuo browser.",
@@ -4946,7 +4946,7 @@ geolocationNotSupported: {
 
 checkTermsToEnableSubmit: {
   en: "Check terms and conditions to enable Submit",
-  es: "Marque los términos y condiciones para habilitar Enviar",
+  kn: "ಸಲ್ಲಿಸು ಸಕ್ರಿಯಗೊಳಿಸಲು ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳನ್ನು ಪರಿಶೀಲಿಸಿ",
   fr: "Cochez les conditions générales pour activer Soumettre",
   de: "Aktivieren Sie die Allgemeinen Geschäftsbedingungen, um das Senden zu ermöglichen",
   it: "Seleziona i termini e le condizioni per abilitare Invia",
@@ -4962,7 +4962,7 @@ checkTermsToEnableSubmit: {
 // ============ FIELD VALIDATION TRANSLATIONS ============
 invalidEmailFormat: {
   en: "Invalid email format",
-  es: "Formato de correo electrónico inválido",
+  kn: "ಅಮಾನ್ಯ ಇಮೇಲ್ ಸ್ವರೂಪ",
   fr: "Format d'email invalide",
   de: "Ungültiges E-Mail-Format",
   it: "Formato email non valido",
@@ -4976,7 +4976,7 @@ invalidEmailFormat: {
 
 invalidMobileFormat: {
   en: "Invalid mobile number format",
-  es: "Formato de número de móvil inválido",
+  kn: "ಅಮಾನ್ಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಸ್ವರೂಪ",
   fr: "Format de numéro de mobile invalide",
   de: "Ungültiges Handynummernformat",
   it: "Formato numero di cellulare non valido",
@@ -4990,7 +4990,7 @@ invalidMobileFormat: {
 
 errorCheckingEmail: {
   en: "Error checking email",
-  es: "Error al verificar el correo electrónico",
+  kn: "ಇಮೇಲ್ ಪರಿಶೀಲಿಸುವಲ್ಲಿ ದೋಷ",
   fr: "Erreur lors de la vérification de l'email",
   de: "Fehler beim Überprüfen der E-Mail",
   it: "Errore durante la verifica dell'email",
@@ -5004,7 +5004,7 @@ errorCheckingEmail: {
 
 errorCheckingMobile: {
   en: "Error checking mobile number",
-  es: "Error al verificar el número de móvil",
+  kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಪರಿಶೀಲಿಸುವಲ್ಲಿ ದೋಷ",
   fr: "Erreur lors de la vérification du numéro de mobile",
   de: "Fehler beim Überprüfen der Handynummer",
   it: "Errore durante la verifica del numero di cellulare",
@@ -5020,7 +5020,7 @@ errorCheckingMobile: {
 // ============ BATHROOM CLEANING TRANSLATIONS ============
 type: {
   en: "Type:",
-  es: "Tipo:",
+  kn: "ಪ್ರಕಾರ:",
   fr: "Type :",
   de: "Typ:",
   it: "Tipo:",
@@ -5034,7 +5034,7 @@ type: {
 
 noOfWashrooms: {
   en: "No. of Washrooms:",
-  es: "Número de Baños:",
+  kn: "ಸ್ನಾನಗೃಹಗಳ ಸಂಖ್ಯೆ:",
   fr: "Nombre de Salles de Bain:",
   de: "Anzahl der Badezimmer:",
   it: "Numero di Bagni:",
@@ -5048,7 +5048,7 @@ noOfWashrooms: {
 
 frequency: {
   en: "Frequency:",
-  es: "Frecuencia:",
+  kn: "ಆವರ್ತನ:",
   fr: "Fréquence :",
   de: "Häufigkeit:",
   it: "Frequenza:",
@@ -5062,7 +5062,7 @@ frequency: {
 
 pricePerMonth: {
   en: "Price: ₹{price}/month",
-  es: "Precio: ₹{price}/mes",
+  kn: "ಬೆಲೆ: ₹{price}/ತಿಂಗಳು",
   fr: "Prix : ₹{price}/mois",
   de: "Preis: ₹{price}/Monat",
   it: "Prezzo: ₹{price}/mese",
@@ -5076,7 +5076,7 @@ pricePerMonth: {
 
 jobDescription: {
   en: "Job Description: {description}",
-  es: "Descripción del Trabajo: {description}",
+  kn: "ಕೆಲಸದ ವಿವರಣೆ: {description}",
   fr: "Description du Poste : {description}",
   de: "Stellenbeschreibung: {description}",
   it: "Descrizione del Lavoro: {description}",
@@ -5090,7 +5090,7 @@ jobDescription: {
 
 normalCleaning: {
   en: "Normal cleaning",
-  es: "Limpieza normal",
+  kn: "ಸಾಮಾನ್ಯ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage normal",
   de: "Normale Reinigung",
   it: "Pulizia normale",
@@ -5104,7 +5104,7 @@ normalCleaning: {
 
 deepCleaning: {
   en: "Deep cleaning",
-  es: "Limpieza profunda",
+  kn: "ಆಳವಾದ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage en profondeur",
   de: "Tiefenreinigung",
   it: "Pulizia profonda",
@@ -5118,7 +5118,7 @@ deepCleaning: {
 
 dayWeek: {
   en: "{days} day / week",
-  es: "{days} día / semana",
+  kn: "{days} ದಿನ / ವಾರ",
   fr: "{days} jour / semaine",
   de: "{days} Tag / Woche",
   it: "{days} giorno / settimana",
@@ -5132,7 +5132,7 @@ dayWeek: {
 
 daily: {
   en: "Daily",
-  es: "Diario",
+  kn: "ದೈನಂದಿನ",
   fr: "Quotidien",
   de: "Täglich",
   it: "Giornaliero",
@@ -5146,7 +5146,7 @@ daily: {
 
 weeklyCleaningBathroom: {
   en: "Weekly cleaning of bathroom",
-  es: "Limpieza semanal del baño",
+  kn: "ಸ್ನಾನಗೃಹದ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage hebdomadaire de la salle de bain",
   de: "Wöchentliche Reinigung des Badezimmers",
   it: "Pulizia settimanale del bagno",
@@ -5160,7 +5160,7 @@ weeklyCleaningBathroom: {
 
 twoDaysWeekCleaningBathroom: {
   en: "2 days in a week cleaning of bathroom",
-  es: "2 días a la semana limpieza del baño",
+  kn: "ವಾರದಲ್ಲಿ 2 ದಿನ ಸ್ನಾನಗೃಹ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "2 jours par semaine nettoyage de la salle de bain",
   de: "2 Tage pro Woche Reinigung des Badezimmers",
   it: "2 giorni a settimana pulizia del bagno",
@@ -5174,7 +5174,7 @@ twoDaysWeekCleaningBathroom: {
 
 twoBathroomsWeeklyCleaning: {
   en: "2 bathrooms of weekly cleaning",
-  es: "2 baños de limpieza semanal",
+  kn: "2 ಸ್ನಾನಗೃಹಗಳ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "2 salles de bain de nettoyage hebdomadaire",
   de: "2 Badezimmer wöchentliche Reinigung",
   it: "2 bagni di pulizia settimanale",
@@ -5188,7 +5188,7 @@ twoBathroomsWeeklyCleaning: {
 
 premiumCleaningBathroomWeekly: {
   en: "Premium cleaning of bathroom weekly",
-  es: "Limpieza premium del baño semanal",
+  kn: "ಸ್ನಾನಗೃಹದ ಪ್ರೀಮಿಯಂ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage premium de la salle de bain hebdomadaire",
   de: "Premium-Reinigung des Badezimmers wöchentlich",
   it: "Pulizia premium del bagno settimanale",
@@ -5202,7 +5202,7 @@ premiumCleaningBathroomWeekly: {
 
 premiumCleaningBathroomTwoDays: {
   en: "Premium cleaning of bathroom 2 days/week",
-  es: "Limpieza premium del baño 2 días/semana",
+  kn: "ಸ್ನಾನಗೃಹದ ಪ್ರೀಮಿಯಂ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ 2 ದಿನ/ವಾರ",
   fr: "Nettoyage premium de la salle de bain 2 jours/semaine",
   de: "Premium-Reinigung des Badezimmers 2 Tage/Woche",
   it: "Pulizia premium del bagno 2 giorni/settimana",
@@ -5216,7 +5216,7 @@ premiumCleaningBathroomTwoDays: {
 
 twoBathroomsPremiumWeekly: {
   en: "2 bathrooms premium weekly cleaning",
-  es: "2 baños limpieza premium semanal",
+  kn: "2 ಸ್ನಾನಗೃಹಗಳ ಪ್ರೀಮಿಯಂ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "2 salles de bain nettoyage premium hebdomadaire",
   de: "2 Badezimmer Premium wöchentliche Reinigung",
   it: "2 bagni pulizia premium settimanale",
@@ -5230,7 +5230,7 @@ twoBathroomsPremiumWeekly: {
 
 deepCleaningDescription: {
   en: "Weekly cleaning of bathroom + All bathroom walls cleaning",
-  es: "Limpieza semanal del baño + Limpieza de todas las paredes del baño",
+  kn: "ಸ್ನಾನಗೃಹದ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ + ಎಲ್ಲಾ ಸ್ನಾನಗೃಹದ ಗೋಡೆಗಳ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage hebdomadaire de la salle de bain + Nettoyage de tous les murs de la salle de bain",
   de: "Wöchentliche Reinigung des Badezimmers + Reinigung aller Badezimmerwände",
   it: "Pulizia settimanale del bagno + Pulizia di tutte le pareti del bagno",
@@ -5249,7 +5249,7 @@ deepCleaningDescription: {
 
 threeDaysWeek: {
   en: "3 days / week",
-  es: "3 días / semana",
+  kn: "3 ದಿನ / ವಾರ",
   fr: "3 jours / semaine",
   de: "3 Tage / Woche",
   it: "3 giorni / settimana",
@@ -5263,7 +5263,7 @@ threeDaysWeek: {
 
 clothDryingJobDescription: {
   en: "Househelp will get clothes from drying place and make proper arrangements in shelf",
-  es: "La ayuda doméstica recogerá la ropa del tendedero y la colocará adecuadamente en el armario",
+  kn: "ಮನೆ ಸಹಾಯಕರು ಬಟ್ಟೆಗಳನ್ನು ಒಣಗಿಸುವ ಸ್ಥಳದಿಂದ ತಂದು ಕಪಾಟಿನಲ್ಲಿ ಸರಿಯಾಗಿ ಜೋಡಿಸುತ್ತಾರೆ",
   fr: "L'aide ménagère ira chercher les vêtements de l'étendoir et les rangera correctement dans l'armoire",
   de: "Die Haushaltshilfe holt die Kleidung vom Wäscheständer und räumt sie ordentlich in den Schrank",
   it: "La colf prenderà i vestiti dallo stenditoio e li sistemerà correttamente nell'armadio",
@@ -5276,7 +5276,7 @@ clothDryingJobDescription: {
 },
 noDescriptionAvailable: {
   en: "No description available",
-  es: "No hay descripción disponible",
+  kn: "ಯಾವುದೇ ವಿವರಣೆ ಲಭ್ಯವಿಲ್ಲ",
   fr: "Aucune description disponible",
   de: "Keine Beschreibung verfügbar",
   it: "Nessuna descrizione disponibile",
@@ -5292,7 +5292,7 @@ noDescriptionAvailable: {
 // ============ DUSTING TRANSLATIONS ============
 dustingType: {
   en: "Dusting type:",
-  es: "Tipo de limpieza:",
+  kn: "ಧೂಳು ಒರೆಸುವ ಪ್ರಕಾರ:",
   fr: "Type de dépoussiérage :",
   de: "Staubart:",
   it: "Tipo di spolveratura:",
@@ -5306,7 +5306,7 @@ dustingType: {
 
 roomType: {
   en: "Room type:",
-  es: "Tipo de habitación:",
+  kn: "ಕೋಣೆಯ ಪ್ರಕಾರ:",
   fr: "Type de pièce :",
   de: "Raumtyp:",
   it: "Tipo di stanza:",
@@ -5320,7 +5320,7 @@ roomType: {
 
 normal: {
   en: "Normal",
-  es: "Normal",
+  kn: "ಸಾಮಾನ್ಯ",
   fr: "Normal",
   de: "Normal",
   it: "Normale",
@@ -5334,7 +5334,7 @@ normal: {
 
 deep: {
   en: "Deep",
-  es: "Profundo",
+  kn: "ಆಳವಾದ",
   fr: "Profond",
   de: "Tief",
   it: "Profondo",
@@ -5348,7 +5348,7 @@ deep: {
 
 twoBHK: {
   en: "2 BHK",
-  es: "2 Habitaciones",
+  kn: "2 BHK",
   fr: "2 Pièces",
   de: "2 Zimmer",
   it: "2 Locali",
@@ -5362,7 +5362,7 @@ twoBHK: {
 
 twoHalfBHK: {
   en: "2.5 - 3 BHK",
-  es: "2.5 - 3 Habitaciones",
+  kn: "2.5 - 3 BHK",
   fr: "2.5 - 3 Pièces",
   de: "2.5 - 3 Zimmer",
   it: "2.5 - 3 Locali",
@@ -5376,7 +5376,7 @@ twoHalfBHK: {
 
 normalDustingDescription: {
   en: "Includes furniture dusting, gate, decor items, carpet, bed making. Weekly: windows, glasses, cupboards, kitchen cabinet outer cleaning. Monthly: fan and cobweb cleaning.",
-  es: "Incluye limpieza de muebles, puerta, artículos decorativos, alfombra, hacer la cama. Semanal: ventanas, vidrios, armarios, limpieza exterior de gabinetes de cocina. Mensual: limpieza de ventiladores y telarañas.",
+  kn: "ಫರ್ನಿಚರ್ ಧೂಳು ಒರೆಸುವುದು, ಗೇಟ್, ಅಲಂಕಾರಿಕ ವಸ್ತುಗಳು, ಕಾರ್ಪೆಟ್, ಹಾಸಿಗೆ ಮಾಡುವುದು ಸೇರಿವೆ. ಸಾಪ್ತಾಹಿಕ: ಕಿಟಕಿಗಳು, ಗಾಜುಗಳು, ಅಲಮಾರುಗಳು, ಅಡುಗೆಮನೆ ಕ್ಯಾಬಿನೆಟ್ ಹೊರಗಿನ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ. ಮಾಸಿಕ: ಫ್ಯಾನ್ ಮತ್ತು ಜೇಡರ ಬಲೆ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ.",
   fr: "Comprend le dépoussiérage des meubles, de la porte, des objets de décoration, du tapis, la confection des lits. Hebdomadaire : fenêtres, vitres, placards, nettoyage extérieur des armoires de cuisine. Mensuel : nettoyage des ventilateurs et des toiles d'araignée.",
   de: "Beinhaltet Möbelstaubwischen, Tor, Dekorationsgegenstände, Teppich, Bettenmachen. Wöchentlich: Fenster, Gläser, Schränke, äußere Reinigung von Küchenschränken. Monatlich: Ventilator- und Spinnwebenreinigung.",
   it: "Include spolveratura mobili, cancello, oggetti decorativi, tappeto, rifacimento letti. Settimanale: finestre, vetri, armadi, pulizia esterna dei mobili della cucina. Mensile: pulizia di ventilatori e ragnatele.",
@@ -5390,7 +5390,7 @@ normalDustingDescription: {
 
 deepDustingDescription: {
   en: "Normal Dusting + kitchen slab cleaning.",
-  es: "Limpieza normal + limpieza de encimera de cocina.",
+  kn: "ಸಾಮಾನ್ಯ ಧೂಳು ಒರೆಸುವುದು + ಅಡುಗೆಮನೆಯ ಸ್ಲ್ಯಾಬ್ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ.",
   fr: "Dépoussiérage normal + nettoyage du plan de travail de la cuisine.",
   de: "Normales Staubwischen + Reinigung der Küchenarbeitsplatte.",
   it: "Spolveratura normale + pulizia del piano cottura.",
@@ -5406,7 +5406,7 @@ deepDustingDescription: {
 // ============ MAID SERVICES TRANSLATIONS ============
 regular: {
   en: "Regular",
-  es: "Regular",
+  kn: "ನಿಯಮಿತ",
   fr: "Régulier",
   de: "Regulär",
   it: "Regolare",
@@ -5420,7 +5420,7 @@ regular: {
 
 premium: {
   en: "Premium",
-  es: "Premium",
+  kn: "ಪ್ರೀಮಿಯಂ",
   fr: "Premium",
   de: "Premium",
   it: "Premium",
@@ -5434,7 +5434,7 @@ premium: {
 
 selectedPrice: {
   en: "Selected Price",
-  es: "Precio Seleccionado",
+  kn: "ಆಯ್ಕೆಮಾಡಿದ ಬೆಲೆ",
   fr: "Prix Sélectionné",
   de: "Ausgewählter Preis",
   it: "Prezzo Selezionato",
@@ -5448,7 +5448,7 @@ selectedPrice: {
 
 proceedToCheckout: {
   en: "Proceed to Checkout",
-  es: "Proceder al Pago",
+  kn: "ಚೆಕ್‌ಔಟ್‌ಗೆ ಮುಂದುವರಿಯಿರಿ",
   fr: "Procéder au Paiement",
   de: "Zur Kasse gehen",
   it: "Procedi al Checkout",
@@ -5462,7 +5462,7 @@ proceedToCheckout: {
 
 itemAddedToCart: {
   en: "Item added to cart successfully!",
-  es: "¡Artículo agregado al carrito exitosamente!",
+  kn: "ಐಟಂ ಅನ್ನು ಕಾರ್ಟ್‌ಗೆ ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ!",
   fr: "Article ajouté au panier avec succès !",
   de: "Artikel erfolgreich zum Warenkorb hinzugefügt!",
   it: "Articolo aggiunto al carrello con successo!",
@@ -5476,7 +5476,7 @@ itemAddedToCart: {
 
 people: {
   en: "People",
-  es: "Personas",
+  kn: "ಜನರು",
   fr: "Personnes",
   de: "Personen",
   it: "Persone",
@@ -5490,7 +5490,7 @@ people: {
 
 rooms: {
   en: "Rooms",
-  es: "Habitaciones",
+  kn: "ಕೊಠಡಿಗಳು",
   fr: "Pièces",
   de: "Zimmer",
   it: "Stanze",
@@ -5504,7 +5504,7 @@ rooms: {
 
 number: {
   en: "Number",
-  es: "Número",
+  kn: "ಸಂಖ್ಯೆ",
   fr: "Numéro",
   de: "Anzahl",
   it: "Numero",
@@ -5519,7 +5519,7 @@ number: {
 // ============ COOK SERVICES DIALOG TRANSLATIONS ============
 persons: {
   en: "Persons:",
-  es: "Personas:",
+  kn: "ವ್ಯಕ್ತಿಗಳು:",
   fr: "Personnes :",
   de: "Personen:",
   it: "Persone:",
@@ -5533,7 +5533,7 @@ persons: {
 
 additionalChargesApplied: {
   en: "*Additional charges applied",
-  es: "*Cargos adicionales aplicados",
+  kn: "*ಹೆಚ್ಚುವರಿ ಶುಲ್ಕಗಳು ಅನ್ವಯಿಸುತ್ತವೆ",
   fr: "*Frais supplémentaires appliqués",
   de: "*Zusätzliche Gebühren werden berechnet",
   it: "*Costi aggiuntivi applicati",
@@ -5547,7 +5547,7 @@ additionalChargesApplied: {
 
 addToCart: {
   en: "ADD TO CART",
-  es: "AGREGAR AL CARRITO",
+  kn: "ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ",
   fr: "AJOUTER AU PANIER",
   de: "IN DEN WARENKORB",
   it: "AGGIUNGI AL CARRELLO",
@@ -5561,7 +5561,7 @@ addToCart: {
 
 addedToCart: {
   en: "ADDED TO CART",
-  es: "AGREGADO AL CARRITO",
+  kn: "ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ",
   fr: "AJOUTÉ AU PANIER",
   de: "ZUM WARENKORB HINZUGEFÜGT",
   it: "AGGIUNTO AL CARRELLO",
@@ -5575,7 +5575,7 @@ addedToCart: {
 
 applyVoucher: {
   en: "Apply Voucher",
-  es: "Aplicar Cupón",
+  kn: "ವೋಚರ್ ಅನ್ವಯಿಸಿ",
   fr: "Appliquer le Bon",
   de: "Gutschein einlösen",
   it: "Applica Voucher",
@@ -5589,7 +5589,7 @@ applyVoucher: {
 
 enterVoucherCode: {
   en: "Enter voucher code",
-  es: "Ingrese código de cupón",
+  kn: "ವೋಚರ್ ಕೋಡ್ ನಮೂದಿಸಿ",
   fr: "Entrez le code du bon",
   de: "Gutscheincode eingeben",
   it: "Inserisci codice voucher",
@@ -5603,7 +5603,7 @@ enterVoucherCode: {
 
 apply: {
   en: "APPLY",
-  es: "APLICAR",
+  kn: "ಅನ್ವಯಿಸಿ",
   fr: "APPLIQUER",
   de: "ANWENDEN",
   it: "APPLICA",
@@ -5617,7 +5617,7 @@ apply: {
 
 totalForItems: {
   en: "Total for {count} item{plural} ({persons} person{personPlural})",
-  es: "Total para {count} artículo{plural} ({persons} persona{personPlural})",
+  kn: "ಒಟ್ಟು {count} ಐಟಂ{plural} ({persons} ವ್ಯಕ್ತಿ{personPlural})",
   fr: "Total pour {count} article{plural} ({persons} personne{personPlural})",
   de: "Gesamt für {count} Artikel{plural} ({persons} Person{personPlural})",
   it: "Totale per {count} articolo{plural} ({persons} persona{personPlural})",
@@ -5631,7 +5631,7 @@ totalForItems: {
 
 loginToContinue: {
   en: "LOGIN TO CONTINUE",
-  es: "INICIAR SESIÓN PARA CONTINUAR",
+  kn: "ಮುಂದುವರಿಯಲು ಲಾಗಿನ್ ಮಾಡಿ",
   fr: "CONNECTEZ-VOUS POUR CONTINUER",
   de: "ANMELDEN ZUM FORTFAHREN",
   it: "ACCEDI PER CONTINUARE",
@@ -5645,7 +5645,7 @@ loginToContinue: {
 
 checkout: {
   en: "CHECKOUT",
-  es: "PAGAR",
+  kn: "ಚೆಕ್‌ಔಟ್",
   fr: "PAIEMENT",
   de: "KASSE",
   it: "CHECKOUT",
@@ -5659,7 +5659,7 @@ checkout: {
 
 youNeedToLogin: {
   en: "You need to login to proceed with checkout",
-  es: "Necesitas iniciar sesión para continuar con el pago",
+  kn: "ಚೆಕ್‌ಔಟ್‌ನೊಂದಿಗೆ ಮುಂದುವರಿಯಲು ನೀವು ಲಾಗಿನ್ ಆಗಬೇಕಾಗುತ್ತದೆ",
   fr: "Vous devez vous connecter pour procéder au paiement",
   de: "Sie müssen sich anmelden, um zur Kasse zu gehen",
   it: "Devi accedere per procedere al checkout",
@@ -5673,7 +5673,7 @@ youNeedToLogin: {
 
 minutesPreparation: {
   en: "{minutes} mins preparation",
-  es: "{minutes} minutos de preparación",
+  kn: "{minutes} ನಿಮಿಷಗಳ ತಯಾರಿ",
   fr: "{minutes} minutes de préparation",
   de: "{minutes} Minuten Zubereitung",
   it: "{minutes} minuti di preparazione",
@@ -5687,7 +5687,7 @@ minutesPreparation: {
 
 hoursPreparation: {
   en: "{hours} hrs preparation",
-  es: "{hours} horas de preparación",
+  kn: "{hours} ಗಂಟೆಗಳ ತಯಾರಿ",
   fr: "{hours} heures de préparation",
   de: "{hours} Stunden Zubereitung",
   it: "{hours} ore di preparazione",
@@ -5701,7 +5701,7 @@ hoursPreparation: {
 
 reviews: {
   en: "({count} reviews)",
-  es: "({count} reseñas)",
+  kn: "({count} ವಿಮರ್ಶೆಗಳು)",
   fr: "({count} avis)",
   de: "({count} Bewertungen)",
   it: "({count} recensioni)",
@@ -5717,7 +5717,7 @@ reviews: {
 // ============ MAID SERVICE DIALOG TRANSLATIONS ============
 maidService: {
   en: "🧹 Maid Service",
-  es: "🧹 Servicio de Limpieza",
+  kn: "🧹 ಮನೆಕೆಲಸದವರ ಸೇವೆ",
   fr: "🧹 Service de Ménage",
   de: "🧹 Reinigungsdienst",
   it: "🧹 Servizio di Pulizia",
@@ -5731,7 +5731,7 @@ maidService: {
 
 utensilCleaning: {
   en: "Utensil Cleaning",
-  es: "Limpieza de Utensilios",
+  kn: "ಪಾತ್ರೆ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage d'Ustensiles",
   de: "Geschirrreinigung",
   it: "Pulizia Utensili",
@@ -5745,7 +5745,7 @@ utensilCleaning: {
 
 sweepingMopping: {
   en: "Sweeping & Mopping",
-  es: "Barrido y Trapeado",
+  kn: "ಗುಡಿಸುವುದು ಮತ್ತು ಒರೆಸುವುದು",
   fr: "Balayage et Nettoyage",
   de: "Kehren und Wischen",
   it: "Spazzare e Lavare",
@@ -5759,7 +5759,7 @@ sweepingMopping: {
 
 bathroomCleaning: {
   en: "Bathroom Cleaning",
-  es: "Limpieza de Baño",
+  kn: "ಸ್ನಾನಗೃಹ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage de Salle de Bain",
   de: "Badezimmerreinigung",
   it: "Pulizia Bagno",
@@ -5773,7 +5773,7 @@ bathroomCleaning: {
 
 utensilCleaningDesc1: {
   en: "All kind of daily utensil cleaning",
-  es: "Todo tipo de limpieza diaria de utensilios",
+  kn: "ಎಲ್ಲಾ ರೀತಿಯ ದೈನಂದಿನ ಪಾತ್ರೆ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Tous types de nettoyage quotidien d'ustensiles",
   de: "Alle Arten der täglichen Geschirrreinigung",
   it: "Tutti i tipi di pulizia quotidiana degli utensili",
@@ -5787,7 +5787,7 @@ utensilCleaningDesc1: {
 
 utensilCleaningDesc2: {
   en: "Party used type utensil cleaning",
-  es: "Limpieza de utensilios usados en fiestas",
+  kn: "ಪಾರ್ಟಿಯಲ್ಲಿ ಬಳಸಿದ ಪಾತ್ರೆ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage d'ustensiles utilisés pour les fêtes",
   de: "Reinigung von Partygeschirr",
   it: "Pulizia di utensili usati per feste",
@@ -5801,7 +5801,7 @@ utensilCleaningDesc2: {
 
 sweepingMoppingDesc: {
   en: "Daily sweeping and mopping of 2 rooms, 1 Hall",
-  es: "Barrido y trapeado diario de 2 habitaciones, 1 sala",
+  kn: "2 ಕೊಠಡಿಗಳು, 1 ಹಾಲ್ ನ ದೈನಂದಿನ ಗುಡಿಸುವುದು ಮತ್ತು ಒರೆಸುವುದು",
   fr: "Balayage et nettoyage quotidiens de 2 chambres, 1 salon",
   de: "Tägliches Kehren und Wischen von 2 Zimmern, 1 Wohnzimmer",
   it: "Spazzare e lavare quotidianamente 2 stanze, 1 soggiorno",
@@ -5815,7 +5815,7 @@ sweepingMoppingDesc: {
 
 bathroomCleaningDesc: {
   en: "Weekly cleaning of bathrooms",
-  es: "Limpieza semanal de baños",
+  kn: "ಸ್ನಾನಗೃಹಗಳ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage hebdomadaire des salles de bain",
   de: "Wöchentliche Reinigung der Badezimmer",
   it: "Pulizia settimanale dei bagni",
@@ -5829,7 +5829,7 @@ bathroomCleaningDesc: {
 
 regularAddonServices: {
   en: "Regular Add-on Services",
-  es: "Servicios Adicionales Regulares",
+  kn: "ನಿಯಮಿತ ಆಡ್-ಆನ್ ಸೇವೆಗಳು",
   fr: "Services Complémentaires Réguliers",
   de: "Reguläre Zusatzdienste",
   it: "Servizi Aggiuntivi Regolari",
@@ -5843,7 +5843,7 @@ regularAddonServices: {
 
 bathroomDeepCleaning: {
   en: "Bathroom Deep Cleaning",
-  es: "Limpieza Profunda de Baño",
+  kn: "ಸ್ನಾನಗೃಹದ ಆಳವಾದ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ",
   fr: "Nettoyage en Profondeur de Salle de Bain",
   de: "Tiefenreinigung Badezimmer",
   it: "Pulizia Profonda del Bagno",
@@ -5857,7 +5857,7 @@ bathroomDeepCleaning: {
 
 bathroomDeepCleaningDesc: {
   en: "Weekly cleaning of bathrooms, all bathroom walls cleaned",
-  es: "Limpieza semanal de baños, limpieza de todas las paredes del baño",
+  kn: "ಸ್ನಾನಗೃಹಗಳ ಸಾಪ್ತಾಹಿಕ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ, ಎಲ್ಲಾ ಸ್ನಾನಗೃಹದ ಗೋಡೆಗಳು ಸ್ವಚ್ಛಗೊಳಿಸಲ್ಪಡುತ್ತವೆ",
   fr: "Nettoyage hebdomadaire des salles de bain, nettoyage de tous les murs de la salle de bain",
   de: "Wöchentliche Reinigung der Badezimmer, Reinigung aller Badezimmerwände",
   it: "Pulizia settimanale dei bagni, pulizia di tutte le pareti del bagno",
@@ -5871,7 +5871,7 @@ bathroomDeepCleaningDesc: {
 
 normalDusting: {
   en: "Normal Dusting",
-  es: "Limpieza Normal",
+  kn: "ಸಾಮಾನ್ಯ ಧೂಳು ಒರೆಸುವುದು",
   fr: "Dépoussiérage Normal",
   de: "Normales Staubwischen",
   it: "Spolveratura Normale",
@@ -5885,7 +5885,7 @@ normalDusting: {
 
 normalDustingDesc: {
   en: "Daily furniture dusting, doors, carpet, bed making",
-  es: "Limpieza diaria de muebles, puertas, alfombra, hacer la cama",
+  kn: "ದೈನಂದಿನ ಫರ್ನಿಚರ್ ಧೂಳು ಒರೆಸುವುದು, ಬಾಗಿಲುಗಳು, ಕಾರ್ಪೆಟ್, ಹಾಸಿಗೆ ಮಾಡುವುದು",
   fr: "Dépoussiérage quotidien des meubles, portes, tapis, confection des lits",
   de: "Tägliches Staubwischen von Möbeln, Türen, Teppich, Bettenmachen",
   it: "Spolveratura quotidiana di mobili, porte, tappeto, rifacimento letti",
@@ -5899,7 +5899,7 @@ normalDustingDesc: {
 
 deepDusting: {
   en: "Deep Dusting",
-  es: "Limpieza Profunda",
+  kn: "ಆಳವಾದ ಧೂಳು ಒರೆಸುವುದು",
   fr: "Dépoussiérage Profond",
   de: "Tiefenreinigung",
   it: "Spolveratura Profonda",
@@ -5913,7 +5913,7 @@ deepDusting: {
 
 deepDustingDesc: {
   en: "Includes chemical agents cleaning: décor items, furniture",
-  es: "Incluye limpieza con agentes químicos: artículos decorativos, muebles",
+  kn: "ರಾಸಾಯನಿಕ ಏಜೆಂಟ್ ಸ್ವಚ್ಛಗೊಳಿಸುವಿಕೆ ಸೇರಿದೆ: ಅಲಂಕಾರಿಕ ವಸ್ತುಗಳು, ಫರ್ನಿಚರ್",
   fr: "Comprend le nettoyage avec des agents chimiques : articles de décoration, meubles",
   de: "Beinhaltet Reinigung mit chemischen Mitteln: Dekorationsgegenstände, Möbel",
   it: "Include pulizia con agenti chimici: oggetti decorativi, mobili",
@@ -5927,7 +5927,7 @@ deepDustingDesc: {
 
 utensilDrying: {
   en: "Utensil Drying",
-  es: "Secado de Utensilios",
+  kn: "ಪಾತ್ರೆ ಒಣಗಿಸುವುದು",
   fr: "Séchage d'Ustensiles",
   de: "Geschirrtrocknen",
   it: "Asciugatura Utensili",
@@ -5941,7 +5941,7 @@ utensilDrying: {
 
 utensilDryingDesc: {
   en: "Househelp will dry and make proper arrangements",
-  es: "La ayuda doméstica secará y hará los arreglos adecuados",
+  kn: "ಮನೆ ಸಹಾಯಕರು ಒಣಗಿಸಿ ಸರಿಯಾದ ವ್ಯವಸ್ಥೆ ಮಾಡುತ್ತಾರೆ",
   fr: "L'aide ménagère séchera et fera les arrangements appropriés",
   de: "Die Haushaltshilfe trocknet und trifft die richtigen Vorkehrungen",
   it: "La colf asciugherà e farà gli opportuni accordi",
@@ -5955,7 +5955,7 @@ utensilDryingDesc: {
 
 clothesDrying: {
   en: "Clothes Drying",
-  es: "Secado de Ropa",
+  kn: "ಬಟ್ಟೆ ಒಣಗಿಸುವುದು",
   fr: "Séchage de Vêtements",
   de: "Wäschetrocknen",
   it: "Asciugatura Vestiti",
@@ -5969,7 +5969,7 @@ clothesDrying: {
 
 clothesDryingDesc: {
   en: "Househelp will get clothes from/to drying place",
-  es: "La ayuda doméstica recogerá/entregará la ropa del lugar de secado",
+  kn: "ಮನೆ ಸಹಾಯಕರು ಒಣಗಿಸುವ ಸ್ಥಳದಿಂದ/ಗೆ ಬಟ್ಟೆಗಳನ್ನು ತರುತ್ತಾರೆ/ಕೊಂಡೊಯ್ಯುತ್ತಾರೆ",
   fr: "L'aide ménagère ira chercher/rapportera les vêtements du lieu de séchage",
   de: "Die Haushaltshilfe holt/bringt die Wäsche vom/zum Trockenplatz",
   it: "La colf prenderà/porterà i vestiti dal luogo di asciugatura",
@@ -5984,7 +5984,7 @@ clothesDryingDesc: {
 
 houseSize: {
   en: "House Size:",
-  es: "Tamaño de Casa:",
+  kn: "ಮನೆಯ ಗಾತ್ರ:",
   fr: "Taille de la Maison :",
   de: "Hausgröße:",
   it: "Dimensioni Casa:",
@@ -5998,7 +5998,7 @@ houseSize: {
 
 bathrooms: {
   en: "Bathrooms:",
-  es: "Baños:",
+  kn: "ಸ್ನಾನಗೃಹಗಳು:",
   fr: "Salles de Bain :",
   de: "Badezimmer:",
   it: "Bagni:",
@@ -6012,7 +6012,7 @@ bathrooms: {
 
 monthlyService: {
   en: "Monthly service",
-  es: "Servicio mensual",
+  kn: "ಮಾಸಿಕ ಸೇವೆ",
   fr: "Service mensuel",
   de: "Monatlicher Service",
   it: "Servizio mensile",
@@ -6026,7 +6026,7 @@ monthlyService: {
 
 addThisService: {
   en: "+ Add This Service",
-  es: "+ Agregar Este Servicio",
+  kn: "+ ಈ ಸೇವೆಯನ್ನು ಸೇರಿಸಿ",
   fr: "+ Ajouter Ce Service",
   de: "+ Diesen Service hinzufügen",
   it: "+ Aggiungi Questo Servizio",
@@ -6040,7 +6040,7 @@ addThisService: {
 
 added: {
   en: "ADDED",
-  es: "AGREGADO",
+  kn: "ಸೇರಿಸಲಾಗಿದೆ",
   fr: "AJOUTÉ",
   de: "HINZUGEFÜGT",
   it: "AGGIUNTO",
@@ -6054,7 +6054,7 @@ added: {
 
 totalForServices: {
   en: "Total for {services} services ({addons} add-ons)",
-  es: "Total para {services} servicios ({addons} adicionales)",
+  kn: "ಒಟ್ಟು {services} ಸೇವೆಗಳಿಗೆ ({addons} ಆಡ್-ಆನ್‌ಗಳು)",
   fr: "Total pour {services} services ({addons} compléments)",
   de: "Gesamt für {services} Dienste ({addons} Zusätze)",
   it: "Totale per {services} servizi ({addons} aggiuntivi)",
@@ -6070,7 +6070,7 @@ totalForServices: {
 // ============ NANNY SERVICES DIALOG TRANSLATIONS ============
 caregiverService: {
   en: "❤️ Caregiver Service",
-  es: "❤️ Servicio de Cuidador",
+  kn: "❤️ ಆರೈಕೆದಾರ ಸೇವೆ",
   fr: "❤️ Service de Soignant",
   de: "❤️ Pflegedienst",
   it: "❤️ Servizio di Assistenza",
@@ -6084,7 +6084,7 @@ caregiverService: {
 
 dayService: {
   en: "Day",
-  es: "Día",
+  kn: "ಹಗಲು",
   fr: "Jour",
   de: "Tag",
   it: "Giorno",
@@ -6098,7 +6098,7 @@ dayService: {
 
 nightService: {
   en: "Night",
-  es: "Noche",
+  kn: "ರಾತ್ರಿ",
   fr: "Nuit",
   de: "Nacht",
   it: "Notte",
@@ -6112,7 +6112,7 @@ nightService: {
 
 fullTimeService: {
   en: "Fulltime",
-  es: "Tiempo Completo",
+  kn: "ಪೂರ್ಣ ಸಮಯ",
   fr: "Temps Plein",
   de: "Vollzeit",
   it: "Tempo Pieno",
@@ -6126,7 +6126,7 @@ fullTimeService: {
 
 age: {
   en: "Age:",
-  es: "Edad:",
+  kn: "ವಯಸ್ಸು:",
   fr: "Âge :",
   de: "Alter:",
   it: "Età:",
@@ -6140,7 +6140,7 @@ age: {
 
 ageInfoBaby: {
   en: "Age 1 includes babies from 1 to 12 months",
-  es: "Edad 1 incluye bebés de 1 a 12 meses",
+  kn: "ವಯಸ್ಸು 1 ರಲ್ಲಿ 1 ರಿಂದ 12 ತಿಂಗಳ ಮಕ್ಕಳು ಸೇರಿದ್ದಾರೆ",
   fr: "L'âge 1 comprend les bébés de 1 à 12 mois",
   de: "Alter 1 umfasst Babys von 1 bis 12 Monaten",
   it: "Età 1 include bambini da 1 a 12 mesi",
@@ -6154,7 +6154,7 @@ ageInfoBaby: {
 
 ageInfoElderly: {
   en: "For seniors aged 60 and above",
-  es: "Para personas mayores de 60 años o más",
+  kn: "60 ಮತ್ತು ಅದಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ವಯಸ್ಸಿನ ಹಿರಿಯರಿಗೆ",
   fr: "Pour les seniors de 60 ans et plus",
   de: "Für Senioren ab 60 Jahren",
   it: "Per anziani dai 60 anni in su",
@@ -6168,7 +6168,7 @@ ageInfoElderly: {
 
 totalForService: {
   en: "Total for {count} service{plural}",
-  es: "Total para {count} servicio{plural}",
+  kn: "ಒಟ್ಟು {count} ಸೇವೆ{plural}",
   fr: "Total pour {count} service{plural}",
   de: "Gesamt für {count} Dienstleistung{plural}",
   it: "Totale per {count} servizio{plural}",
@@ -6185,7 +6185,7 @@ totalForService: {
 // Add these to your translations object in LanguageContext.tsx
 availabilityDetails: {
   en: "Availability Details",
-  es: "Detalles de Disponibilidad",
+  kn: "ಲಭ್ಯತೆಯ ವಿವರಗಳು",
   fr: "Détails de Disponibilité",
   de: "Verfügbarkeitsdetails",
   it: "Dettagli Disponibilità",
@@ -6198,7 +6198,7 @@ availabilityDetails: {
 },
 bestMatch: {
   en: "Best Match",
-  es: "Mejor Coincidencia",
+  kn: "ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆ",
   fr: "Meilleure Correspondance",
   de: "Beste Übereinstimmung",
   it: "Miglior corrispondenza",
@@ -6211,7 +6211,7 @@ bestMatch: {
 },
 bestMatchProvider: {
   en: "Best Match Provider!",
-  es: "¡Mejor Proveedor!",
+  kn: "ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆಯ ಪ್ರದಾತಾ!",
   fr: "Meilleur Prestataire !",
   de: "Bester Anbieter!",
   it: "Miglior Fornitore!",
@@ -6224,7 +6224,7 @@ bestMatchProvider: {
 },
 bestMatchDescription: {
   en: "This provider perfectly matches all your requirements and preferences.",
-  es: "Este proveedor coincide perfectamente con todos sus requisitos y preferencias.",
+  kn: "ಈ ಪ್ರದಾತಾ ನಿಮ್ಮ ಎಲ್ಲಾ ಅವಶ್ಯಕತೆಗಳು ಮತ್ತು ಆದ್ಯತೆಗಳಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಹೊಂದಿಕೆಯಾಗುತ್ತದೆ.",
   fr: "Ce prestataire correspond parfaitement à toutes vos exigences et préférences.",
   de: "Dieser Anbieter entspricht perfekt allen Ihren Anforderungen und Präferenzen.",
   it: "Questo fornitore corrisponde perfettamente a tutte le tue esigenze e preferenze.",
@@ -6237,7 +6237,7 @@ bestMatchDescription: {
 },
 goodMatch: {
   en: "Good Match",
-  es: "Buena Coincidencia",
+  kn: "ಉತ್ತಮ ಹೊಂದಾಣಿಕೆ",
   fr: "Bonne Correspondance",
   de: "Gute Übereinstimmung",
   it: "Buona corrispondenza",
@@ -6250,7 +6250,7 @@ goodMatch: {
 },
 unknown: {
   en: "Unknown",
-  es: "Desconocido",
+  kn: "ಅಜ್ಞಾತ",
   fr: "Inconnu",
   de: "Unbekannt",
   it: "Sconosciuto",
@@ -6263,7 +6263,7 @@ unknown: {
 },
 fullyAvailable: {
   en: "Fully Available",
-  es: "Totalmente Disponible",
+  kn: "ಸಂಪೂರ್ಣವಾಗಿ ಲಭ್ಯವಿದೆ",
   fr: "Totalement Disponible",
   de: "Vollständig Verfügbar",
   it: "Completamente Disponibile",
@@ -6276,7 +6276,7 @@ fullyAvailable: {
 },
 partiallyAvailable: {
   en: "Partially Available",
-  es: "Parcialmente Disponible",
+  kn: "ಭಾಗಶಃ ಲಭ್ಯವಿದೆ",
   fr: "Partiellement Disponible",
   de: "Teilweise Verfügbar",
   it: "Parzialmente Disponibile",
@@ -6289,7 +6289,7 @@ partiallyAvailable: {
 },
 bestMatchMessage: {
   en: "This provider is our best match for your requirements!",
-  es: "¡Este proveedor es nuestra mejor opción para sus requisitos!",
+  kn: "ಈ ಪ್ರದಾತಾ ನಿಮ್ಮ ಅವಶ್ಯಕತೆಗಳಿಗೆ ನಮ್ಮ ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆಯಾಗಿದೆ!",
   fr: "Ce prestataire est notre meilleure correspondance pour vos exigences !",
   de: "Dieser Anbieter ist unsere beste Übereinstimmung für Ihre Anforderungen!",
   it: "Questo fornitore è la nostra migliore corrispondenza per le tue esigenze!",
@@ -6302,7 +6302,7 @@ bestMatchMessage: {
 },
 partialAvailabilityMessage: {
   en: "This provider has some schedule variations. Check availability details below.",
-  es: "Este proveedor tiene algunas variaciones de horario. Consulte los detalles de disponibilidad a continuación.",
+  kn: "ಈ ಪ್ರದಾತಾ ಕೆಲವು ವೇಳಾಪಟ್ಟಿ ವ್ಯತ್ಯಾಸಗಳನ್ನು ಹೊಂದಿದೆ. ಕೆಳಗೆ ಲಭ್ಯತೆಯ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
   fr: "Ce prestataire a des variations d'horaires. Consultez les détails de disponibilité ci-dessous.",
   de: "Dieser Anbieter hat einige Zeitplanvariationen. Überprüfen Sie die Verfügbarkeitsdetails unten.",
   it: "Questo fornitore ha alcune variazioni di orario. Controlla i dettagli di disponibilità qui sotto.",
@@ -6315,7 +6315,7 @@ partialAvailabilityMessage: {
 },
 goodMatchMessage: {
   en: "This provider matches most of your requirements.",
-  es: "Este proveedor coincide con la mayoría de sus requisitos.",
+  kn: "ಈ ಪ್ರದಾತಾ ನಿಮ್ಮ ಹೆಚ್ಚಿನ ಅವಶ್ಯಕತೆಗಳಿಗೆ ಹೊಂದಿಕೆಯಾಗುತ್ತದೆ.",
   fr: "Ce prestataire correspond à la plupart de vos exigences.",
   de: "Dieser Anbieter entspricht den meisten Ihrer Anforderungen.",
   it: "Questo fornitore soddisfa la maggior parte delle tue esigenze.",
@@ -6328,7 +6328,7 @@ goodMatchMessage: {
 },
 preferredWorkingTime: {
   en: "Preferred Working Time",
-  es: "Horario de Trabajo Preferido",
+  kn: "ಆದ್ಯತೆಯ ಕೆಲಸದ ಸಮಯ",
   fr: "Horaire de Travail Préféré",
   de: "Bevorzugte Arbeitszeit",
   it: "Orario di Lavoro Preferito",
@@ -6341,7 +6341,7 @@ preferredWorkingTime: {
 },
 availabilitySummary: {
   en: "Availability Summary (Next 30 days)",
-  es: "Resumen de Disponibilidad (Próximos 30 días)",
+  kn: "ಲಭ್ಯತೆಯ ಸಾರಾಂಶ (ಮುಂದಿನ 30 ದಿನಗಳು)",
   fr: "Résumé de Disponibilité (30 prochains jours)",
   de: "Verfügbarkeitsübersicht (Nächste 30 Tage)",
   it: "Riepilogo Disponibilità (Prossimi 30 giorni)",
@@ -6354,7 +6354,7 @@ availabilitySummary: {
 },
 daysAtPreferredTime: {
   en: "Days at preferred time",
-  es: "Días en horario preferido",
+  kn: "ಆದ್ಯತೆಯ ಸಮಯದಲ್ಲಿ ದಿನಗಳು",
   fr: "Jours à l'heure préférée",
   de: "Tage zur bevorzugten Zeit",
   it: "Giorni all'orario preferito",
@@ -6367,7 +6367,7 @@ daysAtPreferredTime: {
 },
 daysWithDifferentTime: {
   en: "Days with different time",
-  es: "Días con horario diferente",
+  kn: "ವಿಭಿನ್ನ ಸಮಯದ ದಿನಗಳು",
   fr: "Jours à heure différente",
   de: "Tage mit abweichender Zeit",
   it: "Giorni con orario diverso",
@@ -6380,7 +6380,7 @@ daysWithDifferentTime: {
 },
 unavailableDays: {
   en: "Unavailable days",
-  es: "Días no disponibles",
+  kn: "ಲಭ್ಯವಿಲ್ಲದ ದಿನಗಳು",
   fr: "Jours non disponibles",
   de: "Nicht verfügbare Tage",
   it: "Giorni non disponibili",
@@ -6393,7 +6393,7 @@ unavailableDays: {
 },
 totalAvailableDays: {
   en: "Total available days",
-  es: "Días totales disponibles",
+  kn: "ಒಟ್ಟು ಲಭ್ಯವಿರುವ ದಿನಗಳು",
   fr: "Total des jours disponibles",
   de: "Verfügbare Tage insgesamt",
   it: "Totale giorni disponibili",
@@ -6406,7 +6406,7 @@ totalAvailableDays: {
 },
 days: {
   en: "days",
-  es: "días",
+  kn: "ದಿನಗಳು",
   fr: "jours",
   de: "Tage",
   it: "giorni",
@@ -6419,7 +6419,7 @@ days: {
 },
 scheduleExceptions: {
   en: "Schedule Exceptions",
-  es: "Excepciones de Horario",
+  kn: "ವೇಳಾಪಟ್ಟಿ ಅಪವಾದಗಳು",
   fr: "Exceptions d'Horaire",
   de: "Ausnahmen im Zeitplan",
   it: "Eccezioni di Orario",
@@ -6432,7 +6432,7 @@ scheduleExceptions: {
 },
 exceptions: {
   en: "exception(s)",
-  es: "excepción(es)",
+  kn: "ಅಪವಾದ(ಗಳು)",
   fr: "exception(s)",
   de: "Ausnahme(n)",
   it: "eccezione(i)",
@@ -6445,7 +6445,7 @@ exceptions: {
 },
 on_demand: {
   en: "ON DEMAND",
-  es: "BAJO DEMANDA",
+  kn: "ಬೇಡಿಕೆಯ ಮೇರೆಗೆ",
   fr: "SUR DEMANDE",
   de: "AUF ANFRAGE",
   it: "SU RICHIESTA",
@@ -6458,7 +6458,7 @@ on_demand: {
 },
 availableOnDemand: {
   en: "Available on demand at different time",
-  es: "Disponible bajo demanda en horario diferente",
+  kn: "ವಿಭಿನ್ನ ಸಮಯದಲ್ಲಿ ಬೇಡಿಕೆಯ ಮೇರೆಗೆ ಲಭ್ಯವಿದೆ",
   fr: "Disponible sur demande à un horaire différent",
   de: "Auf Anfrage zu einer anderen Zeit verfügbar",
   it: "Disponibile su richiesta in orario diverso",
@@ -6471,7 +6471,7 @@ availableOnDemand: {
 },
 notAvailableAtPreferredTime: {
   en: "Not available at preferred time",
-  es: "No disponible en horario preferido",
+  kn: "ಆದ್ಯತೆಯ ಸಮಯದಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ",
   fr: "Non disponible à l'heure préférée",
   de: "Nicht zur bevorzugten Zeit verfügbar",
   it: "Non disponibile all'orario preferito",
@@ -6484,7 +6484,7 @@ notAvailableAtPreferredTime: {
 },
 suggestedTime: {
   en: "Suggested time",
-  es: "Horario sugerido",
+  kn: "ಸೂಚಿಸಿದ ಸಮಯ",
   fr: "Heure suggérée",
   de: "Vorgeschlagene Zeit",
   it: "Orario suggerito",
@@ -6497,7 +6497,7 @@ suggestedTime: {
 },
 scheduleExceptionsInfo: {
   en: "These dates have different availability. You can still book for these dates, but the timing might vary.",
-  es: "Estas fechas tienen disponibilidad diferente. Todavía puede reservar para estas fechas, pero el horario puede variar.",
+  kn: "ಈ ದಿನಾಂಕಗಳು ವಿಭಿನ್ನ ಲಭ್ಯತೆಯನ್ನು ಹೊಂದಿವೆ. ನೀವು ಇನ್ನೂ ಈ ದಿನಾಂಕಗಳಿಗಾಗಿ ಬುಕ್ ಮಾಡಬಹುದು, ಆದರೆ ಸಮಯ ಬದಲಾಗಬಹುದು.",
   fr: "Ces dates ont une disponibilité différente. Vous pouvez toujours réserver pour ces dates, mais l'horaire peut varier.",
   de: "Diese Daten haben eine andere Verfügbarkeit. Sie können diese Daten weiterhin buchen, aber die Zeiten können abweichen.",
   it: "Queste date hanno disponibilità diversa. Puoi comunque prenotare per queste date, ma gli orari potrebbero variare.",
@@ -6510,7 +6510,7 @@ scheduleExceptionsInfo: {
 },
 perfectAvailability: {
   en: "Perfect Availability!",
-  es: "¡Disponibilidad Perfecta!",
+  kn: "ಪರಿಪೂರ್ಣ ಲಭ್ಯತೆ!",
   fr: "Disponibilité Parfaite !",
   de: "Perfekte Verfügbarkeit!",
   it: "Disponibilità Perfetta!",
@@ -6523,7 +6523,7 @@ perfectAvailability: {
 },
 perfectAvailabilityDescription: {
   en: "This provider is fully available at their preferred time for the entire month. No schedule conflicts or exceptions.",
-  es: "Este proveedor está totalmente disponible en su horario preferido durante todo el mes. Sin conflictos de horario ni excepciones.",
+  kn: "ಈ ಪ್ರದಾತಾ ಇಡೀ ತಿಂಗಳು ತಮ್ಮ ಆದ್ಯತೆಯ ಸಮಯದಲ್ಲಿ ಸಂಪೂರ್ಣವಾಗಿ ಲಭ್ಯವಿದೆ. ಯಾವುದೇ ವೇಳಾಪಟ್ಟಿ ಸಂಘರ್ಷಗಳು ಅಥವಾ ಅಪವಾದಗಳಿಲ್ಲ.",
   fr: "Ce prestataire est entièrement disponible à son heure préférée pour tout le mois. Aucun conflit d'horaire ni exception.",
   de: "Dieser Anbieter ist den ganzen Monat zu seiner bevorzugten Zeit voll verfügbar. Keine Terminkonflikte oder Ausnahmen.",
   it: "Questo fornitore è completamente disponibile all'orario preferito per l'intero mese. Nessun conflitto di orario o eccezioni.",
@@ -6536,7 +6536,7 @@ perfectAvailabilityDescription: {
 },
 whyNotBestMatch: {
   en: "Why this isn't a Best Match?",
-  es: "¿Por qué esto no es una Mejor Coincidencia?",
+  kn: "ಇದು ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆ ಏಕೆ ಅಲ್ಲ?",
   fr: "Pourquoi ce n'est pas une Meilleure Correspondance ?",
   de: "Warum ist das keine beste Übereinstimmung?",
   it: "Perché questa non è una Miglior Corrispondenza?",
@@ -6549,7 +6549,7 @@ whyNotBestMatch: {
 },
 whyNotBestMatchDescription: {
   en: "This provider has some schedule variations during the month which prevents them from being marked as a 'Best Match'. However, they're still highly available and can accommodate your needs on most days.",
-  es: "Este proveedor tiene algunas variaciones de horario durante el mes que le impiden ser marcado como 'Mejor Coincidencia'. Sin embargo, todavía están altamente disponibles y pueden satisfacer sus necesidades en la mayoría de los días.",
+  kn: "ಈ ಪ್ರದಾತಾ ತಿಂಗಳಿನಲ್ಲಿ ಕೆಲವು ವೇಳಾಪಟ್ಟಿ ವ್ಯತ್ಯಾಸಗಳನ್ನು ಹೊಂದಿದ್ದು, ಅವುಗಳನ್ನು 'ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆ' ಎಂದು ಗುರುತಿಸುವುದನ್ನು ತಡೆಯುತ್ತದೆ. ಆದಾಗ್ಯೂ, ಅವರು ಇನ್ನೂ ಹೆಚ್ಚು ಲಭ್ಯವಿದ್ದಾರೆ ಮತ್ತು ಹೆಚ್ಚಿನ ದಿನಗಳಲ್ಲಿ ನಿಮ್ಮ ಅಗತ್ಯಗಳನ್ನು ಪೂರೈಸಬಹುದು.",
   fr: "Ce prestataire a des variations d'horaires pendant le mois qui l'empêchent d'être marqué comme 'Meilleure Correspondance'. Cependant, il est toujours très disponible et peut répondre à vos besoins la plupart des jours.",
   de: "Dieser Anbieter hat einige Terminabweichungen während des Monats, die verhindern, dass er als 'Beste Übereinstimmung' markiert wird. Er ist jedoch immer noch sehr verfügbar und kann an den meisten Tagen Ihre Bedürfnisse erfüllen.",
   it: "Questo fornitore ha alcune variazioni di orario durante il mese che gli impediscono di essere contrassegnato come 'Miglior Corrispondenza'. Tuttavia, è ancora molto disponibile e può soddisfare le tue esigenze nella maggior parte dei giorni.",
@@ -6564,7 +6564,7 @@ whyNotBestMatchDescription: {
 // Add these to your translations object in LanguageContext.tsx
 timeRangeWarning: {
   en: "The time range must be at least 4 hours.",
-  es: "El rango de tiempo debe ser de al menos 4 horas.",
+  kn: "ಸಮಯದ ವ್ಯಾಪ್ತಿಯು ಕನಿಷ್ಠ 4 ಗಂಟೆಗಳಿರಬೇಕು.",
   fr: "La plage horaire doit être d'au moins 4 heures.",
   de: "Der Zeitbereich muss mindestens 4 Stunden betragen.",
   it: "L'intervallo di tempo deve essere di almeno 4 ore.",
@@ -6577,7 +6577,7 @@ timeRangeWarning: {
 },
 available: {
   en: "Available",
-  es: "Disponible",
+  kn: "ಲಭ್ಯವಿದೆ",
   fr: "Disponible",
   de: "Verfügbar",
   it: "Disponibile",
@@ -6590,7 +6590,7 @@ available: {
 },
 availabilityNotSpecified: {
   en: "Availability not specified",
-  es: "Disponibilidad no especificada",
+  kn: "ಲಭ್ಯತೆಯನ್ನು ನಿರ್ದಿಷ್ಟಪಡಿಸಲಾಗಿಲ್ಲ",
   fr: "Disponibilité non spécifiée",
   de: "Verfügbarkeit nicht angegeben",
   it: "Disponibilità non specificata",
@@ -6603,7 +6603,7 @@ availabilityNotSpecified: {
 },
 availableAt: {
   en: "Available at",
-  es: "Disponible a las",
+  kn: "ಇಲ್ಲಿ ಲಭ್ಯವಿದೆ",
   fr: "Disponible à",
   de: "Verfügbar um",
   it: "Disponibile alle",
@@ -6616,7 +6616,7 @@ availableAt: {
 },
 veryLimitedAvailability: {
   en: "Very limited availability",
-  es: "Disponibilidad muy limitada",
+  kn: "ಬಹಳ ಸೀಮಿತ ಲಭ್ಯತೆ",
   fr: "Disponibilité très limitée",
   de: "Sehr begrenzte Verfügbarkeit",
   it: "Disponibilità molto limitata",
@@ -6629,7 +6629,7 @@ veryLimitedAvailability: {
 },
 limitedAvailability: {
   en: "Limited availability this month",
-  es: "Disponibilidad limitada este mes",
+  kn: "ಈ ತಿಂಗಳು ಸೀಮಿತ ಲಭ್ಯತೆ",
   fr: "Disponibilité limitée ce mois-ci",
   de: "Begrenzte Verfügbarkeit in diesem Monat",
   it: "Disponibilità limitata questo mese",
@@ -6642,7 +6642,7 @@ limitedAvailability: {
 },
 usuallyAvailableAt: {
   en: "Usually available at",
-  es: "Generalmente disponible a las",
+  kn: "ಸಾಮಾನ್ಯವಾಗಿ ಇಲ್ಲಿ ಲಭ್ಯವಿದೆ",
   fr: "Généralement disponible à",
   de: "Normalerweise verfügbar um",
   it: "Di solito disponibile alle",
@@ -6655,7 +6655,7 @@ usuallyAvailableAt: {
 },
 english: {
   en: "English",
-  es: "Inglés",
+  kn: "ಆಂಗ್ಲ",
   fr: "Anglais",
   de: "Englisch",
   it: "Inglese",
@@ -6668,7 +6668,7 @@ english: {
 },
 nearby: {
   en: "Nearby",
-  es: "Cerca",
+  kn: "ಹತ್ತಿರದ",
   fr: "À proximité",
   de: "In der Nähe",
   it: "Vicino",
@@ -6681,7 +6681,7 @@ nearby: {
 },
 availability: {
   en: "Availability",
-  es: "Disponibilidad",
+  kn: "ಲಭ್ಯತೆ",
   fr: "Disponibilité",
   de: "Verfügbarkeit",
   it: "Disponibilità",
@@ -6694,7 +6694,7 @@ availability: {
 },
 monthly: {
   en: "Monthly",
-  es: "Mensual",
+  kn: "ಮಾಸಿಕ",
   fr: "Mensuel",
   de: "Monatlich",
   it: "Mensile",
@@ -6707,7 +6707,7 @@ monthly: {
 },
 shortTerm: {
   en: "Short Term",
-  es: "Corto Plazo",
+  kn: "ಅಲ್ಪಾವಧಿ",
   fr: "Court Terme",
   de: "Kurzfristig",
   it: "Breve Termine",
@@ -6720,7 +6720,7 @@ shortTerm: {
 },
 scheduleExceptionsCount: {
   en: "schedule exception(s) this month",
-  es: "excepción(es) de horario este mes",
+  kn: "ಈ ತಿಂಗಳು ವೇಳಾಪಟ್ಟಿ ಅಪವಾದ(ಗಳು)",
   fr: "exception(s) d'horaire ce mois-ci",
   de: "Zeitplanausnahme(n) diesen Monat",
   it: "eccezione(i) di orario questo mese",
@@ -6733,7 +6733,7 @@ scheduleExceptionsCount: {
 },
 fullyAvailableAllMonth: {
   en: "Fully available all month",
-  es: "Totalmente disponible todo el mes",
+  kn: "ಇಡೀ ತಿಂಗಳು ಸಂಪೂರ್ಣವಾಗಿ ಲಭ್ಯವಿದೆ",
   fr: "Entièrement disponible tout le mois",
   de: "Den ganzen Monat voll verfügbar",
   it: "Completamente disponibile tutto il mese",
@@ -6746,7 +6746,7 @@ fullyAvailableAllMonth: {
 },
 partiallyAvailableMonth: {
   en: "Partially available this month",
-  es: "Parcialmente disponible este mes",
+  kn: "ಈ ತಿಂಗಳು ಭಾಗಶಃ ಲಭ್ಯವಿದೆ",
   fr: "Partiellement disponible ce mois-ci",
   de: "Teilweise verfügbar diesen Monat",
   it: "Parzialmente disponibile questo mese",
@@ -6759,7 +6759,7 @@ partiallyAvailableMonth: {
 },
 additionalServices: {
   en: "Additional Services",
-  es: "Servicios Adicionales",
+  kn: "ಹೆಚ್ಚುವರಿ ಸೇವೆಗಳು",
   fr: "Services Supplémentaires",
   de: "Zusätzliche Dienstleistungen",
   it: "Servizi Aggiuntivi",
@@ -6772,7 +6772,7 @@ additionalServices: {
 },
 kmAway: {
   en: "km away",
-  es: "km de distancia",
+  kn: "ಕಿ.ಮೀ. ದೂರದಲ್ಲಿ",
   fr: "km de distance",
   de: "km entfernt",
   it: "km di distanza",
@@ -6785,7 +6785,7 @@ kmAway: {
 },
 yrsExperience: {
   en: "yrs experience",
-  es: "años de experiencia",
+  kn: "ವರ್ಷಗಳ ಅನುಭವ",
   fr: "années d'expérience",
   de: "Jahre Erfahrung",
   it: "anni di esperienza",
@@ -6798,7 +6798,7 @@ yrsExperience: {
 },
 details: {
   en: "Details",
-  es: "Detalles",
+  kn: "ವಿವರಗಳು",
   fr: "Détails",
   de: "Details",
   it: "Dettagli",
@@ -6811,7 +6811,7 @@ details: {
 },
 viewDetails: {
   en: "View Details",
-  es: "Ver Detalles",
+  kn: "ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ",
   fr: "Voir Détails",
   de: "Details anzeigen",
   it: "Visualizza Dettagli",
@@ -6824,7 +6824,7 @@ viewDetails: {
 },
 book: {
   en: "Book",
-  es: "Reservar",
+  kn: "ಬುಕ್ ಮಾಡಿ",
   fr: "Réserver",
   de: "Buchen",
   it: "Prenota",
@@ -6837,7 +6837,7 @@ book: {
 },
 bookNow: {
   en: "Book Now",
-  es: "Reservar Ahora",
+  kn: "ಈಗಲೇ ಬುಕ್ ಮಾಡಿ",
   fr: "Réserver Maintenant",
   de: "Jetzt Buchen",
   it: "Prenota Ora",
@@ -6851,7 +6851,7 @@ bookNow: {
   // Add language names in their native language
   en: {
     en: "English",
-    es: "Inglés",
+    kn: "ಆಂಗ್ಲ",
     fr: "Anglais",
     de: "Englisch",
     it: "Inglese",
@@ -6862,22 +6862,22 @@ bookNow: {
     ja: "英語",
     bn: "ইংরেজি"
   },
-  es: {
-    en: "Spanish",
-    es: "Español",
-    fr: "Espagnol",
-    de: "Spanisch",
-    it: "Spagnolo",
-    pt: "Espanhol",
-    hi: "स्पेनिश",
-    ar: "الإسبانية",
-    zh: "西班牙语",
-    ja: "スペイン語",
-    bn: "স্প্যানিশ"
+  kn: {
+    en: "Kannada",
+    kn: "ಕನ್ನಡ",
+    fr: "Kannada",
+    de: "Kannada",
+    it: "Kannada",
+    pt: "Kannada",
+    hi: "कन्नड़",
+    ar: "الكانادا",
+    zh: "卡纳达语",
+    ja: "カンナダ語",
+    bn: "কন্নড়"
   },
   fr: {
     en: "French",
-    es: "Francés",
+    kn: "ಫ್ರೆಂಚ್",
     fr: "Français",
     de: "Französisch",
     it: "Francese",
@@ -6890,7 +6890,7 @@ bookNow: {
   },
   de: {
     en: "German",
-    es: "Alemán",
+    kn: "ಜರ್ಮನ್",
     fr: "Allemand",
     de: "Deutsch",
     it: "Tedesco",
@@ -6903,7 +6903,7 @@ bookNow: {
   },
   it: {
     en: "Italian",
-    es: "Italiano",
+    kn: "ಇಟಾಲಿಯನ್",
     fr: "Italien",
     de: "Italienisch",
     it: "Italiano",
@@ -6916,7 +6916,7 @@ bookNow: {
   },
   pt: {
     en: "Portuguese",
-    es: "Portugués",
+    kn: "ಪೋರ್ಚುಗೀಸ್",
     fr: "Portugais",
     de: "Portugiesisch",
     it: "Portoghese",
@@ -6929,7 +6929,7 @@ bookNow: {
   },
   hi: {
     en: "Hindi",
-    es: "Hindi",
+    kn: "ಹಿಂದಿ",
     fr: "Hindi",
     de: "Hindi",
     it: "Hindi",
@@ -6942,7 +6942,7 @@ bookNow: {
   },
   ar: {
     en: "Arabic",
-    es: "Árabe",
+    kn: "ಅರೇಬಿಕ್",
     fr: "Arabe",
     de: "Arabisch",
     it: "Arabo",
@@ -6955,7 +6955,7 @@ bookNow: {
   },
   zh: {
     en: "Chinese",
-    es: "Chino",
+    kn: "ಚೈನೀಸ್",
     fr: "Chinois",
     de: "Chinesisch",
     it: "Cinese",
@@ -6968,7 +6968,7 @@ bookNow: {
   },
   ja: {
     en: "Japanese",
-    es: "Japonés",
+    kn: "ಜಪಾನೀಸ್",
     fr: "Japonais",
     de: "Japanisch",
     it: "Giapponese",
@@ -6979,10 +6979,9 @@ bookNow: {
     ja: "日本語",
     bn: "জাপানি"
   },
-  // Add Bengali language name
   bn: {
     en: "Bengali",
-    es: "Bengalí",
+    kn: "ಬಂಗಾಳಿ",
     fr: "Bengali",
     de: "Bengalisch",
     it: "Bengalese",
@@ -7025,7 +7024,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Load saved language preference on mount
   useEffect(() => {
     const savedLanguage = localStorage.getItem('preferredLanguage') as Language;
-    if (savedLanguage && translations.en[savedLanguage]) {
+    // Check if savedLanguage exists and is a valid Language
+    if (savedLanguage && ['en', 'kn', 'fr', 'de', 'it', 'pt', 'hi', 'ar', 'zh', 'ja', 'bn'].includes(savedLanguage)) {
       setCurrentLanguage(savedLanguage);
     }
   }, []);
