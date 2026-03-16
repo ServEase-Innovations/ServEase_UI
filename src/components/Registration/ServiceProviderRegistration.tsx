@@ -1880,7 +1880,6 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             DisabledRangesIndicator={DisabledRangesIndicator}
             getDisabledRangesForSlot={getDisabledRangesForSlot}
             formatDisplayTime={formatDisplayTime}
-            // Add language props
             selectedLanguages={selectedLanguages}
             onLanguagesChange={setSelectedLanguages}
           />
