@@ -53,6 +53,9 @@ import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { useLanguage } from "src/context/LanguageContext";
+
+
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
   bookingType: string;
@@ -68,6 +71,9 @@ export const Header: React.FC<ChildComponentProps> = ({
   onContactClick,
   onLogoClick,
 }) => {
+  // Use the language hook
+  const { t, currentLanguage } = useLanguage();
+  
   const handleClick = (e: any) => {
     if (e === "sign_out") {
       dispatch(remove());
@@ -243,8 +249,8 @@ export const Header: React.FC<ChildComponentProps> = ({
         
         // Ensure response.data has the correct structure
         const baseSuggestions = [
-          { name: "Detect Location", index: 1 },
-          { name: "Add Address", index: 2 },
+          { name: t('detectLocation'), index: 1 }, // Updated to use t()
+          { name: t('addAddress'), index: 2 }, // Updated to use t()
         ];
         
         // Check if response.data is an array and has savedLocations
@@ -299,8 +305,8 @@ export const Header: React.FC<ChildComponentProps> = ({
         
         // Initialize suggestions with empty saved locations
         const baseSuggestions = [
-          { name: "Detect Location", index: 1 },
-          { name: "Add Address", index: 2 },
+          { name: t('detectLocation'), index: 1 },
+          { name: t('addAddress'), index: 2 },
         ];
         setSuggestions(baseSuggestions);
       } else {
@@ -327,7 +333,7 @@ export const Header: React.FC<ChildComponentProps> = ({
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address || "Location not found");
+            setLocation(address || t('locationNotFound')); // Updated to use t()
             dispatch(add(response.data.results[0]));
             console.log("Location fetched: ", address);
           } catch (error) {
@@ -395,7 +401,7 @@ export const Header: React.FC<ChildComponentProps> = ({
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address || "Location not found");
+            setLocation(address || t('locationNotFound')); // Updated to use t()
             dispatch(add(response.data.results[0]));
           } catch (error) {
             console.log("Failed to fetch location: ", error);
@@ -412,8 +418,8 @@ export const Header: React.FC<ChildComponentProps> = ({
   }, []);
 
   const [suggestions, setSuggestions] = useState([
-    { name: "Detect Location", index: 1 },
-    { name: "Add Address", index: 2 },
+    { name: t('detectLocation'), index: 1 }, // Updated to use t()
+    { name: t('addAddress'), index: 2 }, // Updated to use t()
   ]);
   const [dataFromMap, setDataFromMap] = useState<any>([]);
 
@@ -439,9 +445,9 @@ export const Header: React.FC<ChildComponentProps> = ({
   const handleChange = (newValue: any) => {
     console.log("➡️ New Value Selected:", newValue);
     
-    if (newValue === "Add Address") {
+    if (newValue === t('addAddress')) { // Updated to use t()
       setOpen(true);
-    } else if (newValue === "Detect Location") {
+    } else if (newValue === t('detectLocation')) { // Updated to use t()
       getLocation();
     } else {
       console.log("➡️ Selected Saved Location:", newValue);
@@ -528,9 +534,9 @@ export const Header: React.FC<ChildComponentProps> = ({
   const handleServiceClick = (service: string) => {
     // Map the service names to your internal types
     let serviceType = "";
-    if (service === "Home Cook") serviceType = "COOK";
-    if (service === "Cleaning Help") serviceType = "MAID";
-    if (service === "Caregiver") serviceType = "NANNY";
+    if (service === t('homeCook')) serviceType = "COOK"; // Updated to use t()
+    if (service === t('cleaningHelp')) serviceType = "MAID"; // Updated to use t()
+    if (service === t('caregiver')) serviceType = "NANNY"; // Updated to use t()
 
     setSelectedType(serviceType);
     setDialogService(service);
@@ -595,6 +601,9 @@ export const Header: React.FC<ChildComponentProps> = ({
       return;
     }
     console.log("dataFromMap ", dataFromMap);
+    setLocation(
+      dataFromMap?.address[0]?.formatted_address || t('locationNotFound') // Updated to use t()
+    );
     
     // Extract address based on format
     let displayAddress = "Location not found";
@@ -605,6 +614,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     }
     
     setLocation(displayAddress);
+
     setOpen(false);
     setOpenSaveOptionForSave(true);
   };
@@ -620,7 +630,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     await updateUserSetting();
     
     // Show success snackbar
-    setSnackbarMessage("Location saved successfully!");
+    setSnackbarMessage(t('locationSavedSuccess')); // Updated to use t()
     setSnackbarSeverity("success");
     setSnackbarOpen(true);
     
@@ -635,7 +645,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     console.error("Error saving location:", error);
     
     // Show error snackbar
-    setSnackbarMessage("Failed to save location. Please try again.");
+    setSnackbarMessage(t('locationSaveError')); // Updated to use t()
     setSnackbarSeverity("error");
     setSnackbarOpen(true);
     
@@ -686,8 +696,8 @@ const updateUserSetting = async () => {
       
       // Update suggestions
       const baseSuggestions = [
-        { name: "Detect Location", index: 1 },
-        { name: "Add Address", index: 2 },
+        { name: t('detectLocation'), index: 1 },
+        { name: t('addAddress'), index: 2 },
       ];
       const savedLocationSuggestions = payload.savedLocations.map((loc: any, i: number) => ({
         name: loc.name,
@@ -757,8 +767,8 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   useEffect(() => {
     if (userPreference && userPreference.length > 0 && userPreference[0]?.savedLocations) {
       const baseSuggestions = [
-        { name: "Detect Location", index: 1 },
-        { name: "Add Address", index: 2 },
+        { name: t('detectLocation'), index: 1 },
+        { name: t('addAddress'), index: 2 },
       ];
       
       const savedLocations = userPreference[0].savedLocations || [];
@@ -818,7 +828,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       onClick={() => handleClick("")}
       className="hover:text-gray-200 transition"
     >
-      Home
+      {t('home')} {/* Updated to use t() */}
     </button>
 
     {/* Services Dropdown */}
@@ -827,13 +837,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => setServiceDropdownOpen((prev) => !prev)}
         className="flex items-center gap-1 hover:text-gray-200 transition"
       >
-        Our Services
+        {t('ourServices')} {/* Updated to use t() */}
         <ChevronDown className="w-4 h-4" />
       </button>
 
       {serviceDropdownOpen && (
         <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-          {["Home Cook", "Cleaning Help", "Caregiver"].map(
+          {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map( // Updated to use t()
             (service, idx) => (
               <li
                 key={idx}
@@ -858,7 +868,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => handleClick(BOOKINGS)}
         className="hover:text-gray-200 transition"
       >
-        My Bookings
+        {t('myBookings')} {/* Updated to use t() */}
       </button>
     )}
 
@@ -868,7 +878,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => handleClick(DASHBOARD)}
         className="hover:text-gray-200 transition"
       >
-        Dashboard
+        {t('dashboard')} {/* Updated to use t() */}
       </button>
     )}
 
@@ -876,14 +886,14 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       onClick={() => handleClick("ABOUT")}
       className="hover:text-gray-200"
     >
-      About Us
+      {t('aboutUs')} {/* Updated to use t() */}
     </button>
 
     <button
       onClick={() => handleClick("CONTACT")}
       className="hover:text-gray-200"
     >
-      Contact Us
+      {t('contactUs')} {/* Updated to use t() */}
     </button>
   </nav>
 )}
@@ -934,7 +944,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             <div className="relative w-full">
               <input
                 type="text"
-                placeholder="Location"
+                placeholder={t('location')} // Updated to use t()
                 value={location}
                 onFocus={() => setShowDropdown(true)}
                 onClick={() => setShowDropdown(true)}
@@ -948,30 +958,30 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
                       console.log("📍 Detect Location clicked");
-                      handleChange("Detect Location");
+                      handleChange(t('detectLocation')); // Updated to use t()
                       setTimeout(() => {
                         setShowDropdown(false);
                       }, 100);
                     }}
                   >
-                    Detect Location
+                    {t('detectLocation')} {/* Updated to use t() */}
                   </li>
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
                       console.log("🏠 Add Address clicked");
-                      handleChange("Add Address");
+                      handleChange(t('addAddress')); // Updated to use t()
                       setTimeout(() => {
                         setShowDropdown(false);
                       }, 100);
                     }}
                   >
-                    Add Address
+                    {t('addAddress')} {/* Updated to use t() */}
                   </li>
                   {loadingLocations ? (
                     <li className="px-4 py-2 text-gray-500 flex items-center justify-center gap-2">
                       <ClipLoader size={15} color="#6b7280" />
-                      Loading...
+                      {t('loading')}... {/* Updated to use t() */}
                     </li>
                   ) : (
                     suggestions
@@ -1051,7 +1061,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               setdropDownOpen(false);
             }}
           >
-            Profile
+            {t('profile')} {/* Updated to use t() */}
           </li>
           {appUser?.role === "CUSTOMER" && (
             <li
@@ -1061,7 +1071,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
               }}
             >
-              My Bookings
+              {t('myBookings')} {/* Updated to use t() */}
             </li>
           )}
           {appUser?.role === "SERVICE_PROVIDER" && (
@@ -1072,7 +1082,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
               }}
             >
-              Dashboard
+              {t('dashboard')} {/* Updated to use t() */}
             </li>
           )}
           <li
@@ -1084,7 +1094,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               setdropDownOpen(false);
             }}
           >
-            Logout
+            {t('logout')} {/* Updated to use t() */}
           </li>
         </ul>
       </div>
@@ -1104,7 +1114,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         borderBottom: '1px solid #e0e0e0',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                       }}>
-                        <DialogTitle>Set Location</DialogTitle>
+                        <DialogTitle>{t('setLocation')}</DialogTitle> {/* Updated to use t() */}
                         <IconButton
                           aria-label="close"
                           onClick={handleClose}
@@ -1131,10 +1141,10 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
         <DialogActions sx={{ padding: "10px" }}>
           <Button color="primary" onClick={handleClose} className={undefined}>
-            Cancel
+            {t('cancel')} {/* Updated to use t() */}
           </Button>
           <Button color="primary" onClick={handleSave} className={undefined}>
-            Save
+            {t('save')} {/* Updated to use t() */}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1149,7 +1159,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         borderBottom: '1px solid #e0e0e0',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                       }}>
-                         <DialogTitle>Save As</DialogTitle>
+                         <DialogTitle>{t('saveAs')}</DialogTitle> {/* Updated to use t() */}
                         <IconButton
                           aria-label="close"
                           onClick={handleClose}
@@ -1159,7 +1169,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         </IconButton></DialogHeader>
   <DialogContent>
     <div>
-      <div>Save As :</div>
+      <div>{t('saveAs')} :</div> {/* Updated to use t() */}
       <Button
         startIcon={<FaHome />}
         className={undefined}
@@ -1168,7 +1178,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         }}
         disabled={isSaving}
       >
-        Home
+        {t('home')} {/* Updated to use t() */}
       </Button>
       <Button
         startIcon={<HiBuildingOffice />}
@@ -1178,7 +1188,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         }}
         disabled={isSaving}
       >
-        Office
+        {t('office')} {/* Updated to use t() */}
       </Button>
       <Button
         startIcon={<FaLocationArrow />}
@@ -1188,13 +1198,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         }}
         disabled={isSaving}
       >
-        Others
+        {t('others')} {/* Updated to use t() */}
       </Button>
     </div>
     {showInput && (
       <TextField
         id="standard-basic"
-        label="Enter Location Name"
+        label={t('enterLocationName')} // Updated to use t()
         variant="standard"
         fullWidth
         value={locationAs}
@@ -1211,7 +1221,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       className={undefined}
       disabled={isSaving}
     >
-      Cancel
+      {t('cancel')} {/* Updated to use t() */}
     </Button>
     <Button
       color="primary"
@@ -1220,7 +1230,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       disabled={isSaving || !locationAs}
       startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
     >
-      {isSaving ? "Saving..." : "Save"}
+      {isSaving ? t('saving') : t('save')} {/* Updated to use t() */}
     </Button>
   </DialogActions>
 </Dialog>

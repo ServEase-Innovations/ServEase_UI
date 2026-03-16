@@ -2,62 +2,71 @@
 import { Typography } from "@mui/material";
 import { useState, useEffect } from "react";
 import { PricingData } from "../../../types/PricingData";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface UtilityCleaningProps {
   onPriceChange: (data: { price: number, entry: PricingData | null }) => void; // Callback now expects an object containing both price and entry
 }
 
 const Dusting: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const [dustingType, setDustingType] = useState<string>("");
   const [roomType, setRoomType] = useState<string>("");
   const [price, setPrice] = useState<number>(0);
   const [jobDescription, setJobDescription] = useState<string>("");
 
   const pricingData: PricingData[] = [
-    {serviceCategory:"Dusting" , type:"Maid",
+    {
+      serviceCategory: "Dusting",
+      type: "Maid",
       serviceType: "Normal Dusting",
       subCategory: "Size",
       size: "2 BHK",
       frequency: 1,
       pricePerMonth: 500,
-      jobDescription:
-        "Includes furniture dusting, gate, decor items, carpet, bed making. Weekly: windows, glasses, cupboards, kitchen cabinet outer cleaning. Monthly: fan and cobweb cleaning.",
+      jobDescription: t("normalDustingDescription"),
     },
-    {serviceCategory:"Dusting" , type:"Maid",
+    {
+      serviceCategory: "Dusting",
+      type: "Maid",
       serviceType: "Normal Dusting",
       subCategory: "Size",
       size: "2.5 - 3 BHK",
       frequency: 1,
       pricePerMonth: 700,
-      jobDescription:
-        "Includes furniture dusting, gate, decor items, carpet, bed making. Weekly: windows, glasses, cupboards, kitchen cabinet outer cleaning. Monthly: fan and cobweb cleaning.",
+      jobDescription: t("normalDustingDescription"),
     },
-    {serviceCategory:"Dusting" , type:"Maid",
+    {
+      serviceCategory: "Dusting",
+      type: "Maid",
       serviceType: "Deep Dusting",
       subCategory: "Size",
       size: "2 BHK",
       frequency: 1,
       pricePerMonth: 1000,
-      jobDescription: "Normal Dusting + kitchen slab cleaning.",
+      jobDescription: t("deepDustingDescription"),
     },
-    {serviceCategory:"Dusting" , type:"Maid",
+    {
+      serviceCategory: "Dusting",
+      type: "Maid",
       serviceType: "Deep Dusting",
       subCategory: "Size",
       size: "2.5 - 3 BHK",
       frequency: 1,
       pricePerMonth: 1200,
-      jobDescription: "Normal Dusting + kitchen slab cleaning.",
+      jobDescription: t("deepDustingDescription"),
     },
   ];
 
   const dustingButtonsSelector = [
-    { key: 1, value: "Normal" },
-    { key: 2, value: "Deep" },
+    { key: 1, value: t("normal") },
+    { key: 2, value: t("deep") },
   ];
 
   const roomsizeButtonsSelector = [
-    { key: 1, value: "2 BHK" },
-    { key: 2, value: "2.5 - 3 BHK" },
+    { key: 1, value: t("twoBHK") },
+    { key: 2, value: t("twoHalfBHK") },
   ];
 
   const handleButtonClick = (value: string, type: string) => {
@@ -75,39 +84,53 @@ const Dusting: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
     console.log("Room Type: ", roomType);
 
     if (dustingType && roomType) {
+      // Map display values back to API values
+      const dustingTypeMap: Record<string, string> = {
+        [t("normal")]: "Normal",
+        [t("deep")]: "Deep",
+      };
+
+      const roomTypeMap: Record<string, string> = {
+        [t("twoBHK")]: "2 BHK",
+        [t("twoHalfBHK")]: "2.5 - 3 BHK",
+      };
+
+      const apiDustingType = dustingTypeMap[dustingType] || dustingType;
+      const apiRoomType = roomTypeMap[roomType] || roomType;
+
       // Searching for matching pricing data entry based on dustingType and roomType
       const entry = pricingData.find(
         (item) =>
-          item.serviceType === `${dustingType} Dusting` && // Ensure we add "Dusting" to the search term
-          item.size === roomType // Matching room type
+          item.serviceType === `${apiDustingType} Dusting` && // Ensure we add "Dusting" to the search term
+          item.size === apiRoomType // Matching room type
       );
 
       console.log("Found entry: ", entry);
 
       if (entry) {
         setPrice(entry.pricePerMonth);
-        setJobDescription(entry.jobDescription ?? "No description available");
+        setJobDescription(entry.jobDescription ?? t("noDescriptionAvailable"));
         onPriceChange({ price: entry.pricePerMonth, entry }); // Send both price and entry to the parent
       } else {
         setPrice(0); // Reset price if no match found
-        setJobDescription("No description available");
+        setJobDescription(t("noDescriptionAvailable"));
         onPriceChange({ price: 0, entry: null }); // Send 0 price and null entry if no match
       }
     } else {
       setPrice(0); // Reset price if not all selections are made
-      setJobDescription("No description available");
+      setJobDescription(t("noDescriptionAvailable"));
       onPriceChange({ price: 0, entry: null }); // Send 0 price and null entry if no selections are made
     }
   };
 
   useEffect(() => {
     calculatePriceAndDescription();
-  }, [dustingType, roomType]);
+  }, [dustingType, roomType, t]); // Added t to dependencies
 
   return (
     <>
       <Typography gutterBottom>
-        Dusting type:
+        {t("dustingType")}
         {dustingButtonsSelector.map((button) => (
           <button
             key={button.key}
@@ -128,7 +151,7 @@ const Dusting: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
       </Typography>
 
       <Typography gutterBottom>
-        Room type:
+        {t("roomType")}
         {roomsizeButtonsSelector.map((button) => (
           <button
             key={button.key}
@@ -148,8 +171,12 @@ const Dusting: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
         ))}
       </Typography>
 
-      <Typography gutterBottom>Price: ₹{price}/month</Typography>
-      <Typography gutterBottom>Job Description: {jobDescription}</Typography>
+      <Typography gutterBottom>
+        {t("pricePerMonth").replace("{price}", price.toString())}
+      </Typography>
+      <Typography gutterBottom>
+        {t("jobDescription").replace("{description}", jobDescription)}
+      </Typography>
     </>
   );
 };

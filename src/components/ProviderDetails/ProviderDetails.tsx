@@ -57,6 +57,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { Button } from "../Button/button";
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -148,6 +149,7 @@ const AvailabilityChip = styled(Chip)(({ theme }) => ({
 }));
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
+  const { t } = useLanguage(); // Add this line to use translations
   const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
   const [morningSelection, setMorningSelection] = useState<number | null>(null);
@@ -344,7 +346,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     const endTotalMinutes = endHours * 60 + endMinutes;
     
     if (endTotalMinutes - startTotalMinutes < 240) {
-      setWarning("The time range must be at least 4 hours.");
+      setWarning(t('timeRangeWarning'));
     } else {
       setWarning("");
     }
@@ -352,17 +354,17 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   
   // Fixed: Get availability status for the chip
   const getAvailabilityStatus = () => {
-    if (!props.monthlyAvailability) return "Available";
+    if (!props.monthlyAvailability) return t('available');
     
     if (props.monthlyAvailability.fullyAvailable) {
-      return "Fully Available";
+      return t('fullyAvailable');
     } else {
       const exceptions = props.monthlyAvailability.exceptions?.length || 0;
       if (exceptions > 0) {
-        return `Partially Available (${exceptions} exception${exceptions > 1 ? 's' : ''})`;
+        return `${t('partiallyAvailable')} (${exceptions} ${t('exceptions')})`;
       }
       // FIXED: Changed from "Available" to "Partially Available"
-      return "Partially Available";
+      return t('partiallyAvailable');
     }
   };
 
@@ -381,24 +383,24 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   // NEW: Helper function to get appropriate availability message
   const getAvailabilityMessage = () => {
     if (!props.monthlyAvailability) {
-      return "Availability not specified";
+      return t('availabilityNotSpecified');
     }
     
     if (props.monthlyAvailability.fullyAvailable) {
-      return `Available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+      return `${t('availableAt')} ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
     }
     
     const exceptions = props.monthlyAvailability.exceptions?.length || 0;
     
     if (exceptions > 20) {
-      return "Very limited availability";
+      return t('veryLimitedAvailability');
     } else if (exceptions > 10) {
-      return "Limited availability this month";
+      return t('limitedAvailability');
     } else if (exceptions > 0) {
-      return `Usually available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+      return `${t('usuallyAvailableAt')} ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
     }
     
-    return `Available at ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
+    return `${t('availableAt')} ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
   };
 
   // NEW: Helper function to get time icon color based on availability
@@ -483,7 +485,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
             }
           }}>
             <LocalFireDepartmentIcon fontSize="small" />
-            <span>Best Match</span>
+            <span>{t('bestMatch')}</span>
           </BestMatchRibbon>
         )}
         
@@ -580,7 +582,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '0.8rem',
                         }
                       }}>
-                        {props.languageknown?.[0] || "English"}
+                        {props.languageknown?.[0] || t('english')}
                       </Typography>
                     </Stack>
                     
@@ -599,7 +601,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '0.8rem',
                         }
                       }}>
-                        {props.locality || "Nearby"}
+                        {props.locality || t('nearby')}
                       </Typography>
                     </Stack> */}
                   </Stack>
@@ -615,7 +617,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '0.8rem',
                         }
                       }}>
-                        Availability
+                        {t('availability')}
                       </Typography>
                   
                     </Stack>
@@ -638,8 +640,8 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     <Chip 
   label={
     props.monthlyAvailability?.summary?.totalDays >= 30 
-      ? "Monthly" 
-      : "Short Term"
+      ? t('monthly') 
+      : t('shortTerm')
   } 
   size="small" 
   color="primary" 
@@ -678,7 +680,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           }
                         }}
                       >
-                        ⚠️ {props.monthlyAvailability.exceptions.length} schedule exception(s) this month
+                        ⚠️ {props.monthlyAvailability.exceptions.length} {t('scheduleExceptionsCount')}
                       </Typography>
                     )}
                     
@@ -696,7 +698,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           }
                         }}
                       >
-                        ✓ Fully available all month
+                        ✓ {t('fullyAvailableAllMonth')}
                       </Typography>
                     )}
                     
@@ -715,7 +717,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           }
                         }}
                       >
-                        ⚠️ Partially available this month
+                        ⚠️ {t('partiallyAvailableMonth')}
                       </Typography>
                     )}
                   </Box>
@@ -731,7 +733,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '0.8rem',
                         }
                       }}>
-                        Additional Services
+                        {t('additionalServices')}
                       </Typography>
                       <Typography variant="body2" sx={{
                         '@media (max-width: 600px)': {
@@ -791,7 +793,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           marginLeft: 'auto',
                         }
                       }}>
-                        km away
+                        {t('kmAway')}
                       </Typography>
                     </MetricBox>
 
@@ -822,7 +824,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           marginLeft: 'auto',
                         }
                       }}>
-                        {props.rating} reviews
+                        {props.rating} {t('reviews')}
                       </Typography>
                     </MetricBox>
 
@@ -848,7 +850,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           marginLeft: 'auto',
                         }
                       }}>
-                        yrs experience
+                        {t('yrsExperience')}
                       </Typography>
                     </MetricBox>
                   </Stack>
@@ -911,7 +913,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   }
                 }}
               >
-                {isMobile ? "Details" : "View Details"}
+                {isMobile ? t('details') : t('viewDetails')}
               </Button>
               
               <Button 
@@ -937,7 +939,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   }
                 }}
               >
-                {isMobile ? "Book" : "Book Now"}
+                {isMobile ? t('book') : t('bookNow')}
               </Button>
             </Box>
           </Stack>

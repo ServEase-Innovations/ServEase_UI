@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { add } from "../../../features/cart/cartSlice";
 import { CHECKOUT } from "../../../Constants/pagesConstants";
 import MuiAlert from "@mui/material/Alert";
-
+import { useLanguage } from "src/context/LanguageContext";
 interface CookPricingProps {
     onPriceChange: (priceData: { price: number, selecteditem: any }) => void; 
     onAddToCart:(priceData: { price: number, selecteditem: any }) => void; // Add the onPriceChange function as a prop
@@ -20,8 +20,8 @@ interface CookPricingProps {
     sendToParent : (data : string) => void;
   }
 
-
 const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: CookPricingProps) => {
+    const { t } = useLanguage(); // Use the language context
 
     const [clickedIndex, setClickedIndex] = useState<number | null>(null);
     const [selectedCategory , setSelectedcategory ] = useState<any>();
@@ -32,7 +32,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
     const [isAddedToCart, setIsAddedToCart] = useState(false);
 
     const bookingType = useSelector((state: any) => state.bookingType?.value);
-
 
     console.log("bookingType => ", bookingType)
 
@@ -55,7 +54,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
       
       const [services, setServices] = useState(groupedServices ?? {});
 
-
       const getImage = ( category) => {
         if(category === 'Utensil Cleaning'){
             return '/Dishes.png'
@@ -69,7 +67,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
       }
 
       const handleButtonClick = (value: any): void => {
-
         setSelectedcategory(value);
     
         // If category exists in cart, load its number of persons
@@ -82,8 +79,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
             setPrice(0)
         }
     };
-
-
     
     function handleNumberOfPersons(value: string ,  data? ): void {
 
@@ -146,7 +141,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
             setOpenSnackbar(true);
           }
     };
-
     
     const handleCloseSnackbar = (
       event: Event | SyntheticEvent<any, Event>, 
@@ -160,7 +154,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
     
     const mapCartItemsWithGroupedItem = (groupedServices, cartItem, data) => {
       let updatedServices = JSON.parse(JSON.stringify(services)); // Deep clone
-
 
       console.log(updatedServices)
   
@@ -189,7 +182,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
       });
       
   };
-  
   
     const getNumberOfPersons = (categoryItem: any) => {
       return categoryItem?.persons ? String(Number(categoryItem?.persons)) : "";
@@ -230,6 +222,16 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
   const handleProceedToCheckout = () =>{
         sendToParent(CHECKOUT)
       }
+
+    // Helper function to get sub-category label
+    const getSubCategoryLabel = (subCategory: string) => {
+      switch(subCategory) {
+        case 'People': return t('people');
+        case 'Rooms': return t('rooms');
+        case 'Number': return t('number');
+        default: return subCategory;
+      }
+    };
 
     return (
         <>
@@ -279,7 +281,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                   >
                     <Tab
                       value="Regular"
-                      label="Regular"
+                      label={t("regular")}
                       sx={{
                         borderRight: "1px solid #ddd",
                         padding: "10px 20px",
@@ -298,7 +300,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                     />
                     <Tab
                       value="Premium"
-                      label="Premium"
+                      label={t("premium")}
                       sx={{
                         padding: "10px 20px",
                         textTransform: "none",
@@ -392,7 +394,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
      selectedCategory[1][0]['Sub-Categories'] === "Rooms" || 
      selectedCategory[1][0]['Sub-Categories'] === "Number") && (
     <div style={{display : 'flex'}}>
-        <strong>{selectedCategory[1][0]['Sub-Categories']}</strong>
+        <strong>{getSubCategoryLabel(selectedCategory[1][0]['Sub-Categories'])}</strong>
         <TextField
     type="number"
     value={getNumberOfPersons(selectedCategory?.[1]?.[0] ?? {}) } 
@@ -443,7 +445,6 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
 )
 }
 
-
             {/* Snackbar Component */}
       <Snackbar 
            open={openSnackbar}
@@ -453,7 +454,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
            sx={{ marginTop: '60px' }}  
          >
         <MuiAlert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
-          Item added to cart successfully!
+          {t("itemAddedToCart")}
         </MuiAlert>
       </Snackbar>   
                
@@ -479,10 +480,10 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                     <Grid item xs={12} md={3}>
                       <Card sx={{ padding: 3, textAlign: "center", boxShadow: 3 }}>
                         <Typography variant="h5" sx={{ marginBottom: 2, fontWeight: "bold" }}>
-                          Selected Price
+                          {t("selectedPrice")}
                         </Typography>
                         <Typography variant="h4" color="green" sx={{ fontWeight: "bold" }}>
-                          Rs. {Price} / month
+                          {t("pricePerMonth").replace("{price}", Price?.toString() || "0")}
                         </Typography>
                       </Card>
         
@@ -494,7 +495,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                         sx={{ height: 50 }}
                         onClick={handleProceedToCheckout}
                       >
-                        Proceed to Checkout
+                        {t("proceedToCheckout")}
                       </Button>
                     </Grid>
                   </Grid>
@@ -503,6 +504,5 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
           </>
     )
 }
-
 
 export default MaidServices;

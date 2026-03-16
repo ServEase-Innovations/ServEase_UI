@@ -21,6 +21,8 @@ import {
 import { CheckIcon } from "lucide-react";
 import moment from "moment";
 import ProfileImageUpload from "./ProfileImageUpload";
+import { useLanguage } from "src/context/LanguageContext";
+
 
 interface BasicInformationProps {
   formData: any;
@@ -57,6 +59,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
   onClearMobile,
   onClearAlternate,
 }) => {
+  const { t } = useLanguage(); // Use the language context
   const MAX_NAME_LENGTH = 30;
 
   return (
@@ -67,7 +70,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="First Name *"
+          placeholder={t("firstNamePlaceholder")}
           name="firstName"
           fullWidth
           required
@@ -82,7 +85,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Middle Name"
+          placeholder={t("middleNamePlaceholder")}
           name="middleName"
           fullWidth
           value={formData.middleName}
@@ -92,7 +95,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Last Name *"
+          placeholder={t("lastNamePlaceholder")}
           name="lastName"
           fullWidth
           required
@@ -107,7 +110,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12} sm={6}>
         <TextField
-          label="Date of Birth *"
+          label={t("dobLabel")}
           name="dob"
           type="date"
           fullWidth
@@ -115,7 +118,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           value={formData.dob}
           onChange={onDobChange}
           error={!!errors.dob}
-          helperText={errors.dob || "You must be at least 18 years old"}
+          helperText={errors.dob || t("dobHelperText")}
           InputLabelProps={{ shrink: true }}
           inputProps={{
             max: moment().subtract(18, 'years').format('YYYY-MM-DD')
@@ -125,11 +128,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <FormControl component="fieldset" error={!!errors.gender}>
-          <FormLabel component="legend">Gender *</FormLabel>
+          <FormLabel component="legend">{t("genderLabel")}</FormLabel>
           <RadioGroup row name="gender" value={formData.gender} onChange={onFieldChange}>
-            <FormControlLabel value="MALE" control={<Radio />} label="Male" />
-            <FormControlLabel value="FEMALE" control={<Radio />} label="Female" />
-            <FormControlLabel value="OTHER" control={<Radio />} label="Other" />
+            <FormControlLabel value="MALE" control={<Radio />} label={t("male")} />
+            <FormControlLabel value="FEMALE" control={<Radio />} label={t("female")} />
+            <FormControlLabel value="OTHER" control={<Radio />} label={t("other")} />
           </RadioGroup>
           {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
         </FormControl>
@@ -137,7 +140,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Email *"
+          placeholder={t("emailPlaceholder")}
           name="emailId"
           fullWidth
           required
@@ -147,9 +150,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           error={!!errors.emailId || validationResults.email.isAvailable === false}
           helperText={
             errors.emailId ||
-            (validationResults.email.loading ? "Checking availability..." :
+            (validationResults.email.loading ? t("checkingAvailability") :
               validationResults.email.error ||
-              (validationResults.email.isAvailable ? "Email is available" : ""))
+              (validationResults.email.isAvailable ? t("emailAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.email.loading ? (
@@ -173,7 +176,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Password *"
+          placeholder={t("passwordPlaceholder")}
           type={showPassword ? "text" : "password"}
           name="password"
           fullWidth
@@ -197,7 +200,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Confirm Password *"
+          placeholder={t("confirmPasswordPlaceholder")}
           type={showConfirmPassword ? "text" : "password"}
           name="confirmPassword"
           fullWidth
@@ -223,7 +226,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Mobile Number *"
+          placeholder={t("mobilePlaceholder")}
           name="mobileNo"
           fullWidth
           required
@@ -233,9 +236,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
           helperText={
             errors.mobileNo ||
-            (validationResults.mobile.loading ? "Checking availability..." :
+            (validationResults.mobile.loading ? t("checkingAvailability") :
               validationResults.mobile.error ||
-              (validationResults.mobile.isAvailable ? "Mobile number is available" : ""))
+              (validationResults.mobile.isAvailable ? t("mobileAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.mobile.loading ? (
@@ -259,7 +262,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
 
       <Grid item xs={12}>
         <TextField
-          placeholder="Alternate Number"
+          placeholder={t("alternatePlaceholder")}
           name="AlternateNumber"
           fullWidth
           value={formData.AlternateNumber}
@@ -267,9 +270,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           error={!!errors.AlternateNumber || validationResults.alternate.isAvailable === false}
           helperText={
             errors.AlternateNumber ||
-            (validationResults.alternate.loading ? "Checking availability..." :
+            (validationResults.alternate.loading ? t("checkingAvailability") :
               validationResults.alternate.error ||
-              (validationResults.alternate.isAvailable ? "Alternate number is available" : ""))
+              (validationResults.alternate.isAvailable ? t("alternateAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.alternate.loading ? (

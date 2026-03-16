@@ -6,7 +6,7 @@ interface ValidationState {
   loading: boolean;
   error: string;
   isAvailable: boolean | null;
-  isValidated: boolean; // Add this flag
+  isValidated: boolean;
 }
 
 interface ValidationResults {
@@ -15,7 +15,27 @@ interface ValidationResults {
   alternate: ValidationState;
 }
 
-export const useFieldValidation = () => {
+interface UseFieldValidationProps {
+  t?: (key: string) => string; // Optional translation function
+}
+
+export const useFieldValidation = ({ t }: UseFieldValidationProps = {}) => {
+  // Default translation function if none provided
+  const defaultT = (key: string) => {
+    const translations: Record<string, string> = {
+      'emailAlreadyRegistered': 'Email is already registered',
+      'mobileAlreadyRegistered': 'Mobile number is already registered',
+      'invalidEmailFormat': 'Invalid email format',
+      'invalidMobileFormat': 'Invalid mobile number format',
+      'serverError': 'Server error. Please try again later.',
+      'errorCheckingEmail': 'Error checking email',
+      'errorCheckingMobile': 'Error checking mobile number',
+    };
+    return translations[key] || key;
+  };
+
+  const translate = t || defaultT;
+
   const [validationResults, setValidationResults] = useState<ValidationResults>({
     email: { loading: false, error: '', isAvailable: null, isValidated: false },
     mobile: { loading: false, error: '', isAvailable: null, isValidated: false },
@@ -70,17 +90,17 @@ export const useFieldValidation = () => {
       if (response.data.exists !== undefined) {
         isAvailable = !response.data.exists;
         errorMessage = response.data.exists 
-          ? `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered` 
+          ? translate(fieldType === 'email' ? 'emailAlreadyRegistered' : 'mobileAlreadyRegistered')
           : '';
       } else if (response.data.available !== undefined) {
         isAvailable = response.data.available;
         errorMessage = !response.data.available 
-          ? `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered` 
+          ? translate(fieldType === 'email' ? 'emailAlreadyRegistered' : 'mobileAlreadyRegistered')
           : '';
       } else if (response.data.isAvailable !== undefined) {
         isAvailable = response.data.isAvailable;
         errorMessage = !response.data.isAvailable 
-          ? `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered` 
+          ? translate(fieldType === 'email' ? 'emailAlreadyRegistered' : 'mobileAlreadyRegistered')
           : '';
       } else {
         isAvailable = true;
@@ -101,7 +121,7 @@ export const useFieldValidation = () => {
     } catch (error: any) {
       console.error(`Error validating ${fieldType}:`, error);
       
-      let errorMessage = `Error checking ${fieldType === 'email' ? 'email' : 'mobile number'}`;
+      let errorMessage = translate(fieldType === 'email' ? 'errorCheckingEmail' : 'errorCheckingMobile');
       
       if (error.response?.data) {
         const apiError = error.response.data;
@@ -113,11 +133,11 @@ export const useFieldValidation = () => {
           errorMessage = apiError.error;
         }
       } else if (error.response?.status === 400) {
-        errorMessage = `Invalid ${fieldType === 'email' ? 'email' : 'mobile number'} format`;
+        errorMessage = translate(fieldType === 'email' ? 'invalidEmailFormat' : 'invalidMobileFormat');
       } else if (error.response?.status === 409) {
-        errorMessage = `${fieldType === 'email' ? 'Email' : 'Mobile number'} is already registered`;
+        errorMessage = translate(fieldType === 'email' ? 'emailAlreadyRegistered' : 'mobileAlreadyRegistered');
       } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
+        errorMessage = translate('serverError');
       }
 
       setValidationResults(prev => ({
@@ -132,7 +152,7 @@ export const useFieldValidation = () => {
 
       return false;
     }
-  }, []);
+  }, [translate]);
 
   const resetValidation = useCallback((fieldType?: 'email' | 'mobile' | 'alternate') => {
     if (fieldType) {
@@ -178,6 +198,6 @@ export const useFieldValidation = () => {
     validationResults,
     validateField,
     resetValidation,
-    isStep0ValidationsComplete, // Add this new method
+    isStep0ValidationsComplete,
   };
 };

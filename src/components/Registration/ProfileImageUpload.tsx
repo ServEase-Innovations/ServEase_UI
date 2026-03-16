@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { CameraAlt as CameraAltIcon } from '@mui/icons-material';
 import Cropper from 'react-easy-crop';
+import { useLanguage } from 'src/context/LanguageContext';
 
 const createImage = (url: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -55,6 +56,8 @@ interface ProfileImageUploadProps {
 }
 
 const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ onImageSelect }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -145,7 +148,7 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ onImageSelect }
         )}
       </Box>
       <Typography variant="subtitle1" gutterBottom sx={{ marginTop: '10px' }}>
-        Upload Profile Picture
+        {t('uploadProfilePicture')}
       </Typography>
       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} ref={fileInputRef} />
 
@@ -167,9 +170,9 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ onImageSelect }
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsCropDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setIsCropDialogOpen(false)}>{t('cancel')}</Button>
           <Button variant="contained" onClick={handleCropConfirm}>
-            Confirm
+            {t('confirm')}
           </Button>
         </DialogActions>
       </Dialog>

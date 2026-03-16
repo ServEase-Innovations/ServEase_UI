@@ -60,6 +60,7 @@ import { usePricingFilterService } from 'src/utils/PricingFilter';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { BOOKINGS } from '../../Constants/pagesConstants';
+import { useLanguage } from 'src/context/LanguageContext';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -125,6 +126,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   providerDetails,
   sendDataToParent
 }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const [activeTab, setActiveTab] = useState<'baby' | 'elderly'>('baby');
   const [packages, setPackages] = useState<PackagesState>({});
   const [allServices, setAllServices] = useState<any[]>([]);
@@ -221,47 +224,53 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
     }
   }, [activeTab, dispatch, nannyCartItems, providerDetails, providerFullName]);
 
-useEffect(() => {
-  const updatedNannyServices = getFilteredPricing("nanny");
-  if (!updatedNannyServices || updatedNannyServices.length === 0) {
-    if (Object.keys(packages).length > 0) setPackages({});
-    return;
-  }
+  useEffect(() => {
+    const updatedNannyServices = getFilteredPricing("nanny");
+    if (!updatedNannyServices || updatedNannyServices.length === 0) {
+      if (Object.keys(packages).length > 0) setPackages({});
+      return;
+    }
 
-  const newPackages: PackagesState = {};
-  const isOnDemand = bookingType?.bookingPreference?.toLowerCase() === "date";
-  const bookingTypeLabel: "On_demand" | "REGULAR" = isOnDemand ? "On_demand" : "REGULAR";
+    const newPackages: PackagesState = {};
+    const isOnDemand = bookingType?.bookingPreference?.toLowerCase() === "date";
+    const bookingTypeLabel: "On_demand" | "REGULAR" = isOnDemand ? "On_demand" : "REGULAR";
 
-  updatedNannyServices.forEach((service: any) => {
-    const key = `${service.Categories.toLowerCase()}_${service["Type"].toLowerCase()}_${bookingTypeLabel.toLowerCase()}`;
-    const defaultAge = service.Categories.toLowerCase().includes("baby") ? 1 : 60;
-    newPackages[key] = {
-      ...packages[key], // Use current packages to preserve selected/inCart
-      age: packages[key]?.age || defaultAge,
-      calculatedPrice: getPackagePrice(
-        updatedNannyServices,
-        service.Categories,
-        bookingTypeLabel,
-        packages[key]?.age || defaultAge
-      ),
-      description: service["Job Description"]?.split("\n").filter(Boolean) || [],
-      rating: 4.7,
-      reviews: "(1M reviews)",
-      category: service.Categories,
-      jobDescription: service["Job Description"],
-      remarks: service["Remarks/Conditions"] || "",
-      bookingType: bookingTypeLabel,
-      selected: packages[key]?.selected || false,
-      inCart: packages[key]?.inCart || false
-    };
-  });
+    updatedNannyServices.forEach((service: any) => {
+      const key = `${service.Categories.toLowerCase()}_${service["Type"].toLowerCase()}_${bookingTypeLabel.toLowerCase()}`;
+      const defaultAge = service.Categories.toLowerCase().includes("baby") ? 1 : 60;
+      
+      // Determine package type for display
+      const packageType = key.includes("day") ? t("dayService") 
+                         : key.includes("night") ? t("nightService") 
+                         : t("fullTimeService");
 
-  // Only update if something actually changed
-  const prevStr = JSON.stringify(packages);
-  const newStr = JSON.stringify(newPackages);
-  if (prevStr !== newStr) setPackages(newPackages);
+      newPackages[key] = {
+        ...packages[key], // Use current packages to preserve selected/inCart
+        age: packages[key]?.age || defaultAge,
+        calculatedPrice: getPackagePrice(
+          updatedNannyServices,
+          service.Categories,
+          bookingTypeLabel,
+          packages[key]?.age || defaultAge
+        ),
+        description: service["Job Description"]?.split("\n").filter(Boolean) || [],
+        rating: 4.7,
+        reviews: t("reviews").replace("{count}", "1M"),
+        category: service.Categories,
+        jobDescription: service["Job Description"],
+        remarks: service["Remarks/Conditions"] || "",
+        bookingType: bookingTypeLabel === "On_demand" ? "On_demand" : "REGULAR",
+        selected: packages[key]?.selected || false,
+        inCart: packages[key]?.inCart || false
+      };
+    });
 
-}, [bookingType, packages, getFilteredPricing]);
+    // Only update if something actually changed
+    const prevStr = JSON.stringify(packages);
+    const newStr = JSON.stringify(newPackages);
+    if (prevStr !== newStr) setPackages(newPackages);
+
+  }, [bookingType, packages, getFilteredPricing, t]);
 
 
   // 3. Clear cart items when switching tabs
@@ -363,7 +372,10 @@ useEffect(() => {
       .map(([name, pkg]) => {
         const careType = name.split('_')[0];
         const packageType = name.split('_')[1];
-        return `${careType} care (${packageType}) for age ${pkg.age}`;
+        const packageTypeDisplay = packageType === 'day' ? t("dayService") 
+                                 : packageType === 'night' ? t("nightService") 
+                                 : t("fullTimeService");
+        return `${careType} ${t("care")} (${packageTypeDisplay}) ${t("forAge")} ${pkg.age}`;
       })
       .join(', ');
   };
@@ -397,7 +409,7 @@ useEffect(() => {
           age: pkg.age,
           price: pkg.calculatedPrice,
           category: pkg.category,
-          packageType: key.includes('day') ? 'Day' : key.includes('night') ? 'Night' : 'Fulltime',
+          packageType: key.includes('day') ? t("dayService") : key.includes('night') ? t("nightService") : t("fullTimeService"),
         }));
 
       const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
@@ -441,7 +453,7 @@ useEffect(() => {
       // ✅ Set success details and show success dialog instead of snackbar
       setBookingSuccessDetails({
         providerName: providerFullName,
-        serviceType: 'Caregiver Service',
+        serviceType: t("caregiverService"),
         totalAmount: baseTotal,
         bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
         persons: selectedPackages.length,
@@ -543,6 +555,12 @@ useEffect(() => {
     handleClose();
   };
 
+  // Format the total text with proper pluralization
+  const selectedCount = getSelectedPackagesCount();
+  const totalText = t("totalForService")
+    .replace("{count}", selectedCount.toString())
+    .replace("{plural}", selectedCount !== 1 ? "s" : "");
+
   // ✅ Rendering Baby & Elderly Tabs with Age Limits
   const renderPackages = (tab: 'baby' | 'elderly') => {
     return Object.entries(packages)
@@ -550,7 +568,9 @@ useEffect(() => {
       .map(([key, pkg]) => {
         const packageType = key.split('_')[1];
         const color = tab === 'baby' ? '#e17055' : '#0984e3';
-        const displayPackageType = packageType.charAt(0).toUpperCase() + packageType.slice(1);
+        const displayPackageType = packageType === 'day' ? t("dayService") 
+                                 : packageType === 'night' ? t("nightService") 
+                                 : t("fullTimeService");
 
         return (
           <PackageCard key={key} selected={pkg.selected}>
@@ -564,13 +584,13 @@ useEffect(() => {
               </div>
               <PriceContainer>
                 <PriceValue color={color}>₹{pkg.calculatedPrice}</PriceValue>
-                <CareType>{pkg.bookingType}</CareType>
+                <CareType>{pkg.bookingType === "On_demand" ? t("onDemand") : t("regular")}</CareType>
               </PriceContainer>
             </PackageHeader>
 
             {/* ✅ Age Control with Limits */}
             <PersonsControl>
-              <PersonsLabel>Age:</PersonsLabel>
+              <PersonsLabel>{t("age")}</PersonsLabel>
               <PersonsInput>
                 <DecrementButton
                   onClick={(e) => {
@@ -589,10 +609,10 @@ useEffect(() => {
                 >+</IncrementButton>
               </PersonsInput>
               {tab === 'baby' && pkg.age === 1 && (
-                <AgeInfoText>Age 1 includes babies from 1 to 12 months</AgeInfoText>
+                <AgeInfoText>{t("ageInfoBaby")}</AgeInfoText>
               )}
               {tab === 'elderly' && pkg.age === 60 && (
-                <AgeInfoText>For seniors aged 60 and above</AgeInfoText>
+                <AgeInfoText>{t("ageInfoElderly")}</AgeInfoText>
               )}
             </PersonsControl>
 
@@ -615,8 +635,8 @@ useEffect(() => {
                 }}
               >
                 {pkg.inCart 
-                  ? <><RemoveShoppingCartIcon fontSize="small" /> ADDED TO CART</> 
-                  : <><AddShoppingCartIcon fontSize="small" /> ADD TO CART</>}
+                  ? <><RemoveShoppingCartIcon fontSize="small" /> {t("addedToCart")}</> 
+                  : <><AddShoppingCartIcon fontSize="small" /> {t("addToCart")}</>}
               </CartButton>
             </ButtonsContainer>
           </PackageCard>
@@ -646,7 +666,7 @@ useEffect(() => {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}
             className="flex items-center justify-between bg-gradient-to-r from-blue-700 to-blue-500 text-white font-bold text-xl pr-10 relative">
-              <h1>❤️ Caregiver Service</h1>
+              <h1>{t("caregiverService")}</h1>
               <CloseButton 
                 aria-label="close" 
                 onClick={() => {
@@ -662,10 +682,10 @@ useEffect(() => {
 
             <TabContainer>
               <TabButton onClick={() => setActiveTab('baby')} active={activeTab === 'baby'}>
-                <TabIndicator active={activeTab === 'baby'}>Baby Care</TabIndicator>
+                <TabIndicator active={activeTab === 'baby'}>{t("babyCare")}</TabIndicator>
               </TabButton>
               <TabButton onClick={() => setActiveTab('elderly')} active={activeTab === 'elderly'}>
-                <TabIndicator active={activeTab === 'elderly'}>Elderly Care</TabIndicator>
+                <TabIndicator active={activeTab === 'elderly'}>{t("elderlyCare")}</TabIndicator>
               </TabButton>
             </TabContainer>
 
@@ -674,14 +694,14 @@ useEffect(() => {
             </PackagesContainer>
 
             <VoucherContainer>
-              <VoucherTitle>Apply Voucher</VoucherTitle>
+              <VoucherTitle>{t("applyVoucher")}</VoucherTitle>
               <VoucherInputContainer>
                 <VoucherInput
                   type="text"
-                  placeholder="Enter voucher code"
+                  placeholder={t("enterVoucherCode")}
                 />
                 <VoucherButton onClick={handleApplyVoucher}>
-                  APPLY
+                  {t("apply")}
                 </VoucherButton>
               </VoucherInputContainer>
             </VoucherContainer>
@@ -689,22 +709,20 @@ useEffect(() => {
           
           <FooterContainer>
             <div>
-              <FooterText>
-                Total for {getSelectedPackagesCount()} service{getSelectedPackagesCount() !== 1 ? 's' : ''}
-              </FooterText>
+              <FooterText>{totalText}</FooterText>
               <FooterPrice>₹{calculateTotal().toLocaleString()}</FooterPrice>
             </div>
             
             <FooterButtons>
               {!isAuthenticated ? (
                 <>
-                  <Tooltip title="You need to login to proceed with checkout">
+                  <Tooltip title={t("youNeedToLogin")}>
                     <IconButton size="small" style={{ marginRight: '8px' }}>
                       <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <LoginButton onClick={() => loginWithRedirect()}>
-                    LOGIN TO CONTINUE
+                    {t("loginToContinue")}
                   </LoginButton>
                 </>
               ) : (
@@ -712,7 +730,7 @@ useEffect(() => {
                   onClick={handleOpenCartDialog}
                   disabled={calculateTotal() === 0 || loading} // FIX: Add loading to disabled condition
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                  {loading ? <CircularProgress size={24} color="inherit" /> : t("checkout")}
                 </CheckoutButton>
               )}
             </FooterButtons>
@@ -736,21 +754,20 @@ useEffect(() => {
         onNavigateToBookings={handleNavigateToBookings}
       />
       
-     <Snackbar
-  open={snackbarOpen}
-  autoHideDuration={6000}
-  onClose={() => setSnackbarOpen(false)}
-  anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
->
-  <Alert
-    onClose={() => setSnackbarOpen(false)}
-    severity={snackbarSeverity}
-    sx={{ width: "100%" }}
-  >
-    {snackbarMessage}
-  </Alert>
-</Snackbar>
-
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

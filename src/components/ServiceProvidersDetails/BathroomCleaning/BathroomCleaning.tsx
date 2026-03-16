@@ -1,13 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Typography } from '@mui/material';
 import React, { useState, useEffect } from 'react';
+
 import { PricingData } from '../../../types/PricingData';
+import { useLanguage } from 'src/context/LanguageContext';
 
 interface BathroomCleaningProps {
     onPriceChange: (data: { price: number, entry: PricingData | null }) => void; // Callback function passed as a prop
 }
 
 const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) => {
+    const { t } = useLanguage(); // Use the language context
+    
     const [washRoomCount, setWashRoomCount] = useState<number>(0);
     const [frequency, setFrequency] = useState<number | string | null>(null);
     const [price, setPrice] = useState<number>(0);
@@ -21,28 +25,28 @@ const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) =>
     ];
 
     const bathTypeButtonsSelector = [
-        { key: "bathroom", value: "Normal cleaning" },
-        { key: "bathroom_deep_cleaning", value: "Deep cleaning" },
+        { key: "bathroom", value: t("normalCleaning") },
+        { key: "bathroom_deep_cleaning", value: t("deepCleaning") },
     ];
 
     const frequencyButtonsSelector = [
-        { key: 1, value: '1 day / week' },
-        { key: 2, value: '2 day / week' },
+        { key: 1, value: t("dayWeek").replace("{days}", "1") },
+        { key: 2, value: t("dayWeek").replace("{days}", "2") },
     ];
 
-    const deepCleanFrequency = [{ key: '1', value: 'Daily' }];
+    const deepCleanFrequency = [{ key: '1', value: t("daily") }];
 
-    // Pricing data with job descriptions
+    // Pricing data with job descriptions - using translation keys
     const pricingData: PricingData[] = [
-        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Regular', subCategory: 'number', size: 1, frequency: "1 day / week", pricePerMonth: 400, jobDescription: 'Weekly cleaning of bathroom' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Regular', subCategory: 'number', size: 1, frequency: "2 day / week", pricePerMonth: 600, jobDescription: '2 days in a week cleaning of bathroom' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Regular', subCategory: 'number', size: 2, frequency: "1 day / week", pricePerMonth: 600, jobDescription: '2 bathrooms of weekly cleaning' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Regular', subCategory: 'number', size: 2, frequency: "2 day / week", pricePerMonth: 1000, jobDescription: '2 bathrooms of weekly cleaning' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Premium', subCategory: 'number', size: 1, frequency: "1 day / week", pricePerMonth: 600, jobDescription: 'Premium cleaning of bathroom weekly' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Premium', subCategory: 'number', size: 1, frequency: "2 day / week", pricePerMonth: 800, jobDescription: 'Premium cleaning of bathroom 2 days/week' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Premium', subCategory: 'number', size: 2, frequency: "1 day / week", pricePerMonth: 800, jobDescription: '2 bathrooms premium weekly cleaning' },
-        { serviceCategory: 'bathroom', type:"maid",serviceType: 'Premium', subCategory: 'number', size: 2, frequency: "1 day / week", pricePerMonth: 800, jobDescription: '2 bathrooms premium weekly cleaning' },
-        { serviceCategory: 'bathroom_deep_cleaning', serviceType: 'Regular', subCategory: 'number', size: 0, frequency: 'Daily', pricePerMonth: 600, jobDescription: 'Weekly cleaning of bathroom + All bathroom walls cleaning' },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Regular', subCategory: 'number', size: 1, frequency: t("dayWeek").replace("{days}", "1"), pricePerMonth: 400, jobDescription: t("weeklyCleaningBathroom") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Regular', subCategory: 'number', size: 1, frequency: t("dayWeek").replace("{days}", "2"), pricePerMonth: 600, jobDescription: t("twoDaysWeekCleaningBathroom") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Regular', subCategory: 'number', size: 2, frequency: t("dayWeek").replace("{days}", "1"), pricePerMonth: 600, jobDescription: t("twoBathroomsWeeklyCleaning") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Regular', subCategory: 'number', size: 2, frequency: t("dayWeek").replace("{days}", "2"), pricePerMonth: 1000, jobDescription: t("twoBathroomsWeeklyCleaning") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Premium', subCategory: 'number', size: 1, frequency: t("dayWeek").replace("{days}", "1"), pricePerMonth: 600, jobDescription: t("premiumCleaningBathroomWeekly") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Premium', subCategory: 'number', size: 1, frequency: t("dayWeek").replace("{days}", "2"), pricePerMonth: 800, jobDescription: t("premiumCleaningBathroomTwoDays") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Premium', subCategory: 'number', size: 2, frequency: t("dayWeek").replace("{days}", "1"), pricePerMonth: 800, jobDescription: t("twoBathroomsPremiumWeekly") },
+        { serviceCategory: 'bathroom', type:"maid", serviceType: 'Premium', subCategory: 'number', size: 2, frequency: t("dayWeek").replace("{days}", "1"), pricePerMonth: 800, jobDescription: t("twoBathroomsPremiumWeekly") },
+        { serviceCategory: 'bathroom_deep_cleaning', serviceType: 'Regular', subCategory: 'number', size: 0, frequency: t("daily"), pricePerMonth: 600, jobDescription: t("deepCleaningDescription") },
     ];
 
     // Handle button clicks for washroom count, frequency, and type
@@ -63,17 +67,17 @@ const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) =>
     const calculatePrice = () => {
         let filteredPricingData: PricingData[] = [];
 
-        if (washRoomType === 'Normal cleaning') {
+        if (washRoomType === t("normalCleaning")) {
             filteredPricingData = pricingData.filter(
                 (item) =>
                     item.size === washRoomCount && item.frequency === frequency && item.serviceCategory === 'bathroom'
             );
-        } else if (washRoomType === 'Deep cleaning') {
+        } else if (washRoomType === t("deepCleaning")) {
             filteredPricingData = pricingData.filter(
                 (item) =>
                     item.size === 0 &&
                     item.serviceCategory === 'bathroom_deep_cleaning' &&
-                    item.frequency === 'Daily' // Deep cleaning is always daily in this case
+                    item.frequency === t("daily")
             );
         }
 
@@ -88,34 +92,13 @@ const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) =>
     };
 
     // Whenever washRoomCount, frequency, or washRoomType changes, update the price and pass data to the parent
-    // useEffect(() => {
-    //     if (washRoomCount && frequency && washRoomType) {
-    //         const calculatedPrice = calculatePrice();
-    //         setPrice(calculatedPrice);
-
-    //         // Find the matched entry based on the current state values
-    //         const entry = pricingData.find(
-    //             (item) =>
-    //                 item.size === washRoomCount &&
-    //                 item.frequency === frequency &&
-    //                 item.serviceCategory === washRoomType
-    //         );
-
-    //         // Ensure that we're passing the right data to the parent
-    //         if (entry) {
-    //             onPriceChange({ price: calculatedPrice, entry });
-    //         } else {
-    //             onPriceChange({ price: 0, entry: null });
-    //         }
-    //     }
-    // }, [washRoomCount, frequency, washRoomType, onPriceChange]);
     useEffect(() => {
         if (washRoomType && washRoomCount > 0 && frequency) {
             const calculatedPrice = calculatePrice();
             setPrice(calculatedPrice);
             const entry = pricingData.find(
                 (item) =>
-                    (washRoomType === 'Normal cleaning'
+                    (washRoomType === t("normalCleaning")
                         ? item.size === washRoomCount &&
                           item.serviceCategory === 'bathroom'
                         : item.serviceCategory === 'bathroom_deep_cleaning') &&
@@ -125,8 +108,7 @@ const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) =>
         } else {
             onPriceChange({ price: 0, entry: null });
         }
-    }, [washRoomCount, frequency, washRoomType, pricingData]);
-    
+    }, [washRoomCount, frequency, washRoomType, pricingData, t, onPriceChange, calculatePrice]);
     
     // Helper to render buttons with selected styles
     const renderButton = (buttons: any[], selectedValue: any, category: string) => {
@@ -152,35 +134,39 @@ const BathroomCleaning: React.FC<BathroomCleaningProps> = ({ onPriceChange }) =>
     return (
         <>
             <Typography gutterBottom>
-                Type:
+                {t("type")}
                 {renderButton(bathTypeButtonsSelector, washRoomType, 'type')}
             </Typography>
 
-            {washRoomType === 'Normal cleaning' && (
+            {washRoomType === t("normalCleaning") && (
                 <>
                     <Typography gutterBottom>
-                        No. of Washrooms:
+                        {t("noOfWashrooms")}
                         {renderButton(bathCountButtonsSelector, washRoomCount, 'washRoom')}
                     </Typography>
 
                     <Typography gutterBottom>
-                        Frequency:
+                        {t("frequency")}
                         {renderButton(frequencyButtonsSelector, frequency, 'frequency')}
                     </Typography>
                 </>
             )}
 
-            {washRoomType === 'Deep cleaning' && (
+            {washRoomType === t("deepCleaning") && (
                 <>
                     <Typography gutterBottom>
-                        Frequency:
+                        {t("frequency")}
                         {renderButton(deepCleanFrequency, frequency, 'frequency')}
                     </Typography>
                 </>
             )}
 
-            <Typography gutterBottom>Price: ₹{price}/month</Typography>
-            <Typography gutterBottom>Job Description: {jobDescription}</Typography>
+            <Typography gutterBottom>
+                {t("pricePerMonth").replace("{price}", price.toString())}
+            </Typography>
+            <Typography gutterBottom>
+                {t("jobDescription").replace("{description}", jobDescription)}
+            </Typography>
         </>
     );
 };

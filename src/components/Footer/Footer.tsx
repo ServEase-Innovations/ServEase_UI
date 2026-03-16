@@ -1,13 +1,13 @@
 /* eslint-disable */
-import React from "react";
+import React, { useState } from "react";
 import {
-  FaTwitter,
   FaInstagram,
   FaLinkedin,
   FaYoutube,
   FaFacebook,
   FaXTwitter,
 } from "react-icons/fa6";
+import { Language, useLanguage } from "src/context/LanguageContext";
 
 interface FooterProps {
   onAboutClick: () => void;
@@ -22,6 +22,17 @@ const Footer: React.FC<FooterProps> = ({
   onPrivacyPolicyClick,
   onTermsClick,
 }) => {
+  const { currentLanguage, setLanguage, t } = useLanguage();
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    setIsLanguageMenuOpen(false);
+  };
+
+  // Get available languages
+  const languages: Language[] = ['en', 'kn', 'fr', 'de', 'it', 'pt', 'hi', 'ar', 'zh', 'ja', 'bn'];
+  
   return (
     <>
       <footer
@@ -32,18 +43,17 @@ const Footer: React.FC<FooterProps> = ({
         <div className="w-full px-4 custom-py flex flex-col md:flex-row md:justify-start md:items-start text-sm text-gray-600">
           {/* Left side - Logo & Description */}
           <div className="flex flex-col items-start justify-start text-left md:float-right md:w-1/3 self-start md:ml-6">
-    <div className="flex items-center space-x-2">
-      <img
-        src="ServEaso.png"
-        alt="ServEaso Logo"
-        className="h-6 w-6 md:h-7 md:w-7"
-      />
-    </div>
+            <div className="flex items-center space-x-2">
+              <img
+                src="ServEaso.png"
+                alt="ServEaso Logo"
+                className="h-6 w-6 md:h-7 md:w-7"
+              />
+            </div>
 
             <p className="mt-1 text-gray-700 text-xs max-w-xs md:max-w-sm text-left">
-      Book trusted, trained house-help instantly. ServEaso provides safe,
-      affordable maids, cooks, and caregivers.
-    </p>
+              {t('description')}
+            </p>
 
             {/* Social Links */}
             <div className="flex space-x-2 mt-2 text-gray-600">
@@ -92,14 +102,14 @@ const Footer: React.FC<FooterProps> = ({
 
           {/* Main footer links */}
           <div
-  className="md:col-span-2 container mx-auto"
-  style={{
-    paddingLeft: "7rem",
-    paddingRight: "3rem",
-    paddingTop: "1.3rem",
-    paddingBottom: "1.3rem",
-  }}
->
+            className="md:col-span-2 container mx-auto"
+            style={{
+              paddingLeft: "7rem",
+              paddingRight: "3rem",
+              paddingTop: "1.3rem",
+              paddingBottom: "1.3rem",
+            }}
+          >
             {/* Responsive grid for links */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-8 w-full">
               {/* Legal */}
@@ -110,7 +120,7 @@ const Footer: React.FC<FooterProps> = ({
                       onClick={onTermsClick}
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Terms of Service
+                      {t('termsOfService')}
                     </button>
                   </li>
                   <li>
@@ -118,7 +128,7 @@ const Footer: React.FC<FooterProps> = ({
                       onClick={onPrivacyPolicyClick}
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Privacy Policy
+                      {t('privacyPolicy')}
                     </button>
                   </li>
                 </ul>
@@ -132,7 +142,7 @@ const Footer: React.FC<FooterProps> = ({
                       href="#!"
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Tutorials
+                      {t('tutorials')}
                     </a>
                   </li>
                   <li>
@@ -140,7 +150,7 @@ const Footer: React.FC<FooterProps> = ({
                       href="#!"
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Blog
+                      {t('blog')}
                     </a>
                   </li>
                 </ul>
@@ -154,7 +164,7 @@ const Footer: React.FC<FooterProps> = ({
                       onClick={onContactClick}
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Contact Us
+                      {t('contactUs')}
                     </button>
                   </li>
                   <li>
@@ -162,7 +172,7 @@ const Footer: React.FC<FooterProps> = ({
                       href="#!"
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Partners
+                      {t('partners')}
                     </a>
                   </li>
                 </ul>
@@ -176,7 +186,7 @@ const Footer: React.FC<FooterProps> = ({
                       href="#!"
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      Pricing
+                      {t('pricing')}
                     </a>
                   </li>
                   <li>
@@ -184,7 +194,7 @@ const Footer: React.FC<FooterProps> = ({
                       onClick={onAboutClick}
                       className="hover:text-gray-900 text-gray-600 text-[12px] hover:underline"
                     >
-                      About
+                      {t('about')}
                     </button>
                   </li>
                 </ul>
@@ -195,8 +205,44 @@ const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-200 py-1 px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 text-center md:text-left md:ml-4">
-
-          <p> © 2025 ServEaso. All rights reserved.</p>
+          <p>{t('copyright')}</p>
+          
+          {/* Language Selector - Dropdown appears at the top */}
+          <div className="relative mt-2 md:mt-0 md:mr-4">
+            <button
+              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              className="flex items-center space-x-1 px-3 py-1 rounded border border-gray-300 hover:border-gray-400 bg-white text-gray-700 text-xs"
+            >
+              <span>{t('language')}: {currentLanguage.toUpperCase()}</span>
+              <svg 
+                className={`w-3 h-3 transition-transform ${isLanguageMenuOpen ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* Language Dropdown Menu - Opens at the top */}
+            {isLanguageMenuOpen && (
+              <div className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded shadow-lg z-10 max-h-60 overflow-y-auto min-w-[120px]">
+                <div className="py-1">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => handleLanguageChange(lang)}
+                      className={`w-full text-left px-4 py-1.5 text-xs hover:bg-gray-100 transition-colors ${
+                        currentLanguage === lang ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {t(lang)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </footer>
     </>

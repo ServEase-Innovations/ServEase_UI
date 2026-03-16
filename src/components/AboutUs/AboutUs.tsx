@@ -1,10 +1,16 @@
 /* eslint-disable */
+import React from 'react';
+import { useLanguage } from 'src/context/LanguageContext';
+
 
 interface AboutUsProps {
   onBack: () => void;
 }
 
-const AboutUs = ({ onBack }) => {
+const AboutUs = ({ onBack }: AboutUsProps) => {
+  // Use the language hook
+  const { t } = useLanguage();
+
   return (
     <div className="font-sans text-gray-800">
       {/* Back Button */}
@@ -13,7 +19,7 @@ const AboutUs = ({ onBack }) => {
           onClick={onBack}
           className="flex items-center text-blue-600 hover:text-blue-800 font-medium"
         >
-          <span className="mr-2">←</span> Back to Home
+          <span className="mr-2">←</span> {t('backToHome')} {/* Updated to use t() */}
         </button>
       </div>
 
@@ -26,112 +32,62 @@ const AboutUs = ({ onBack }) => {
         }}
       >
         <div className="bg-black bg-opacity-50 p-16">
-          <h1 className="text-4xl font-bold">About Us</h1>
+          <h1 className="text-4xl font-bold">{t('aboutUs')}</h1> {/* Updated to use t() */}
           <p className="mt-4 max-w-2xl">
-            We are <strong>ServEaso</strong> – a house helps service provider.
-            "ServEaso" collectively means "Service Made Easy" or "Easy Services."
-            We simplify the process of connecting customers who need home
-            services with reliable and verified professionals.
+            {t('aboutUsHero1')} <strong>ServEaso</strong> {t('aboutUsHero2')}
           </p>
         </div>
       </section>
 
       {/* Our Story */}
       <section className="py-16 px-8 text-center bg-gray-50">
-        <h2 className="text-3xl font-bold mb-10">Our Story</h2>
+        <h2 className="text-3xl font-bold mb-10">{t('ourStory')}</h2> {/* Updated to use t() */}
         <div className="max-w-5xl mx-auto text-left text-gray-700 space-y-6">
           <p>
-            ServEaso provides trained and verified house helps to simplify the
-            lives of individuals and families who struggle to balance their
-            professional commitments with household responsibilities.
+            {t('ourStory1')}
           </p>
           <p>
-            ServEaso offers a convenient and reliable solution for those in need
-            of house care services, ensuring peace of mind and quality care for
-            customers.
+            {t('ourStory2')}
           </p>
           <h3 className="text-xl font-semibold mt-8 mb-4">
-            Challenges We Solve
+            {t('challengesWeSolve')} {/* Updated to use t() */}
           </h3>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>High Turnover:</strong> Difficulty in retaining house helps
-              due to factors like demanding work conditions, low wages, or lack
-              of work-life balance.
+              <strong>{t('highTurnover')}:</strong> {t('highTurnoverDesc')}
             </li>
             <li>
-              <strong>Skills Gap:</strong> Lack of necessary skills or training
-              for specific tasks, leading to subpar performance or safety
-              concerns.
+              <strong>{t('skillsGap')}:</strong> {t('skillsGapDesc')}
             </li>
             <li>
-              <strong>Communication Barriers:</strong> Language or cultural
-              differences hindering effective communication.
+              <strong>{t('communicationBarriers')}:</strong> {t('communicationBarriersDesc')}
             </li>
             <li>
-              <strong>Trust and Security:</strong> Concerns about theft, privacy
-              violations, or family safety.
+              <strong>{t('trustAndSecurity')}:</strong> {t('trustAndSecurityDesc')}
             </li>
             <li>
-              <strong>Dependence and Entitlement:</strong> Overreliance on
-              employers, reducing household independence.
+              <strong>{t('dependenceAndEntitlement')}:</strong> {t('dependenceAndEntitlementDesc')}
             </li>
             <li>
-              <strong>Lack of Legal Protection:</strong> Exploitation due to
-              unclear legal frameworks or poor enforcement.
+              <strong>{t('lackOfLegalProtection')}:</strong> {t('lackOfLegalProtectionDesc')}
             </li>
             <li>
-              <strong>Social Isolation:</strong> Loneliness from living away
-              from families and communities.
+              <strong>{t('socialIsolation')}:</strong> {t('socialIsolationDesc')}
             </li>
             <li>
-              <strong>Employer-Maid Relationship Dynamics:</strong> Difficulty in
-              building respectful, trust-based relationships.
+              <strong>{t('employerMaidRelationship')}:</strong> {t('employerMaidRelationshipDesc')}
             </li>
             <li>
-              <strong>Limited Access to Healthcare:</strong> Lack of affordable
-              healthcare or insurance coverage.
+              <strong>{t('limitedAccessToHealthcare')}:</strong> {t('limitedAccessToHealthcareDesc')}
             </li>
             <li>
-              <strong>Lack of Standardized Practices:</strong> No clear
-              guidelines for hiring, training, and managing domestic workers.
+              <strong>{t('lackOfStandardizedPractices')}:</strong> {t('lackOfStandardizedPracticesDesc')}
             </li>
           </ul>
         </div>
       </section>
 
-      {/* Team Section
-      <section className="py-16 px-8 text-center">
-        <h2 className="text-3xl font-bold mb-10">Meet Our Team</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-          {teamMembers.map((member, idx) => (
-            <div
-              key={idx}
-              className="bg-white shadow-lg rounded-xl p-6 hover:shadow-xl transition"
-            >
-              <img
-                src={member.img}
-                alt={member.name}
-                className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h4 className="text-lg font-semibold">{member.name}</h4>
-              <p className="text-sm text-gray-500">{member.role}</p>
-              <p className="mt-2 text-sm text-gray-600">{member.desc}</p>
-              <a
-                href="#!"
-                className="text-blue-600 text-sm mt-3 inline-block hover:underline"
-              >
-                Read More
-              </a>
-              <div className="mt-2">
-                <a href="#!" className="text-blue-700 text-sm">
-                  LinkedIn
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section> */}
+      {/* Team Section - Commented out as in original */}
     </div>
   );
 };

@@ -44,6 +44,8 @@ import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import { useCustomerMobileCheck } from "./components/hooks/useCustomerMobileCheck";
 import { setHasMobileNumber } from "./features/customer/customerSlice";
 import { ClipLoader } from 'react-spinners';
+import { LanguageProvider } from "./context/LanguageContext";
+// Import the LanguageProvider
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -473,68 +475,70 @@ function App() {
   }
 
   return (
-    <div className="bg-gray-50 text-gray-800">
-      {/* Deep linking loading overlay */}
-      {processingDeepLink && (
-        <div className="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center" style={{ zIndex: 9999 }}>
-          <ClipLoader color="#3b82f6" size={50} />
-          <p className="mt-4 text-lg font-medium text-gray-700">Opening your booking...</p>
-        </div>
-      )}
+    <LanguageProvider> {/* Add LanguageProvider here to wrap the entire app */}
+      <div className="bg-gray-50 text-gray-800">
+        {/* Deep linking loading overlay */}
+        {processingDeepLink && (
+          <div className="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center" style={{ zIndex: 9999 }}>
+            <ClipLoader color="#3b82f6" size={50} />
+            <p className="mt-4 text-lg font-medium text-gray-700">Opening your booking...</p>
+          </div>
+        )}
 
-      <Header
-        sendDataToParent={(data) => handleDataFromChild(data)}
-        bookingType={""}
-        onAboutClick={handleAboutClick}
-        onContactClick={handleContactClick}
-        onLogoClick={handleLogoClick}
-      />
-
-      {renderContent()}
-
-      {mobileDialogOpen && appUser?.customerid && (
-        <MobileNumberDialog
-          open={mobileDialogOpen}
-          onClose={() => {
-            setMobileDialogOpen(false);
-          }}
-          customerId={appUser.customerid}
-          onSuccess={() => {
-            console.log("Mobile number updated successfully!");
-            dispatch(setHasMobileNumber(true));
-            setMobileDialogOpen(false);
-          }}
+        <Header
+          sendDataToParent={(data) => handleDataFromChild(data)}
+          bookingType={""}
+          onAboutClick={handleAboutClick}
+          onContactClick={handleContactClick}
+          onLogoClick={handleLogoClick}
         />
-      )}
 
-      <ChatbotButton 
-        open={chatbotOpen} 
-        onToggle={() => setChatbotOpen(!chatbotOpen)} 
-      />
-      
-      <Chatbot 
-        open={chatbotOpen} 
-        onClose={() => setChatbotOpen(false)} 
-      />
-      
-      {shouldShowFooter() && (
-        <Footer 
-          onAboutClick={handleAboutClick} 
-          onContactClick={handleContactClick} 
-          onPrivacyPolicyClick={handlePrivacyPolicyClick}
-          onTermsClick={handleTermsClick}
-        />
-      )}
+        {renderContent()}
 
-      {activeToast && (
-        <BookingRequestToast
-          engagement={activeToast}
-          onAccept={handleAccept}
-          onReject={handleReject}
-          onClose={() => setActiveToast(null)}
+        {mobileDialogOpen && appUser?.customerid && (
+          <MobileNumberDialog
+            open={mobileDialogOpen}
+            onClose={() => {
+              setMobileDialogOpen(false);
+            }}
+            customerId={appUser.customerid}
+            onSuccess={() => {
+              console.log("Mobile number updated successfully!");
+              dispatch(setHasMobileNumber(true));
+              setMobileDialogOpen(false);
+            }}
+          />
+        )}
+
+        <ChatbotButton 
+          open={chatbotOpen} 
+          onToggle={() => setChatbotOpen(!chatbotOpen)} 
         />
-      )}
-    </div>
+        
+        <Chatbot 
+          open={chatbotOpen} 
+          onClose={() => setChatbotOpen(false)} 
+        />
+        
+        {shouldShowFooter() && (
+          <Footer 
+            onAboutClick={handleAboutClick} 
+            onContactClick={handleContactClick} 
+            onPrivacyPolicyClick={handlePrivacyPolicyClick}
+            onTermsClick={handleTermsClick}
+          />
+        )}
+
+        {activeToast && (
+          <BookingRequestToast
+            engagement={activeToast}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            onClose={() => setActiveToast(null)}
+          />
+        )}
+      </div>
+    </LanguageProvider> // Close LanguageProvider
   );
 }
 
