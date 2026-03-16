@@ -45,6 +45,7 @@ import { useCustomerMobileCheck } from "./components/hooks/useCustomerMobileChec
 import { setHasMobileNumber } from "./features/customer/customerSlice";
 import { ClipLoader } from 'react-spinners';
 import { LanguageProvider } from "./context/LanguageContext";
+import ProviderNotifications from "./components/Notifications/ProviderNotifications";
 // Import the LanguageProvider
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
   const [serviceProviderDetails, setServiceProvidersData] = useState<string | undefined>();
   const [currentSection, setCurrentSection] = useState<string>("HOME");
   const [notificationReceived, setNotificationReceived] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
@@ -391,7 +393,7 @@ function App() {
 
       newSocket.on("new-engagement", (data) => {
         console.log("📩 New engagement received:", data);
-        setActiveToast(data.engagement);
+        setActiveToast(data);
       });
 
       newSocket.on("disconnect", () => {
@@ -509,6 +511,8 @@ function App() {
             }}
           />
         )}
+
+        
 
         <ChatbotButton 
           open={chatbotOpen} 
