@@ -1514,16 +1514,16 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           permanentAddress: {
             field1: formData.permanentAddress.apartment,
             field2: formData.permanentAddress.street,
-            ctArea: formData.permanentAddress.city,
-            pinNo: formData.permanentAddress.pincode,
+            ctarea: formData.permanentAddress.city,
+            pinno: formData.permanentAddress.pincode,
             state: formData.permanentAddress.state,
             country: formData.permanentAddress.country
           },
           correspondenceAddress: {
             field1: formData.correspondenceAddress.apartment,
             field2: formData.correspondenceAddress.street,
-            ctArea: formData.correspondenceAddress.city,
-            pinNo: formData.correspondenceAddress.pincode,
+            ctarea: formData.correspondenceAddress.city,
+            pinno: formData.correspondenceAddress.pincode,
             state: formData.correspondenceAddress.state,
             country: formData.correspondenceAddress.country
           },
