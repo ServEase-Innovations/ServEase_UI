@@ -441,7 +441,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     handleCartClose();
   };
 
-  // FIXED: Updated handleChange function
+  // FIXED: Updated handleChange function to support both JSON formats
   const handleChange = (newValue: any) => {
     console.log("➡️ New Value Selected:", newValue);
     
@@ -472,11 +472,34 @@ export const Header: React.FC<ChildComponentProps> = ({
         (location: any) => location.name?.toLowerCase() === newValue.toLowerCase()
       );
       
-      if (savedLocation?.location?.address?.[0]?.formatted_address) {
-        console.log("✅ Found location:", savedLocation.location.address[0].formatted_address);
-        console.log("Full location data:", savedLocation.location);
-        setLocation(savedLocation.location.address[0].formatted_address);
+      if (savedLocation) {
+        console.log("✅ Found location:", savedLocation);
+        
+        // Check which format the location is in and extract the address accordingly
+        let displayAddress = "Location found";
+        
+        // Check for complex format (with address array)
+        if (savedLocation.location?.address && Array.isArray(savedLocation.location.address)) {
+          console.log("📌 Using complex location format");
+          if (savedLocation.location.address[0]?.formatted_address) {
+            displayAddress = savedLocation.location.address[0].formatted_address;
+          }
+        } 
+        // Check for simple format (with direct formatted_address)
+        else if (savedLocation.location?.formatted_address) {
+          console.log("📌 Using simple location format");
+          displayAddress = savedLocation.location.formatted_address;
+        }
+        // Check for location with lat/lng but no formatted_address
+        else if (savedLocation.location?.lat && savedLocation.location?.lng) {
+          console.log("📌 Location has lat/lng coordinates");
+          displayAddress = `${savedLocation.name} location`;
+        }
+        
+        setLocation(displayAddress);
         dispatch(add(savedLocation.location));
+        
+        console.log("Full location data:", savedLocation.location);
       } else {
         console.warn("❌ No matching location found for:", newValue);
         console.log("Available saved locations:", userPreference[0].savedLocations);
@@ -581,6 +604,17 @@ export const Header: React.FC<ChildComponentProps> = ({
     setLocation(
       dataFromMap?.address[0]?.formatted_address || t('locationNotFound') // Updated to use t()
     );
+    
+    // Extract address based on format
+    let displayAddress = "Location not found";
+    if (dataFromMap?.address && Array.isArray(dataFromMap.address)) {
+      displayAddress = dataFromMap.address[0]?.formatted_address || "Location not found";
+    } else if (dataFromMap?.formatted_address) {
+      displayAddress = dataFromMap.formatted_address;
+    }
+    
+    setLocation(displayAddress);
+
     setOpen(false);
     setOpenSaveOptionForSave(true);
   };
@@ -619,16 +653,17 @@ export const Header: React.FC<ChildComponentProps> = ({
   }
 };
 
-// Updated updateUserSetting function to handle errors properly
+// Updated updateUserSetting function to handle both JSON formats
 const updateUserSetting = async () => {
   if (!user || !locationAs || !dataFromMap) {
     console.error("Missing required data to update user setting.");
     throw new Error("Missing required data");
   }
 
+  // Save the location data as is - preserve its original format
   const newLocation = {
     name: locationAs,
-    location: dataFromMap,
+    location: dataFromMap, // This could be either simple or complex format
   };
 
   console.log("➕ New location to add:", newLocation);
