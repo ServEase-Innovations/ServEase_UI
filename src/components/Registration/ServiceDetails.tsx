@@ -23,12 +23,14 @@ import {
   IconButton,
   Fade,
   Alert,
+  Autocomplete,
 } from "@mui/material";
 import {
   Home as HomeIcon,
   AccessTime,
   Add as AddIcon,
   Delete as DeleteIcon,
+  Language as LanguageIcon,
 } from "@mui/icons-material";
 import { Button } from "../Button/button";
 
@@ -61,6 +63,9 @@ interface ServiceDetailsProps {
   DisabledRangesIndicator: React.FC<any>;
   getDisabledRangesForSlot: (slots: number[][], currentIndex: number) => number[][];
   formatDisplayTime: (value: number) => string;
+  // Add language props
+  selectedLanguages?: string[];
+  onLanguagesChange?: (languages: string[]) => void;
 }
 
 const ServiceDetails: React.FC<ServiceDetailsProps> = ({
@@ -92,7 +97,26 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   DisabledRangesIndicator,
   getDisabledRangesForSlot,
   formatDisplayTime,
+  // Add language props with default values
+  selectedLanguages = [],
+  onLanguagesChange,
 }) => {
+  // Language selection state (only available languages, selected comes from props)
+  const [availableLanguages] = useState<string[]>([
+    "Assamese", "Bengali", "Gujarati", "Hindi", "Kannada", 
+    "Kashmiri", "Marathi", "Malayalam", "Oriya", "Punjabi", 
+    "Sanskrit", "Tamil", "Telugu", "Urdu", "Sindhi", 
+    "Konkani", "Nepali", "Manipuri", "Bodo", "Dogri", 
+    "Maithili", "Santhali", "English"
+  ]);
+
+  // Handler for language changes
+  const handleLanguageChange = (event: any, newValue: string[]) => {
+    if (onLanguagesChange) {
+      onLanguagesChange(newValue);
+    }
+  };
+
   const serviceTypes = [
     { value: "COOK", label: "Cook" },
     { value: "NANNY", label: "Nanny"},
@@ -371,72 +395,73 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                         marginLeft: '2px'
                       }
                     }}
-                  >
-                    <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
-                      Diet Preference
-                    </Typography>
-                  </FormLabel>
-                  
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'row', 
-                    gap: 2,
-                    flexWrap: 'wrap',
-                    width: '100%',
-                  }}>
-                    {dietOptions.map((option) => (
-                      <Paper
-                        key={option}
-                        elevation={formData.diet === option ? 2 : 0}
-                        sx={{
-                          p: 1.5,
-                          px: 3,
-                          borderRadius: 2,
-                          bgcolor: formData.diet === option ? '#e3f2fd' : '#fff',
-                          border: '1px solid',
-                          borderColor: formData.diet === option ? '#1976d2' : '#e0e0e0',
-                          transition: 'all 0.2s',
-                          cursor: 'pointer',
-                          flex: { xs: '1 1 auto', sm: '0 1 auto' },
-                          minWidth: '100px',
-                          textAlign: 'center',
-                          '&:hover': {
-                            borderColor: '#1976d2',
-                            bgcolor: formData.diet === option ? '#e3f2fd' : '#f5f5f5',
-                          },
-                        }}
-                        onClick={() => {
-                          const event = {
-                            target: { value: option, name: 'diet' }
-                          } as React.ChangeEvent<HTMLInputElement>;
-                          onDietChange(event);
-                        }}
-                      >
-                        <Typography 
-                          variant="body2" 
-                          fontWeight={formData.diet === option ? 'bold' : 'normal'}
-                          color={formData.diet === option ? '#1976d2' : 'text.primary'}
+                    >
+                      <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
+                        Diet Preference
+                      </Typography>
+                    </FormLabel>
+                    
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'row', 
+                      gap: 2,
+                      flexWrap: 'wrap',
+                      width: '100%',
+                    }}>
+                      {dietOptions.map((option) => (
+                        <Paper
+                          key={option}
+                          elevation={formData.diet === option ? 2 : 0}
+                          sx={{
+                            p: 1.5,
+                            px: 3,
+                            borderRadius: 2,
+                            bgcolor: formData.diet === option ? '#e3f2fd' : '#fff',
+                            border: '1px solid',
+                            borderColor: formData.diet === option ? '#1976d2' : '#e0e0e0',
+                            transition: 'all 0.2s',
+                            cursor: 'pointer',
+                            flex: { xs: '1 1 auto', sm: '0 1 auto' },
+                            minWidth: '100px',
+                            textAlign: 'center',
+                            '&:hover': {
+                              borderColor: '#1976d2',
+                              bgcolor: formData.diet === option ? '#e3f2fd' : '#f5f5f5',
+                            },
+                          }}
+                          onClick={() => {
+                            const event = {
+                              target: { value: option, name: 'diet' }
+                            } as React.ChangeEvent<HTMLInputElement>;
+                            onDietChange(event);
+                          }}
                         >
-                          {option === 'VEG' ? 'Veg' : 
-                           option === 'NONVEG' ? 'Non-Veg' : 
-                           'Both'}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Box>
-                  
-                  {errors.diet && (
-                    <FormHelperText error sx={{ mt: 1 }}>
-                      {errors.diet}
-                    </FormHelperText>
-                  )}
-                </FormControl>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={formData.diet === option ? 'bold' : 'normal'}
+                            color={formData.diet === option ? '#1976d2' : 'text.primary'}
+                          >
+                            {option === 'VEG' ? 'Veg' : 
+                             option === 'NONVEG' ? 'Non-Veg' : 
+                             'Both'}
+                          </Typography>
+                        </Paper>
+                      ))}
+                    </Box>
+                    
+                    {errors.diet && (
+                      <FormHelperText error sx={{ mt: 1 }}>
+                        {errors.diet}
+                      </FormHelperText>
+                    )}
+                  </FormControl>
+                </Grid>
               </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
       
+      {/* Description Field */}
       <Grid item xs={12}>
         <TextField
           placeholder="Description"
@@ -448,7 +473,86 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           rows={3}
         />
       </Grid>
+
+      {/* Language Selection Section */}
+      <Grid item xs={12}>
+        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
+          <CardContent>
+            <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <LanguageIcon sx={{ mr: 1 }} />
+              Languages Spoken
+            </Typography>
+            
+            <Autocomplete
+              multiple
+              options={availableLanguages}
+              value={selectedLanguages}
+              onChange={handleLanguageChange}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    label={option}
+                    size="small"
+                    {...getTagProps({ index })}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Select languages you speak"
+                  helperText="You can select multiple languages or type your own"
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-tag': {
+                  bgcolor: '#e3f2fd',
+                  color: '#1976d2',
+                  borderRadius: 1.5,
+                  '& .MuiChip-deleteIcon': {
+                    color: '#1976d2',
+                    '&:hover': {
+                      color: '#1565c0'
+                    }
+                  }
+                }
+              }}
+            />
+            
+            {/* Selected Languages Summary */}
+            {selectedLanguages.length > 0 && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
+                <Typography variant="body2" color="primary" gutterBottom fontWeight="bold">
+                  Selected Languages ({selectedLanguages.length}):
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selectedLanguages.map((language, index) => (
+                    <Chip
+                      key={index}
+                      label={language}
+                      size="small"
+                      onDelete={() => {
+                        const newLanguages = selectedLanguages.filter((_, i) => i !== index);
+                        if (onLanguagesChange) {
+                          onLanguagesChange(newLanguages);
+                        }
+                      }}
+                      sx={{
+                        bgcolor: '#fff',
+                        '& .MuiChip-deleteIcon': {
+                          color: '#1976d2'
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
       
+      {/* Experience and Referral Code Fields */}
       <Grid item xs={12} sm={6}>
         <TextField
           placeholder="Experience *"

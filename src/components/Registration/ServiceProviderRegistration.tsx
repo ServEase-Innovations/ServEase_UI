@@ -199,6 +199,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [isSameAddress, setIsSameAddress] = useState(false);
   const [isDobValid, setIsDobValid] = useState(true);
   
+  // New state for languages
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  
   // New state variables for multi-slot time selection
   const [morningSlots, setMorningSlots] = useState<number[][]>([[6, 12]]);
   const [eveningSlots, setEveningSlots] = useState<number[][]>([[12, 20]]);
@@ -1498,6 +1501,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           housekeepingRole: primaryRole,
           serviceTypes: formData.housekeepingRole,
           diet: formData.diet,
+          languages: selectedLanguages, // <-- ADDED LANGUAGES PARAMETER HERE
           ...(formData.housekeepingRole.includes("COOK") && {
             cookingSpeciality: formData.cookingSpeciality
           }),
@@ -1876,6 +1880,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             DisabledRangesIndicator={DisabledRangesIndicator}
             getDisabledRangesForSlot={getDisabledRangesForSlot}
             formatDisplayTime={formatDisplayTime}
+            // Add language props
+            selectedLanguages={selectedLanguages}
+            onLanguagesChange={setSelectedLanguages}
           />
         );
       
