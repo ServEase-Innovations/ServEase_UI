@@ -18,6 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
+import { useLanguage } from 'src/context/LanguageContext';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -36,6 +37,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   providerDetails,
   sendDataToParent
 }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const dispatch = useDispatch();
   const users = useSelector((state: any) => state.user?.value);
   const pricing = useSelector((state: any) => state.pricing?.groupedServices);
@@ -105,23 +108,23 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     });
 
     setPackages(initialPackages);
-  }, [pricing, bookingType]);
+  }, [pricing, bookingType, t]); // Added t to dependencies
 
   const getPreparationTime = (category: string): string => {
     switch(category) {
-      case 'breakfast': return '30 mins preparation';
-      case 'lunch': return '45 mins preparation';
-      case 'dinner': return '1.5 hrs preparation';
-      default: return '30 mins preparation';
+      case 'breakfast': return t("minutesPreparation").replace("{minutes}", "30");
+      case 'lunch': return t("minutesPreparation").replace("{minutes}", "45");
+      case 'dinner': return t("hoursPreparation").replace("{hours}", "1.5");
+      default: return t("minutesPreparation").replace("{minutes}", "30");
     }
   };
 
   const getReviewsText = (category: string): string => {
     switch(category) {
-      case 'breakfast': return '(2.9M reviews)';
-      case 'lunch': return '(1.7M reviews)';
-      case 'dinner': return '(2.7M reviews)';
-      default: return '(1M reviews)';
+      case 'breakfast': return t("reviews").replace("{count}", "2.9M");
+      case 'lunch': return t("reviews").replace("{count}", "1.7M");
+      case 'dinner': return t("reviews").replace("{count}", "2.7M");
+      default: return t("reviews").replace("{count}", "1M");
     }
   };
 
@@ -265,7 +268,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
 
       setBookingSuccessDetails({
         providerName: providerFullName,
-        serviceType: 'Home Cook Service',
+        serviceType: t("homeCook"),
         totalAmount: baseTotal,
         bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
         persons: selectedPackages.reduce((sum, pkg) => sum + pkg.persons, 0),
@@ -344,7 +347,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
           </PackageHeader>
           
           <PersonsControl>
-            <PersonsLabel>Persons:</PersonsLabel>
+            <PersonsLabel>{t("persons")}</PersonsLabel>
             <PersonsInput>
               <DecrementButton 
                 onClick={(e) => {
@@ -367,7 +370,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
               </IncrementButton>
             </PersonsInput>
             {pkg.persons > pkg.maxPersons && (
-              <AdditionalCharges>*Additional charges applied</AdditionalCharges>
+              <AdditionalCharges>{t("additionalChargesApplied")}</AdditionalCharges>
             )}
           </PersonsControl>
           
@@ -392,7 +395,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
               }}
             >
               {pkg.inCart ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-              {pkg.inCart ? 'ADDED TO CART' : 'ADD TO CART'}
+              {pkg.inCart ? t("addedToCart") : t("addToCart")}
             </CartButton>
           </ButtonsContainer>
         </PackageCard>
@@ -404,6 +407,13 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const totalItems = selectedPackages.length;
   const totalPersons = selectedPackages.reduce((sum, [_, pkg]) => sum + pkg.persons, 0);
   const totalPrice = selectedPackages.reduce((sum, [_, pkg]) => sum + pkg.calculatedPrice, 0);
+
+  // Format the total text with proper pluralization
+  const totalText = t("totalForItems")
+    .replace("{count}", totalItems.toString())
+    .replace("{plural}", totalItems !== 1 ? "s" : "")
+    .replace("{persons}", totalPersons.toString())
+    .replace("{personPlural}", totalPersons !== 1 ? "s" : "");
 
   return (
     <>
@@ -428,7 +438,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                 borderBottom: '1px solid #e0e0e0',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}>
-              <h1>👩‍🍳Home Cook</h1>
+              <h1>{t("homeCook")}</h1>
               <CloseButton 
                 aria-label="close" 
                 onClick={() => {
@@ -446,30 +456,28 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
             </PackagesContainer>
             
             <VoucherContainer>
-              <VoucherTitle>Apply Voucher</VoucherTitle>
+              <VoucherTitle>{t("applyVoucher")}</VoucherTitle>
               <VoucherInputContainer>
-                <VoucherInput type="text" placeholder="Enter voucher code" />
-                <VoucherButton >APPLY</VoucherButton>
+                <VoucherInput type="text" placeholder={t("enterVoucherCode")} />
+                <VoucherButton >{t("apply")}</VoucherButton>
               </VoucherInputContainer>
             </VoucherContainer>
             
             <FooterContainer>
               <div>
-                <FooterText>
-                  Total for {totalItems} item{totalItems !== 1 ? 's' : ''} ({totalPersons} person{totalPersons !== 1 ? 's' : ''})
-                </FooterText>
+                <FooterText>{totalText}</FooterText>
                 <FooterPrice>₹{totalPrice.toFixed(2)}</FooterPrice>
               </div>
               <FooterButtons>
                 {!isAuthenticated && (
                   <>
-                    <Tooltip title="You need to login to proceed with checkout">
+                    <Tooltip title={t("youNeedToLogin")}>
                       <IconButton size="small" style={{ marginRight: '8px' }}>
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <LoginButton onClick={() => loginWithRedirect()}>
-                      LOGIN TO CONTINUE
+                      {t("loginToContinue")}
                     </LoginButton>
                   </>
                 )}
@@ -478,7 +486,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                     onClick={handleOpenCartDialog}
                     disabled={totalItems === 0 || loading} // FIX: Disable when loading
                   >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : t("checkout")}
                   </CheckoutButton>
                 )}
               </FooterButtons>

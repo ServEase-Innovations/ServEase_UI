@@ -70,6 +70,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
+import { useLanguage } from 'src/context/LanguageContext';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -135,6 +136,8 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   providerDetails,
   sendDataToParent
 }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const [activeTab, setActiveTab] = useState<'regular' | 'premium'>('regular');
   const allCartItems = useSelector(selectCartItems);
   const maidCartItems = allCartItems.filter(isMaidCartItem);
@@ -453,9 +456,9 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
 
   const getPackageDescription = (packageName: string): string => {
     switch(packageName) {
-      case 'utensilCleaning': return 'All kind of daily utensil cleaning\nParty used type utensil cleaning';
-      case 'sweepingMopping': return 'Daily sweeping and mopping';
-      case 'bathroomCleaning': return 'Weekly cleaning of bathrooms';
+      case 'utensilCleaning': return `${t("utensilCleaningDesc1")}\n${t("utensilCleaningDesc2")}`;
+      case 'sweepingMopping': return t("sweepingMoppingDesc");
+      case 'bathroomCleaning': return t("bathroomCleaningDesc");
       default: return '';
     }
   };
@@ -496,11 +499,11 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
 
   const getAddOnDescription = (addOnName: string): string => {
     switch(addOnName) {
-      case 'bathroomDeepCleaning': return 'Weekly cleaning of bathrooms, all bathroom walls cleaned';
-      case 'normalDusting': return 'Daily furniture dusting, doors, carpet, bed making';
-      case 'deepDusting': return 'Includes chemical agents cleaning: décor items, furniture';
-      case 'utensilDrying': return 'Househelp will dry and make proper arrangements';
-      case 'clothesDrying': return 'Househelp will get clothes from/to drying place';
+      case 'bathroomDeepCleaning': return t("bathroomDeepCleaningDesc");
+      case 'normalDusting': return t("normalDustingDesc");
+      case 'deepDusting': return t("deepDustingDesc");
+      case 'utensilDrying': return t("utensilDryingDesc");
+      case 'clothesDrying': return t("clothesDryingDesc");
       default: return '';
     }
   };
@@ -722,13 +725,13 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
       const responsibilities = {
         tasks: packages.map(item => {
           if (item.name === "utensilCleaning") {
-            return { taskType: "Utensil Cleaning", persons: item.details?.persons || 1 };
+            return { taskType: t("utensilCleaning"), persons: item.details?.persons || 1 };
           }
           if (item.name === "sweepingMopping") {
-            return { taskType: "Sweeping & Mopping", houseSize: item.details?.houseSize || "2BHK" };
+            return { taskType: t("sweepingMopping"), houseSize: item.details?.houseSize || "2BHK" };
           }
           if (item.name === "bathroomCleaning") {
-            return { taskType: "Bathroom Cleaning", bathrooms: item.details?.bathrooms || 1 };
+            return { taskType: t("bathroomCleaning"), bathrooms: item.details?.bathrooms || 1 };
           }
           return { taskType: item.name };
         }),
@@ -759,7 +762,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
       // ✅ Set success details and show success dialog instead of snackbar
       setBookingSuccessDetails({
         providerName: providerFullName,
-        serviceType: 'Cleaning Help Service',
+        serviceType: t("cleaningHelp"),
         totalAmount: baseTotal,
         bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
         persons: 1, // For maid service, we can use 1 as default or calculate based on services
@@ -803,6 +806,11 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     handleClose();
   };
 
+  // Format the total text
+  const totalText = t("totalForServices")
+    .replace("{services}", countSelectedServices().toString())
+    .replace("{addons}", countSelectedAddOns().toString());
+
   return (
     <>
       <StyledDialog 
@@ -826,7 +834,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 borderBottom: '1px solid #e0e0e0',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
-              <h1>🧹Maid Service</h1>
+              <h1>{t("maidService")}</h1>
               <CloseButton
                 aria-label="close"
                 onClick={() => {
@@ -846,20 +854,20 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
               <PackageCard selected={packageStates.utensilCleaning.selected} color="#e17055">
                 <PackageHeader>
                   <div>
-                    <PackageTitle>Utensil Cleaning</PackageTitle>
+                    <PackageTitle>{t("utensilCleaning")}</PackageTitle>
                     <RatingContainer>
                       <RatingValue color="#e17055">4.7</RatingValue>
-                      <ReviewsText>(1.2M reviews)</ReviewsText>
+                      <ReviewsText>{t("reviews").replace("{count}", "1.2M")}</ReviewsText>
                     </RatingContainer>
                   </div>
                   <PriceContainer>
                     <PriceValue color="#e17055">₹{getPackagePrice('utensilCleaning').toLocaleString('en-IN')}</PriceValue>
-                    <PreparationTime>Monthly service</PreparationTime>
+                    <PreparationTime>{t("monthlyService")}</PreparationTime>
                   </PriceContainer>
                 </PackageHeader>
 
                 <PersonsControl>
-                  <PersonsLabel>Persons:</PersonsLabel>
+                  <PersonsLabel>{t("persons")}</PersonsLabel>
                   <PersonsInput>
                     <DecrementButton onClick={() => handlePersonChange('decrement')}>-</DecrementButton>
                     <PersonsValue>{packageStates.utensilCleaning.persons}</PersonsValue>
@@ -870,18 +878,18 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 <DescriptionList>
                   <DescriptionItem>
                     <DescriptionBullet>•</DescriptionBullet>
-                    <span>All kind of daily utensil cleaning</span>
+                    <span>{t("utensilCleaningDesc1")}</span>
                   </DescriptionItem>
                   <DescriptionItem>
                     <DescriptionBullet>•</DescriptionBullet>
-                    <span>Party used type utensil cleaning</span>
+                    <span>{t("utensilCleaningDesc2")}</span>
                   </DescriptionItem>
                 </DescriptionList>
 
                 <ButtonsContainer>
                   <CartButton inCart={cartItems.utensilCleaning} onClick={() => handleAddPackageToCart('utensilCleaning')}>
                     {cartItems.utensilCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-                    {cartItems.utensilCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                    {cartItems.utensilCleaning ? t("addedToCart") : t("addToCart")}
                   </CartButton>
                 </ButtonsContainer>
               </PackageCard>
@@ -890,20 +898,20 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
               <PackageCard selected={packageStates.sweepingMopping.selected} color="#00b894">
                 <PackageHeader>
                   <div>
-                    <PackageTitle>Sweeping & Mopping</PackageTitle>
+                    <PackageTitle>{t("sweepingMopping")}</PackageTitle>
                     <RatingContainer>
                       <RatingValue color="#00b894">4.8</RatingValue>
-                      <ReviewsText>(1.5M reviews)</ReviewsText>
+                      <ReviewsText>{t("reviews").replace("{count}", "1.5M")}</ReviewsText>
                     </RatingContainer>
                   </div>
                   <PriceContainer>
                     <PriceValue color="#00b894">₹{getPackagePrice('sweepingMopping').toLocaleString('en-IN')}</PriceValue>
-                    <PreparationTime>Monthly service</PreparationTime>
+                    <PreparationTime>{t("monthlyService")}</PreparationTime>
                   </PriceContainer>
                 </PackageHeader>
 
                 <PersonsControl>
-                  <PersonsLabel>House Size:</PersonsLabel>
+                  <PersonsLabel>{t("houseSize")}</PersonsLabel>
                   <PersonsInput>
                     <DecrementButton onClick={() => handleHouseSizeChange('decrement')}>-</DecrementButton>
                     <PersonsValue>{packageStates.sweepingMopping.houseSize}</PersonsValue>
@@ -914,14 +922,14 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 <DescriptionList>
                   <DescriptionItem>
                     <DescriptionBullet>•</DescriptionBullet>
-                    <span>Daily sweeping and mopping of 2 rooms, 1 Hall</span>
+                    <span>{t("sweepingMoppingDesc")}</span>
                   </DescriptionItem>
                 </DescriptionList>
 
                 <ButtonsContainer>
                   <CartButton inCart={cartItems.sweepingMopping} onClick={() => handleAddPackageToCart('sweepingMopping')}>
                     {cartItems.sweepingMopping ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-                    {cartItems.sweepingMopping ? 'ADDED TO CART' : 'ADD TO CART'}
+                    {cartItems.sweepingMopping ? t("addedToCart") : t("addToCart")}
                   </CartButton>
                 </ButtonsContainer>
               </PackageCard>
@@ -930,20 +938,20 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
               <PackageCard selected={packageStates.bathroomCleaning.selected} color="#0984e3">
                 <PackageHeader>
                   <div>
-                    <PackageTitle>Bathroom Cleaning</PackageTitle>
+                    <PackageTitle>{t("bathroomCleaning")}</PackageTitle>
                     <RatingContainer>
                       <RatingValue color="#0984e3">4.6</RatingValue>
-                      <ReviewsText>(980K reviews)</ReviewsText>
+                      <ReviewsText>{t("reviews").replace("{count}", "980K")}</ReviewsText>
                     </RatingContainer>
                   </div>
                   <PriceContainer>
                     <PriceValue color="#0984e3">₹{getPackagePrice('bathroomCleaning').toLocaleString('en-IN')}</PriceValue>
-                    <PreparationTime>Monthly service</PreparationTime>
+                    <PreparationTime>{t("monthlyService")}</PreparationTime>
                   </PriceContainer>
                 </PackageHeader>
 
                 <PersonsControl>
-                  <PersonsLabel>Bathrooms:</PersonsLabel>
+                  <PersonsLabel>{t("bathrooms")}</PersonsLabel>
                   <PersonsInput>
                     <DecrementButton onClick={() => handleBathroomChange('decrement')}>-</DecrementButton>
                     <PersonsValue>{packageStates.bathroomCleaning.bathrooms}</PersonsValue>
@@ -954,79 +962,79 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                 <DescriptionList>
                   <DescriptionItem>
                     <DescriptionBullet>•</DescriptionBullet>
-                    <span>Weekly cleaning of bathrooms</span>
+                    <span>{t("bathroomCleaningDesc")}</span>
                   </DescriptionItem>
                 </DescriptionList>
 
                 <ButtonsContainer>
                   <CartButton inCart={cartItems.bathroomCleaning} onClick={() => handleAddPackageToCart('bathroomCleaning')}>
                     {cartItems.bathroomCleaning ? <RemoveShoppingCartIcon /> : <AddShoppingCartIcon />}
-                    {cartItems.bathroomCleaning ? 'ADDED TO CART' : 'ADD TO CART'}
+                    {cartItems.bathroomCleaning ? t("addedToCart") : t("addToCart")}
                   </CartButton>
                 </ButtonsContainer>
               </PackageCard>
 
               {/* Add-ons Section */}
               <AddOnsContainer>
-                <AddOnsTitle>Regular Add-on Services</AddOnsTitle>
+                <AddOnsTitle>{t("regularAddonServices")}</AddOnsTitle>
                 <AddOnsGrid>
                   {/* Bathroom Deep Cleaning */}
                   <AddOnCard selected={addOns.bathroomDeepCleaning} color="#00b894">
                     <AddOnHeader>
-                      <AddOnTitle>Bathroom Deep Cleaning</AddOnTitle>
+                      <AddOnTitle>{t("bathroomDeepCleaning")}</AddOnTitle>
                       <AddOnPrice color="#00b894">+₹{getAddOnPrice('bathroomDeepCleaning').toLocaleString('en-IN')}</AddOnPrice>
                     </AddOnHeader>
-                    <AddOnDescription>Weekly cleaning of bathrooms, all bathroom walls cleaned</AddOnDescription>
+                    <AddOnDescription>{t("bathroomDeepCleaningDesc")}</AddOnDescription>
                     <AddOnButton selected={addOns.bathroomDeepCleaning} color="#00b894" onClick={() => handleAddAddOnToCart('bathroomDeepCleaning')}>
-                      {addOns.bathroomDeepCleaning ? 'ADDED' : '+ Add This Service'}
+                      {addOns.bathroomDeepCleaning ? t("added") : t("addThisService")}
                     </AddOnButton>
                   </AddOnCard>
 
                   {/* Normal Dusting */}
                   <AddOnCard selected={addOns.normalDusting} color="#0984e3">
                     <AddOnHeader>
-                      <AddOnTitle>Normal Dusting</AddOnTitle>
+                      <AddOnTitle>{t("normalDusting")}</AddOnTitle>
                       <AddOnPrice color="#0984e3">+₹{getAddOnPrice('normalDusting').toLocaleString('en-IN')}</AddOnPrice>
                     </AddOnHeader>
-                    <AddOnDescription>Daily furniture dusting, doors, carpet, bed making</AddOnDescription>
+                    <AddOnDescription>{t("normalDustingDesc")}</AddOnDescription>
                     <AddOnButton selected={addOns.normalDusting} color="#0984e3" onClick={() => handleAddAddOnToCart('normalDusting')}>
-                      {addOns.normalDusting ? 'ADDED' : '+ Add This Service'}
+                      {addOns.normalDusting ? t("added") : t("addThisService")}
                     </AddOnButton>
                   </AddOnCard>
 
                   {/* Deep Dusting */}
                   <AddOnCard selected={addOns.deepDusting} color="#e17055">
                     <AddOnHeader>
-                      <AddOnTitle>Deep Dusting</AddOnTitle>
+                      <AddOnTitle>{t("deepDusting")}</AddOnTitle>
                       <AddOnPrice color="#e17055">+₹{getAddOnPrice('deepDusting').toLocaleString('en-IN')}</AddOnPrice>
                     </AddOnHeader>
-                    <AddOnDescription>Includes chemical agents cleaning: décor items, furniture</AddOnDescription>
+                    <AddOnDescription>{t("deepDustingDesc")}</AddOnDescription>
                     <AddOnButton selected={addOns.deepDusting} color="#e17055" onClick={() => handleAddAddOnToCart('deepDusting')}>
-                      {addOns.deepDusting ? 'ADDED' : '+ Add This Service'}
+                      {addOns.deepDusting ? t("added") : t("addThisService")}
                     </AddOnButton>
                   </AddOnCard>
 
                   {/* Utensil Drying */}
                   <AddOnCard selected={addOns.utensilDrying} color="#00b894">
                     <AddOnHeader>
-                      <AddOnTitle>Utensil Drying</AddOnTitle>
+                      <AddOnTitle>{t("utensilDrying")}</AddOnTitle>
                       <AddOnPrice color="#00b894">+₹{getAddOnPrice('utensilDrying').toLocaleString('en-IN')}</AddOnPrice>
                     </AddOnHeader>
-                    <AddOnDescription>Househelp will dry and make proper arrangements</AddOnDescription>
+                    <AddOnDescription>{t("utensilDryingDesc")}</AddOnDescription>
                     <AddOnButton selected={addOns.utensilDrying} color="#00b894" onClick={() => handleAddAddOnToCart('utensilDrying')}>
-                      {addOns.utensilDrying ? 'ADDED' : '+ Add This Service'}
+                      {addOns.utensilDrying ? t("added") : t("addThisService")}
                     </AddOnButton>
                   </AddOnCard>
 
                   {/* Clothes Drying */}
                   <AddOnCard selected={addOns.clothesDrying} color="#0984e3">
                     <AddOnHeader>
-                      <AddOnTitle>Clothes Drying</AddOnTitle>
+                      <AddOnTitle>{t("clothesDrying")}</AddOnTitle>
                       <AddOnPrice color="#0984e3">+₹{getAddOnPrice('clothesDrying').toLocaleString('en-IN')}</AddOnPrice>
                     </AddOnHeader>
-                    <AddOnDescription>Househelp will get clothes from/to drying place</AddOnDescription>
+                    <AddOnDescription>{t("clothesDryingDesc")}</AddOnDescription>
                     <AddOnButton selected={addOns.clothesDrying} color="#0984e3" onClick={() => handleAddAddOnToCart('clothesDrying')}>
-                      {addOns.clothesDrying ? 'ADDED' : '+ Add This Service'}
+                      {addOns.clothesDrying ? t("added") : t("addThisService")}
                     </AddOnButton>
                   </AddOnCard>
                 </AddOnsGrid>
@@ -1034,10 +1042,10 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
 
               {/* Voucher Section */}
               <VoucherContainer>
-                <VoucherTitle>Apply Voucher</VoucherTitle>
+                <VoucherTitle>{t("applyVoucher")}</VoucherTitle>
                 <VoucherInputContainer>
-                  <VoucherInput type="text" placeholder="Enter voucher code" />
-                  <VoucherButton>APPLY</VoucherButton>
+                  <VoucherInput type="text" placeholder={t("enterVoucherCode")} />
+                  <VoucherButton>{t("apply")}</VoucherButton>
                 </VoucherInputContainer>
               </VoucherContainer>
             </PackagesContainer>
@@ -1045,22 +1053,20 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
             {/* Footer with Checkout */}
             <FooterContainer>
               <div>
-                <FooterText>
-                  Total for {countSelectedServices()} services ({countSelectedAddOns()} add-ons)
-                </FooterText>
+                <FooterText>{totalText}</FooterText>
                 <FooterPrice>₹{calculateTotal().toLocaleString('en-IN')}</FooterPrice>
               </div>
 
               <FooterButtons>
                 {!isAuthenticated && (
                   <>
-                    <Tooltip title="You need to login to proceed with checkout">
+                    <Tooltip title={t("youNeedToLogin")}>
                       <IconButton size="small" style={{ marginRight: '8px' }}>
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <LoginButton onClick={() => loginWithRedirect()}>
-                      LOGIN TO CONTINUE
+                      {t("loginToContinue")}
                     </LoginButton>
                   </>
                 )}
@@ -1070,7 +1076,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
                     onClick={handleOpenCartDialog} 
                     disabled={calculateTotal() === 0 || loading} // FIX: Add loading to disabled condition
                   >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'CHECKOUT'}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : t("checkout")}
                   </CheckoutButton>
                 )}
               </FooterButtons>

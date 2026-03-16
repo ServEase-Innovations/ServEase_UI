@@ -16,6 +16,7 @@ import {
   Divider,
 } from "@mui/material";
 import CustomFileInput from "./CustomFileInput";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface KYCVerificationProps {
   formData: any;
@@ -34,51 +35,53 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
   onDocumentUpload,
   onKycTypeChange,
 }) => {
+  const { t } = useLanguage(); // Use the language context
+
   const kycOptions = [
     { 
       value: "AADHAR", 
-      label: "Aadhaar Card", 
-      description: "Government ID proof", 
-      placeholder: "Aadhaar Number *", 
+      label: t("aadhaarCard"), 
+      description: t("governmentIdProof"), 
+      placeholder: t("aadhaarNumberPlaceholder"), 
       pattern: "[0-9]{12}", 
       maxLength: 12, 
-      helperText: "Enter 12-digit Aadhaar number" 
+      helperText: t("aadhaarHelperText") 
     },
     { 
       value: "PAN", 
-      label: "PAN Card", 
-      description: "Permanent Account Number", 
-      placeholder: "PAN Number *", 
+      label: t("panCard"), 
+      description: t("panDescription"), 
+      placeholder: t("panNumberPlaceholder"), 
       pattern: "[A-Z]{5}[0-9]{4}[A-Z]{1}", 
       maxLength: 10, 
-      helperText: "Enter 10-digit PAN (e.g., ABCDE1234F)" 
+      helperText: t("panHelperText") 
     },
     { 
       value: "DRIVING_LICENSE", 
-      label: "Driving License", 
-      description: "Driving License", 
-      placeholder: "Driving License Number *", 
+      label: t("drivingLicense"), 
+      description: t("drivingLicense"), 
+      placeholder: t("drivingLicensePlaceholder"), 
       pattern: "^[A-Z]{2}[0-9]{2}[0-9]{4,11}*$", 
       maxLength: 16, 
-      helperText: "Enter your driving license number" 
+      helperText: t("drivingLicenseHelperText") 
     },
     { 
       value: "VOTER_ID", 
-      label: "Voter ID", 
-      description: "Voter Identification Card", 
-      placeholder: "Voter ID Number *", 
+      label: t("voterId"), 
+      description: t("voterIdDescription"), 
+      placeholder: t("voterIdPlaceholder"), 
       pattern: "[A-Z]{3}[0-9]{7}", 
       maxLength: 10, 
-      helperText: "Enter 10-digit Voter ID" 
+      helperText: t("voterIdHelperText") 
     },
     { 
       value: "PASSPORT", 
-      label: "Passport", 
-      description: "Passport", 
-      placeholder: "Passport Number *", 
+      label: t("passport"), 
+      description: t("passport"), 
+      placeholder: t("passportPlaceholder"), 
       pattern: "[A-Z]{1}[0-9]{7}", 
       maxLength: 8, 
-      helperText: "Enter 8-character passport number" 
+      helperText: t("passportHelperText") 
     },
   ];
 
@@ -107,7 +110,7 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
               }
             }}
           >
-            Select KYC Document Type *
+            {t("selectKycDocumentType")}
           </FormLabel>
           
           <RadioGroup
@@ -261,7 +264,7 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
           required
           value={formData.documentImage}
           onChange={onDocumentUpload}
-          buttonText={`Upload ${currentOption.label} Document`}
+          buttonText={t("uploadDocument").replace("{documentName}", currentOption.label)}
         />
       </Grid>
 
@@ -282,7 +285,7 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
         >
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', textAlign: 'left', display: 'block' }}>
             <Box component="span" sx={{ fontWeight: 600, color: '#1976d2', mr: 0.5 }}>Note:</Box>
-            Please upload a clear image of your {currentOption.label}. Accepted formats: JPG, PNG, PDF. Max size: 5MB.
+            {t("kycNote").replace("{documentName}", currentOption.label)}
           </Typography>
         </Alert>
       </Grid>

@@ -2,27 +2,29 @@
 import { Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { PricingData } from "../../../types/PricingData";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface UtilityCleaningProps {
     onPriceChange: (data: { price: number, entry: PricingData | null }) => void; // Callback function passed as a prop
 }
 
-
 const ClothDrying: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
+    const { t } = useLanguage(); // Use the language context
+    
     const [frequency, setFrequency] = useState<string | null>(null); // Store as string to match pricingData
     const [price, setPrice] = useState<number>(0);
     const [jobDescription, setJobDescription] = useState<string>('');
 
-    // Frequency options as strings
+    // Frequency options as strings - using translations
     const frequencyButtonsSelector = [
-        { key: '3 day / week', value: '3 day / week' },
-        { key: 'Daily', value: 'Daily' },
+        { key: '3 day / week', value: t("threeDaysWeek") },
+        { key: 'Daily', value: t("daily") },
     ];
 
-    // Pricing data with frequency as string
+    // Pricing data with frequency as string - using translations
     const pricingData: PricingData[] = [
-        { serviceCategory:"Cloth Drying" , type:"Maid",serviceType: 'Regular', subCategory: 'people', frequency: '3 day / week', pricePerMonth: 500, jobDescription: 'Househelp will get clothes from drying place and make proper arrangements in shelf' },
-        { serviceCategory:"Cloth Drying" , type:"Maid",serviceType: 'Regular', subCategory: 'people', frequency: 'Daily', pricePerMonth: 1000, jobDescription: 'Househelp will get clothes from drying place and make proper arrangements in shelf' },
+        { serviceCategory:"Cloth Drying" , type:"Maid", serviceType: 'Regular', subCategory: 'people', frequency: '3 day / week', pricePerMonth: 500, jobDescription: t("clothDryingJobDescription") },
+        { serviceCategory:"Cloth Drying" , type:"Maid", serviceType: 'Regular', subCategory: 'people', frequency: 'Daily', pricePerMonth: 1000, jobDescription: t("clothDryingJobDescription") },
     ];
 
     const handleButtonClick = (value: string) => {
@@ -36,7 +38,7 @@ const ClothDrying: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
 
         if (entry) {
             // Safely update the job description, defaulting to an empty string if it's undefined
-            setJobDescription(entry.jobDescription ?? 'No description available');
+            setJobDescription(entry.jobDescription ?? t("noDescriptionAvailable"));
             return entry;
         }
         return null; // Return null if no matching entry is found
@@ -47,20 +49,20 @@ const ClothDrying: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
             const entry = calculatePrice(); // Get entry and price
             if (entry) {
                 setPrice(entry.pricePerMonth);
-                setJobDescription(entry.jobDescription ?? 'No description available');
+                setJobDescription(entry.jobDescription ?? t("noDescriptionAvailable"));
                 onPriceChange({ price: entry.pricePerMonth, entry }); // Send both price and entry to parent
             } else {
                 setPrice(0);
-                setJobDescription('No description available');
+                setJobDescription(t("noDescriptionAvailable"));
                 onPriceChange({ price: 0, entry: null }); // Send null entry and 0 price if no match
             }
         }
-    }, [frequency, onPriceChange]);
+    }, [frequency, onPriceChange, t]);
 
     return (
         <>
             <Typography gutterBottom>
-                Frequency:
+                {t("frequency")}
                 {frequencyButtonsSelector.map((button) => (
                     <button
                         key={button.key}
@@ -80,8 +82,12 @@ const ClothDrying: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
                 ))}
             </Typography>
 
-            <Typography gutterBottom>Price: ₹{price} /month</Typography>
-            <Typography gutterBottom>Job Description: {jobDescription}</Typography>
+            <Typography gutterBottom>
+                {t("pricePerMonth").replace("{price}", price.toString())}
+            </Typography>
+            <Typography gutterBottom>
+                {t("jobDescription").replace("{description}", jobDescription)}
+            </Typography>
         </>
     );
 };

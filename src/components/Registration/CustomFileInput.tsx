@@ -1,8 +1,10 @@
 /* eslint-disable */
 import React from 'react';
-import {  Typography, Box, IconButton } from '@mui/material';
+import { Typography, Box, IconButton } from '@mui/material';
 import { Button } from "../Button/button";
 import CloseIcon from '@mui/icons-material/Close';
+import { useLanguage } from 'src/context/LanguageContext';
+// Import the language context
 
 interface CustomFileInputProps {
   name: string;
@@ -20,11 +22,12 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
   accept,
   required,
   disabled,
-  buttonText = 'Choose File',
+  buttonText,
   previewWidth = 300,
   value,
   onChange,
 }) => {
+  const { t } = useLanguage(); // Use the language context
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleButtonClick = () => {
@@ -49,6 +52,9 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
     }
   }, [value]);
 
+  // Use provided buttonText or fallback to translation
+  const displayButtonText = buttonText || t("chooseFile");
+
   return (
     <Box>
       <input
@@ -70,7 +76,7 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
           sx={{ mb: 2 }}
           disabled={disabled}
         >
-          {buttonText}
+          {displayButtonText}
         </Button>
       ) : (
         <Box sx={{ position: 'relative', display: 'inline-block' }}>
@@ -84,13 +90,14 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                Selected File: {value.name}
+                {t("selectedFile")} {value.name}
               </Typography>
               <IconButton
                 size="small"
                 onClick={handleRemoveFile}
                 sx={{ ml: 1 }}
-                aria-label="Remove file"
+                aria-label={t("removeFile")}
+                title={t("removeFile")}
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
@@ -98,10 +105,10 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
             
             {value.type.startsWith('image/') && (
               <Box mt={2} sx={{ position: 'relative' }}>
-                <Typography variant="subtitle2">Preview:</Typography>
+                <Typography variant="subtitle2">{t("preview")}</Typography>
                 <img
                   src={URL.createObjectURL(value)}
-                  alt="Document preview"
+                  alt={t("documentPreview")}
                   width={previewWidth}
                   style={{ 
                     maxHeight: '300px', 
@@ -119,7 +126,7 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
             size="small"
             sx={{ mt: 1 }}
           >
-            Change File
+            {t("changeFile")}
           </Button>
         </Box>
       )}

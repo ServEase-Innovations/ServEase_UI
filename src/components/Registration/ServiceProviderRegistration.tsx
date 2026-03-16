@@ -37,11 +37,13 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { debounce } from "src/utils/debounce";
 import { useFieldValidation } from "./useFieldValidation";
 
+
 // Import the components
 import BasicInformation from "./BasicInformation";
 import ServiceDetails from "./ServiceDetails";
 import KYCVerification from "./KYCVerification";
 import providerInstance from "src/services/providerInstance";
+import { useLanguage } from "src/context/LanguageContext";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -168,14 +170,6 @@ const voterIdRegex = /^[A-Z]{3}[0-9]{7}$/;
 const passportRegex = /^[A-Z]{1}[0-9]{7}$/;
 const MAX_NAME_LENGTH = 30;
 
-const steps = [
-  "Basic Information",
-  "Address Information",
-  "Additional Details",
-  "KYC Verification",
-  "Confirmation",
-];
-
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
 }
@@ -183,6 +177,17 @@ interface RegistrationProps {
 const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   onBackToLogin,
 }) => {
+  const { t } = useLanguage(); // Use the language context
+  
+  // Steps with translations
+  const steps = [
+    t("basicInformation"),
+    t("addressInformation"),
+    t("additionalDetails"),
+    t("kycVerification"),
+    t("confirmation"),
+  ];
+
   const [activeStep, setActiveStep] = useState(0);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -299,67 +304,69 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     return `${formattedHour}:${minute}`;
   };
 
-  // Custom Slider component with disabled ranges
-  const TimeSliderWithDisabledRanges: React.FC<{
-    value: number[];
-    onChange: (newValue: number[]) => void;
-    min: number;
-    max: number;
-    marks: Array<{ value: number; label: string }>;
-    disabledRanges: number[][];
-  }> = ({ value, onChange, min, max, marks, disabledRanges }) => {
+ // Custom Slider component with disabled ranges
+ const TimeSliderWithDisabledRanges: React.FC<{
+  value: number[];
+  onChange: (newValue: number[]) => void;
+  min: number;
+  max: number;
+  marks: Array<{ value: number; label: string }>;
+  disabledRanges: number[][];
+}> = ({ value, onChange, min, max, marks, disabledRanges }) => {
+  
+  const handleSliderChange = (event: Event, newValue: number | number[]) => {
+    const range = newValue as number[];
+    const [start, end] = range;
     
-    const handleSliderChange = (event: Event, newValue: number | number[]) => {
-      const range = newValue as number[];
-      const [start, end] = range;
-      
-      // Check if the new range overlaps with any disabled ranges
-      const hasOverlap = disabledRanges.some(disabledRange => 
-        isRangeOverlapping([start, end], disabledRange)
-      );
-      
-      if (!hasOverlap) {
-        onChange(range);
-      } else {
-        setSnackbarMessage("This time range overlaps with another selected slot");
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-      }
-    };
-
-    return (
-      <Slider
-        value={value}
-        onChange={handleSliderChange}
-        valueLabelDisplay="on"
-        valueLabelFormat={(value) => formatDisplayTime(value)}
-        min={min}
-        max={max}
-        step={0.5}
-        marks={marks}
-        sx={{
-          color: "primary.main",
-          '& .MuiSlider-markLabel': {
-            fontSize: '0.75rem'
-          },
-          '& .MuiSlider-mark': {
-            backgroundColor: '#bfbfbf',
-            height: 8,
-            width: 2,
-          },
-          '& .MuiSlider-rail': {
-            opacity: 0.3,
-            backgroundColor: '#bfbfbf',
-          },
-          '& .MuiSlider-track': {
-            backgroundColor: '#1976d2',
-          },
-        }}
-      />
+    // Check if the new range overlaps with any disabled ranges
+    const hasOverlap = disabledRanges.some(disabledRange => 
+      isRangeOverlapping([start, end], disabledRange)
     );
+    
+    if (!hasOverlap) {
+      onChange(range);
+    } else {
+      setSnackbarMessage("This time range overlaps with another selected slot");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+    }
   };
 
-  // Component to visually show disabled ranges
+  return (
+    <Slider
+      value={value}
+      onChange={handleSliderChange}
+      valueLabelDisplay="on"
+      valueLabelFormat={(value) => formatDisplayTime(value)}
+      min={min}
+      max={max}
+      step={0.5}
+      marks={marks}
+      sx={{
+        color: "primary.main",
+        '& .MuiSlider-markLabel': {
+          fontSize: '0.75rem'
+        },
+        '& .MuiSlider-mark': {
+          backgroundColor: '#bfbfbf',
+          height: 8,
+          width: 2,
+        },
+        '& .MuiSlider-rail': {
+          opacity: 0.3,
+          backgroundColor: '#bfbfbf',
+        },
+        '& .MuiSlider-track': {
+          backgroundColor: '#1976d2',
+        },
+      }}
+    />
+  );
+};
+
+
+
+ // Component to visually show disabled ranges
   const DisabledRangesIndicator: React.FC<{
     ranges: number[][];
     min: number;
@@ -403,7 +410,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   // Update selected time slots summary
   const updateSelectedTimeSlots = useCallback(() => {
     if (isFullTime) {
-      setSelectedTimeSlots("06:00 - 20:00 (Full Day)");
+      setSelectedTimeSlots(t("fullDay"));
       setFormData((prev) => ({ ...prev, timeslot: "06:00-20:00" }));
       return;
     }
@@ -436,10 +443,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       setSelectedTimeSlots(displaySlots.join(', '));
       setFormData((prev) => ({ ...prev, timeslot: storageSlots.join(', ') }));
     } else {
-      setSelectedTimeSlots('No slots selected');
+      setSelectedTimeSlots(t("noSlotsSelected"));
       setFormData((prev) => ({ ...prev, timeslot: '' }));
     }
-  }, [isFullTime, morningSlots, eveningSlots]);
+  }, [isFullTime, morningSlots, eveningSlots, t]);
 
   // Update slots when they change
   useEffect(() => {
@@ -490,7 +497,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
       // If still no slot found
       if (!foundAvailableSlot) {
-        setSnackbarMessage("No available time slots remaining in morning");
+        setSnackbarMessage(t("noAvailableMorningSlots"));
         setSnackbarSeverity("warning");
         setSnackbarOpen(true);
         return prevSlots;
@@ -549,7 +556,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
       // If still no slot found
       if (!foundAvailableSlot) {
-        setSnackbarMessage("No available time slots remaining in evening");
+        setSnackbarMessage(t("noAvailableEveningSlots"));
         setSnackbarSeverity("warning");
         setSnackbarOpen(true);
         return prevSlots;
@@ -735,15 +742,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         }
       } catch (error) {
         console.error("Error geocoding address:", error);
-        setSnackbarMessage("Could not get coordinates for this address. Please check the address details.");
+        setSnackbarMessage(t("couldNotGetCoordinates"));
         setSnackbarSeverity("warning");
         setSnackbarOpen(true);
       }
     }
   };
 
-  const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation();
-
+  const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation({ t });
   // Handler for KYC type change
   const handleKycTypeChange = (kycType: string) => {
     setFormData(prev => ({ 
@@ -761,13 +767,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   // Helper function to get KYC label
   const getKycLabel = (kycType: string): string => {
     const labels: Record<string, string> = {
-      "AADHAR": "Aadhaar",
-      "PAN": "PAN",
-      "DRIVING_LICENSE": "Driving License",
-      "VOTER_ID": "Voter ID",
-      "PASSPORT": "Passport"
+      "AADHAR": t("aadhaarCard"),
+      "PAN": t("panCard"),
+      "DRIVING_LICENSE": t("drivingLicense"),
+      "VOTER_ID": t("voterId"),
+      "PASSPORT": t("passport")
     };
-    return labels[kycType] || "KYC";
+    return labels[kycType] || t("kyc");
   };
 
   // Add debounced validation functions
@@ -841,7 +847,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   // Validate age function
   const validateAge = (dob: string): { isValid: boolean; message: string } => {
     if (!dob) {
-      return { isValid: false, message: "Date of Birth is required." };
+      return { isValid: false, message: t("dobRequired") };
     }
 
     const birthDate = moment(dob, "YYYY-MM-DD");
@@ -849,7 +855,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     const age = today.diff(birthDate, "years");
 
     if (age < 18) {
-      return { isValid: false, message: "You must be at least 18 years old to register." };
+      return { isValid: false, message: t("ageRequirement") };
     }
 
     return { isValid: true, message: "" };
@@ -872,17 +878,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          firstName: "First Name is required.",
+          firstName: t("firstNameRequired"),
         }));
       } else if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          firstName: "First Name should contain only alphabets.",
+          firstName: t("firstNameAlphabetsOnly"),
         }));
       } else if (trimmedValue.length > MAX_NAME_LENGTH) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          firstName: `First Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+          firstName: t("firstNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString()),
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -897,17 +903,17 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          lastName: "Last Name is required.",
+          lastName: t("lastNameRequired"),
         }));
       } else if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          lastName: "Last Name should contain only alphabets.",
+          lastName: t("lastNameAlphabetsOnly"),
         }));
       } else if (trimmedValue.length > MAX_NAME_LENGTH) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          lastName: `Last Name should not exceed ${MAX_NAME_LENGTH} characters.`,
+          lastName: t("lastNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString()),
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -922,32 +928,32 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password is required.",
+          password: t("passwordRequired"),
         }));
       } else if (trimmedValue.length < 8) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password must be at least 8 characters long.",
+          password: t("passwordMinLength"),
         }));
       } else if (!/[A-Z]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password must contain at least one uppercase letter.",
+          password: t("passwordUppercase"),
         }));
       } else if (!/[a-z]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password must contain at least one lowercase letter.",
+          password: t("passwordLowercase"),
         }));
       } else if (!/[0-9]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password must contain at least one digit.",
+          password: t("passwordNumber"),
         }));
       } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          password: "Password must contain at least one special character.",
+          password: t("passwordSpecialChar"),
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -962,12 +968,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          confirmPassword: "Confirm Password is required.",
+          confirmPassword: t("confirmPasswordRequired"),
         }));
       } else if (trimmedValue !== formData.password) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          confirmPassword: "Passwords do not match",
+          confirmPassword: t("passwordsDoNotMatch"),
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -984,13 +990,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          emailId: "Email is required.",
+          emailId: t("emailRequired"),
         }));
         resetValidation('email');
       } else if (!emailPattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          emailId: "Please enter a valid email address.",
+          emailId: t("emailInvalid"),
         }));
         resetValidation('email');
       } else {
@@ -1009,13 +1015,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          mobileNo: "Mobile number is required.",
+          mobileNo: t("mobileRequired"),
         }));
         resetValidation('mobile');
       } else if (!mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          mobileNo: "Please enter a valid 10-digit mobile number.",
+          mobileNo: t("mobileInvalid"),
         }));
         resetValidation('mobile');
       } else {
@@ -1034,13 +1040,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (trimmedValue && !mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          AlternateNumber: "Please enter a valid 10-digit mobile number.",
+          AlternateNumber: t("alternateInvalid"),
         }));
         resetValidation('alternate');
       } else if (trimmedValue === formData.mobileNo) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          AlternateNumber: "Alternate number must be different from primary mobile number.",
+          AlternateNumber: t("alternateDifferent"),
         }));
         resetValidation('alternate');
       } else if (trimmedValue) {
@@ -1070,23 +1076,23 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         switch(formData.kycType) {
           case "AADHAR":
             isValid = /^[0-9]{12}$/.test(trimmedValue);
-            errorMessage = "Aadhaar number must be exactly 12 digits.";
+            errorMessage = t("aadhaarInvalid");
             break;
           case "PAN":
             isValid = panRegex.test(trimmedValue);
-            errorMessage = "Please enter a valid PAN (e.g., ABCDE1234F).";
+            errorMessage = t("panInvalid");
             break;
           case "DRIVING_LICENSE":
             isValid = trimmedValue.length >= 8;
-            errorMessage = "Please enter a valid driving license number.";
+            errorMessage = t("drivingLicenseInvalid");
             break;
           case "VOTER_ID":
             isValid = voterIdRegex.test(trimmedValue);
-            errorMessage = "Please enter a valid 10-digit Voter ID.";
+            errorMessage = t("voterIdInvalid");
             break;
           case "PASSPORT":
             isValid = passportRegex.test(trimmedValue);
-            errorMessage = "Please enter a valid 8-character passport number.";
+            errorMessage = t("passportInvalid");
             break;
         }
         
@@ -1096,7 +1102,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           setErrors(prev => ({ ...prev, kycNumber: "" }));
         }
       } else {
-        setErrors(prev => ({ ...prev, kycNumber: `${getKycLabel(formData.kycType)} number is required.` }));
+        setErrors(prev => ({ ...prev, kycNumber: t("kycNumberRequired").replace("{documentName}", getKycLabel(formData.kycType)) }));
       }
     }
 
@@ -1112,12 +1118,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          pincode: "Pincode is required.",
+          pincode: t("pincodeRequired"),
         }));
       } else if (trimmedValue.length !== 6) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          pincode: "Pincode must be exactly 6 digits.",
+          pincode: t("pincodeInvalid"),
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -1191,71 +1197,71 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
     if (step === 0) {
       if (!formData.firstName.trim()) {
-        tempErrors.firstName = "First Name is required.";
+        tempErrors.firstName = t("firstNameRequired");
       } else if (!nameRegex.test(formData.firstName.trim())) {
-        tempErrors.firstName = "First Name should contain only alphabets.";
+        tempErrors.firstName = t("firstNameAlphabetsOnly");
       } else if (formData.firstName.length > MAX_NAME_LENGTH) {
-        tempErrors.firstName = `First Name should be under ${MAX_NAME_LENGTH} characters.`;
+        tempErrors.firstName = t("firstNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString());
       }
 
       if (!formData.lastName.trim()) {
-        tempErrors.lastName = "Last Name is required.";
+        tempErrors.lastName = t("lastNameRequired");
       } else if (!nameRegex.test(formData.lastName.trim())) {
-        tempErrors.lastName = "Last Name should contain only alphabets.";
+        tempErrors.lastName = t("lastNameAlphabetsOnly");
       } else if (formData.lastName.length > MAX_NAME_LENGTH) {
-        tempErrors.lastName = `Last Name should be under ${MAX_NAME_LENGTH} characters.`;
+        tempErrors.lastName = t("lastNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString());
       }
 
       if (!formData.gender) {
-        tempErrors.gender = "Please select a gender.";
+        tempErrors.gender = t("genderRequired");
       }
       
       if (!formData.emailId.trim()) {
-        tempErrors.emailId = "Email is required.";
+        tempErrors.emailId = t("emailRequired");
       } else if (!emailIdRegex.test(formData.emailId.trim())) {
-        tempErrors.emailId = "Please enter a valid email address.";
+        tempErrors.emailId = t("emailInvalid");
       } else if (validationResults.email.error) {
         tempErrors.emailId = validationResults.email.error;
       } else if (!validationResults.email.isAvailable) {
-        tempErrors.emailId = "Email is not available.";
+        tempErrors.emailId = t("emailNotAvailable");
       }
       
       if (!formData.password.trim()) {
-        tempErrors.password = "Password is required.";
+        tempErrors.password = t("passwordRequired");
       } else if (!strongPasswordRegex.test(formData.password.trim())) {
-        tempErrors.password = "Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.";
+        tempErrors.password = t("passwordComplexity");
       }
       
       if (!formData.confirmPassword.trim()) {
-        tempErrors.confirmPassword = "Confirm Password is required.";
+        tempErrors.confirmPassword = t("confirmPasswordRequired");
       } else if (formData.password.trim() !== formData.confirmPassword.trim()) {
-        tempErrors.confirmPassword = "Passwords do not match.";
+        tempErrors.confirmPassword = t("passwordsDoNotMatch");
       }
       
       if (!formData.mobileNo.trim()) {
-        tempErrors.mobileNo = "Mobile number is required.";
+        tempErrors.mobileNo = t("mobileRequired");
       } else if (!phoneRegex.test(formData.mobileNo.trim())) {
-        tempErrors.mobileNo = "Please enter a valid 10-digit mobile number.";
+        tempErrors.mobileNo = t("mobileInvalid");
       } else if (validationResults.mobile.error) {
         tempErrors.mobileNo = validationResults.mobile.error;
       } else if (!validationResults.mobile.isAvailable) {
-        tempErrors.mobileNo = "Mobile number is not available.";
+        tempErrors.mobileNo = t("mobileNotAvailable");
       }
       
       // Validate alternate number if provided
       if (formData.AlternateNumber.trim()) {
         if (!phoneRegex.test(formData.AlternateNumber.trim())) {
-          tempErrors.AlternateNumber = "Please enter a valid 10-digit mobile number.";
+          tempErrors.AlternateNumber = t("alternateInvalid");
         } else if (formData.AlternateNumber.trim() === formData.mobileNo.trim()) {
-          tempErrors.AlternateNumber = "Alternate number must be different from primary mobile number.";
+          tempErrors.AlternateNumber = t("alternateDifferent");
         } else if (!validationResults.alternate.isAvailable) {
-          tempErrors.AlternateNumber = "Alternate number is not available.";
+          tempErrors.AlternateNumber = t("alternateNotAvailable");
         }
       }
 
       // Validate DOB
       if (!formData.dob.trim()) {
-        tempErrors.dob = "Date of Birth is required.";
+        tempErrors.dob = t("dobRequired");
       } else {
         const { isValid, message } = validateAge(formData.dob);
         if (!isValid) {
@@ -1267,24 +1273,24 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     if (step === 1) {
       const permanentErrors: any = {};
       if (!formData.permanentAddress.apartment?.trim()) {
-        permanentErrors.apartment = "Apartment is required.";
+        permanentErrors.apartment = t("apartmentRequired");
       }
       if (!formData.permanentAddress.street?.trim()) {
-        permanentErrors.street = "Street is required.";
+        permanentErrors.street = t("streetRequired");
       }
       if (!formData.permanentAddress.city?.trim()) {
-        permanentErrors.city = "City is required.";
+        permanentErrors.city = t("cityRequired");
       }
       if (!formData.permanentAddress.state?.trim()) {
-        permanentErrors.state = "State is required.";
+        permanentErrors.state = t("stateRequired");
       }
       if (!formData.permanentAddress.country?.trim()) {
-        permanentErrors.country = "Country is required.";
+        permanentErrors.country = t("countryRequired");
       }
       if (!formData.permanentAddress.pincode?.trim()) {
-        permanentErrors.pincode = "Pincode is required.";
+        permanentErrors.pincode = t("pincodeRequired");
       } else if (formData.permanentAddress.pincode.length !== 6) {
-        permanentErrors.pincode = "Pincode must be exactly 6 digits.";
+        permanentErrors.pincode = t("pincodeInvalid");
       }
 
       if (Object.keys(permanentErrors).length > 0) {
@@ -1295,24 +1301,24 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       if (!isSameAddress) {
         const correspondenceErrors: any = {};
         if (!formData.correspondenceAddress.apartment?.trim()) {
-          correspondenceErrors.apartment = "Apartment is required.";
+          correspondenceErrors.apartment = t("apartmentRequired");
         }
         if (!formData.correspondenceAddress.street?.trim()) {
-          correspondenceErrors.street = "Street is required.";
+          correspondenceErrors.street = t("streetRequired");
         }
         if (!formData.correspondenceAddress.city?.trim()) {
-          correspondenceErrors.city = "City is required.";
+          correspondenceErrors.city = t("cityRequired");
         }
         if (!formData.correspondenceAddress.state?.trim()) {
-          correspondenceErrors.state = "State is required.";
+          correspondenceErrors.state = t("stateRequired");
         }
         if (!formData.correspondenceAddress.country?.trim()) {
-          correspondenceErrors.country = "Country is required.";
+          correspondenceErrors.country = t("countryRequired");
         }
         if (!formData.correspondenceAddress.pincode?.trim()) {
-          correspondenceErrors.pincode = "Pincode is required.";
+          correspondenceErrors.pincode = t("pincodeRequired");
         } else if (formData.correspondenceAddress.pincode.length !== 6) {
-          correspondenceErrors.pincode = "Pincode must be exactly 6 digits.";
+          correspondenceErrors.pincode = t("pincodeInvalid");
         }
 
         if (Object.keys(correspondenceErrors).length > 0) {
@@ -1323,74 +1329,72 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
     if (step === 2) {
       if (formData.housekeepingRole.length === 0) {
-        tempErrors.housekeepingRole = "Please select at least one service type.";
+        tempErrors.housekeepingRole = t("serviceTypeRequired");
       }
       if (formData.housekeepingRole.includes("COOK") && !formData.cookingSpeciality) {
-        tempErrors.cookingSpeciality =
-          "Please select a speciality for the cook service.";
+        tempErrors.cookingSpeciality = t("cookingSpecialityRequired");
       }
       if (formData.housekeepingRole.includes("NANNY") && !formData.nannyCareType) {
-        tempErrors.nannyCareType =
-          "Please select a care type for the nanny service.";
+        tempErrors.nannyCareType = t("nannyCareTypeRequired");
       }
       if (!formData.diet) {
-        tempErrors.diet = "Please select diet.";
+        tempErrors.diet = t("dietRequired");
       }
       if (!formData.experience) {
-        tempErrors.experience = "Please select experience.";
+        tempErrors.experience = t("experienceRequired");
       }
     }
 
     if (step === 3) {
       if (!formData.kycType) {
-        tempErrors.kycType = "Please select a KYC document type.";
+        tempErrors.kycType = t("kycTypeRequired");
       }
       if (!formData.kycNumber) {
-        tempErrors.kycNumber = `${getKycLabel(formData.kycType)} number is required.`;
+        tempErrors.kycNumber = t("kycNumberRequired").replace("{documentName}", getKycLabel(formData.kycType));
       } else {
         // Add specific validation based on KYC type
         switch(formData.kycType) {
           case "AADHAR":
             if (!aadhaarRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = "Aadhaar number must be exactly 12 digits.";
+              tempErrors.kycNumber = t("aadhaarInvalid");
             }
             break;
           case "PAN":
             if (!panRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = "Please enter a valid PAN (e.g., ABCDE1234F).";
+              tempErrors.kycNumber = t("panInvalid");
             }
             break;
           case "DRIVING_LICENSE":
             if (formData.kycNumber.length < 8) {
-              tempErrors.kycNumber = "Please enter a valid driving license number.";
+              tempErrors.kycNumber = t("drivingLicenseInvalid");
             }
             break;
           case "VOTER_ID":
             if (!voterIdRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = "Please enter a valid 10-digit Voter ID.";
+              tempErrors.kycNumber = t("voterIdInvalid");
             }
             break;
           case "PASSPORT":
             if (!passportRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = "Please enter a valid 8-character passport number.";
+              tempErrors.kycNumber = t("passportInvalid");
             }
             break;
         }
       }
       if (!formData.documentImage) {
-        tempErrors.documentImage = "Please upload your KYC document.";
+        tempErrors.documentImage = t("documentImageRequired");
       }
     }
 
     if (step === 4) {
       if (!formData.keyFacts) {
-        tempErrors.keyFacts = "You must agree to the Key Facts Document";
+        tempErrors.keyFacts = t("keyFactsRequired");
       }
       if (!formData.terms) {
-        tempErrors.terms = "You must agree to the Terms and Conditions";
+        tempErrors.terms = t("termsRequired");
       }
       if (!formData.privacy) {
-        tempErrors.privacy = "You must agree to the Privacy Policy";
+        tempErrors.privacy = t("privacyRequired");
       }
     }
 
@@ -1407,7 +1411,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     // For step 0, check if validations are complete before proceeding
     if (activeStep === 0) {
       if (validationResults.email.loading || validationResults.mobile.loading) {
-        setSnackbarMessage("Please wait for email/mobile validation to complete.");
+        setSnackbarMessage(t("pleaseWaitForValidation"));
         setSnackbarSeverity("warning");
         setSnackbarOpen(true);
         return;
@@ -1420,7 +1424,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       
       // Additional check for validation results
       if (!isStep0ReadyForNext()) {
-        setSnackbarMessage("Please fix all validation errors before proceeding.");
+        setSnackbarMessage(t("pleaseFixValidationErrors"));
         setSnackbarSeverity("error");
         setSnackbarOpen(true);
         return;
@@ -1434,7 +1438,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     
     setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
     if (activeStep === steps.length - 1) {
-      setSnackbarMessage("Registration Successful!");
+      setSnackbarMessage(t("registrationSuccessful"));
       setSnackbarOpen(true);
     }
   };
@@ -1545,7 +1549,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
         setSnackbarOpen(true);
         setSnackbarSeverity("success");
-        setSnackbarMessage("Service provider added successfully!");
+        setSnackbarMessage(t("serviceProviderAdded"));
 
         const authPayload = {
           email: formData.emailId,
@@ -1568,14 +1572,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         setIsSubmitting(false);
         setSnackbarOpen(true);
         setSnackbarSeverity("error");
-        setSnackbarMessage("Failed to add service provider. Please try again.");
+        setSnackbarMessage(t("failedToAddServiceProvider"));
         console.error("Error submitting form:", error);
       }
     } else {
       setIsSubmitting(false);
       setSnackbarOpen(true);
       setSnackbarSeverity("warning");
-      setSnackbarMessage("Please fill out all required fields.");
+      setSnackbarMessage(t("fillRequiredFields"));
     }
   };
 
@@ -1633,11 +1637,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             }
 
             const newAddress = {
-              apartment: apartment || "Not specified",
-              street: street || "Not specified",
-              city: city || "Not specified",
-              state: state || "Not specified",
-              country: country || "Not specified",
+              apartment: apartment || t("notSpecified"),
+              street: street || t("notSpecified"),
+              city: city || t("notSpecified"),
+              state: state || t("notSpecified"),
+              country: country || t("notSpecified"),
               pincode: pincode || ""
             };
 
@@ -1662,20 +1666,20 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
             setIsSameAddress(true);
 
-            setSnackbarMessage("Location fetched successfully!");
+            setSnackbarMessage(t("locationFetchedSuccessfully"));
             setSnackbarSeverity("success");
             setSnackbarOpen(true);
 
           } catch (error) {
             console.error("Error fetching location data", error);
-            setSnackbarMessage("Failed to fetch location data. Please try again.");
+            setSnackbarMessage(t("failedToFetchLocation"));
             setSnackbarSeverity("error");
             setSnackbarOpen(true);
           }
         },
         (error) => {
           console.error("Geolocation error:", error.message);
-          setSnackbarMessage("Geolocation failed. Please check your browser permissions.");
+          setSnackbarMessage(t("geolocationFailed"));
           setSnackbarSeverity("error");
           setSnackbarOpen(true);
         },
@@ -1687,7 +1691,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       );
     } else {
       console.log("Geolocation is not supported by this browser.");
-      setSnackbarMessage("Geolocation is not supported by your browser.");
+      setSnackbarMessage(t("geolocationNotSupported"));
       setSnackbarSeverity("warning");
       setSnackbarOpen(true);
     }
@@ -1798,10 +1802,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 <CardContent>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
                     <LocationOnIcon color="primary" sx={{ mr: 1 }} />
-                    Current Location
+                    {t("currentLocation")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Use GPS to automatically fetch your current location coordinates
+                    {t("useGpsToFetchLocation")}
                   </Typography>
                   
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -1818,7 +1822,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                         fontWeight: 600
                       }}
                     >
-                      Fetch My Location (GPS)
+                      {t("fetchMyLocation")}
                     </Button>
                     
                     {(formData.latitude !== 0 || formData.longitude !== 0) && (
@@ -1835,7 +1839,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                       icon={false}
                     >
                       <Typography variant="body2">
-                        <strong>Address detected:</strong> {formData.currentLocation || "Fetching address..."}
+                        <strong>{t("addressDetected")}</strong> {formData.currentLocation || t("fetchingAddress")}
                       </Typography>
                     </Alert>
                   )}
@@ -1896,7 +1900,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           <Grid container spacing={1}>
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Typography gutterBottom>
-                Please agree to the following before proceeding with your Registration:
+                {t("pleaseAgreeToFollowing")}
               </Typography>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1907,7 +1911,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         );
       
       default:
-        return "Unknown step";
+        return t("unknownStep");
     }
   };
 
@@ -1927,7 +1931,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             gutterBottom
             sx={{ textAlign: 'center', paddingTop: 2 }}
           >
-            Service Provider Registration
+            {t("serviceProviderRegistration")}
           </Typography>
           <IconButton
             aria-label="close"
@@ -1972,12 +1976,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 startIcon={<ArrowBack />}
                 disabled={activeStep === 0 || isSubmitting}
               >
-                Back
+                {t("back")}
               </Button>
               {activeStep === steps.length - 1 ? (
                 <Tooltip
                   title={!(formData.terms && formData.privacy && formData.keyFacts)
-                    ? "Check terms and conditions to enable Submit"
+                    ? t("checkTermsToEnableSubmit")
                     : ""
                   }
                 >
@@ -1991,7 +1995,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                       {isSubmitting ? (
                         <CircularProgress size={24} sx={{ color: 'white' }} />
                       ) : (
-                        "Submit"
+                        t("submit")
                       )}
                     </Button>
                   </span>
@@ -2001,14 +2005,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                   title={
                     activeStep === 0 && !isStep0ReadyForNext()
                       ? validationResults.email.loading || validationResults.mobile.loading
-                        ? "Validating email/mobile, please wait..."
+                        ? t("validatingEmailMobile")
                         : !isStep0ValidationsComplete() || !isDobValid
-                        ? "Please fix all validation errors including Date of Birth (must be 18+ years)"
-                        : "Please complete all required fields including Date of Birth"
+                        ? t("fixValidationErrors")
+                        : t("completeAllRequiredFields")
                       : activeStep === 2 && formData.housekeepingRole.length === 0
-                      ? "Please select at least one service type"
+                      ? t("pleaseSelectServiceType")
                       : activeStep === 3 && (!formData.kycNumber || !formData.documentImage)
-                      ? "Please complete KYC verification"
+                      ? t("pleaseCompleteKyc")
                       : ""
                   }
                 >
@@ -2027,7 +2031,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                         (activeStep === 2 && formData.housekeepingRole.length === 0)
                       }
                     >
-                      Next
+                      {t("next")}
                     </Button>
                   </span>
                 </Tooltip>

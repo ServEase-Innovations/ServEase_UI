@@ -25,6 +25,8 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { useLanguage } from 'src/context/LanguageContext';
+ // Import the language context
 
 export interface AddressData {
   apartment: string;
@@ -152,6 +154,8 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
   isSameAddress,
   errors = {}
 }) => {
+  const { t } = useLanguage(); // Use the language context
+  
   const [showPincodeHelp, setShowPincodeHelp] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
   const [permanentStates, setPermanentStates] = useState<State[]>([]);
@@ -171,7 +175,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
         setCountries(data);
       } catch (error) {
         console.error('Failed to load countries:', error);
-        setApiError('Failed to load countries. Using default list.');
+        setApiError(t('failedToLoadCountries'));
         const fallback = countryStateService.getFallbackCountries();
         setCountries(fallback);
       } finally {
@@ -180,7 +184,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
     };
 
     loadCountries();
-  }, []);
+  }, [t]); // Add t to dependencies
 
   // Load states for permanent address when country changes
   useEffect(() => {
@@ -319,26 +323,26 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <HomeIcon color="primary" sx={{ mr: 1.5 }} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Permanent Address *
+              {t('permanentAddress')}
             </Typography>
           </Box>
           
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}>
               <TextField
-                label="Apartment/Flat Name or Number *"
+                label={t('apartmentLabel')}
                 fullWidth
                 value={permanentAddress.apartment}
                 onChange={(e) => handlePermanentAddressChange('apartment', e.target.value)}
                 error={!!errors.permanent?.apartment}
-                helperText={errors.permanent?.apartment }
+                helperText={errors.permanent?.apartment}
                 variant="outlined"
                 size="small"
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
-                label="Street Name/Locality *"
+                label={t('streetLabel')}
                 fullWidth
                 value={permanentAddress.street}
                 onChange={(e) => handlePermanentAddressChange('street', e.target.value)}
@@ -351,7 +355,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
             
             <Grid item xs={12}>
               <TextField
-                label="City *"
+                label={t('cityLabel')}
                 fullWidth
                 value={permanentAddress.city}
                 onChange={(e) => handlePermanentAddressChange('city', e.target.value)}
@@ -376,7 +380,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Country *"
+                      label={t('countryLabel')}
                       error={!!errors.permanent?.country}
                       helperText={errors.permanent?.country}
                       InputProps={{
@@ -419,10 +423,10 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="State *"
+                      label={t('stateLabel')}
                       error={!!errors.permanent?.state}
-                      helperText={errors.permanent?.state || (permanentAddress.country && !permanentStates.length ? "No states available for this country" : "")}
-                      placeholder={permanentAddress.country ? "Select state" : "Select country first"}
+                      helperText={errors.permanent?.state || (permanentAddress.country && !permanentStates.length ? t('noStatesAvailable') : "")}
+                      placeholder={permanentAddress.country ? "" : t('selectCountryFirst')}
                       InputProps={{
                         ...params.InputProps,
                         endAdornment: (
@@ -446,14 +450,14 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                   }
                 />
                 {!permanentAddress.country && (
-                  <FormHelperText>Please select a country first</FormHelperText>
+                  <FormHelperText>{t('selectCountryFirst')}</FormHelperText>
                 )}
               </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6} md={4}>
               <TextField
-                label="Pincode *"
+                label={t('pincodeLabel')}
                 fullWidth
                 value={permanentAddress.pincode}
                 onChange={(e) =>
@@ -463,7 +467,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                   )
                 }
                 error={!!errors.permanent?.pincode}
-                helperText={errors.permanent?.pincode || "6-digit code"}
+                helperText={errors.permanent?.pincode || t('pincodeHelper')}
                 variant="outlined"
                 size="small"
                 inputProps={{ 
@@ -480,7 +484,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
           <Collapse in={showPincodeHelp}>
             <Alert severity="info" sx={{ mt: 1 }} icon={false}>
               <Typography variant="caption">
-                Enter your 6-digit postal code. For international addresses, enter ZIP code.
+                {t('pincodeHelp')}
               </Typography>
             </Alert>
           </Collapse>
@@ -510,10 +514,10 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
           }
           label={
             <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-              Use same address for correspondence
+              {t('useSameAddress')}
               {isSameAddress && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Correspondence address will be auto-filled from permanent address
+                  {t('addressSynced')}
                 </Typography>
               )}
             </Typography>
@@ -526,7 +530,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
             icon={<CopyIcon />}
             sx={{ mt: 2, alignItems: 'center' }}
           >
-            Correspondence address is currently synced with permanent address
+            {t('addressSynced')}
           </Alert>
         )}
       </Box>
@@ -546,18 +550,18 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <LocationIcon color="primary" sx={{ mr: 1.5 }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Correspondence Address *
+                {t('correspondenceAddress')}
               </Typography>
             </Box>
             
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              This is where we'll send your official documents and communications
+              {t('correspondenceDescription')}
             </Typography>
             
             <Grid container spacing={2.5}>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="Apartment/Flat Name or Number *"
+                  label={t('apartmentLabel')}
                   fullWidth
                   value={correspondenceAddress.apartment}
                   onChange={(e) => handleCorrespondenceAddressChange('apartment', e.target.value)}
@@ -569,7 +573,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  label="Street Name/Locality *"
+                  label={t('streetLabel')}
                   fullWidth
                   value={correspondenceAddress.street}
                   onChange={(e) => handleCorrespondenceAddressChange('street', e.target.value)}
@@ -582,7 +586,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
               
               <Grid item xs={12}>
                 <TextField
-                  label="City *"
+                  label={t('cityLabel')}
                   fullWidth
                   value={correspondenceAddress.city}
                   onChange={(e) => handleCorrespondenceAddressChange('city', e.target.value)}
@@ -607,7 +611,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Country *"
+                        label={t('countryLabel')}
                         error={!!errors.correspondence?.country}
                         helperText={errors.correspondence?.country}
                         InputProps={{
@@ -650,10 +654,10 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="State *"
+                        label={t('stateLabel')}
                         error={!!errors.correspondence?.state}
-                        helperText={errors.correspondence?.state || (correspondenceAddress.country && !correspondenceStates.length ? "No states available for this country" : "")}
-                        placeholder={correspondenceAddress.country ? "Select state" : "Select country first"}
+                        helperText={errors.correspondence?.state || (correspondenceAddress.country && !correspondenceStates.length ? t('noStatesAvailable') : "")}
+                        placeholder={correspondenceAddress.country ? "" : t('selectCountryFirst')}
                         InputProps={{
                           ...params.InputProps,
                           endAdornment: (
@@ -677,14 +681,14 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                     }
                   />
                   {!correspondenceAddress.country && (
-                    <FormHelperText>Please select a country first</FormHelperText>
+                    <FormHelperText>{t('selectCountryFirst')}</FormHelperText>
                   )}
                 </FormControl>
               </Grid>
               
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
-                  label="Pincode *"
+                  label={t('pincodeLabel')}
                   fullWidth
                   value={correspondenceAddress.pincode}
                   onChange={(e) =>
@@ -694,7 +698,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                     )
                   }
                   error={!!errors.correspondence?.pincode}
-                  helperText={errors.correspondence?.pincode}
+                  helperText={errors.correspondence?.pincode || t('pincodeHelper')}
                   variant="outlined"
                   size="small"
                   inputProps={{ 
@@ -716,7 +720,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
         icon={false}
       >
         <Typography variant="body2">
-          <strong>Note:</strong> Please ensure your address details are accurate as they will be used for verification and communication purposes.
+          <strong>{t('addressNote')}</strong>
         </Typography>
       </Alert>
     </Box>

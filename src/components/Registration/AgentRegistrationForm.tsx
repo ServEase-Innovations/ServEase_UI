@@ -32,6 +32,7 @@ import { ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-mater
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useFieldValidation } from "./useFieldValidation";
 import providerInstance from "src/services/providerInstance";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
@@ -75,6 +76,9 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
   onBackToLogin,
   onClose, // Add onClose prop
 }) => {
+  // Use the language context
+  const { t, currentLanguage } = useLanguage();
+  
   const [formData, setFormData] = useState<FormData>({
     companyName: "",
     phoneNo: "",
@@ -168,23 +172,23 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
         setValidationErrors((prev) => ({
           ...prev,
           phoneNo: !mobileRegex.test(value)
-            ? "Enter a valid 10-digit mobile number"
+            ? t("phoneValidationError")
             : "",
         }));
         break;
       case "emailId":
         setValidationErrors((prev) => ({
           ...prev,
-          emailId: !emailRegex.test(value) ? "Enter a valid email address" : "",
+          emailId: !emailRegex.test(value) ? t("emailValidationError") : "",
         }));
         break;
       case "registrationId":
         setValidationErrors((prev) => ({
           ...prev,
           registrationId: !value.trim() 
-            ? "Registration ID is required" 
+            ? t("registrationIdRequired")
             : !registrationIdRegex.test(value)
-            ? "Registration ID should be alphanumeric and 10-20 characters long"
+            ? t("registrationIdValidationError")
             : "",
         }));
         break;
@@ -192,7 +196,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
         setValidationErrors((prev) => ({
           ...prev,
           password: !passwordRegex.test(value)
-            ? "Password must contain at least 8 characters, including 1 letter, 1 number, and 1 special character"
+            ? t("passwordValidationError")
             : "",
         }));
         break;
@@ -200,7 +204,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
         setValidationErrors((prev) => ({
           ...prev,
           confirmPassword:
-            value !== formData.password ? "Passwords do not match" : "",
+            value !== formData.password ? t("passwordMismatch") : "",
         }));
         break;
       default:
@@ -238,14 +242,14 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
 
     // Validate all fields before submission
     if (!formData.companyName || !formData.address) {
-      setMessage("Please fill in all required fields");
+      setMessage(t("fillRequiredFields"));
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
       return;
     }
 
     if (!isFormValid()) {
-      setMessage("Please ensure all fields are valid and email/mobile are available");
+      setMessage(t("ensureValidFields"));
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
       return;
@@ -273,7 +277,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       if (response.status === 200 || response.status === 201) {
         const apiReturnedId = response.data.registrationId || formData.registrationId;
         setReturnedRegistrationId(apiReturnedId);
-        setMessage("Vendor added successfully!");
+        setMessage(t("vendorAdded"));
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
 
@@ -307,7 +311,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
           }
         }, 2000);
       } else {
-        setMessage(response.data.error || "Failed to add vendor.");
+        setMessage(response.data.error || t("vendorAddFailed"));
         setSnackbarSeverity("error");
         setOpenSnackbar(true);
         setIsSubmitting(false);
@@ -316,11 +320,11 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       console.error("API Error:", error);
       
       if (error.response) {
-        setMessage(error.response.data.error || "Server error occurred");
+        setMessage(error.response.data.error || t("serverError"));
       } else if (error.request) {
-        setMessage("No response from server. Please check your connection.");
+        setMessage(t("noServerResponse"));
       } else {
-        setMessage("An error occurred while connecting to the API.");
+        setMessage(t("apiConnectionError"));
       }
       
       setSnackbarSeverity("error");
@@ -337,7 +341,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
     navigator.clipboard
       .writeText(returnedRegistrationId)
       .then(() => {
-        setMessage("Registration ID copied to clipboard!");
+        setMessage(t("registrationIdCopied"));
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
       })
@@ -388,7 +392,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
         </IconButton>
 
         <Typography variant="h5" align="center">
-          Agent Registration
+          {t("agentRegistration")}
         </Typography>
 
         <IconButton
@@ -412,7 +416,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Company Name *"
+                  label={t("companyName")}
                   name="companyName"
                   value={formData.companyName}
                   onChange={handleChange}
@@ -427,7 +431,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                 <Box sx={{ position: 'relative' }}>
                   <TextField
                     fullWidth
-                    label="Mobile Number *"
+                    label={t("mobileNumber")}
                     name="phoneNo"
                     value={formData.phoneNo}
                     onChange={handleChange}
@@ -437,7 +441,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                     helperText={
                       validationErrors.phoneNo || 
                       (validationResults.mobile.error) ||
-                      (validationResults.mobile.isAvailable === false ? "This mobile number is already registered" : "")
+                      (validationResults.mobile.isAvailable === false ? t("mobileAlreadyRegistered") : "")
                     }
                     variant="outlined"
                     size="small"
@@ -458,7 +462,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                 <Box sx={{ position: 'relative' }}>
                   <TextField
                     fullWidth
-                    label="Email ID *"
+                    label={t("emailId")}
                     name="emailId"
                     value={formData.emailId}
                     onChange={handleChange}
@@ -468,7 +472,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                     helperText={
                       validationErrors.emailId || 
                       (validationResults.email.error) ||
-                      (validationResults.email.isAvailable === false ? "This email is already registered" : "")
+                      (validationResults.email.isAvailable === false ? t("emailAlreadyRegistered") : "")
                     }
                     variant="outlined"
                     size="small"
@@ -487,7 +491,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Registration ID *"
+                  label={t("registrationId")}
                   name="registrationId"
                   value={formData.registrationId}
                   onChange={handleChange}
@@ -507,7 +511,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Password *"
+                  label={t("password")}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -538,7 +542,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Confirm Password *"
+                  label={t("confirmPassword")}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -569,7 +573,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Company Address *"
+                  label={t("companyAddress")}
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
@@ -600,10 +604,10 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                 {isSubmitting ? (
                   <>
                     <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
-                    Submitting...
+                    {t("submitting")}
                   </>
                 ) : (
-                  'Submit'
+                  t("submit")
                 )}
               </Button>
             </Box>
@@ -626,7 +630,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
             >
               <Box>
                 <Typography variant="subtitle2" color="textSecondary">
-                  Registration ID
+                  {t("registrationId")}
                 </Typography>
                 <Typography variant="h6" color="primary">
                   {returnedRegistrationId}

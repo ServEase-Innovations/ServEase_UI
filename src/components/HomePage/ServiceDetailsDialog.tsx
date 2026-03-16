@@ -19,6 +19,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Button } from "../Button/button";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { X } from "lucide-react";
+import { useLanguage } from "src/context/LanguageContext";
 
 type ServiceFeature = {
   title?: string;
@@ -29,7 +30,7 @@ type ServiceDetails = {
   title: string;
   description: string;
   features: ServiceFeature[];
-   icon?: string | React.ReactNode;
+  icon?: string | React.ReactNode;
 };
 
 interface ServiceDetailsDialogProps {
@@ -43,212 +44,214 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
   onClose,
   serviceType,
 }) => {
+  const { t } = useLanguage(); // Add this line to use translations
+
   const serviceData: Record<"cook" | "maid" | "babycare", ServiceDetails> = {
     maid: {
-      title: "ServEaso Maid Services",
-      description: "Professional cleaning and household services",
+      title: t('maidServicesTitle'),
+      description: t('maidServicesDescription'),
       icon: "🧹",
       features: [
         {
-          title: "Cleaning",
+          title: t('cleaning'),
           items: [
-            "Utensils cleaning",
-            "Dusting",
-            "Vacuuming",
-            "Mopping",
-            "Sweeping",
-            "Cleaning bathrooms and kitchens"
+            t('utensilsCleaning'),
+            t('dusting'),
+            t('vacuuming'),
+            t('mopping'),
+            t('sweeping'),
+            t('cleaningBathroomsKitchens')
           ]
         },
         {
-          title: "Laundry",
+          title: t('laundry'),
           items: [
-            "Washing clothes",
-            "Drying clothes",
-            "Folding clothes",
-            "Ironing clothes"
+            t('washingClothes'),
+            t('dryingClothes'),
+            t('foldingClothes'),
+            t('ironingClothes')
           ]
         },
         {
-          title: "Errands",
+          title: t('errands'),
           items: [
-            "Running errands for customers",
-            "Picking up groceries",
-            "Dry cleaning pickup/dropoff"
+            t('runningErrands'),
+            t('pickingGroceries'),
+            t('dryCleaningPickup')
           ]
         },
         {
           items: [
-            "Respectful of customer's property",
-            "Punctual and reliable",
-            "Professional and courteous",
-            "Discreet and respectful of privacy"
+            t('respectfulProperty'),
+            t('punctualReliable'),
+            t('professionalCourteous'),
+            t('discreetRespectful')
           ]
         }
       ]
     },
     cook: {
-      title: "ServEaso Cook Services",
-      description: "Professional cooking services with strict standards",
+      title: t('cookServicesTitle'),
+      description: t('cookServicesDescription'),
       icon: "👩‍🍳",
       features: [
         {
-          title: "Hygiene",
+          title: t('hygiene'),
           items: [
-            "Adhere to strict hygiene standards",
-            "Frequent handwashing",
-            "Wear clean uniforms and hairnets",
-            "Maintain spotless work environment"
+            t('strictHygiene'),
+            t('frequentHandwashing'),
+            t('cleanUniforms'),
+            t('spotlessEnvironment')
           ]
         },
         {
-          title: "Temperature Control",
+          title: t('temperatureControl'),
           items: [
-            "Meticulously monitor food temperatures",
-            "Prevent bacterial growth",
-            "Ensure proper cooking, storage, and reheating"
+            t('monitorTemperatures'),
+            t('preventBacterialGrowth'),
+            t('properCookingStorage')
           ]
         },
         {
-          title: "Allergen Awareness",
+          title: t('allergenAwareness'),
           items: [
-            "Handle allergens carefully",
-            "Prevent cross-contamination",
-            "Provide accurate allergen information"
+            t('handleAllergens'),
+            t('preventCrossContamination'),
+            t('accurateAllergenInfo')
           ]
         },
         {
-          title: "Safe Food Handling",
+          title: t('safeFoodHandling'),
           items: [
-            "Follow proper procedures for raw and cooked foods",
-            "Minimize contamination risk"
+            t('followProcedures'),
+            t('minimizeContamination')
           ]
         },
         {
-          title: "Freshness",
+          title: t('freshness'),
           items: [
-            "Use fresh, high-quality ingredients",
-            "Select best produce, meats, and components"
+            t('freshIngredients'),
+            t('selectBestProduce')
           ]
         },
         {
-          title: "Proper Techniques",
+          title: t('properTechniques'),
           items: [
-            "Employ proper cooking techniques",
-            "Maximize flavor, texture, and nutritional value",
-            "Ensure highest preparation standards"
+            t('employTechniques'),
+            t('maximizeFlavor'),
+            t('highestStandards')
           ]
         },
         {
-          title: "Attention to Detail",
+          title: t('attentionToDetail'),
           items: [
-            "Pay close attention to every step",
-            "From chopping vegetables to final plating",
-            "Ensure consistency and visual appeal"
+            t('closeAttention'),
+            t('choppingToPlating'),
+            t('consistencyVisual')
           ]
         },
         {
-          title: "Dietary Restrictions",
+          title: t('dietaryRestrictions'),
           items: [
-            "Accommodate gluten-free needs",
-            "Prepare vegetarian and vegan meals",
-            "Tailor to specific allergies/intolerances"
+            t('accommodateGlutenFree'),
+            t('vegetarianVegan'),
+            t('specificAllergies')
           ]
         },
         {
-          title: "Customization",
+          title: t('customization'),
           items: [
-            "Adjust spice levels",
-            "Modify ingredients",
-            "Customize portion sizes"
+            t('adjustSpice'),
+            t('modifyIngredients'),
+            t('customizePortions')
           ]
         }
       ]
     },
     babycare: {
-      title: "ServEaso Caregiver Services",
-      description: "Professional child care services",
+      title: t('caregiverServicesTitle'),
+      description: t('caregiverServicesDescription'),
       icon: (
-    <img 
-      src="/CareGiver.png"
-      alt="Caregiver" 
-      style={{
-        width: "40px",
-        height: "40px",
-        objectFit: "contain"
-      }}
-    />
-  ),
+        <img 
+          src="/CareGiver.png"
+          alt={t('caregiver')} 
+          style={{
+            width: "40px",
+            height: "40px",
+            objectFit: "contain"
+          }}
+        />
+      ),
       features: [
         {
-          title: "Nurture and Safe Environment",
+          title: t('nurtureEnvironment'),
           items: [
-            "Provide loving and supportive environment",
-            "Children feel safe, secure, and understood",
-            "Offer comfort and encouragement",
-            "Build strong emotional connection"
+            t('lovingSupportive'),
+            t('safeSecure'),
+            t('comfortEncouragement'),
+            t('emotionalConnection')
           ]
         },
         {
-          title: "Physical Safety",
+          title: t('physicalSafety'),
           items: [
-            "Ensure hazard-free environment",
-            "Supervise all activities",
-            "Prepare for emergencies"
+            t('hazardFree'),
+            t('superviseActivities'),
+            t('emergencyPrepared')
           ]
         },
         {
-          title: "Medical Safety",
+          title: t('medicalSafety'),
           items: [
-            "Trained in CPR",
-            "First aid certified for medical emergencies"
+            t('trainedCPR'),
+            t('firstAidCertified')
           ]
         },
         {
-          title: "Cognitive Development",
+          title: t('cognitiveDevelopment'),
           items: [
-            "Engage in age-appropriate activities",
-            "Reading and educational games",
-            "Explore children's interests",
-            "Help with homework",
-            "Encourage learning"
+            t('ageAppropriateActivities'),
+            t('readingEducational'),
+            t('exploreInterests'),
+            t('homeworkHelp'),
+            t('encourageLearning')
           ]
         },
         {
-          title: "Social/Emotional Development",
+          title: t('socialEmotional'),
           items: [
-            "Teach sharing and empathy",
-            "Conflict resolution skills",
-            "Develop self-confidence",
-            "Build emotional intelligence"
+            t('teachSharing'),
+            t('conflictResolution'),
+            t('selfConfidence'),
+            t('emotionalIntelligence')
           ]
         },
         {
-          title: "Physical Development",
+          title: t('physicalDevelopment'),
           items: [
-            "Encourage physical activity",
-            "Outdoor adventures",
-            "Age-appropriate sports",
-            "Prepare healthy meals and snacks"
+            t('encourageActivity'),
+            t('outdoorAdventures'),
+            t('ageSports'),
+            t('healthyMeals')
           ]
         },
         {
-          title: "Communication",
+          title: t('communication'),
           items: [
-            "Maintain open communication with parents",
-            "Share daily updates",
-            "Discuss development progress",
-            "Listen attentively to child",
-            "Respond with empathy"
+            t('openCommunication'),
+            t('dailyUpdates'),
+            t('discussProgress'),
+            t('listenAttentively'),
+            t('respondEmpathy')
           ]
         },
         {
-          title: "Collaboration",
+          title: t('collaboration'),
           items: [
-            "Work in partnership with parents",
-            "Ensure consistency in care",
-            "Respect parents' values",
-            "Follow parenting styles"
+            t('workPartnership'),
+            t('consistencyCare'),
+            t('respectValues'),
+            t('followStyles')
           ]
         }
       ]
@@ -261,41 +264,40 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
 
   return (
     <Dialog
-   open={open}
-  onClose={onClose}
-  maxWidth="sm" // This makes it smaller than the default 'md' size
-  fullWidth={false} // Important: prevents stretching to full width
-  PaperProps={{
-    sx: {
-      borderRadius: "12px",
-      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-      maxHeight: "80vh",
-      width: "450px", // Set your desired fixed width
-    }
-  }}
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth={false}
+      PaperProps={{
+        sx: {
+          borderRadius: "12px",
+          boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+          maxHeight: "80vh",
+          width: "450px",
+        }
+      }}
     >
-   <DialogHeader style={{
-                position: 'sticky',
-                top: 0,
-                backgroundColor: 'white',
-                zIndex: 1000,
-                padding: '16px 24px',
-                borderBottom: '1px solid #e0e0e0',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}>
-  <div className="flex items-center gap-2">
-    {icon && <span className="text-2xl">{icon}</span>}
-    {title}
-  </div>
-  <IconButton
-    aria-label="close"
-    onClick={onClose}
-    className="!absolute right-4  !text-white"
-  >
-    <X className="w-6 h-6" />
-  </IconButton>
-</DialogHeader>
-
+      <DialogHeader style={{
+        position: 'sticky',
+        top: 0,
+        backgroundColor: 'white',
+        zIndex: 1000,
+        padding: '16px 24px',
+        borderBottom: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div className="flex items-center gap-2">
+          {icon && <span className="text-2xl">{icon}</span>}
+          {title}
+        </div>
+        <IconButton
+          aria-label={t('close')}
+          onClick={onClose}
+          className="!absolute right-4 !text-white"
+        >
+          <X className="w-6 h-6" />
+        </IconButton>
+      </DialogHeader>
 
       <DialogContent dividers sx={{ padding: "24px", overflowY: "auto" }}>
         <Typography variant="body1" paragraph sx={{ marginBottom: "16px" }}>
@@ -308,7 +310,7 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
               <Typography variant="h6" sx={{ 
                 fontWeight: "bold", 
                 marginBottom: "12px",
-                color: "#1d4ed8" // Changed color here
+                color: "#1d4ed8"
               }}>
                 {feature.title}
               </Typography>
@@ -317,7 +319,7 @@ const ServiceDetailsDialog: React.FC<ServiceDetailsDialogProps> = ({
               {feature.items.map((item, itemIndex) => (
                 <ListItem key={itemIndex} sx={{ paddingLeft: 0 }}>
                   <ListItemIcon sx={{ minWidth: "32px" }}>
-                    <CheckIcon sx={{ color: "#1d4ed8" }} fontSize="small" /> {/* Changed color here */}
+                    <CheckIcon sx={{ color: "#1d4ed8" }} fontSize="small" />
                   </ListItemIcon>
                   <ListItemText 
                     primary={item} 

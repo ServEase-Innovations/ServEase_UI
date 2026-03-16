@@ -13,15 +13,19 @@ import {
 } from "react-icons/fa6";
 import { FaGooglePlay, FaAppStoreIos } from "react-icons/fa";
 import { IoArrowBackOutline } from "react-icons/io5";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface ContactUsProps {
   onBack?: () => void;
 }
 
 const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
+  // Use the language hook
+  const { t } = useLanguage();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Your request has been submitted!");
+    alert(t('requestSubmitted')); // Updated to use t()
   };
 
   const handleBack = () => {
@@ -48,25 +52,24 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
               className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-600 hover:text-blue transition"
             >
               <IoArrowBackOutline className="text-lg" />
-              Back
+              {t('back')} {/* Updated to use t() */}
             </button>
 
             <h2 className="text-2xl font-bold text-gray-900">
-              Get in touch with us
+              {t('getInTouch')} {/* Updated to use t() */}
             </h2>
             <p className="text-gray-500 mt-2">
-              Fill out the form below or schedule a meeting with us at your
-              convenience.
+              {t('contactDescription')} {/* Updated to use t() */}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600">
-                  Name
+                  {t('name')} {/* Updated to use t() */}
                 </label>
                 <input
                   type="text"
-                  placeholder="Your name"
+                  placeholder={t('yourName')} // Updated to use t()
                   className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
                   required
                 />
@@ -74,11 +77,11 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600">
-                  Email
+                  {t('email')} {/* Updated to use t() */}
                 </label>
                 <input
                   type="email"
-                  placeholder="Enter Your Email"
+                  placeholder={t('enterEmail')} // Updated to use t()
                   className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
                   required
                 />
@@ -86,11 +89,11 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600">
-                  Message
+                  {t('message')} {/* Updated to use t() */}
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="Enter Your Message"
+                  placeholder={t('enterMessage')} // Updated to use t()
                   className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
                   required
                 />
@@ -99,9 +102,9 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="terms" required />
                 <label htmlFor="terms" className="text-sm text-gray-600">
-                  I agree with{" "}
+                  {t('iAgreeWith')}{" "}
                   <span className="text-indigo-600 underline">
-                    Terms and Conditions
+                    {t('termsAndConditions')} {/* Updated to use t() */}
                   </span>
                 </label>
               </div>
@@ -110,14 +113,14 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                 type="submit"
                 className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition"
               >
-                Send Your Request
+                {t('sendRequest')} {/* Updated to use t() */}
               </button>
             </form>
 
             {/* Contact Info */}
             <div className="mt-8">
               <p className="text-gray-700 font-medium">
-                You can also contact us via
+                {t('contactVia')} {/* Updated to use t() */}
               </p>
               <div className="flex flex-col gap-2 mt-3 text-gray-600">
                 <p className="flex items-center gap-2">
@@ -147,21 +150,19 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
           {/* RIGHT SIDE */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              With our services you can
+              {t('withOurServices')} {/* Updated to use t() */}
             </h3>
             <ul className="space-y-2 text-gray-600">
-              <li>1. Improve usability of your product</li>
-              <li>
-                2. Engage users at a higher level and outperform competition
-              </li>
-              <li>3. Reduce onboarding time and improve sales</li>
-              <li>4. Balance user needs with your business goals</li>
+              <li>1. {t('benefit1')}</li> {/* Updated to use t() */}
+              <li>2. {t('benefit2')}</li> {/* Updated to use t() */}
+              <li>3. {t('benefit3')}</li> {/* Updated to use t() */}
+              <li>4. {t('benefit4')}</li> {/* Updated to use t() */}
             </ul>
 
             {/* Social Links */}
             <div className="mt-8">
               <h4 className="text-md font-semibold text-gray-700 mb-3">
-                Follow us
+                {t('followUs')} {/* Updated to use t() */}
               </h4>
               <div className="flex gap-4 text-2xl text-gray-700">
               <a href="https://www.linkedin.com/in/serveaso-media-7b7719381/" target="_blank" rel="noreferrer"><FaLinkedin /></a>
@@ -175,7 +176,7 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
             {/* App Stores */}
             <div className="mt-8">
               <h4 className="text-md font-semibold text-gray-700 mb-3">
-                Download Our App
+                {t('downloadApp')} {/* Updated to use t() */}
               </h4>
               <div className="flex gap-4 text-3xl text-gray-800">
               <a href="https://play.google.com" target="_blank" rel="noreferrer"><FaGooglePlay /></a>

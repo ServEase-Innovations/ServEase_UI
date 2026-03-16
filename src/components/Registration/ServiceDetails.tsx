@@ -31,6 +31,8 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { Button } from "../Button/button";
+import { useLanguage } from "src/context/LanguageContext";
+
 
 interface ServiceDetailsProps {
   formData: any;
@@ -93,18 +95,29 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   getDisabledRangesForSlot,
   formatDisplayTime,
 }) => {
+  const { t } = useLanguage(); // Use the language context
+
   const serviceTypes = [
-    { value: "COOK", label: "Cook" },
-    { value: "NANNY", label: "Nanny"},
-    { value: "MAID", label: "Maid" },
+    { value: "COOK", label: t("cook") },
+    { value: "NANNY", label: t("nanny") },
+    { value: "MAID", label: t("maid") },
   ];
 
   const dietOptions = ["VEG", "NONVEG", "BOTH"];
   const nannyCareOptions = [
-    { value: "BABY_CARE", label: "Baby Care" },
-    { value: "ELDERLY_CARE", label: "Elderly Care" },
-    { value: "BOTH", label: "Both" },
+    { value: "BABY_CARE", label: t("babyCare") },
+    { value: "ELDERLY_CARE", label: t("elderlyCare") },
+    { value: "BOTH", label: t("both") },
   ];
+
+  const getDietLabel = (option: string) => {
+    switch(option) {
+      case "VEG": return t("veg");
+      case "NONVEG": return t("nonVeg");
+      case "BOTH": return t("both");
+      default: return option;
+    }
+  };
 
   return (
     <Grid container spacing={2}>
@@ -114,7 +127,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           <CardContent>
             <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <HomeIcon sx={{ mr: 1 }} />
-              Service Details
+              {t("serviceDetails")}
             </Typography>
             
             <Grid container spacing={3}>
@@ -138,7 +151,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                     }}
                   >
                     <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.95rem', display: 'inline' }}>
-                      Select Service Type(s)
+                      {t("selectServiceType")}
                     </Typography>
                   </FormLabel>
                   
@@ -191,7 +204,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                             color="text.secondary"
                             sx={{ fontSize: '0.7rem' }}
                           >
-                        
+                            {/* Empty description - can be added later if needed */}
                           </Typography>
                         </Box>
                       </Paper>
@@ -222,7 +235,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                       }}
                     >
                       <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
-                        Cooking Speciality
+                        {t("cookingSpeciality")}
                       </Typography>
                     </FormLabel>
                     
@@ -266,9 +279,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                             fontWeight={formData.cookingSpeciality === option ? 'bold' : 'normal'}
                             color={formData.cookingSpeciality === option ? '#1976d2' : 'text.primary'}
                           >
-                            {option === 'VEG' ? 'Veg' : 
-                             option === 'NONVEG' ? 'Non-Veg' : 
-                             'Both'}
+                            {getDietLabel(option)}
                           </Typography>
                         </Paper>
                       ))}
@@ -299,7 +310,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                       }}
                     >
                       <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
-                        Care Type
+                        {t("careType")}
                       </Typography>
                     </FormLabel>
                     
@@ -373,7 +384,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                     }}
                   >
                     <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
-                      Diet Preference
+                      {t("dietPreference")}
                     </Typography>
                   </FormLabel>
                   
@@ -417,9 +428,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           fontWeight={formData.diet === option ? 'bold' : 'normal'}
                           color={formData.diet === option ? '#1976d2' : 'text.primary'}
                         >
-                          {option === 'VEG' ? 'Veg' : 
-                           option === 'NONVEG' ? 'Non-Veg' : 
-                           'Both'}
+                          {getDietLabel(option)}
                         </Typography>
                       </Paper>
                     ))}
@@ -439,7 +448,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
       
       <Grid item xs={12}>
         <TextField
-          placeholder="Description"
+          placeholder={t("description")}
           name="description"
           fullWidth
           value={formData.description}
@@ -451,23 +460,20 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
       
       <Grid item xs={12} sm={6}>
         <TextField
-          placeholder="Experience *"
+          placeholder={t("experience")}
           name="experience"
           fullWidth
           required
           value={formData.experience}
           onChange={onExperienceChange}
           error={!!errors.experience}
-          helperText={
-            errors.experience ||
-            "Years in business or relevant experience"
-          }
+          helperText={errors.experience || t("experienceHelperText")}
         />
       </Grid>
       
       <Grid item xs={12} sm={6}>
         <TextField
-          placeholder="Referral Code (Optional)"
+          placeholder={t("referralCode")}
           name="referralCode"
           fullWidth
           value={formData.referralCode || ""}
@@ -482,7 +488,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
             <FormControl component="fieldset" fullWidth>
               <FormLabel component="legend" sx={{ mb: 2 }}>
                 <Typography variant="h6" color="primary">
-                  Select Your Available Time Slots
+                  {t("selectAvailableTimeSlots")}
                 </Typography>
               </FormLabel>
               
@@ -508,10 +514,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                     label={
                       <Box>
                         <Typography variant="subtitle1" fontWeight="bold">
-                          Full Time Availability
+                          {t("fullTimeAvailability")}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          6:00 AM - 8:00 PM (All slots covered)
+                          {t("fullTimeDescription")}
                         </Typography>
                       </Box>
                     }
@@ -528,10 +534,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                               <AccessTime sx={{ mr: 1 }} />
-                              Morning Availability
+                              {t("morningAvailability")}
                             </Typography>
                             <Chip 
-                              label={morningSlots.length === 0 ? "Not Available" : `${morningSlots.length} slot(s)`}
+                              label={morningSlots.length === 0 ? t("notAvailable") : `${morningSlots.length} ${t("slot")}`}
                               color={morningSlots.length === 0 ? "default" : "primary"}
                               size="small"
                               variant={morningSlots.length === 0 ? "outlined" : "filled"}
@@ -539,7 +545,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           </Box>
                           <Box>
                             {morningSlots.length > 0 && morningSlots.length < 12 && (
-                              <Tooltip title="Add another morning time slot">
+                              <Tooltip title={t("addSlot")}>
                                 <Button
                                   variant="outlined"
                                   size="small"
@@ -547,7 +553,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                   onClick={onAddMorningSlot}
                                   sx={{ borderRadius: 2, mr: 1 }}
                                 >
-                                  Add Slot
+                                  {t("addSlot")}
                                 </Button>
                               </Tooltip>
                             )}
@@ -559,7 +565,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 onClick={onAddMorningSlot}
                                 sx={{ borderRadius: 2 }}
                               >
-                                Add Slots
+                                {t("addMorningSlots")}
                               </Button>
                             ) : (
                               <Button
@@ -569,7 +575,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 onClick={onClearMorningSlots}
                                 sx={{ borderRadius: 2 }}
                               >
-                                Clear All
+                                {t("clearAll")}
                               </Button>
                             )}
                           </Box>
@@ -589,10 +595,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                             }}
                           >
                             <Typography variant="body1" color="text.secondary" gutterBottom>
-                              Not available in the morning
+                              {t("notAvailableMorning")}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Click "Add Morning Slots" if you want to add morning availability
+                              {t("addMorningSlots")}
                             </Typography>
                           </Paper>
                         ) : (
@@ -615,7 +621,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                               >
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                                   <Typography variant="subtitle2" color="primary">
-                                    Time Slot {index + 1}
+                                    {t("timeSlot")} {index + 1}
                                   </Typography>
                                   {morningSlots.length > 1 && (
                                     <IconButton
@@ -629,13 +635,13 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 </Box>
                                 
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Selected: {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+                                  {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
                                 </Typography>
                                 
                                 {disabledRanges.length > 0 && (
                                   <>
                                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                      ⚠️ Gray areas are already selected in other slots
+                                      {t("warningGrayAreas")}
                                     </Typography>
                                     <DisabledRangesIndicator 
                                       ranges={disabledRanges}
@@ -672,10 +678,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                               <AccessTime sx={{ mr: 1 }} />
-                              Evening Availability
+                              {t("eveningAvailability")}
                             </Typography>
                             <Chip 
-                              label={eveningSlots.length === 0 ? "Not Available" : `${eveningSlots.length} slot(s)`}
+                              label={eveningSlots.length === 0 ? t("notAvailable") : `${eveningSlots.length} ${t("slot")}`}
                               color={eveningSlots.length === 0 ? "default" : "primary"}
                               size="small"
                               variant={eveningSlots.length === 0 ? "outlined" : "filled"}
@@ -683,7 +689,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           </Box>
                           <Box>
                             {eveningSlots.length > 0 && eveningSlots.length < 16 && (
-                              <Tooltip title="Add another evening time slot">
+                              <Tooltip title={t("addSlot")}>
                                 <Button
                                   variant="outlined"
                                   size="small"
@@ -691,7 +697,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                   onClick={onAddEveningSlot}
                                   sx={{ borderRadius: 2, mr: 1 }}
                                 >
-                                  Add Slot
+                                  {t("addSlot")}
                                 </Button>
                               </Tooltip>
                             )}
@@ -703,7 +709,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 onClick={onAddEveningSlot}
                                 sx={{ borderRadius: 2 }}
                               >
-                                Add Slots
+                                {t("addEveningSlots")}
                               </Button>
                             ) : (
                               <Button
@@ -713,7 +719,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 onClick={onClearEveningSlots}
                                 sx={{ borderRadius: 2 }}
                               >
-                                Clear All
+                                {t("clearAll")}
                               </Button>
                             )}
                           </Box>
@@ -733,10 +739,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                             }}
                           >
                             <Typography variant="body1" color="text.secondary" gutterBottom>
-                              Not available in the evening
+                              {t("notAvailableEvening")}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Click "Add Evening Slots" if you want to add evening availability
+                              {t("addEveningSlots")}
                             </Typography>
                           </Paper>
                         ) : (
@@ -759,7 +765,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                               >
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                                   <Typography variant="subtitle2" color="primary">
-                                    Time Slot {index + 1}
+                                    {t("timeSlot")} {index + 1}
                                   </Typography>
                                   {eveningSlots.length > 1 && (
                                     <IconButton
@@ -773,13 +779,13 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                 </Box>
                                 
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Selected: {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+                                  {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
                                 </Typography>
                                 
                                 {disabledRanges.length > 0 && (
                                   <>
                                     <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                      ⚠️ Gray areas are already selected in other slots
+                                      {t("warningGrayAreas")}
                                     </Typography>
                                     <DisabledRangesIndicator 
                                       ranges={disabledRanges}
@@ -825,7 +831,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           }}
                         >
                           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                            Your Selected Time Slots:
+                            {t("yourSelectedTimeSlots")}
                           </Typography>
                           <Typography variant="body1">
                             {selectedTimeSlots}

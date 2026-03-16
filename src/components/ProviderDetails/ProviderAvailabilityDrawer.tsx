@@ -28,6 +28,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import moment from 'moment';
 import { ServiceProviderDTO } from '../../types/ProviderDetailsType';
+import { useLanguage } from 'src/context/LanguageContext';
 
 const DrawerHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -74,6 +75,8 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
   onClose,
   provider,
 }) => {
+  const { t } = useLanguage(); // Add this line to use translations
+
   if (!provider) return null;
 
   const formatTime = (timeString: string) => {
@@ -82,10 +85,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
 
   const getAvailabilityStatus = () => {
     const availability = provider.monthlyAvailability;
-    if (!availability) return 'Unknown';
+    if (!availability) return t('unknown');
     
-    if (availability.fullyAvailable) return 'Fully Available';
-    return 'Partially Available';
+    if (availability.fullyAvailable) return t('fullyAvailable');
+    return t('partiallyAvailable');
   };
 
   const getAvailabilityColor = () => {
@@ -98,12 +101,12 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
 
   const getBestMatchMessage = () => {
     if (provider.bestMatch) {
-      return "This provider is our best match for your requirements!";
+      return t('bestMatchMessage');
     } else {
       if (provider.monthlyAvailability?.fullyAvailable === false) {
-        return "This provider has some schedule variations. Check availability details below.";
+        return t('partialAvailabilityMessage');
       }
-      return "This provider matches most of your requirements.";
+      return t('goodMatchMessage');
     }
   };
 
@@ -122,7 +125,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
       <DrawerHeader>
         <Stack spacing={1}>
           <Typography variant="h5" fontWeight={600}>
-            Availability Details
+            {t('availabilityDetails')}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
             <Typography variant="body1" color="text.secondary">
@@ -131,7 +134,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             {provider.bestMatch && (
               <Chip
                 icon={<LocalFireDepartmentIcon />}
-                label="Best Match"
+                label={t('bestMatch')}
                 size="small"
                 color="warning"
                 sx={{ fontWeight: 600 }}
@@ -153,10 +156,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             sx={{ mb: 3 }}
           >
             <Typography variant="subtitle2" fontWeight={600}>
-              Best Match Provider!
+              {t('bestMatchProvider')}
             </Typography>
             <Typography variant="body2">
-              This provider perfectly matches all your requirements and preferences.
+              {t('bestMatchDescription')}
             </Typography>
           </Alert>
         ) : (
@@ -166,7 +169,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             sx={{ mb: 3 }}
           >
             <Typography variant="subtitle2" fontWeight={600}>
-              Good Match
+              {t('goodMatch')}
             </Typography>
             <Typography variant="body2">
               {getBestMatchMessage()}
@@ -180,7 +183,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             <Stack direction="row" spacing={2} alignItems="center">
               <CalendarMonthIcon color="primary" />
               <Typography variant="h6" fontWeight={600}>
-                Monthly Availability
+                {t('monthlyAvailability')}
               </Typography>
             </Stack>
             <AvailabilityBadge
@@ -197,7 +200,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
           <Stack spacing={2}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Preferred Working Time
+                {t('preferredWorkingTime')}
               </Typography>
               <TimeSlot>
                 <Stack direction="row" spacing={2} alignItems="center">
@@ -205,7 +208,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                   <Typography variant="h6" fontWeight={600}>
                     {formatTime(provider.monthlyAvailability?.preferredTime || '08:00')}
                   </Typography>
-                  <Chip label="Daily" size="small" variant="outlined" />
+                  <Chip label={t('daily')} size="small" variant="outlined" />
                 </Stack>
               </TimeSlot>
             </Box>
@@ -214,17 +217,17 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             {provider.monthlyAvailability?.summary && (
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Availability Summary (Next 30 days)
+                  {t('availabilitySummary')}
                 </Typography>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <Stack spacing={2}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Stack direction="row" spacing={1} alignItems="center">
                         <EventAvailableIcon color="success" />
-                        <Typography variant="body1">Days at preferred time</Typography>
+                        <Typography variant="body1">{t('daysAtPreferredTime')}</Typography>
                       </Stack>
                       <Chip 
-                        label={`${provider.monthlyAvailability.summary.daysAtPreferredTime} days`}
+                        label={`${provider.monthlyAvailability.summary.daysAtPreferredTime} ${t('days')}`}
                         color="success"
                         variant="outlined"
                       />
@@ -234,10 +237,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                       <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Stack direction="row" spacing={1} alignItems="center">
                           <AccessTimeIcon color="warning" />
-                          <Typography variant="body1">Days with different time</Typography>
+                          <Typography variant="body1">{t('daysWithDifferentTime')}</Typography>
                         </Stack>
                         <Chip 
-                          label={`${provider.monthlyAvailability.summary.daysWithDifferentTime} days`}
+                          label={`${provider.monthlyAvailability.summary.daysWithDifferentTime} ${t('days')}`}
                           color="warning"
                           variant="outlined"
                         />
@@ -248,10 +251,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                       <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Stack direction="row" spacing={1} alignItems="center">
                           <EventBusyIcon color="error" />
-                          <Typography variant="body1">Unavailable days</Typography>
+                          <Typography variant="body1">{t('unavailableDays')}</Typography>
                         </Stack>
                         <Chip 
-                          label={`${provider.monthlyAvailability.summary.unavailableDays} days`}
+                          label={`${provider.monthlyAvailability.summary.unavailableDays} ${t('days')}`}
                           color="error"
                           variant="outlined"
                         />
@@ -262,10 +265,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
 
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography variant="body1" fontWeight={600}>
-                        Total available days
+                        {t('totalAvailableDays')}
                       </Typography>
                       <Chip 
-                        label={`${provider.monthlyAvailability.summary.totalDays} days`}
+                        label={`${provider.monthlyAvailability.summary.totalDays} ${t('days')}`}
                         color="primary"
                         variant="filled"
                       />
@@ -284,10 +287,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             <Stack direction="row" spacing={2} alignItems="center" mb={3}>
               <WarningIcon color="warning" />
               <Typography variant="h6" fontWeight={600}>
-                Schedule Exceptions
+                {t('scheduleExceptions')}
               </Typography>
               <Chip 
-                label={`${provider.monthlyAvailability.exceptions.length} exception(s)`}
+                label={`${provider.monthlyAvailability.exceptions.length} ${t('exceptions')}`}
                 size="small"
                 color="warning"
                 variant="outlined"
@@ -317,7 +320,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                             {moment(exception.date).format('ddd, MMM D, YYYY')}
                           </Typography>
                           <Chip 
-                            label={exception.reason.replace('_', ' ')}
+                            label={t(exception.reason.toLowerCase())}
                             size="small"
                             color="warning"
                           />
@@ -327,14 +330,14 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                         <Stack spacing={1} mt={1}>
                           <Typography variant="body2" color="text.secondary">
                             {exception.reason === 'ON_DEMAND' 
-                              ? 'Available on demand at different time'
-                              : 'Not available at preferred time'}
+                              ? t('availableOnDemand')
+                              : t('notAvailableAtPreferredTime')}
                           </Typography>
                           {exception.suggestedTime && (
                             <Stack direction="row" spacing={1} alignItems="center">
                               <AccessTimeIcon fontSize="small" />
                               <Typography variant="body2" fontWeight={500}>
-                                Suggested time: {formatTime(exception.suggestedTime)}
+                                {t('suggestedTime')}: {formatTime(exception.suggestedTime)}
                               </Typography>
                             </Stack>
                           )}
@@ -351,8 +354,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
 
             <Alert severity="info" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                These dates have different availability. You can still book for these dates,
-                but the timing might vary.
+                {t('scheduleExceptionsInfo')}
               </Typography>
             </Alert>
           </Paper>
@@ -366,11 +368,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             sx={{ mt: 3 }}
           >
             <Typography variant="subtitle2" fontWeight={600}>
-              Perfect Availability!
+              {t('perfectAvailability')}
             </Typography>
             <Typography variant="body2">
-              This provider is fully available at their preferred time for the entire month.
-              No schedule conflicts or exceptions.
+              {t('perfectAvailabilityDescription')}
             </Typography>
           </Alert>
         )}
@@ -382,12 +383,10 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             sx={{ mt: 3 }}
           >
             <Typography variant="subtitle2" fontWeight={600}>
-              Why this isn't a Best Match?
+              {t('whyNotBestMatch')}
             </Typography>
             <Typography variant="body2">
-              This provider has some schedule variations during the month which prevents 
-              them from being marked as a "Best Match". However, they're still highly 
-              available and can accommodate your needs on most days.
+              {t('whyNotBestMatchDescription')}
             </Typography>
           </Alert>
         )}

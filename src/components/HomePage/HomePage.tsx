@@ -27,6 +27,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import Footer from "../Footer/Footer";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 import { useAppUser } from "src/context/AppUserContext";
+import { useLanguage } from "src/context/LanguageContext";
+
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
@@ -43,6 +45,9 @@ interface Auth0User {
 }
 
 const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType, onAboutClick }) => {
+    // Use the language hook
+    const { t, currentLanguage } = useLanguage();
+    
     const dispatch = useDispatch();
     const [open, setOpen] = useState(false);
     const [selectedType, setSelectedtype] = useState('');
@@ -61,9 +66,6 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     type: "cook" | "maid" | "babycare" | null;
     }>({ open: false, type: null });
 
-
-
-  
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
     };
@@ -151,8 +153,6 @@ const handleSave = () => {
   setOpen(false);
 };
 
-
-
     function isConfirmDisabled(): boolean | undefined {
         return false;
     }
@@ -167,7 +167,8 @@ const handleSave = () => {
         }
         return start.toISOString().split('T')[0];
     };
-     useEffect(() => {
+    
+    useEffect(() => {
         const requestNotificationPermission = async () => {
           try {
             if ('serviceWorker' in navigator && 'Notification' in window) {
@@ -191,6 +192,7 @@ const handleSave = () => {
           subscribeUser();
         }
       }, [notificationPermission]);
+      
  const subscribeUser = async () => {
     try {
       const register = await navigator.serviceWorker.ready;
@@ -280,18 +282,16 @@ useEffect(() => {
             {/* Hero Section */}
 <section className="py-8 px-6 md:px-20 flex flex-col md:flex-row items-center justify-between "
  style={{
-  // a7d0ff
     background: "linear-gradient(hsl(212, 100%, 84%) 0%,  rgb(255, 255, 255) 100%)",
     color: "rgb(14, 48, 92)",
- 
   }}>
 
   <div className="md:w-1/2 space-y-4">
     <h1 className="text-3xl font-bold leading-tight">
-      Book trusted and trained house-help in minutes
+      {t('heroTitle')} {/* Updated to use t() */}
     </h1>
     <p className="text-sm opacity-90">
-      ServEaso delivers instant, regular and short term access to safe, affordable, and trained maids, cooks, and caregivers.
+      {t('heroDescription')} {/* Updated to use t() */}
     </p>
 
    <div style={{ display: "flex", justifyContent: "space-around", gap: "20px" }}>
@@ -305,14 +305,13 @@ useEffect(() => {
       <div className="card-body flex justify-center p-1">
         <img
           src="../CookNew.png"
-          alt="Cook"
+          alt={t('homeCook')} /* Updated to use t() */
           className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold ">Home Cook</p>
-   
+    <p className="mt-2 text-sm font-semibold ">{t('homeCook')}</p> {/* Updated to use t() */}
   </div>
 
   {/* Maid */}
@@ -324,14 +323,13 @@ useEffect(() => {
       <div className="card-body flex justify-center p-1">
         <img
           src="../MaidNew.png"
-          alt="Maid"
+          alt={t('cleaningHelp')} /* Updated to use t() */
           className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold ">Cleaning Help</p>
-   
+    <p className="mt-2 text-sm font-semibold ">{t('cleaningHelp')}</p> {/* Updated to use t() */}
   </div>
 
   {/* Nanny */}
@@ -343,16 +341,13 @@ useEffect(() => {
       <div className="card-body flex justify-center p-1">
         <img
           src="../NannyNew.png"
-          alt="Nanny"
+          alt={t('caregiver')}/* Updated to use t() */
           className={`transition-transform duration-300 ${appUser?.role !== "SERVICE_PROVIDER" ? "hover:scale-110" : ""}`}
           style={{ height: "121px", width: "121px" }}
         />
       </div>
     </div>
-    <p className="mt-2 text-sm font-semibold">Caregiver</p>
-    {/* {role === "SERVICE_PROVIDER" && (
-      <span className="text-xs text-gray-300 mt-1">Not available</span>
-    )} */}
+    <p className="mt-2 text-sm font-semibold">{t('caregiver')}</p> {/* Updated to use t() */}
   </div>
 </div>
 <div className="flex gap-3 pt-3 justify-center flex-nowrap">
@@ -364,7 +359,7 @@ useEffect(() => {
                    max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
         onClick={() => loginWithRedirect()}
       >
-        Register as an User
+        {t('registerAsUser')} {/* Updated to use t() */}
       </Button>
 
       <Button
@@ -372,7 +367,7 @@ useEffect(() => {
                    max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
         onClick={handleWorkClick}
       >
-        Register as a Provider
+        {t('registerAsProvider')} {/* Updated to use t() */}
       </Button>
 
       <Button
@@ -380,13 +375,11 @@ useEffect(() => {
                    max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
         onClick={() => setIsAgentRegistrationOpen(true)}
       >
-        Register as an Agent
+        {t('registerAsAgent')} {/* Updated to use t() */}
       </Button>
     </>
   )}
 </div>
-
-
   </div>
 
   {/* Carousel Section */}
@@ -397,7 +390,7 @@ useEffect(() => {
           <img
             key={index}
             src={img}
-            alt={`Service ${index + 1}`}
+            alt={`${t('service')} ${index + 1}`} /* Updated to use t() */
             className={`absolute top-0 left-0 w-full h-full object-cover object-top transition-opacity duration-500 ${
               index === currentSlide ? "opacity-100" : "opacity-0"
             }`}
@@ -409,14 +402,14 @@ useEffect(() => {
       <button
         onClick={prevSlide}
         className="absolute left-2 top-1/2 -translate-y-1/2 bg-white text-[#0a2a66] rounded-full p-2 shadow-md hover:bg-gray-200 transition-colors"
-        aria-label="Previous slide"
+        aria-label={t('previousSlide')} /* Updated to use t() */
       >
         <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
       </button>
       <button
         onClick={nextSlide}
         className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-[#0a2a66] rounded-full p-2 shadow-md hover:bg-gray-200 transition-colors"
-        aria-label="Next slide"
+        aria-label={t('nextSlide')} /* Updated to use t() */
       >
         <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
       </button>
@@ -430,7 +423,7 @@ useEffect(() => {
             className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${
               index === currentSlide ? "bg-white" : "bg-gray-400"
             } hover:bg-gray-300 transition-colors`}
-            aria-label={`Go to slide ${index + 1}`}
+            aria-label={`${t('goToSlide')} ${index + 1}`} /* Updated to use t() */
           ></button>
         ))}
       </div>
@@ -442,35 +435,33 @@ useEffect(() => {
             {/* Services Section */}
         <section className="py-10 px-6 md:px-20 relative">
   
-
   {/* Popular Services Section */}
-  <h2 className="text-3xl font-semibold text-center mb-8">Popular Services</h2>
+  <h2 className="text-3xl font-semibold text-center mb-8">{t('popularServices')}</h2> {/* Updated to use t() */}
 
   <div className="grid md:grid-cols-3 gap-6">
     {[
       {
-        title: "Home Cook",
-        desc: "Skilled and hygienic cooks who specialize in home-style meals.",
+        title: t('homeCook'),
+        desc: t('homeCookDesc'),
         icon: "👩‍🍳",
         type: "cook",
       },
       {
-        title: "Cleaning Help",
-        desc: "Reliable maids for daily, deep, or special occasion cleaning.",
+        title: t('cleaningHelp'),
+        desc: t('cleaningHelpDesc'),
         icon: "🧹",
         type: "maid",
       },
       {
-        title: "Caregiver",
-        desc: "Trained support for children, seniors, or patients at home.",
+        title: t('caregiver'),
+        desc: t('caregiverDesc'),
         icon: "❤️",
         type: "babycare",
       },
     ].map((service, index) => (
       <Card
         key={index}
-      // [#f5f9ff] via-[#eaf2ff] to-[#dbe8ff] 
-      className="text-center p-5 transition-all duration-200 hover:shadow-lg rounded-xl bg-gradient-to-br from-[#accdff] via-[#eaf2ff] to-[#b3d1ff] border border-blue-100">
+        className="text-center p-5 transition-all duration-200 hover:shadow-lg rounded-xl bg-gradient-to-br from-[#accdff] via-[#eaf2ff] to-[#b3d1ff] border border-blue-100">
         <CardContent className="space-y-3">
           <div className="text-4xl">{service.icon}</div>
           <h3 className="text-lg font-semibold">{service.title}</h3>
@@ -482,7 +473,7 @@ useEffect(() => {
               setServiceDialog({ open: true, type: service.type as any })
             }
           >
-            Learn More
+            {t('learnMore')} {/* Updated to use t() */}
           </Button>
         </CardContent>
       </Card>
@@ -493,25 +484,26 @@ useEffect(() => {
 
             {/* How it works */}
             <section className="bg-blue-50 py-14 px-6 md:px-20">
-                <h2 className="text-3xl font-semibold text-center mb-10">How It Works</h2>
+                <h2 className="text-3xl font-semibold text-center mb-10">{t('howItWorks')}</h2> {/* Updated to use t() */}
                 <div className="grid md:grid-cols-3 gap-6 text-center">
                     <div>
                         <HandIcon className="mx-auto h-8 w-8 text-blue-700 mb-2" />
-                        <h4 className="font-semibold">Choose your service</h4>
-                        <p>Select from a variety of tasks that suit your needs.</p>
+                        <h4 className="font-semibold">{t('chooseService')}</h4> {/* Updated to use t() */}
+                        <p>{t('chooseServiceDesc')}</p> {/* Updated to use t() */}
                     </div>
                     <div>
                         <CalendarIcon className="mx-auto h-8 w-8 text-blue-700 mb-2" />
-                        <h4 className="font-semibold">Schedule in minutes</h4>
-                        <p>Book a time that works for you, quickly and easily.</p>
+                        <h4 className="font-semibold">{t('scheduleInMinutes')}</h4> {/* Updated to use t() */}
+                        <p>{t('scheduleInMinutesDesc')}</p> {/* Updated to use t() */}
                     </div>
                     <div>
                         <HomeIcon className="mx-auto h-8 w-8 text-blue-700 mb-2" />
-                        <h4 className="font-semibold">Relax, we'll handle the rest</h4>
-                        <p>Our verified professionals ensure your peace of mind.</p>
+                        <h4 className="font-semibold">{t('relaxWeHandle')}</h4> {/* Updated to use t() */}
+                        <p>{t('relaxWeHandleDesc')}</p> {/* Updated to use t() */}
                     </div>
                 </div>
             </section>
+            
 <ServiceDetailsDialog
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}
@@ -558,8 +550,7 @@ useEffect(() => {
             <DialogComponent 
                 open={showRegistrationDialog} 
                 onClose={handleCloseRegistrationDialog}
-                title="Service Provider Registration"
-               
+                title={t('serviceProviderRegistration')} /* Updated to use t() */
             >
                 <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
             </DialogComponent>
