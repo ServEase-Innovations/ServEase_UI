@@ -54,6 +54,7 @@ import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage } from "src/context/LanguageContext";
+import providerInstance from "src/services/providerInstance";
 
 
 interface ChildComponentProps {
@@ -192,19 +193,19 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [userPreference, setUserPreference] = useState<any>([]);
 
   // const createUser = async (user: any) => {};
-  const createUser = async (user: any) => {
+ const createUser = async (user: any) => {
     try {
       const userData = {
-        firstName: user.given_name || user.name.split(" ")[0] || "User", // Fallback to 'User' if no first name
-        lastName: user.family_name || user.name.split(" ")[1] || "", // Empty string if no last name
-        emailId: user.email,
-        password: "password",
+        firstname: user.given_name || user.name.split(" ")[0] || "User", // Fallback to 'User' if no first name
+        lastname: user.family_name || user.name.split(" ")[1] || "", // Empty string if no last name
+        emailid: user.email,
+        // password: "password",
       };
 
       console.log("Creating user with data:", userData);
 
-      const response = await axios.post(
-        "https://servease-be-5x7f.onrender.com/api/customer/add-customer-new",
+      const response = await providerInstance.post(
+        "/api/customer",
         userData
       );
 

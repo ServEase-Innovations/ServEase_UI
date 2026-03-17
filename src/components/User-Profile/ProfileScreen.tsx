@@ -37,7 +37,7 @@ interface Address {
 interface PermanentAddress {
   field1: string;
   field2: string;
-  ctArea: string;
+  ctarea: string;
   pinNo: string;
   state: string;
   country: string;
@@ -46,7 +46,7 @@ interface PermanentAddress {
 interface CorrespondenceAddress {
   field1: string;
   field2: string;
-  ctArea: string;
+  ctarea: string;
   pinNo: string;
   state: string;
   country: string;
@@ -1049,26 +1049,25 @@ const ProfileScreen = () => {
         );
         await fetchServiceProviderData(userId);
       } else if (userRole === "CUSTOMER" && userId) {
-        // Only include changed fields in the payload
-        const payload: any = {
-          customerid: userId,
-        };
+      // Only include changed fields in the payload - USE LOWERCASE FIELD NAMES
+      const payload: any = {
+        customerid: userId,
+      };
 
-        if (userData.firstName !== originalData.userData.firstName) {
-          payload.firstName = userData.firstName;
-        }
-        if (userData.lastName !== originalData.userData.lastName) {
-          payload.lastName = userData.lastName;
-        }
-        if (userData.contactNumber !== originalData.userData.contactNumber) {
-          payload.mobileNo = userData.contactNumber?.replace("+", "") || null;
-        }
-        if (userData.altContactNumber !== originalData.userData.altContactNumber) {
-          payload.alternateNo = userData.altContactNumber?.replace("+", "") || null;
-        }
-
-        await axiosInstance.put(
-          `/api/customer/update-customer/${userId}`,
+      if (userData.firstName !== originalData.userData.firstName) {
+        payload.firstname = userData.firstName;  // lowercase
+      }
+      if (userData.lastName !== originalData.userData.lastName) {
+        payload.lastname = userData.lastName;    // lowercase
+      }
+      if (userData.contactNumber !== originalData.userData.contactNumber) {
+        payload.mobileno = userData.contactNumber?.replace("+", "") || null;  // lowercase
+      }
+      if (userData.altContactNumber !== originalData.userData.altContactNumber) {
+        payload.alternateno = userData.altContactNumber?.replace("+", "") || null;  // lowercase
+      }
+        await providerInstance.put(
+          `/api/customer/${userId}`,
           payload
         );
         
