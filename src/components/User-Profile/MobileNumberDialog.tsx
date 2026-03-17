@@ -411,17 +411,33 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
       return;
     }
 
+    // Create payload with lowercase field names as per API requirement
     const payload: any = {
-      customerid: appUser.customerid
+      customerid: appUser.customerid  // Keep as customerid (already lowercase)
     };
     
-    if (contactNumber) payload.mobileNo = contactNumber;
-    if (altContactNumber) payload.alternateNo = altContactNumber;
+    // Use lowercase field names: firstname, lastname, mobileno, alternateno
+    // Note: You'll need to get firstname and lastname from somewhere
+    // If you don't have them, you might need to fetch current user data first
+    
+    // For now, we'll just update the mobile numbers
+    if (contactNumber) {
+      payload.mobileno = contactNumber;  // lowercase
+    }
+    
+    if (altContactNumber) {
+      payload.alternateno = altContactNumber;  // lowercase
+    }
+    
+    // If you need to include firstname and lastname, you could add them like this:
+    // payload.firstname = appUser?.firstName || "";
+    // payload.lastname = appUser?.lastName || "";
 
-    console.log("📤 Sending update payload:", payload);
+    console.log("📤 Sending update payload with lowercase fields:", payload);
 
-    const response = await axiosInstance.put(
-      `/api/customer/update-customer/${appUser.customerid}`,
+    // Use providerInstance with the correct endpoint (same as in ProfileScreen)
+    const response = await providerInstance.put(
+      `/api/customer/${appUser.customerid}`,  // Using providerInstance and correct endpoint
       payload
     );
 
@@ -430,13 +446,13 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     // Update the appUser context with mobile numbers
     const updatedUser = {
       ...appUser,
-      mobileNo: contactNumber,
+      mobileNo: contactNumber,  // Keep camelCase in context if that's what it expects
       alternateNo: altContactNumber || null,
     };
     
     setAppUser(updatedUser);
 
-    // FIX: Pass true as argument to setHasMobileNumber
+    // Update Redux state
     dispatch(setHasMobileNumber(true));
 
     console.log("✅ Updated appUser with mobile numbers:", updatedUser);
@@ -456,7 +472,17 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
     }, 1500);
   } catch (error: any) {
     console.error("❌ Error updating mobile numbers:", error);
-    const errorMessage = error.response?.data?.message || "Something went wrong while updating!";
+    
+    // Better error handling
+    let errorMessage = "Something went wrong while updating!";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     showSnackbar(errorMessage, "error");
   } finally {
     setLoading(false);
