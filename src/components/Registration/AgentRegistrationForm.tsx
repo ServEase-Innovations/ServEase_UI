@@ -33,6 +33,7 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useFieldValidation } from "./useFieldValidation";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
+import axios from "axios";
 
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
@@ -67,7 +68,7 @@ interface ApiResponse {
 interface ApiRequestPayload {
   companyName: string;
   address: string;
-  emailId: string;
+  emailid: string;
   phoneNo: string;
   registrationId: string;
 }
@@ -262,7 +263,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
     const requestData: ApiRequestPayload = {
       companyName: formData.companyName,
       address: formData.address,
-      emailId: formData.emailId,
+      emailid: formData.emailId,
       phoneNo: formData.phoneNo,
       registrationId: formData.registrationId,
     };
@@ -275,6 +276,20 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       });
 
       if (response.status === 200 || response.status === 201) {
+
+        const authPayload = {
+          email: formData.emailId,
+          password: formData.password,
+          name: `${formData.companyName}`,
+        };
+
+        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+          .then((authResponse) => {
+            console.log("AuthO user created successfully:", authResponse.data);
+          }).catch((authError) => {
+            console.error("Error creating AuthO user:", authError);
+          });
+
         const apiReturnedId = response.data.registrationId || formData.registrationId;
         setReturnedRegistrationId(apiReturnedId);
         setMessage(t("vendorAdded"));
