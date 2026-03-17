@@ -1071,9 +1071,7 @@ const ProfileScreen = () => {
           payload
         );
         
-        // After saving, update local state from the response if needed
-        // We don't need to fetch from API since the data is updated
-        // Just update Redux state if needed
+        
         if (userData.contactNumber) {
           dispatch(setHasMobileNumber(true));
         }

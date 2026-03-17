@@ -199,7 +199,7 @@ export const Header: React.FC<ChildComponentProps> = ({
         firstname: user.given_name || user.name.split(" ")[0] || "User", // Fallback to 'User' if no first name
         lastname: user.family_name || user.name.split(" ")[1] || "", // Empty string if no last name
         emailid: user.email,
-        // password: "password",
+        // password: "password"
       };
 
       console.log("Creating user with data:", userData);
