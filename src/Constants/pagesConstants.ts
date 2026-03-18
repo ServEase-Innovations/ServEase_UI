@@ -7,3 +7,4 @@ export const PROFILE = "profile";
 export const ADMIN = "admin";
 export const DASHBOARD = "dashboard";
 export const CONTACT = "contact"
+export const AGENT_DASHBOARD = "AGENT_DASHBOARD";

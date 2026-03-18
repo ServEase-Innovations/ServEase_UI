@@ -88,6 +88,7 @@ interface FormData {
   keyFacts: boolean;
   kycType: string;
   kycNumber: string;
+  agentReferralId: string;
   permanentAddress: {
     apartment: string;
     street: string;
@@ -232,6 +233,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     latitude: 0,
     longitude: 0,
     AADHAR: "",
+    agentReferralId: "", 
     pan: "",
     panImage: null,
     housekeepingRole: [],
@@ -751,7 +753,13 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
   };
-
+const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { value } = e.target;
+  setFormData(prev => ({
+    ...prev,
+    agentReferralId: value
+  }));
+};
   const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation({ t });
   // Handler for KYC type change
   const handleKycTypeChange = (kycType: string) => {
@@ -1517,6 +1525,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           experience: parseInt(formData.experience) || 0,
           username: formData.emailId,
           password: formData.password,
+          agentReferralId: formData.agentReferralId, 
           privacy: formData.privacy,
           keyFacts: formData.keyFacts,
           permanentAddress: {
@@ -1871,6 +1880,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             onExperienceChange={handleExperienceChange}
             onDescriptionChange={handleChange}
             onReferralCodeChange={handleChange}
+            onAgentReferralIdChange={handleAgentReferralIdChange}
             onFullTimeToggle={handleFullTimeToggle}
             onAddMorningSlot={handleAddMorningSlot}
             onRemoveMorningSlot={handleRemoveMorningSlot}

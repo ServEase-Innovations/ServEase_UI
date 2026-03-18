@@ -12,7 +12,7 @@ import Confirmationpage from "./components/ServiceProvidersDetails/Confirmationp
 import Checkout from "./components/Checkout/Checkout";
 import UserProfile from "./components/User-Profile/UserProfile";
 import Booking from "./components/User-Profile/Bookings";
-import { ADMIN, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PROFILE } from "./Constants/pagesConstants";
+import { ADMIN, AGENT_DASHBOARD, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DETAILS, LOGIN, PROFILE } from "./Constants/pagesConstants";
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
@@ -46,6 +46,8 @@ import { setHasMobileNumber } from "./features/customer/customerSlice";
 import { ClipLoader } from 'react-spinners';
 import { LanguageProvider } from "./context/LanguageContext";
 import ProviderNotifications from "./components/Notifications/ProviderNotifications";
+import AgentDashboard from "./components/Agent/AgentDashboard";
+
 // Import the LanguageProvider
 
 function App() {
@@ -421,57 +423,58 @@ function App() {
     return !noFooterPages.includes(selection as string) && currentSection === "HOME";
   };
 
-  const renderContent = () => {
-    if (currentSection === "ABOUT") {
-      return <AboutPage onBack={handleBackToHome} />;
-    }
-    
-    if (currentSection === "CONTACT") {
-      return <ContactUs onBack={handleBackToHome} />;
-    }
-    
-    if (currentSection === "PRIVACY_POLICY") {
-      return <PrivacyPolicy onBack={handleBackToHome} />;
-    }
-    
-    if (currentSection === "TERMS_CONDITIONS") {
-      return <TnC onBack={handleBackToHome} />;
-    }    
+ const renderContent = () => {
+  if (currentSection === "ABOUT") {
+    return <AboutPage onBack={handleBackToHome} />;
+  }
+  
+  if (currentSection === "CONTACT") {
+    return <ContactUs onBack={handleBackToHome} />;
+  }
+  
+  if (currentSection === "PRIVACY_POLICY") {
+    return <PrivacyPolicy onBack={handleBackToHome} />;
+  }
+  
+  if (currentSection === "TERMS_CONDITIONS") {
+    return <TnC onBack={handleBackToHome} />;
+  }    
 
-    if (selection === DETAILS) {
-      return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
-    } else if (selection === CONFIRMATION) {
-      return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
-    } else if (selection === CHECKOUT) {
-      return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
-    } else if (selection === LOGIN) {
-      return (
-        <div className="w-full max-w-4xl h-[75%]">
-          <Login sendDataToParent={handleDataFromChild} />
-        </div>
-      );
-    } else if (selection === BOOKINGS) {
-      return <Booking handleDataFromChild={handleDataFromChild} />;
-    } else if (selection === DASHBOARD) {
-      return <Dashboard />;
-    } else if (selection === PROFILE) {
-      return <ProfileScreen/>;
-    } else if (selection === ADMIN) {
-      return <Admin />;
-    }
-
+  if (selection === DETAILS) {
+    return <DetailsView selected={selectedBookingType} sendDataToParent={handleDataFromChild} selectedProvider={handleSelectedProvider}/>;
+  } else if (selection === CONFIRMATION) {
+    return <Confirmationpage role={selectedBookingType} providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild} />;
+  } else if (selection === CHECKOUT) {
+    return <Checkout providerDetails={serviceProviderDetails} sendDataToParent={handleDataFromChild}/>;
+  } else if (selection === LOGIN) {
     return (
-      <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
-        <HomePage
-          sendDataToParent={(data) => handleDataFromChild(data, 'selection')}
-          bookingType={handleSelectedBookingType}
-          onAboutClick={handleAboutClick}
-          onContactClick={handleContactClick}
-        />
-      </ServiceProviderContext.Provider>
+      <div className="w-full max-w-4xl h-[75%]">
+        <Login sendDataToParent={handleDataFromChild} />
+      </div>
     );
-  };
+  } else if (selection === BOOKINGS) {
+    return <Booking handleDataFromChild={handleDataFromChild} />;
+  } else if (selection === DASHBOARD) {
+    return <Dashboard />;
+  } else if (selection === AGENT_DASHBOARD) {  
+    return <AgentDashboard />; 
+  } else if (selection === PROFILE) {
+    return <ProfileScreen/>;
+  } else if (selection === ADMIN) {
+    return <Admin />;
+  }
 
+  return (
+    <ServiceProviderContext.Provider value={selectedBookingTypeValue}>
+      <HomePage
+        sendDataToParent={(data) => handleDataFromChild(data, 'selection')}
+        bookingType={handleSelectedBookingType}
+        onAboutClick={handleAboutClick}
+        onContactClick={handleContactClick}
+      />
+    </ServiceProviderContext.Provider>
+  );
+};
   if (isAppLoading) {
     return <LoadingScreen />;
   }

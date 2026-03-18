@@ -29,6 +29,7 @@ import {
   DETAILS,
   LOGIN,
   PROFILE,
+  AGENT_DASHBOARD,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { Bell, ChevronDown, MapPin, ShoppingCart, User, X } from "lucide-react";
@@ -58,7 +59,7 @@ import providerInstance from "src/services/providerInstance";
 
 
 interface ChildComponentProps {
-  sendDataToParent: (data: string, type?: string) => void; // Add optional type parameter
+  sendDataToParent: (data: string, type?: string) => void;
   bookingType: string;
   onAboutClick: () => void;
   onContactClick: () => void;
@@ -75,20 +76,20 @@ export const Header: React.FC<ChildComponentProps> = ({
   // Use the language hook
   const { t, currentLanguage } = useLanguage();
   
-  const handleClick = (e: any) => {
-    if (e === "sign_out") {
-      dispatch(remove());
-      sendDataToParent(""); // Only one argument
-    } else if (e === "ABOUT") {
-      onAboutClick();
-    } else if (e === "CONTACT") {
-      onContactClick();
-    } else if (e === "") {
-      onLogoClick();
-    } else {
-      sendDataToParent(e); // Only one argument
-    }
-  };
+ const handleClick = (e: any) => {
+  if (e === "sign_out") {
+    dispatch(remove());
+    sendDataToParent("");
+  } else if (e === "ABOUT") {
+    onAboutClick();
+  } else if (e === "CONTACT") {
+    onContactClick();
+  } else if (e === "") {
+    onLogoClick();
+  } else {
+    sendDataToParent(e);
+  }
+};
 
   const {
     loginWithRedirect,
@@ -100,7 +101,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   } = useAuth0();
 
   const { setAppUser } = useAppUser();
-   const { appUser } = useAppUser();
+  const { appUser } = useAppUser();
 
   const cart = useSelector((state: any) => state.cart?.value);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -123,47 +124,40 @@ export const Header: React.FC<ChildComponentProps> = ({
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setdropDownOpen(false); // Close dropdown if clicked outside
+        setdropDownOpen(false);
       }
     };
 
-    // Attach the listener when dropdown is open
     if (dropDownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
-    // Clean up the listener
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropDownOpen]); // Only re-run if dropDownOpen changes
+  }, [dropDownOpen]);
 
   useEffect(() => {
     const run = async () => {
-      // Step 1: Get location first
       await getLocation();
 
-      // Step 2: Auth checks
       if (!isAuthenticated || isLoading || !user?.email) return;
 
       try {
-        // Step 3: Get token
         const token = await getAccessTokenSilently();
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
 
         const email = user.email ?? "";
 
-        // Step 4: Check email (this must finish before moving on)
         const response = await utilsInstance.get(
           `/customer/check-email?email=${encodeURIComponent(email)}`
         );
         console.log("Email check response:", response.data);
         console.log("User role:", response.data.user_role);
-        // Step 5: Conditional next steps
+        
         if (!response.data.user_role) {
           await createUser(user);
-          // await getCustomerPreferences(user.customerid);
         } else if (response.data.user_role === "SERVICE_PROVIDER") {
           setAppUser({
             ...user,
@@ -177,11 +171,16 @@ export const Header: React.FC<ChildComponentProps> = ({
             customerid: response.data.id,
           });
           await getCustomerPreferences(Number(response.data.id));
+        } else if (response.data.user_role === "VENDOR") {
+          setAppUser({
+            ...user,
+            role: "VENDOR",
+            vendorId: response.data.id,
+          });
         }
 
-        // Step 6: Anything else AFTER both API calls
         console.log("Updated user object with role:", user);
-        console.log("Post-login steps complete ✅");
+        console.log("Post-login steps completed ✅");
       } catch (error) {
         console.error("Error during post-login API call:", error);
       }
@@ -192,14 +191,12 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
-  // const createUser = async (user: any) => {};
- const createUser = async (user: any) => {
+  const createUser = async (user: any) => {
     try {
       const userData = {
-        firstname: user.given_name || user.name.split(" ")[0] || "User", // Fallback to 'User' if no first name
-        lastname: user.family_name || user.name.split(" ")[1] || "", // Empty string if no last name
+        firstname: user.given_name || user.name.split(" ")[0] || "User",
+        lastname: user.family_name || user.name.split(" ")[1] || "",
         emailid: user.email,
-        // password: "password"
       };
 
       console.log("Creating user with data:", userData);
@@ -238,7 +235,7 @@ export const Header: React.FC<ChildComponentProps> = ({
 
         setUserPreference(response.data);
         if (user) {
-          user.customerid = customerId; // Update user object with customerId
+          user.customerid = customerId;
           setAppUser({
             ...user,
             role: "CUSTOMER",
@@ -248,13 +245,11 @@ export const Header: React.FC<ChildComponentProps> = ({
 
         console.log("✅ Updated user object with customerId:", user);
         
-        // Ensure response.data has the correct structure
         const baseSuggestions = [
-          { name: t('detectLocation'), index: 1 }, // Updated to use t()
-          { name: t('addAddress'), index: 2 }, // Updated to use t()
+          { name: t('detectLocation'), index: 1 },
+          { name: t('addAddress'), index: 2 },
         ];
         
-        // Check if response.data is an array and has savedLocations
         const savedLocations = Array.isArray(response.data) && response.data[0]?.savedLocations 
           ? response.data[0].savedLocations 
           : [];
@@ -277,13 +272,12 @@ export const Header: React.FC<ChildComponentProps> = ({
         console.error("❌ Unexpected error fetching user settings:", error);
       }
     } finally {
-      setLoadingLocations(false); // End loading regardless of success/failure
+      setLoadingLocations(false);
     }
   };
 
   const createUserPreferences = async (customerId: number) => {
     if (user) {
-      // user.customerid = customerId; // Ensure user object has customerId
       setAppUser({
         ...user,
         role: "CUSTOMER",
@@ -300,11 +294,9 @@ export const Header: React.FC<ChildComponentProps> = ({
 
       const response = await utilsInstance.post("/user-settings", payload);
 
-      // Optionally check response before setting state
       if (response.status === 200 || response.status === 201) {
         setUserPreference(payload);
         
-        // Initialize suggestions with empty saved locations
         const baseSuggestions = [
           { name: t('detectLocation'), index: 1 },
           { name: t('addAddress'), index: 2 },
@@ -334,7 +326,7 @@ export const Header: React.FC<ChildComponentProps> = ({
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address || t('locationNotFound')); // Updated to use t()
+            setLocation(address || t('locationNotFound'));
             dispatch(add(response.data.results[0]));
             console.log("Location fetched: ", address);
           } catch (error) {
@@ -351,7 +343,6 @@ export const Header: React.FC<ChildComponentProps> = ({
     }
   };
 
-  // const user = useSelector((state : any) => state.user?.value);
   const dispatch = useDispatch();
 
   const [location, setLocation] = useState<any>("");
@@ -366,7 +357,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [showInput, setShowInput] = useState(false);
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
-  const [dialogOpenState, setDialogOpenState] = useState(false); // Changed variable name
+  const [dialogOpenState, setDialogOpenState] = useState(false);
   const [dialogServiceState, setDialogServiceState] = useState("");
   const [selectedOption, setSelectedOption] = useState("Date");
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -381,11 +372,11 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
-  // Ref to close dropdown when clicked outside
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
   const handleCartOpen = () => setCartOpen(true);
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
+  
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -402,7 +393,7 @@ export const Header: React.FC<ChildComponentProps> = ({
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address || t('locationNotFound')); // Updated to use t()
+            setLocation(address || t('locationNotFound'));
             dispatch(add(response.data.results[0]));
           } catch (error) {
             console.log("Failed to fetch location: ", error);
@@ -419,8 +410,8 @@ export const Header: React.FC<ChildComponentProps> = ({
   }, []);
 
   const [suggestions, setSuggestions] = useState([
-    { name: t('detectLocation'), index: 1 }, // Updated to use t()
-    { name: t('addAddress'), index: 2 }, // Updated to use t()
+    { name: t('detectLocation'), index: 1 },
+    { name: t('addAddress'), index: 2 },
   ]);
   const [dataFromMap, setDataFromMap] = useState<any>([]);
 
@@ -442,31 +433,27 @@ export const Header: React.FC<ChildComponentProps> = ({
     handleCartClose();
   };
 
-  // FIXED: Updated handleChange function to support both JSON formats
   const handleChange = (newValue: any) => {
     console.log("➡️ New Value Selected:", newValue);
     
-    if (newValue === t('addAddress')) { // Updated to use t()
+    if (newValue === t('addAddress')) {
       setOpen(true);
-    } else if (newValue === t('detectLocation')) { // Updated to use t()
+    } else if (newValue === t('detectLocation')) {
       getLocation();
     } else {
       console.log("➡️ Selected Saved Location:", newValue);
       console.log("🗂️ User Preferences:", userPreference);
       
-      // Check if userPreference has data
       if (!userPreference || userPreference.length === 0) {
         console.error("userPreference is empty or undefined");
         return;
       }
       
-      // Check if savedLocations exists
       if (!userPreference[0]?.savedLocations || userPreference[0]?.savedLocations.length === 0) {
         console.error("No saved locations found in userPreference");
         return;
       }
       
-      // Find the location - use exact match first, then case-insensitive
       const savedLocation = userPreference[0].savedLocations.find(
         (location: any) => location.name === newValue
       ) || userPreference[0].savedLocations.find(
@@ -476,22 +463,18 @@ export const Header: React.FC<ChildComponentProps> = ({
       if (savedLocation) {
         console.log("✅ Found location:", savedLocation);
         
-        // Check which format the location is in and extract the address accordingly
         let displayAddress = "Location found";
         
-        // Check for complex format (with address array)
         if (savedLocation.location?.address && Array.isArray(savedLocation.location.address)) {
           console.log("📌 Using complex location format");
           if (savedLocation.location.address[0]?.formatted_address) {
             displayAddress = savedLocation.location.address[0].formatted_address;
           }
         } 
-        // Check for simple format (with direct formatted_address)
         else if (savedLocation.location?.formatted_address) {
           console.log("📌 Using simple location format");
           displayAddress = savedLocation.location.formatted_address;
         }
-        // Check for location with lat/lng but no formatted_address
         else if (savedLocation.location?.lat && savedLocation.location?.lng) {
           console.log("📌 Location has lat/lng coordinates");
           displayAddress = `${savedLocation.name} location`;
@@ -532,12 +515,12 @@ export const Header: React.FC<ChildComponentProps> = ({
     setOpen(false);
     setOpenSaveOptionForSave(false);
   };
+  
   const handleServiceClick = (service: string) => {
-    // Map the service names to your internal types
     let serviceType = "";
-    if (service === t('homeCook')) serviceType = "COOK"; // Updated to use t()
-    if (service === t('cleaningHelp')) serviceType = "MAID"; // Updated to use t()
-    if (service === t('caregiver')) serviceType = "NANNY"; // Updated to use t()
+    if (service === t('homeCook')) serviceType = "COOK";
+    if (service === t('cleaningHelp')) serviceType = "MAID";
+    if (service === t('caregiver')) serviceType = "NANNY";
 
     setSelectedType(serviceType);
     setDialogService(service);
@@ -548,22 +531,17 @@ export const Header: React.FC<ChildComponentProps> = ({
     let timeRange = "";
     let timeSlot = "";
 
-    // Apply your new logic
     if (selectedRadioButtonValue === "Date") {
-      // For "Date" → send startTime-endTime for both
       timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
       timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
     } else if (selectedRadioButtonValue === "Short term") {
-      // For "Short term" → timeRange = startTime only, but timeSlot = full range
       timeRange = startTime?.format("HH:mm") || "";
       timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
     } else {
-      // For "Monthly" → both are just startTime
       timeRange = startTime?.format("HH:mm") || "";
       timeSlot = startTime?.format("HH:mm") || "";
     }
 
-    // Create booking object
     const booking = {
       startDate: startDate ? startDate.split("T")[0] : "",
       endDate: endDate
@@ -574,8 +552,6 @@ export const Header: React.FC<ChildComponentProps> = ({
       timeRange: timeRange,  
       bookingPreference: selectedRadioButtonValue,
       housekeepingRole: selectedType,
-
-      // NEW → include these extra fields
       startTime: startTime?.format("HH:mm") || "",
       endTime: endTime?.format("HH:mm") || "",
       timeSlot: timeSlot
@@ -583,10 +559,8 @@ export const Header: React.FC<ChildComponentProps> = ({
 
     console.log("Booking details:", booking);
 
-    // Dispatch
     dispatch(addBooking(booking));
 
-    // Same condition check as in homepage
     if (selectedRadioButtonValue === "Date") {
       setOpenServiceDialog(true);
     } else {
@@ -603,10 +577,9 @@ export const Header: React.FC<ChildComponentProps> = ({
     }
     console.log("dataFromMap ", dataFromMap);
     setLocation(
-      dataFromMap?.address[0]?.formatted_address || t('locationNotFound') // Updated to use t()
+      dataFromMap?.address[0]?.formatted_address || t('locationNotFound')
     );
     
-    // Extract address based on format
     let displayAddress = "Location not found";
     if (dataFromMap?.address && Array.isArray(dataFromMap.address)) {
       displayAddress = dataFromMap.address[0]?.formatted_address || "Location not found";
@@ -630,12 +603,10 @@ export const Header: React.FC<ChildComponentProps> = ({
   try {
     await updateUserSetting();
     
-    // Show success snackbar
-    setSnackbarMessage(t('locationSavedSuccess')); // Updated to use t()
+    setSnackbarMessage(t('locationSavedSuccess'));
     setSnackbarSeverity("success");
     setSnackbarOpen(true);
     
-    // Close dialog after a short delay
     setTimeout(() => {
       setOpenSaveOptionForSave(false);
       setLocationAs("");
@@ -645,8 +616,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   } catch (error) {
     console.error("Error saving location:", error);
     
-    // Show error snackbar
-    setSnackbarMessage(t('locationSaveError')); // Updated to use t()
+    setSnackbarMessage(t('locationSaveError'));
     setSnackbarSeverity("error");
     setSnackbarOpen(true);
     
@@ -654,17 +624,15 @@ export const Header: React.FC<ChildComponentProps> = ({
   }
 };
 
-// Updated updateUserSetting function to handle both JSON formats
 const updateUserSetting = async () => {
   if (!user || !locationAs || !dataFromMap) {
     console.error("Missing required data to update user setting.");
     throw new Error("Missing required data");
   }
 
-  // Save the location data as is - preserve its original format
   const newLocation = {
     name: locationAs,
-    location: dataFromMap, // This could be either simple or complex format
+    location: dataFromMap,
   };
 
   console.log("➕ New location to add:", newLocation);
@@ -686,7 +654,6 @@ const updateUserSetting = async () => {
     if (response.status === 200 || response.status === 201) {
       console.log("✅ User settings updated successfully");
       
-      // Update local state
       const updatedUserPreference = [{
         ...userPreference?.[0],
         customerId: user.customerid,
@@ -695,7 +662,6 @@ const updateUserSetting = async () => {
       
       setUserPreference(updatedUserPreference);
       
-      // Update suggestions
       const baseSuggestions = [
         { name: t('detectLocation'), index: 1 },
         { name: t('addAddress'), index: 2 },
@@ -707,17 +673,16 @@ const updateUserSetting = async () => {
       
       setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       
-      return response.data; // Return data for chaining
+      return response.data;
     } else {
       throw new Error(`Unexpected response: ${response.status}`);
     }
   } catch (error) {
     console.error("❌ Error updating user settings:", error);
-    throw error; // Re-throw for error handling in locationHandleSave
+    throw error;
   }
 };
 
-// Snackbar close handler
 const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
   if (reason === 'clickaway') {
     return;
@@ -758,13 +723,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
   const isMobile = useMediaQuery("(max-width:768px)");
 
-  // Add this useEffect for debugging
   useEffect(() => {
     console.log("🔄 userPreference state changed:", userPreference);
     console.log("🔄 suggestions state changed:", suggestions);
   }, [userPreference, suggestions]);
 
-  // Add this useEffect to ensure suggestions are synced with userPreference
   useEffect(() => {
     if (userPreference && userPreference.length > 0 && userPreference[0]?.savedLocations) {
       const baseSuggestions = [
@@ -780,7 +743,6 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       
       const newSuggestions = [...baseSuggestions, ...savedLocationSuggestions];
       
-      // Only update if suggestions are different
       if (JSON.stringify(newSuggestions) !== JSON.stringify(suggestions)) {
         console.log("🔄 Syncing suggestions with userPreference");
         console.log("New suggestions:", newSuggestions);
@@ -795,25 +757,21 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
         style={{ height: "10%" }}
       >
-        {/* Logo Section - Updated to use onLogoClick */}
+        {/* Logo Section */}
         <div
           className="flex items-center space-x-2 cursor-pointer"
           onClick={onLogoClick}
         >
-          {/* Mobile logo */}
           <img
             src="ServEaso_Logo.png"
             alt="ServEase Logo"
             className="h-[7.5rem] w-auto md:hidden"
           />
-
-          {/* Tablet logo */}
           <img
             src="ServEaso_Logo.png"
             alt="ServEase Logo"
             className="hidden md:block lg:hidden h-[9rem] w-auto max-w-[200px]"
           />
-          {/* Desktop logo */}
           <img
             src="ServEaso_Logo.png"
             alt="ServEase Logo"
@@ -829,7 +787,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       onClick={() => handleClick("")}
       className="hover:text-gray-200 transition"
     >
-      {t('home')} {/* Updated to use t() */}
+      {t('home')}
     </button>
 
     {/* Services Dropdown */}
@@ -838,13 +796,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => setServiceDropdownOpen((prev) => !prev)}
         className="flex items-center gap-1 hover:text-gray-200 transition"
       >
-        {t('ourServices')} {/* Updated to use t() */}
+        {t('ourServices')}
         <ChevronDown className="w-4 h-4" />
       </button>
 
       {serviceDropdownOpen && (
         <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-          {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map( // Updated to use t()
+          {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map(
             (service, idx) => (
               <li
                 key={idx}
@@ -869,7 +827,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => handleClick(BOOKINGS)}
         className="hover:text-gray-200 transition"
       >
-        {t('myBookings')} {/* Updated to use t() */}
+        {t('myBookings')}
       </button>
     )}
 
@@ -879,7 +837,17 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClick={() => handleClick(DASHBOARD)}
         className="hover:text-gray-200 transition"
       >
-        {t('dashboard')} {/* Updated to use t() */}
+        {t('dashboard')}
+      </button>
+    )}
+
+    {/* Agent Dashboard Tab - Conditionally shown for authenticated VENDOR users */}
+    {isAuthenticated && appUser?.role === "VENDOR" && (
+      <button
+        onClick={() => handleClick(AGENT_DASHBOARD)}
+        className="hover:text-gray-200 transition"
+      >
+        Agent Dashboard
       </button>
     )}
 
@@ -887,19 +855,19 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       onClick={() => handleClick("ABOUT")}
       className="hover:text-gray-200"
     >
-      {t('aboutUs')} {/* Updated to use t() */}
+      {t('aboutUs')}
     </button>
 
     <button
       onClick={() => handleClick("CONTACT")}
       className="hover:text-gray-200"
     >
-      {t('contactUs')} {/* Updated to use t() */}
+      {t('contactUs')}
     </button>
   </nav>
 )}
 
-        {/* Move these dialog components outside the navigation */}
+        {/* Dialog components */}
         <BookingDialog
           open={dialogOpenState}
           onClose={() => setDialogOpen(false)}
@@ -937,15 +905,16 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             sendDataToParent={sendDataToParent}
           />
         )}
+        
         {/* Right Side Content */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Location Bar - UPDATED */}
+          {/* Location Bar */}
           <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64 relative">
             <MapPin className="w-4 h-4 text-gray-500 mr-2" />
             <div className="relative w-full">
               <input
                 type="text"
-                placeholder={t('location')} // Updated to use t()
+                placeholder={t('location')}
                 value={location}
                 onFocus={() => setShowDropdown(true)}
                 onClick={() => setShowDropdown(true)}
@@ -959,30 +928,30 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
                       console.log("📍 Detect Location clicked");
-                      handleChange(t('detectLocation')); // Updated to use t()
+                      handleChange(t('detectLocation'));
                       setTimeout(() => {
                         setShowDropdown(false);
                       }, 100);
                     }}
                   >
-                    {t('detectLocation')} {/* Updated to use t() */}
+                    {t('detectLocation')}
                   </li>
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
                       console.log("🏠 Add Address clicked");
-                      handleChange(t('addAddress')); // Updated to use t()
+                      handleChange(t('addAddress'));
                       setTimeout(() => {
                         setShowDropdown(false);
                       }, 100);
                     }}
                   >
-                    {t('addAddress')} {/* Updated to use t() */}
+                    {t('addAddress')}
                   </li>
                   {loadingLocations ? (
                     <li className="px-4 py-2 text-gray-500 flex items-center justify-center gap-2">
                       <ClipLoader size={15} color="#6b7280" />
-                      {t('loading')}... {/* Updated to use t() */}
+                      {t('loading')}...
                     </li>
                   ) : (
                     suggestions
@@ -992,13 +961,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                           key={index}
                           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent event bubbling
+                            e.stopPropagation();
                             console.log(`📍 ${suggestion.name} clicked`);
                             console.log("📊 Current suggestions:", suggestions);
                             console.log("📊 Current userPreference:", userPreference);
-                            // Call handleChange immediately
                             handleChange(suggestion.name);
-                            // Close dropdown
                             setTimeout(() => {
                               setShowDropdown(false);
                             }, 100);
@@ -1013,116 +980,132 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             </div>
           </div>
 
-          {/* Cart */}
-          {/* <Badge badgeContent={totalCartItems} color="primary">
-    <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleCartOpen}>
-    <ShoppingCart className="w-5 h-5" />
-    </Button>
-    </Badge> */}
-    <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleNotificationClick} >
-   <Bell className="w-5 h-5" />
-    </Button>
+          {/* Notifications */}
+          <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleNotificationClick} >
+            <Bell className="w-5 h-5" />
+          </Button>
+          
           {/* User / Auth */}
-        {!isAuthenticated ? (
-  <Button
-    variant="ghost"
-    size="icon"
-    className="bg-white rounded-full shadow"
-    onClick={() => loginWithRedirect()}
-  >
-    <User className="w-5 h-5" />
-  </Button>
-) : (
-  <div className="relative inline-block text-left">
-    <button
-      onClick={() => setdropDownOpen((prev) => !prev)}
-      className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
-    >
-      <img
-        src={appUser?.picture}
-        alt={appUser?.name}
-        className="w-6 h-6 md:w-8 md:h-8 rounded-full"
-      />
-      <span className="font-medium hidden sm:inline">
-        {user?.name}
-      </span>
-      <ChevronDown className="w-4 h-4" />
-    </button>
+          {!isAuthenticated ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-white rounded-full shadow"
+              onClick={() => loginWithRedirect()}
+            >
+              <User className="w-5 h-5" />
+            </Button>
+          ) : (
+            <div className="relative inline-block text-left">
+              <button
+                onClick={() => setdropDownOpen((prev) => !prev)}
+                className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+              >
+                <img
+                  src={appUser?.picture}
+                  alt={appUser?.name}
+                  className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+                />
+                <span className="font-medium hidden sm:inline">
+                  {user?.name}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
 
-    {dropDownOpen && (
-      <div
-        ref={dropdownRef}
-        className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
-      >
-        <ul className="py-2 text-sm">
-          <li
-            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-            onClick={() => {
-              handleClick(PROFILE);
-              setdropDownOpen(false);
-            }}
-          >
-            {t('profile')} {/* Updated to use t() */}
-          </li>
-          {appUser?.role === "CUSTOMER" && (
-            <li
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => {
-                handleClick(BOOKINGS);
-                setdropDownOpen(false);
-              }}
-            >
-              {t('myBookings')} {/* Updated to use t() */}
-            </li>
-          )}
-          {appUser?.role === "SERVICE_PROVIDER" && (
-            <li
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              onClick={() => {
-                handleClick(DASHBOARD);
-                setdropDownOpen(false);
-              }}
-            >
-              {t('dashboard')} {/* Updated to use t() */}
-            </li>
-          )}
-          <li
-            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-            onClick={() => {
-              logout({
-                logoutParams: { returnTo: window.location.origin },
-              });
-              setdropDownOpen(false);
-            }}
-          >
-            {t('logout')} {/* Updated to use t() */}
-          </li>
-        </ul>
-      </div>
-    )}
-  </div>
+              {dropDownOpen && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
+                >
+                  <ul className="py-2 text-sm">
+                    <li
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        handleClick(PROFILE);
+                        setdropDownOpen(false);
+                      }}
+                    >
+                      {t('profile')}
+                    </li>
+                    
+                    {/* Customer Menu Items */}
+                    {appUser?.role === "CUSTOMER" && (
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          handleClick(BOOKINGS);
+                          setdropDownOpen(false);
+                        }}
+                      >
+                        {t('myBookings')}
+                      </li>
+                    )}
+                    
+                    {/* Service Provider Menu Items */}
+                    {appUser?.role === "SERVICE_PROVIDER" && (
+                      <li
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          handleClick(DASHBOARD);
+                          setdropDownOpen(false);
+                        }}
+                      >
+                        {t('dashboard')}
+                      </li>
+                    )}
+                    
+                  {/* Vendor Menu Items - Show Agent Dashboard */}
+{appUser?.role === "VENDOR" && (
+  <li
+    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+    onClick={() => {
+      handleClick(AGENT_DASHBOARD); // This sends "AGENT_DASHBOARD" to parent
+      setdropDownOpen(false);
+    }}
+  >
+    Agent Dashboard
+  </li>
 )}
+                    
+                    <li
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        logout({
+                          logoutParams: { returnTo: window.location.origin },
+                        });
+                        setdropDownOpen(false);
+                      }}
+                    >
+                      {t('logout')}
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
+      {/* Location Selection Dialog */}
       <Dialog open={open} onClose={handleClose}>
-         <DialogHeader style={{
-                        position: 'sticky',
-                        top: 0,
-                        backgroundColor: 'white',
-                        zIndex: 1000,
-                        padding: '16px 24px',
-                        borderBottom: '1px solid #e0e0e0',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }}>
-                        <DialogTitle>{t('setLocation')}</DialogTitle> {/* Updated to use t() */}
-                        <IconButton
-                          aria-label="close"
-                          onClick={handleClose}
-                          className="!absolute right-4  !text-white"
-                        >
-                          <X className="w-6 h-6" />
-                        </IconButton></DialogHeader>
+        <DialogHeader style={{
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'white',
+          zIndex: 1000,
+          padding: '16px 24px',
+          borderBottom: '1px solid #e0e0e0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <DialogTitle>{t('setLocation')}</DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={handleClose}
+            className="!absolute right-4 !text-white"
+          >
+            <X className="w-6 h-6" />
+          </IconButton>
+        </DialogHeader>
         
         <DialogContent
           sx={{
@@ -1142,124 +1125,125 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
         <DialogActions sx={{ padding: "10px" }}>
           <Button color="primary" onClick={handleClose} className={undefined}>
-            {t('cancel')} {/* Updated to use t() */}
+            {t('cancel')}
           </Button>
           <Button color="primary" onClick={handleSave} className={undefined}>
-            {t('save')} {/* Updated to use t() */}
+            {t('save')}
           </Button>
         </DialogActions>
       </Dialog>
-<Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
 
-   <DialogHeader style={{
-                        position: 'sticky',
-                        top: 0,
-                        backgroundColor: 'white',
-                        zIndex: 1000,
-                        padding: '16px 24px',
-                        borderBottom: '1px solid #e0e0e0',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                      }}>
-                         <DialogTitle>{t('saveAs')}</DialogTitle> {/* Updated to use t() */}
-                        <IconButton
-                          aria-label="close"
-                          onClick={handleClose}
-                          className="!absolute right-4  !text-white"
-                        >
-                          <X className="w-6 h-6" />
-                        </IconButton></DialogHeader>
-  <DialogContent>
-    <div>
-      <div>{t('saveAs')} :</div> {/* Updated to use t() */}
-      <Button
-        startIcon={<FaHome />}
-        className={undefined}
-        onClick={() => {
-          handleUserPreference("Home");
-        }}
-        disabled={isSaving}
-      >
-        {t('home')} {/* Updated to use t() */}
-      </Button>
-      <Button
-        startIcon={<HiBuildingOffice />}
-        className={undefined}
-        onClick={() => {
-          handleUserPreference("Office");
-        }}
-        disabled={isSaving}
-      >
-        {t('office')} {/* Updated to use t() */}
-      </Button>
-      <Button
-        startIcon={<FaLocationArrow />}
-        className={undefined}
-        onClick={() => {
-          handleUserPreference();
-        }}
-        disabled={isSaving}
-      >
-        {t('others')} {/* Updated to use t() */}
-      </Button>
-    </div>
-    {showInput && (
-      <TextField
-        id="standard-basic"
-        label={t('enterLocationName')} // Updated to use t()
-        variant="standard"
-        fullWidth
-        value={locationAs}
-        onChange={(e) => setLocationAs(e.target.value)}
-        disabled={isSaving}
-      />
-    )}
-  </DialogContent>
-
-  <DialogActions sx={{ padding: "10px" }}>
-    <Button 
-      color="primary" 
-      onClick={handleClose} 
-      className={undefined}
-      disabled={isSaving}
-    >
-      {t('cancel')} {/* Updated to use t() */}
-    </Button>
-    <Button
-      color="primary"
-      onClick={locationHandleSave}
-      className={undefined}
-      disabled={isSaving || !locationAs}
-      startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
-    >
-      {isSaving ? t('saving') : t('save')} {/* Updated to use t() */}
-    </Button>
-  </DialogActions>
-</Dialog>
-
-   <Snackbar
-              open={snackbarOpen}
-              autoHideDuration={6000}
-             onClose={handleSnackbarClose}
-              anchorOrigin={{ vertical: "top", horizontal: "right" }}
-              sx={{ marginTop: "60px" }}
+      {/* Save Location Dialog */}
+      <Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
+        <DialogHeader style={{
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'white',
+          zIndex: 1000,
+          padding: '16px 24px',
+          borderBottom: '1px solid #e0e0e0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <DialogTitle>{t('saveAs')}</DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={handleClose}
+            className="!absolute right-4 !text-white"
+          >
+            <X className="w-6 h-6" />
+          </IconButton>
+        </DialogHeader>
+        
+        <DialogContent>
+          <div>
+            <div>{t('saveAs')} :</div>
+            <Button
+              startIcon={<FaHome />}
+              className={undefined}
+              onClick={() => {
+                handleUserPreference("Home");
+              }}
+              disabled={isSaving}
             >
-  <Alert 
-    onClose={handleSnackbarClose} 
-    severity={snackbarSeverity}
-    sx={{ width: '100%' }}
-  >
-    {snackbarMessage}
-  </Alert>
-</Snackbar>
+              {t('home')}
+            </Button>
+            <Button
+              startIcon={<HiBuildingOffice />}
+              className={undefined}
+              onClick={() => {
+                handleUserPreference("Office");
+              }}
+              disabled={isSaving}
+            >
+              {t('office')}
+            </Button>
+            <Button
+              startIcon={<FaLocationArrow />}
+              className={undefined}
+              onClick={() => {
+                handleUserPreference();
+              }}
+              disabled={isSaving}
+            >
+              {t('others')}
+            </Button>
+          </div>
+          {showInput && (
+            <TextField
+              id="standard-basic"
+              label={t('enterLocationName')}
+              variant="standard"
+              fullWidth
+              value={locationAs}
+              onChange={(e) => setLocationAs(e.target.value)}
+              disabled={isSaving}
+            />
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ padding: "10px" }}>
+          <Button 
+            color="primary" 
+            onClick={handleClose} 
+            className={undefined}
+            disabled={isSaving}
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            color="primary"
+            onClick={locationHandleSave}
+            className={undefined}
+            disabled={isSaving || !locationAs}
+            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
+          >
+            {isSaving ? t('saving') : t('save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        sx={{ marginTop: "60px" }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* Notifications Dialog */}
       <NotificationsDialog 
         open={showNotifications} 
         onClose={handleCloseNotifications} 
       />
-      {/* <CartDialog
-    open={cartOpen}
-    handleClose={handleCartClose}
-    
-    /> */}
     </>
   );
 };

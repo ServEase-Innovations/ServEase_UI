@@ -52,6 +52,7 @@ interface ServiceDetailsProps {
   onExperienceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDescriptionChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onReferralCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onAgentReferralIdChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Add this new prop
   onFullTimeToggle: (checked: boolean) => void;
   onAddMorningSlot: () => void;
   onRemoveMorningSlot: (index: number) => void;
@@ -69,6 +70,7 @@ interface ServiceDetailsProps {
   selectedLanguages?: string[];
   onLanguagesChange?: (languages: string[]) => void;
 }
+
 
 const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   formData,
@@ -98,6 +100,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   TimeSliderWithDisabledRanges,
   DisabledRangesIndicator,
   getDisabledRangesForSlot,
+  onAgentReferralIdChange,
   formatDisplayTime,
   // Add language props with default values
   selectedLanguages = [],
@@ -585,7 +588,16 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           onChange={onReferralCodeChange}
         />
       </Grid>
-      
+      <Grid item xs={12}>
+  <TextField
+    placeholder="Agent Referral ID (Optional)"
+    name="agentReferralId"
+    fullWidth
+    value={formData.agentReferralId || ""}
+    onChange={onAgentReferralIdChange}
+    helperText="If you were referred by an agent, please enter their referral ID"
+  />
+</Grid>
       {/* Time slot section */}
       <Grid item xs={12}>
         <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
