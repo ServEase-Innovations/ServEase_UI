@@ -38,14 +38,18 @@ export interface ServicesDialogProps {
   onClose: () => void;
   onServiceSelect?: (serviceType: string) => void;
   sendDataToParent?: (data: string) => void;
+  onBookingCreated?: () => void; // Add this prop
 }
 
-const ServicesDialog: React.FC<ServicesDialogProps> = ({
-  open,
-  onClose,
-  onServiceSelect,
-  sendDataToParent,
-}) => {
+const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
+  const {
+    open,
+    onClose,
+    onServiceSelect,
+    sendDataToParent,
+    onBookingCreated // Destructure the new prop
+  } = props;
+
   const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width:600px)");
 
@@ -142,6 +146,7 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
     console.log("selectedRadioButtonValue:", selectedRadioButtonValue);
     console.log("selectedType:", selectedType);
     console.log("sendDataToParent exists:", !!sendDataToParent);
+    console.log("onBookingCreated exists:", !!onBookingCreated);
     
     let timeRange = "";
     let timeSlot = "";
@@ -177,15 +182,28 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
     // Dispatch booking to Redux
     dispatch(addBooking(booking));
     
+    // IMPORTANT: Call the onBookingCreated callback to refresh bookings in the parent
+    if (onBookingCreated) {
+      console.log("📣 Emitting booking created event to refresh bookings");
+      // Use setTimeout to ensure this happens after dialog closes
+      setTimeout(() => {
+        onBookingCreated();
+      }, 100);
+    } else {
+      console.warn("onBookingCreated callback is not provided - bookings won't auto-refresh");
+    }
+    
     // Close booking dialog
     setBookingDialogOpen(false);
 
-    // Handle navigation based on booking type
+    // Handle flow based on booking type
     if (selectedRadioButtonValue === "Date") {
       console.log("Opening service-specific dialog for Date booking");
       setOpenServiceDialog(true);
+      // DO NOT navigate to DETAILS here - let the service dialog handle it after payment
     } else {
       console.log(`Non-Date booking (${selectedRadioButtonValue}), calling sendDataToParent with DETAILS`);
+      // For non-Date bookings, go directly to details page
       if (sendDataToParent) {
         sendDataToParent(DETAILS);
       } else {
@@ -198,13 +216,21 @@ const ServicesDialog: React.FC<ServicesDialogProps> = ({
     console.log("handleServiceDialogClose called");
     setOpenServiceDialog(false);
     
-    // Always navigate to DETAILS after service dialog closes
-    // This handles both successful completion and cancellation
-    if (sendDataToParent) {
-      console.log("Calling sendDataToParent(DETAILS) from handleServiceDialogClose");
-      sendDataToParent(DETAILS);
-    } else {
-      console.error("ERROR: sendDataToParent is undefined in handleServiceDialogClose");
+    // Reset states
+    setSelectedType('');
+    setSelectedRadioButtonValue("Date");
+    setStartDate(null);
+    setEndDate(null);
+    setStartTime(null);
+    setEndTime(null);
+    
+    // Call onBookingCreated again when service dialog closes (for Date bookings)
+    // This ensures bookings refresh after payment is completed in the service dialog
+    if (onBookingCreated) {
+      console.log("📣 Service dialog closed, refreshing bookings again");
+      setTimeout(() => {
+        onBookingCreated();
+      }, 100);
     }
   };
 
