@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -26,6 +26,8 @@ import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
+import { useLanguage } from "src/context/LanguageContext";
+// Adjust the import path as needed
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -73,6 +75,9 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
   setStartTime,
   setEndTime,
 }) => {
+  // Use the language context
+  const { t } = useLanguage();
+  
   const [value, setValue] = useState<Dayjs | null>(dayjs());
   const [lastSelectedDate, setLastSelectedDate] = useState<Dayjs | null>(null);
   
@@ -87,7 +92,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
   const prefers24Hour = !new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
   }).formatToParts(new Date()).some((part) => part.type === "dayPeriod");
-    // Reset all date states when dialog closes
+  
+  // Reset all date states when dialog closes
   useEffect(() => {
     if (!open) {
       setStartDate(null);
@@ -127,7 +133,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     } else {
       // Case 2: Future date selected - set to 5:00 AM by default
       // Only set to 5:00 AM if the date changed but time didn't
-      if (isDateChanged || newValue.hour() === 0 && newValue.minute() === 0) {
+      if (isDateChanged || (newValue.hour() === 0 && newValue.minute() === 0)) {
         adjustedTime = newValue.hour(5).minute(0);
       }
     }
@@ -179,7 +185,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
   const handleAccept = () => {
     if (startTime && !isBookingValid(startTime)) {
-      alert("Please select a time between 5 AM and 10 PM, at least 30 minutes from now");
+      alert(t('bookingTimeRestriction')); // You'll need to add this translation key
       return;
     }
 
@@ -243,7 +249,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     >
       {/* Close Button */}
       <IconButton
-        aria-label="close"
+        aria-label={t('close')}
         onClick={onClose}
         sx={{
           position: 'absolute',
@@ -264,7 +270,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       <DialogHeader
         className={`${isMobile ? "text-[1.1rem] px-4 pt-4 pb-2" : "text-[1.25rem] px-6 pt-6 pb-4"}`}
       >
-        Select your Booking Option
+        {t('selectBookingOption')}
       </DialogHeader>
 
       <DialogContent sx={{ 
@@ -280,7 +286,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             fontSize: isMobile ? '0.9rem' : '1rem',
             mb: 1
           }}>
-            Book by
+            {t('bookBy')}
           </FormLabel>
           <RadioGroup 
             row 
@@ -295,7 +301,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             <FormControlLabel 
               value="Date" 
               control={<Radio size={isMobile ? "small" : "medium"} />} 
-              label="Date" 
+              label={t('dateOption')} 
               sx={{ 
                 marginRight: isMobile ? '8px' : '16px',
                 '& .MuiFormControlLabel-label': {
@@ -306,7 +312,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             <FormControlLabel 
               value="Short term" 
               control={<Radio size={isMobile ? "small" : "medium"} />} 
-              label="Short term" 
+              label={t('shortTerm')} 
               sx={{ 
                 marginRight: isMobile ? '8px' : '16px',
                 '& .MuiFormControlLabel-label': {
@@ -317,7 +323,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             <FormControlLabel 
               value="Monthly" 
               control={<Radio size={isMobile ? "small" : "medium"} />} 
-              label="Monthly" 
+              label={t('monthly')} 
               sx={{ 
                 '& .MuiFormControlLabel-label': {
                   fontSize: isMobile ? '0.8rem' : '0.875rem'
@@ -333,49 +339,47 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           {selectedOption === "Date" && (
             <Box>
               <Box sx={{ width: "100%", mb: 2 }}>
-  <Box
-    sx={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      width: "100%",
-    }}
-  >
-    <Box sx={{ width: "100%", maxWidth: 380 }}>
-  <DribbbleDateTimePicker
-    mode="single"
-    value={startDate ? dayjs(startDate).toDate() : undefined}
-    onChange={(selectedDateTime: Date) => {
-      const selected = dayjs(selectedDateTime);
-      const now = dayjs();
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <Box sx={{ width: "100%", maxWidth: 380 }}>
+                    <DribbbleDateTimePicker
+                      mode="single"
+                      value={startDate ? dayjs(startDate).toDate() : undefined}
+                      onChange={(selectedDateTime: Date) => {
+                        const selected = dayjs(selectedDateTime);
+                        const now = dayjs();
 
-      // ⛔ Minimum 30 minutes from now
-      if (selected.isBefore(now.add(30, "minute"))) {
-        alert("Please select a time at least 30 minutes from now");
-        return;
-      }
+                        // ⛔ Minimum 30 minutes from now
+                        if (selected.isBefore(now.add(30, "minute"))) {
+                          alert(t('timeMinuteRestriction'));
+                          return;
+                        }
 
-      // ⛔ Allowed hours: 5 AM – 9 PM
-      if (selected.hour() < 5 || selected.hour() > 21) {
-        alert("Time must be between 5 AM and 9 PM");
-        return;
-      }
+                        // ⛔ Allowed hours: 5 AM – 9 PM
+                        if (selected.hour() < 5 || selected.hour() > 21) {
+                          alert(t('timeHourRestriction'));
+                          return;
+                        }
 
-      // ⛔ Max 21 days
-      if (selected.isAfter(maxDate21Days)) {
-        alert("Date exceeds allowed range");
-        return;
-      }
+                        // ⛔ Max 21 days
+                        if (selected.isAfter(maxDate21Days)) {
+                          alert(t('dateExceedRestriction'));
+                          return;
+                        }
 
-      // ✅ Save final value
-      updateStartDate(selected);
-    }}
-  />
-</Box>
-
-
-  </Box>
-</Box>
+                        // ✅ Save final value
+                        updateStartDate(selected);
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
 
               {/* Duration Selector Section */}
               {startDate && startTime && (
@@ -389,20 +393,20 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   {/* Header */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 600 }}>
-                      Confirm Your Booking
+                      {t('confirmBooking')}
                     </Typography>
                   </Box>
 
                   {/* Booking Details */}
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                      Booking Details
+                      {t('bookingDetails')}
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                      Start Date: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : 'Not selected'}
+                      {t('startDate')}: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : t('notSelected')}
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                      Start Time: {startTime ? startTime.format('h:mm A') : 'Not selected'}
+                      {t('startTime')}: {startTime ? startTime.format('h:mm A') : t('notSelected')}
                     </Typography>
                     <Typography variant="body2" sx={{ 
                       fontSize: isMobile ? '0.8rem' : '0.875rem', 
@@ -410,21 +414,24 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                       mt: 1,
                       fontStyle: 'italic'
                     }}>
-                      Your service is set to start on {startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___'} at {startTime ? startTime.format('h:mm A') : '___'}.
+                      {t('serviceStartMessage', { 
+  date: startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___',
+  time: startTime ? startTime.format('h:mm A') : '___'
+})}
                     </Typography>
                   </Box>
 
                   {/* Service Duration */}
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                      Service Duration
+                      {t('serviceDuration')}
                     </Typography>
                     <Typography variant="body2" sx={{ 
                       fontSize: isMobile ? '0.8rem' : '0.875rem', 
                       color: 'text.secondary',
                       mb: 2
                     }}>
-                      If you need more time, adjust your service duration below.
+                      {t('durationMessage')}
                     </Typography>
 
                     {/* Duration Selector */}
@@ -459,7 +466,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
                       <Box sx={{ textAlign: 'center' }}>
                         <Typography variant="h6" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 600 }}>
-                          {startTime && endTime ? endTime.diff(startTime, 'hour') : 1} hour{startTime && endTime && endTime.diff(startTime, 'hour') > 1 ? 's' : ''}
+                          {startTime && endTime ? endTime.diff(startTime, 'hour') : 1} {t('hourUnit')}
+                          {startTime && endTime && endTime.diff(startTime, 'hour') > 1 ? 's' : ''}
                         </Typography>
                       </Box>
 
@@ -499,7 +507,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   fontStyle: 'italic',
                   color: 'text.secondary'
                 }}>
-                  Relax, we'll handle the rest. Our verified professionals ensure your peace of mind.
+                  {t('relaxWeHandle')}
                 </Typography>
               </Box>
             </Box>
@@ -507,81 +515,77 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
           {/* --- Short Term Option --- */}
           {selectedOption === "Short term" && (
-<Box
-  display="flex"
-  gap={isMobile ? 2 : 3}
-  flexDirection="column"
-  alignItems="center"
->
-  <DribbbleDateTimePicker
-    mode="range"   // ✅ REQUIRED
-    value={{
-      startDate: startDate ? dayjs(startDate).toDate() : undefined,
-      endDate: endDate ? dayjs(endDate).toDate() : undefined,
-    }}
-    onChange={({ startDate, endDate, time }) => {
-      const start = dayjs(startDate);
-      const end = dayjs(endDate);
+            <Box
+              display="flex"
+              gap={isMobile ? 2 : 3}
+              flexDirection="column"
+              alignItems="center"
+            >
+              <DribbbleDateTimePicker
+                mode="range"   // ✅ REQUIRED
+                value={{
+                  startDate: startDate ? dayjs(startDate).toDate() : undefined,
+                  endDate: endDate ? dayjs(endDate).toDate() : undefined,
+                }}
+                onChange={({ startDate, endDate, time }) => {
+                  const start = dayjs(startDate);
+                  const end = dayjs(endDate);
 
-      // ✅ SAME time applied to both dates
-      setStartDate(start.format("YYYY-MM-DD"));
-      setEndDate(end.format("YYYY-MM-DD"));
+                  // ✅ SAME time applied to both dates
+                  setStartDate(start.format("YYYY-MM-DD"));
+                  setEndDate(end.format("YYYY-MM-DD"));
 
-      setStartTime(start);
-      setEndTime(end);
-    }}
-  />
-</Box>
-
-
-
-
+                  setStartTime(start);
+                  setEndTime(end);
+                }}
+              />
+            </Box>
           )}
 
           {/* --- Monthly Option --- */}
           {selectedOption === "Monthly" && (
-  <Box
-    display="flex"
-    justifyContent="center"
-    width="100%"
-  >
-    <DribbbleDateTimePicker
-      mode="single"
-      value={startDate ? dayjs(startDate).toDate() : undefined}
-      onChange={(selectedDateTime: Date) => {
-        const selected = dayjs(selectedDateTime);
-        const now = dayjs();
+            <Box
+              display="flex"
+              justifyContent="center"
+              width="100%"
+            >
+              <DribbbleDateTimePicker
+                mode="single"
+                value={startDate ? dayjs(startDate).toDate() : undefined}
+                onChange={(selectedDateTime: Date) => {
+                  const selected = dayjs(selectedDateTime);
+                  const now = dayjs();
 
-        // ⛔ Minimum 30 minutes from now
-        if (selected.isBefore(now.add(30, "minute"))) {
-          alert("Please select a time at least 30 minutes from now");
-          return;
-        }
+                  // ⛔ Minimum 30 minutes from now
+                  if (selected.isBefore(now.add(30, "minute"))) {
+                    alert(t('timeMinuteRestriction'));
+                    return;
+                  }
 
-        // ⛔ Allowed hours: 5 AM – 9 PM
-        if (selected.hour() < 5 || selected.hour() > 21) {
-          alert("Time must be between 5 AM and 9 PM");
-          return;
-        }
+                  // ⛔ Allowed hours: 5 AM – 9 PM
+                  if (selected.hour() < 5 || selected.hour() > 21) {
+                    alert(t('timeHourRestriction'));
+                    return;
+                  }
 
-        // ⛔ Max 90 days
-        if (selected.isAfter(maxDate90Days, "day")) {
-          alert("Date exceeds allowed range");
-          return;
-        }
+                  // ⛔ Max 90 days
+                  if (selected.isAfter(maxDate90Days, "day")) {
+                    alert(t('monthlyDateExceedRestriction'));
+                    return;
+                  }
 
-        // ⛔ Disable past dates
-        if (selected.isBefore(today, "day")) {
-          alert("Past dates are not allowed");
-          return;
-        }
+                  // ⛔ Disable past dates
+                  if (selected.isBefore(today, "day")) {
+                    alert(t('pastDateRestriction'));
+                    return;
+                  }
 
-        // ✅ Valid → update state
-        updateStartDate(selected);
-      }}
-    />
-  </Box>
-)}
+                  // ✅ Valid → update state
+                  updateStartDate(selected);
+                }}
+              />
+            </Box>
+          )}
 
         </LocalizationProvider>
       </DialogContent>
@@ -598,7 +602,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           fullWidth={isMobile}
           size={isMobile ? "small" : "medium"}
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <Button 
           onClick={handleAccept} 
@@ -607,7 +611,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           fullWidth={isMobile}
           size={isMobile ? "small" : "medium"}
         >
-          Confirm
+          {t('confirm')}
         </Button>
       </DialogActions>
     </Dialog>

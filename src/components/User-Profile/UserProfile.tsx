@@ -15,24 +15,18 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useSelector, useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
 import { useAppUser } from "src/context/AppUserContext";
-
-//   interface ChildComponentProps {
-//     sendDataToParent: (data: string) => void; // Callback to close UserProfile
-//   goBack: () => void;
-// }
-
+import { useLanguage } from "src/context/LanguageContext";
 interface UserProfileProps {
   goBack: () => void;
 }
 
-
-const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
+const UserProfile: React.FC<UserProfileProps> = ({ goBack }) => {
+  const { t } = useLanguage(); // Initialize the translation hook
   const dispatch = useDispatch();
 
   // Access user data from Redux store
   const userData = useSelector((state: any) => state.user.value);
   const { appUser } = useAppUser();
-  
 
   const [formData, setFormData] = useState({
     account: {
@@ -62,13 +56,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
   // Populate formData from Redux store
   useEffect(() => {
     if (userData) {
-      console.log("user Data ===> ", userData)
+      console.log("user Data ===> ", userData);
       let userInfo;
-      if(appUser.role === "SERVICE_PROVIDER"){
+      if (appUser.role === "SERVICE_PROVIDER") {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        userInfo = appUser.serviceProviderDetails
-      } else if(appUser.role === "CUSTOMER"){
-        userInfo = appUser.customerDetails
+        userInfo = appUser.serviceProviderDetails;
+      } else if (appUser.role === "CUSTOMER") {
+        userInfo = appUser.customerDetails;
       }
       setFormData({
         account: {
@@ -116,15 +110,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
     };
 
     dispatch(add(updatedData)); // Update Redux store
-    alert("Form data updated successfully!");
+    alert(t("changesSaved")); // Use translation for alert
   };
 
   return (
-    
     <>
-     
       <div>
-      {/* <button onClick={sendDataToParent}>Back</button> */}
+        <button onClick={goBack}>{t("back")}</button>
         <div
           style={{
             gap: "10px",
@@ -138,11 +130,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
           {/* Account Accordion */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Account</Typography>
+              <Typography>{t("account")}</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <TextField
-                placeholder="First Name"
+                placeholder={t("firstName")}
                 fullWidth
                 margin="normal"
                 value={formData.account.firstName}
@@ -151,7 +143,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Last Name"
+                placeholder={t("lastName")}
                 fullWidth
                 margin="normal"
                 value={formData.account.lastName}
@@ -160,7 +152,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Mobile Number"
+                placeholder={t("mobileNumber")}
                 fullWidth
                 margin="normal"
                 value={formData.account.mobileNo}
@@ -169,7 +161,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Email"
+                placeholder={t("email")}
                 fullWidth
                 margin="normal"
                 value={formData.account.emailId}
@@ -178,7 +170,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Age"
+                placeholder={t("age")}
                 fullWidth
                 margin="normal"
                 value={formData.account.age}
@@ -190,12 +182,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
           {/* Location Accordion */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Location Details</Typography>
+              <Typography>{t("locationDetails")}</Typography>
             </AccordionSummary>
             <AccordionDetails>
               {/* Location fields */}
               <TextField
-                placeholder="Building Name"
+                placeholder={t("buildingName")}
                 fullWidth
                 margin="normal"
                 value={formData.location.buildingName}
@@ -204,7 +196,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Locality"
+                placeholder={t("locality")}
                 fullWidth
                 margin="normal"
                 value={formData.location.locality}
@@ -213,7 +205,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Street"
+                placeholder={t("street")}
                 fullWidth
                 margin="normal"
                 value={formData.location.street}
@@ -222,7 +214,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Pin Code"
+                placeholder={t("pincode")}
                 fullWidth
                 margin="normal"
                 value={formData.location.pincode}
@@ -231,7 +223,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Nearby Location"
+                placeholder={t("nearbyLocation")}
                 fullWidth
                 margin="normal"
                 value={formData.location.nearbyLocation}
@@ -240,7 +232,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Current Location"
+                placeholder={t("currentLocation")}
                 fullWidth
                 margin="normal"
                 value={formData.location.currentLocation}
@@ -254,12 +246,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
           {/* Additional Details Accordion */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Additional Details</Typography>
+              <Typography>{t("additionalDetails")}</Typography>
             </AccordionSummary>
             <AccordionDetails>
               {/* Additional fields */}
               <TextField
-                placeholder="Aadhaar Card Number"
+                placeholder={t("aadhaarCardNumber")}
                 fullWidth
                 margin="normal"
                 value={formData.additional.idNo}
@@ -268,7 +260,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Languages"
+                placeholder={t("languagesKnown")}
                 fullWidth
                 margin="normal"
                 value={formData.additional.languageKnown}
@@ -277,7 +269,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Housekeeping Role"
+                placeholder={t("housekeepingRole")}
                 fullWidth
                 margin="normal"
                 value={formData.additional.housekeepingRole}
@@ -286,7 +278,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Cooking Speciality"
+                placeholder={t("cookingSpeciality")}
                 fullWidth
                 margin="normal"
                 value={formData.additional.cookingSpeciality}
@@ -299,7 +291,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
                 }
               />
               <TextField
-                placeholder="Diet"
+                placeholder={t("dietPreference")}
                 fullWidth
                 margin="normal"
                 value={formData.additional.diet}
@@ -318,7 +310,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ goBack}) => {
             style={{ width: "30px", marginTop: "30px" }}
             onClick={handleSave}
           >
-            Save
+            {t("save")}
           </Button>
         </div>
       </div>

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
+import { useLanguage } from "src/context/LanguageContext";
+ // Import the language hook
 
 interface VendorProfileSectionProps {
   userId: number | null;
@@ -35,6 +37,7 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
   userId,
   userEmail,
 }) => {
+  const { t } = useLanguage(); // Initialize the translation hook
   const [vendorData, setVendorData] = useState<VendorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,18 +57,18 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
           setVendorData(response.data.data);
           setError(null);
         } else {
-          setError("Failed to fetch vendor data");
+          setError(t("fetchFailed"));
         }
       } catch (err) {
         console.error("Error fetching vendor data:", err);
-        setError("Unable to load vendor information");
+        setError(t("unableToLoad"));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchVendorData();
-  }, [userId]);
+  }, [userId, t]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -99,10 +102,10 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
         <div className="bg-white rounded-xl shadow-md p-8 text-center">
           <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Vendor Information Unavailable
+            {t("vendorInfoUnavailable")}
           </h3>
           <p className="text-gray-500">
-            {error || "Unable to load vendor details. Please try again later."}
+            {error || t("unableToLoadVendorDetails")}
           </p>
         </div>
       </div>
@@ -120,7 +123,7 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
           <div>
             <h2 className="text-2xl font-bold">{vendorData.companyName}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-blue-100">Registration ID:</span>
+              <span className="text-blue-100">{t("registrationId")}:</span>
               <span className="font-mono bg-white/30 px-2 py-1 rounded text-sm">
                 {vendorData.registrationId}
               </span>
@@ -135,12 +138,12 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
               {vendorData.isActive ? (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Active</span>
+                  <span className="text-sm font-medium">{t("active")}</span>
                 </>
               ) : (
                 <>
                   <XCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Inactive</span>
+                  <span className="text-sm font-medium">{t("inactive")}</span>
                 </>
               )}
             </div>
@@ -156,29 +159,29 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
-              Contact Information
+              {t("contactInformation")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  Email Address
+                  {t("emailAddress")}
                 </p>
                 <p className="text-gray-800 font-medium">{vendorData.emailid}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  Phone Number
+                  {t("phoneNumber")}
                 </p>
-                <p className="text-gray-800 font-medium">{vendorData.phoneNo || "Not provided"}</p>
+                <p className="text-gray-800 font-medium">{vendorData.phoneNo || t("notProvided")}</p>
               </div>
               <div className="space-y-1 md:col-span-2">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  Business Address
+                  {t("businessAddress")}
                 </p>
-                <p className="text-gray-800 font-medium">{vendorData.address || "Not provided"}</p>
+                <p className="text-gray-800 font-medium">{vendorData.address || t("notProvided")}</p>
               </div>
             </div>
           </div>
@@ -187,13 +190,13 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
-              Business Details
+              {t("businessDetails")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Hash className="w-4 h-4" />
-                  Vendor ID
+                  {t("vendorId")}
                 </p>
                 <p className="text-gray-800 font-medium font-mono">
                   {vendorData.vendorId}
@@ -202,7 +205,7 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
               <div className="space-y-1">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  Registered Since
+                  {t("registeredSince")}
                 </p>
                 <p className="text-gray-800 font-medium">
                   {formatDate(vendorData.createdDate)}
@@ -211,10 +214,10 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
               <div className="space-y-1">
                 <p className="text-sm text-gray-500 flex items-center gap-2">
                   <Users className="w-4 h-4" />
-                  Associated Providers
+                  {t("associatedProviders")}
                 </p>
                 <p className="text-gray-800 font-medium">
-                  {vendorData.providers?.length || 0} providers
+                  {vendorData.providers?.length || 0} {t("providers")}
                 </p>
               </div>
             </div>
@@ -225,40 +228,40 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
         <div className="space-y-6">
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("quickActions")}</h3>
             <div className="space-y-3">
               <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Manage Providers
+                {t("manageProviders")}
               </button>
               <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-                View Analytics
+                {t("viewAnalytics")}
               </button>
               <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                Edit Profile
+                {t("editProfile")}
               </button>
             </div>
           </div>
 
           {/* Status Summary */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Summary</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("summary")}</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Account Status</span>
+                <span className="text-gray-600">{t("accountStatus")}</span>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   vendorData.isActive 
                     ? "bg-green-100 text-green-800" 
                     : "bg-red-100 text-red-800"
                 }`}>
-                  {vendorData.isActive ? "Active" : "Inactive"}
+                  {vendorData.isActive ? t("active") : t("inactive")}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Providers</span>
+                <span className="text-gray-600">{t("totalProviders")}</span>
                 <span className="font-semibold">{vendorData.providers?.length || 0}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Registration ID</span>
+                <span className="text-gray-600">{t("registrationId")}</span>
                 <span className="font-mono text-sm">{vendorData.registrationId}</span>
               </div>
             </div>

@@ -11,8 +11,9 @@ import { TermsCheckboxes } from '../Common/TermsCheckboxes/TermsCheckboxes';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import { useAppUser } from '../../context/AppUserContext';
 import MobileNumberDialog from '../User-Profile/MobileNumberDialog';
-import { RootState } from '../../store/userStore'; // Import RootState
-import { setHasMobileNumber } from '../../features/customer/customerSlice'; // Import action
+import { RootState } from '../../store/userStore';
+import { setHasMobileNumber } from '../../features/customer/customerSlice';
+import { useLanguage } from 'src/context/LanguageContext';
 
 interface CartDialogProps {
   open: boolean;
@@ -42,6 +43,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   handleNannyCheckout,
   onMobileNumberRequired
 }) => {
+  const { t } = useLanguage(); // Initialize the translation function
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const { appUser } = useAppUser();
@@ -88,7 +90,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   // Check mobile number before proceeding to checkout
   const checkMobileNumberAndProceed = async () => {
     if (!appUser?.customerid) {
-      console.error("No customer ID found");
+      console.error(t('noCustomerId'));
       return;
     }
 
@@ -96,7 +98,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
 
     // Check loading state first
     if (loadingCustomer) {
-      console.log("Still loading customer details...");
+      console.log(t('loadingCustomerDetails'));
       // Wait a bit and check again
       setTimeout(() => {
         checkMobileNumberAndProceed();
@@ -116,9 +118,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       await proceedWithCheckout();
     } else {
       // If hasMobileNumber is null, the data hasn't been fetched yet
-      // This shouldn't happen if you're using the useCustomerMobileCheck hook in App.tsx
-      // But as a fallback, we can proceed anyway or show an error
-      console.warn("Customer mobile number status unknown. Proceeding with checkout.");
+      console.warn(t('mobileNumberStatusUnknown'));
       await proceedWithCheckout();
     }
   };
@@ -132,7 +132,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       } else if (nannyCartItems.length > 0 && handleNannyCheckout) {
         await handleNannyCheckout();
       } else {
-        console.error("No checkout handler available for cart items");
+        console.error(t('noCheckoutHandler'));
       }
     } finally {
       setCheckoutLoading(false);
@@ -178,9 +178,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
         }
       }}>
         <DialogHeader>
-          Your Order Summary
+          {t('orderSummary')}
           <IconButton
-            aria-label="close"
+            aria-label={t('close')}
             onClick={handleClose}
             sx={{
               position: 'absolute',
@@ -207,7 +207,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
               backgroundColor: '#ffffff'
             }}>
               <Typography variant="body1" sx={{ color: '#4a5568', mb: 2 }}>
-                Your cart is empty
+                {t('cartEmpty')}
               </Typography>
               <Button 
                 variant="contained" 
@@ -224,7 +224,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                   }
                 }}
               >
-                Browse Services
+                {t('browseServices')}
               </Button>
             </Box>
           ) : (
@@ -234,7 +234,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {mealCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      Meal Services
+                      {t('mealServices')}
                     </Typography>
                     {mealCartItems.map((item, index) => (
                       <CartItemCard 
@@ -252,7 +252,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {maidCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      Maid Services
+                      {t('maidServices')}
                     </Typography>
                     {maidCartItems.map((item, index) => (
                       <CartItemCard 
@@ -270,7 +270,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {nannyCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      Nanny Services
+                      {t('nannyServices')}
                     </Typography>
                     {nannyCartItems.map((item, index) => (
                       <CartItemCard 
@@ -293,22 +293,22 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 boxShadow: '0 -1px 3px rgba(0,0,0,0.04)'
               }}>
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Subtotal:</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('subtotal')}:</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{totalPrice.toFixed(2)}</Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (18%):</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('tax', { percentage: '18' })}:</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{tax.toFixed(2)}</Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Platform Fee (6%):</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('platformFee', { percentage: '6' })}:</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{platformFee.toFixed(2)}</Typography>
                 </Box>
                 
                 <Divider sx={{ my: 2 }} />
                 
                 <Box display="flex" justifyContent="space-between">
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>{t('total')}:</Typography>
                   <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
                 </Box>
                 <Divider sx={{ 
@@ -339,7 +339,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
             fontWeight: '500',
             fontSize: '0.875rem'
           }}>
-            {allCartItems.length} item{allCartItems.length !== 1 ? 's' : ''} selected
+            {t('itemsSelected', { count: allCartItems.length })}
           </Typography>
           
           <Box display="flex" gap={2}>
@@ -362,7 +362,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 }
               }}
             >
-              Modify Booking
+              {t('modifyBooking')}
             </Button>
             
             <Button
@@ -383,7 +383,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                       marginRight: 1 
                     }} 
                   />
-                  Processing...
+                  {t('processing')}
                 </>
               ) : loadingCustomer ? (
                 <>
@@ -394,10 +394,10 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                       marginRight: 1 
                     }} 
                   />
-                  Checking...
+                  {t('checking')}
                 </>
               ) : (
-                `Proceed to Checkout (₹${grandTotal.toFixed(2)})`
+                t('proceedToCheckout', { amount: grandTotal.toFixed(2) })
               )}
             </Button>
           </Box>
@@ -426,14 +426,16 @@ interface CartItemCardProps {
 }
 
 const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
+  const { t } = useLanguage(); // Initialize the translation function in the nested component
+
   const getItemType = () => {
     if (isNannyCartItem(item)) {
-      return 'Nanny Service';
+      return t('nannyService');
     }
     if (isMaidCartItem(item)) {
-      return item.serviceType === 'package' ? 'Package' : 'Add-on';
+      return item.serviceType === 'package' ? t('package') : t('addOn');
     }
-    return 'Meal Package';
+    return t('mealPackage');
   };
 
   const getItemName = () => {
@@ -441,7 +443,10 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       return item.name.replace(/([A-Z])/g, ' $1').trim();
     }
     if (isNannyCartItem(item)) {
-      return `${item.careType === 'baby' ? 'Baby' : 'Elderly'} Care - ${item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)}`;
+      return t('careTypeService', { 
+        careType: item.careType === 'baby' ? t('baby') : t('elderly'),
+        packageType: item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)
+      });
     }
     if (isMealCartItem(item)) {
       return item.mealType;
@@ -463,6 +468,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
     >
       <IconButton
         onClick={onRemove}
+        aria-label={t('removeItem')}
         sx={{
           position: 'absolute',
           right: 8,
@@ -494,7 +500,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
         fontWeight: '500',
         fontSize: '0.875rem'
       }}>
-        Includes:
+        {t('includes')}:
       </Typography>
       
       <Box component="ul" sx={{ 
@@ -524,7 +530,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       
       <Box display="flex" justifyContent="space-between" sx={{ mt: 2.5 }}>
         <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: '500' }}>
-          Price:
+          {t('price')}:
         </Typography>
         <Typography variant="body2" fontWeight="600" sx={{ color: '#2d3748' }}>
           ₹{item.price.toFixed(2)}

@@ -6,13 +6,14 @@ import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-
+import { useLanguage } from "src/context/LanguageContext";
 interface WalletDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
 const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
+  const { t } = useLanguage(); // Initialize the translation hook
   const [activeTab, setActiveTab] = useState("transactions");
   const { user: auth0User, isAuthenticated } = useAuth0();
   const [isLoading, setIsLoading] = useState(false);
@@ -87,11 +88,11 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogHeader>
         <DialogTitle className="flex justify-between items-center">
-          <span className="text-xl font-bold text-white-800">My Wallet</span>
+          <span className="text-xl font-bold text-white-800">{t("myWallet")}</span>
            <button
       onClick={onClose}
       className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
-      aria-label="Close"
+      aria-label={t("close")}
     >
      
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,8 +104,8 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         <DialogContent dividers>
           <div className="py-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-lg font-semibold text-gray-700">Loading Wallet</p>
-            <p className="text-gray-500 mt-2">Retrieving your account information</p>
+            <p className="text-lg font-semibold text-gray-700">{t("loadingWallet")}</p>
+            <p className="text-gray-500 mt-2">{t("retrievingAccountInfo")}</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -117,11 +118,11 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogHeader>
         <DialogTitle className="flex justify-between items-center">
-          <span className="text-xl font-bold text-white-800">My Wallet</span>
+          <span className="text-xl font-bold text-white-800">{t("myWallet")}</span>
            <button
       onClick={onClose}
       className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
-      aria-label="Close"
+      aria-label={t("close")}
     >
      
      
@@ -138,8 +139,8 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
-            <p className="text-lg font-semibold text-gray-700 mb-2">No wallet account found</p>
-            <p className="text-gray-500 mb-6">We couldn't find a wallet associated with your account.</p>
+            <p className="text-lg font-semibold text-gray-700 mb-2">{t("noWalletFound")}</p>
+            <p className="text-gray-500 mb-6">{t("noWalletMessage")}</p>
             <div className="flex gap-3 justify-center">
               <button 
                 onClick={() => {
@@ -162,13 +163,13 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Try Again
+                {t("tryAgain")}
               </button>
               <button 
                 onClick={onClose}
                 className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>
@@ -182,11 +183,11 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       {/* Header */}
       <DialogHeader>
       <DialogTitle className="flex justify-between items-center">
-        <span className="text-xl font-bold text-white-800">My Wallet</span>
+        <span className="text-xl font-bold text-white-800">{t("myWallet")}</span>
           <button
       onClick={onClose}
       className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none absolute right-4 top-1/2 transform -translate-y-1/2"
-      aria-label="Close"
+      aria-label={t("close")}
     >
      
      
@@ -201,14 +202,14 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       <DialogContent dividers>
         {/* Balance Card */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-xl shadow-lg mb-5">
-          <p className="text-blue-100 text-sm">Current Balance</p>
+          <p className="text-blue-100 text-sm">{t("currentBalance")}</p>
           <p className="text-3xl font-bold my-2">₹{wallet ? wallet.balance : walletData.balance}</p>
           <div className="flex gap-3 mt-4">
             <button className="flex-1 bg-white text-blue-600 font-semibold py-2.5 rounded-lg hover:bg-blue-50 transition-colors">
-              ➕ Add Money
+              ➕ {t("addMoney")}
             </button>
             <button className="flex-1 bg-blue-700 bg-opacity-30 text-white font-semibold py-2.5 rounded-lg hover:bg-opacity-40 transition-colors">
-              🔄 Transfer
+              🔄 {t("transfer")}
             </button>
           </div>
         </div>
@@ -221,7 +222,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
             }`}
             onClick={() => setActiveTab("transactions")}
           >
-            Transactions
+            {t("transactions")}
             {activeTab === "transactions" && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
             )}
@@ -232,7 +233,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
             }`}
             onClick={() => setActiveTab("rewards")}
           >
-            Rewards
+            {t("rewards")}
             {activeTab === "rewards" && (
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></span>
             )}
@@ -242,7 +243,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         {/* Tab Content */}
         {activeTab === "transactions" ? (
           <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Recent Transactions</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">{t("recentTransactions")}</h3>
             <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
               {(wallet?.transactions || []).map((transaction) => (
                 <div key={transaction.transaction_id} className="flex items-center">
@@ -274,16 +275,16 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
           </div>
         ) : (
           <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Your Rewards</h3>
+            <h3 className="font-semibold text-gray-800 mb-4">{t("yourRewards")}</h3>
             <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-white p-5 rounded-xl shadow">
               <div className="flex items-center justify-center gap-3 mb-3">
-                ⭐ <span className="text-2xl font-bold">{wallet?.rewards ?? walletData.rewards} Points</span>
+                ⭐ <span className="text-2xl font-bold">{wallet?.rewards ?? walletData.rewards} {t("points")}</span>
               </div>
               <p className="text-amber-100 text-center text-sm mb-4">
-                Earn more points by completing services and referring friends
+                {t("earnMorePoints")}
               </p>
               <button className="w-full bg-white bg-opacity-20 text-white font-semibold py-2.5 rounded-lg hover:bg-opacity-30 transition-colors">
-                View Rewards Catalog
+                {t("viewRewardsCatalog")}
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { FaHome, FaLocationArrow } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
 import utilsInstance from "src/services/utilsInstance";
 import providerInstance from "src/services/providerInstance";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface Address {
   id: string;
@@ -44,6 +45,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
   userEmail,
   initialData 
 }) => {
+  const { t } = useLanguage(); // Initialize the translation function
   const dispatch = useDispatch();
   // ✅ Only keep what we need from Redux
   const { customerId } = useSelector((state: RootState) => state.customer);
@@ -150,7 +152,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
             if (!uniqueAddresses.has(locationKey)) {
               uniqueAddresses.set(locationKey, {
                 id: loc._id || `addr_${idx}`,
-                type: loc.name || "Other",
+                type: loc.name || t("others"),
                 street: primaryAddress.formatted_address,
                 city: getComponent("locality") || "",
                 country: getComponent("country") || "",
@@ -229,7 +231,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
 
       setValidation({
         loading: false,
-        error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
+        error: isAvailable ? '' : `${isAlternate ? t('alternate') : t('mobile')} ${t('numberAlreadyRegistered')}`,
         isAvailable,
         formatError: false
       });
@@ -238,7 +240,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
     } catch (error) {
       setValidation({
         loading: false,
-        error: `Error checking ${isAlternate ? 'alternate' : 'mobile'} number`,
+        error: t('errorCheckingNumber'),
         isAvailable: false,
         formatError: false
       });
@@ -257,7 +259,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
     } else if (value) {
       setContactValidation({
         loading: false,
-        error: 'Please enter a valid 10-digit mobile number',
+        error: t('phoneValidationError'),
         isAvailable: null,
         formatError: true
       });
@@ -274,7 +276,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       if (value === userData.contactNumber) {
         setAltContactValidation({
           loading: false,
-          error: 'Alternate number cannot be same as contact number',
+          error: t('alternateNumberCannotBeSame'),
           isAvailable: false,
           formatError: false
         });
@@ -284,7 +286,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
     } else if (value) {
       setAltContactValidation({
         loading: false,
-        error: 'Please enter a valid 10-digit mobile number',
+        error: t('phoneValidationError'),
         isAvailable: null,
         formatError: true
       });
@@ -383,7 +385,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
 
   const handleAddAddress = async () => {
     if (!newAddress.street || !newAddress.city || !newAddress.country || !newAddress.postalCode) {
-      alert("Please fill in all address fields");
+      alert(t('fillAllAddressFields'));
       return;
     }
 
@@ -417,7 +419,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         setNewAddress({ type: "Home", customType: "", street: "", city: "", country: "", postalCode: "" });
       } catch (err) {
         console.error("Failed to save new address:", err);
-        alert("Could not save address. Try again.");
+        alert(t('addressSaveError'));
         setAddresses(addresses);
       }
     }
@@ -435,7 +437,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       } catch (error) {
         console.error("Failed to remove address:", error);
         setAddresses(addresses);
-        alert("Could not remove address. Try again.");
+        alert(t('addressRemoveError'));
       }
     }
   };
@@ -445,18 +447,18 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
 
     // Validate
     if (userData.contactNumber && !validateMobileFormat(userData.contactNumber)) {
-      alert("Please enter a valid 10-digit contact number");
+      alert(t('phoneValidationError'));
       return;
     }
 
     if (userData.altContactNumber && !validateMobileFormat(userData.altContactNumber)) {
-      alert("Please enter a valid 10-digit alternate contact number");
+      alert(t('phoneValidationError'));
       return;
     }
 
     if (userData.contactNumber && userData.altContactNumber && 
         userData.contactNumber === userData.altContactNumber) {
-      alert("Contact number and alternate contact number must be different");
+      alert(t('contactNumbersMustBeDifferent'));
       return;
     }
 
@@ -502,7 +504,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save data:", error);
-      alert("Failed to save changes. Please try again.");
+      alert(t('saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -553,7 +555,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
     <div className="flex justify-center w-full py-6">
       <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center border-b pb-3 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">My account</h2>
+          <h2 className="text-lg font-semibold text-gray-800">{t('myAccount')}</h2>
           {!isEditing && (
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
@@ -563,7 +565,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
               }}
             >
               <Edit3 size={16} />
-              Edit
+              {t('edit')}
             </button>
           )}
         </div>
@@ -571,24 +573,24 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         {/* User Info with Email and ID */}
         <div>
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-            User Information
+            {t('userInformation')}
           </h3>
 
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-600 mb-2">
-                Email address
+                {t('email')}
               </label>
               <input
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                value={userEmail || "No email available"}
+                value={userEmail || t('noEmailAvailable')}
                 readOnly
                 style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
               />
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-600 mb-2">
-                User ID
+                {t('userId')}
               </label>
               <input
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
@@ -602,7 +604,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-600 mb-2">
-                First name
+                {t('firstName')}
               </label>
               <input
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -614,7 +616,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-600 mb-2">
-                Last name
+                {t('lastName')}
               </label>
               <input
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -631,15 +633,15 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         
         {/* Contact Info */}
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-          Contact Information
+          {t('contactInformation')}
         </h3>
 
         <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-semibold text-gray-600 mb-2">
-              Contact Number
+              {t('contactNumber')}
               <span className={`ml-1 ${hasMobileNumber ? 'text-green-500' : 'text-red-500'}`}>
-                {hasMobileNumber ? '✓ Verified' : '⚠ Required'}
+                {hasMobileNumber ? `✓ ${t('verified')}` : `⚠ ${t('required')}`}
               </span>
             </label>
             <div className="relative">
@@ -648,7 +650,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
                 value={userData.contactNumber}
                 onChange={handleContactNumberChange}
                 readOnly={!isEditing}
-                placeholder="Enter 10-digit number"
+                placeholder={t('enter10DigitNumber')}
                 style={{ 
                   backgroundColor: isEditing ? "white" : "#f9fafb",
                   borderColor: contactValidation.error ? "#ef4444" : "#d1d5db"
@@ -666,14 +668,14 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
             {contactValidation.error && <p className="text-red-500 text-xs mt-1">{contactValidation.error}</p>}
             {!hasMobileNumber && !isEditing && (
               <p className="text-red-500 text-xs mt-1">
-                Mobile number is required for bookings
+                {t('mobileNumberRequired')}
               </p>
             )}
           </div>
 
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-semibold text-gray-600 mb-2">
-              Alternative Contact Number
+              {t('alternativeContactNumber')}
             </label>
             <div className="relative">
               <input
@@ -681,7 +683,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
                 value={userData.altContactNumber}
                 onChange={handleAltContactNumberChange}
                 readOnly={!isEditing}
-                placeholder="Enter 10-digit number"
+                placeholder={t('enter10DigitNumber')}
                 style={{ 
                   backgroundColor: isEditing ? "white" : "#f9fafb",
                   borderColor: altContactValidation.error ? "#ef4444" : "#d1d5db"
@@ -704,7 +706,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-semibold text-gray-600">
-              Addresses
+              {t('addresses')}
             </label>
             {isEditing && (
               <button
@@ -712,38 +714,41 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
                 className="flex items-center text-blue-600 text-sm font-medium"
               >
                 <Plus size={16} className="mr-1" />
-                Add New Address
+                {t('addNewAddress')}
               </button>
             )}
           </div>
 
           {showAddAddress && isEditing && (
             <div className="border border-blue-200 rounded-lg p-4 mb-4 bg-blue-50">
-              <h4 className="font-medium text-gray-700 mb-3">Add New Address</h4>
+              <h4 className="font-medium text-gray-700 mb-3">{t('addNewAddress')}</h4>
               
               <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-600 mb-2">Save As</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">{t('saveAs')}</label>
                 <div className="flex gap-2">
-                  {["Home", "Work", "Other"].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setNewAddress(prev => ({ 
-                        ...prev, 
-                        type, 
-                        customType: type === "Other" ? prev.customType : "" 
-                      }))}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
-                        newAddress.type === type 
-                          ? "bg-blue-100 text-blue-700 border border-blue-300" 
-                          : "bg-white text-gray-700 border border-gray-300"
-                      }`}
-                    >
-                      {type === "Home" && <FaHome size={14} />}
-                      {type === "Work" && <HiBuildingOffice size={14} />}
-                      {type === "Other" && <FaLocationArrow size={14} />}
-                      {type}
-                    </button>
-                  ))}
+                  {[t('home'), t('work'), t('others')].map((type, index) => {
+                    const typeValue = index === 0 ? "Home" : index === 1 ? "Work" : "Other";
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setNewAddress(prev => ({ 
+                          ...prev, 
+                          type: typeValue, 
+                          customType: typeValue === "Other" ? prev.customType : "" 
+                        }))}
+                        className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+                          newAddress.type === typeValue 
+                            ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                            : "bg-white text-gray-700 border border-gray-300"
+                        }`}
+                      >
+                        {typeValue === "Home" && <FaHome size={14} />}
+                        {typeValue === "Work" && <HiBuildingOffice size={14} />}
+                        {typeValue === "Other" && <FaLocationArrow size={14} />}
+                        {type}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               
@@ -751,7 +756,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
                 <div className="mb-3">
                   <input
                     type="text"
-                    placeholder="Location Name"
+                    placeholder={t('locationName')}
                     value={newAddress.customType}
                     onChange={(e) => setNewAddress(prev => ({ ...prev, customType: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -762,28 +767,28 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input
                   type="text"
-                  placeholder="Street Address"
+                  placeholder={t('streetAddress')}
                   value={newAddress.street}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm md:col-span-2"
                 />
                 <input
                   type="text"
-                  placeholder="City"
+                  placeholder={t('city')}
                   value={newAddress.city}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
                 <input
                   type="text"
-                  placeholder="Country"
+                  placeholder={t('country')}
                   value={newAddress.country}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, country: e.target.value }))}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
                 <input
                   type="text"
-                  placeholder="Postal Code"
+                  placeholder={t('postalCode')}
                   value={newAddress.postalCode}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, postalCode: e.target.value }))}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -791,14 +796,14 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
               </div>
               
               <div className="flex justify-end space-x-2 mt-3">
-                <Button onClick={() => setShowAddAddress(false)}>Cancel</Button>
-                <Button onClick={handleAddAddress}>Save Address</Button>
+                <Button onClick={() => setShowAddAddress(false)}>{t('cancel')}</Button>
+                <Button onClick={handleAddAddress}>{t('saveAddress')}</Button>
               </div>
             </div>
           )}
 
           {addresses.length === 0 ? (
-            <p className="text-gray-500 italic">No addresses saved yet</p>
+            <p className="text-gray-500 italic">{t('noAddressesSaved')}</p>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {addresses.map((address) => (
@@ -844,9 +849,9 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         {isEditing && (
           <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
             <div className="flex space-x-4">
-              <Button onClick={handleCancel} disabled={isSaving}>Cancel</Button>
+              <Button onClick={handleCancel} disabled={isSaving}>{t('cancel')}</Button>
               <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
-                {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />Saving...</> : "Save Changes"}
+                {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
               </Button>
             </div>
           </div>

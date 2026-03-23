@@ -20,6 +20,7 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { Button } from "../Button/button";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface VacationBooking {
   id: number;
@@ -46,6 +47,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   customerId,
   onSuccess,
 }) => {
+  const { t } = useLanguage(); // Initialize the translation hook
   const today = dayjs();
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
@@ -187,7 +189,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
       textField: {
         fullWidth: true,
         size: "medium",
-        placeholder: "Select end date",
+        placeholder: t("selectEndDate"),
         sx: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 2,
@@ -236,22 +238,22 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
 
   const handleUpdateVacation = async () => {
     if (!startDate || !endDate || !booking) {
-      setError("Please select both start and end dates");
+      setError(t("selectBothDates"));
       return;
     }
 
     if (startDate.isBefore(today, 'day')) {
-      setError("Vacation start date cannot be in the past");
+      setError(t("startDateCannotBePast"));
       return;
     }
 
     if (endDate.isBefore(startDate)) {
-      setError("Vacation end date must be after start date");
+      setError(t("endDateMustBeAfterStart"));
       return;
     }
 
     if (!isValidVacationPeriod()) {
-      setError("Vacation must be for minimum 10 days. Please select a later end date.");
+      setError(t("minimumVacationDays"));
       return;
     }
 
@@ -274,14 +276,14 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         { headers: { "Content-Type": "application/json" } }
       );
 
-      setSuccess("Vacation updated successfully!");
+      setSuccess(t("vacationUpdated"));
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1500);
     } catch (error) {
       console.error("❌ Error updating vacation:", error);
-      setError("Failed to update vacation. Please try again.");
+      setError(t("updateFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -308,14 +310,14 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         { headers: { "Content-Type": "application/json" } }
       );
 
-      setSuccess("Vacation cancelled successfully!");
+      setSuccess(t("vacationCancelled"));
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1500);
     } catch (error) {
       console.error("❌ Error canceling vacation:", error);
-      setError("Failed to cancel vacation. Please try again.");
+      setError(t("cancelFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -347,7 +349,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
 >
   <Box className="flex items-center gap-2">
     <EventIcon />
-    <Typography variant="h6" fontWeight="600">Modify Vacation</Typography>
+    <Typography variant="h6" fontWeight="600">{t("modifyVacation")}</Typography>
   </Box>
 
  <IconButton
@@ -384,7 +386,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
             <Box className="flex items-center gap-2 mb-2">
               <EditCalendarIcon color="info" />
               <Typography variant="subtitle1" fontWeight="600" color="info.dark">
-                Current Vacation Period
+                {t("currentVacationPeriod")}
               </Typography>
             </Box>
             <Box className="flex flex-wrap gap-2 items-center">
@@ -394,7 +396,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
                 color="info"
                 size="small"
               />
-              <Typography variant="body2" color="text.secondary">to</Typography>
+              <Typography variant="body2" color="text.secondary">{t("to")}</Typography>
               <Chip 
                 label={dayjs(booking.vacation.end_date).format("MMM D, YYYY")} 
                 variant="outlined"
@@ -402,7 +404,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
                 size="small"
               />
               <Chip 
-                label={`${booking.vacation.leave_days} days`} 
+                label={`${booking.vacation.leave_days} ${t("days")}`} 
                 color="info"
                 size="small"
               />
@@ -425,14 +427,14 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         {/* Vacation Date Selection */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'text.primary' }}>
-            Update Vacation Dates
+            {t("updateVacationDates")}
           </Typography>
           
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: 'text.secondary' }}>
-                  Start Date
+                  {t("startDate")}
                 </Typography>
                 <DatePicker
                   open={startDatePickerOpen}
@@ -445,7 +447,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
                     textField: {
                       fullWidth: true,
                       size: "medium",
-                      placeholder: "Select start date",
+                      placeholder: t("selectStartDate"),
                       sx: {
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
@@ -465,7 +467,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
               
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: 'text.secondary' }}>
-                  End Date
+                  {t("endDate")}
                 </Typography>
                 <DatePicker
                   open={endDatePickerOpen}
@@ -496,27 +498,27 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
           {startDate && (
             <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
-                <strong>Date Information:</strong>
+                <strong>{t("dateInformation")}:</strong>
               </Typography>
               <Box className="flex flex-wrap gap-4">
                 {startDate && (
                   <Typography variant="body2">
-                    Start: <strong>{startDate.format("MMM D, YYYY")}</strong>
+                    {t("start")}: <strong>{startDate.format("MMM D, YYYY")}</strong>
                   </Typography>
                 )}
                 {endDate && (
                   <Typography variant="body2">
-                    End: <strong>{endDate.format("MMM D, YYYY")}</strong>
+                    {t("end")}: <strong>{endDate.format("MMM D, YYYY")}</strong>
                   </Typography>
                 )}
                 {totalDays > 0 && (
                   <Typography variant="body2" color={totalDays >= 10 ? "primary.main" : "error.main"} fontWeight="600">
-                    Total days: {totalDays} {totalDays < 10 && "(Minimum 10 days required)"}
+                    {t("totalDays")}: {totalDays} {totalDays < 10 && `(${t("minimumDaysRequired")})`}
                   </Typography>
                 )}
                 {firstAvailableEndDate && (
                   <Typography variant="body2" color="warning.main" fontSize="0.75rem">
-                    Note: Minimum 10 days vacation required. Select end date on or after {firstAvailableEndDate.format("MMM D, YYYY")}
+                    {t("minimumVacationNote")} {firstAvailableEndDate.format("MMM D, YYYY")}
                   </Typography>
                 )}
               </Box>
@@ -536,12 +538,12 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
           }}
         >
           <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 1, color: 'text.primary' }}>
-            Vacation Policy
+            {t("vacationPolicy")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            • Minimum vacation period: <strong>10 days</strong><br/>
-            • During vacation period, services will be paused and applicable refunds will be processed to your wallet<br/>
-            • A penalty may apply for modifications to existing vacation periods
+            • {t("minimumVacationPeriod")}: <strong>10 {t("days")}</strong><br/>
+            • {t("vacationPauseMessage")}<br/>
+            • {t("penaltyMessage")}
           </Typography>
         </Paper>
       </DialogContent>
@@ -554,7 +556,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
           disabled={isLoading}
           sx={{ minWidth: 140 }}
         >
-          Cancel Vacation
+          {t("cancelVacation")}
         </Button>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -567,10 +569,10 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
           {isLoading ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Updating...
+              {t("updating")}
             </>
           ) : (
-            "Update Vacation"
+            t("updateVacation")
           )}
         </Button>
       </DialogActions>
