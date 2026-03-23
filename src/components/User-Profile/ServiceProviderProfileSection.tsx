@@ -27,6 +27,7 @@ import {
   IdCard
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface ServiceProviderProfileSectionProps {
   userId: number | null;
@@ -89,6 +90,7 @@ interface ServiceProviderData {
 }
 
 const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps> = ({ userId, userEmail }) => {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,18 +152,33 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   });
 
   const serviceTypes = [
-    { value: "COOK", label: "Cook", icon: <ChefHat size={16} /> },
-    { value: "NANNY", label: "Nanny", icon: <Heart size={16} /> },
-    { value: "MAID", label: "Maid", icon: <Briefcase size={16} /> },
+    { value: "COOK", label: t("cook"), icon: <ChefHat size={16} /> },
+    { value: "NANNY", label: t("nanny"), icon: <Heart size={16} /> },
+    { value: "MAID", label: t("maid"), icon: <Briefcase size={16} /> },
   ];
 
-  const dietOptions = ["VEG", "NONVEG", "BOTH"];
-  const cookingSpecialityOptions = ["VEG", "NONVEG", "BOTH"];
+  const dietOptions = [
+    { value: "VEG", label: t("veg") },
+    { value: "NONVEG", label: t("nonVeg") },
+    { value: "BOTH", label: t("both") }
+  ];
+  
+  const cookingSpecialityOptions = [
+    { value: "VEG", label: t("veg") },
+    { value: "NONVEG", label: t("nonVeg") },
+    { value: "BOTH", label: t("both") }
+  ];
   
   const nannyCareOptions = [
-    { value: "BABY_CARE", label: "Baby Care" },
-    { value: "ELDERLY_CARE", label: "Elderly Care" },
-    { value: "BOTH", label: "Both" },
+    { value: "BABY_CARE", label: t("babyCare") },
+    { value: "ELDERLY_CARE", label: t("elderlyCare") },
+    { value: "BOTH", label: t("both") },
+  ];
+
+  const genderOptions = [
+    { value: "MALE", label: t("male") },
+    { value: "FEMALE", label: t("female") },
+    { value: "OTHER", label: t("other") }
   ];
 
   useEffect(() => {
@@ -196,7 +213,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
       setValidation({
         loading: false,
-        error: isAvailable ? '' : `${isAlternate ? 'Alternate' : 'Mobile'} number is already registered`,
+        error: isAvailable ? '' : `${isAlternate ? t("alternate") : t("mobile")} ${t("numberAlreadyRegistered")}`,
         isAvailable,
         formatError: false
       });
@@ -205,7 +222,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     } catch (error) {
       setValidation({
         loading: false,
-        error: `Error checking ${isAlternate ? 'alternate' : 'mobile'} number`,
+        error: `${t("errorCheckingNumber")} ${isAlternate ? t("alternate") : t("mobile")}`,
         isAvailable: false,
         formatError: false
       });
@@ -275,6 +292,42 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     }
   };
 
+  // Format time slot for display
+  const formatTimeSlot = (timeslot: string | null): string => {
+    if (!timeslot) return t("notSpecified");
+    return timeslot.split(',').map(slot => slot.trim()).join(' • ');
+  };
+
+  // Get KYC status with details
+  const getKYCStatus = () => {
+    if (!providerData) return { status: t("pending"), color: "red", icon: <XCircle size={14} /> };
+    
+    if (providerData.kyc) {
+      return { 
+        status: t("verified"), 
+        color: "green", 
+        icon: <CheckCircle size={14} />,
+        details: providerData.kycType ? `(${providerData.kycType})` : ""
+      };
+    }
+    
+    if (providerData.kycNumber && providerData.kycType) {
+      return { 
+        status: t("pendingVerification"), 
+        color: "orange", 
+        icon: <AlertCircle size={14} />,
+        details: `${providerData.kycType} ${t("numberProvidedAwaitingVerification")}`
+      };
+    }
+    
+    return { 
+      status: t("notSubmitted"), 
+      color: "red", 
+      icon: <XCircle size={14} />,
+      details: t("pleaseSubmitKYCDocuments")
+    };
+  };
+
   const handleContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 10);
     setUserData(prev => ({ ...prev, contactNumber: value }));
@@ -286,7 +339,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     } else if (value) {
       setContactValidation({
         loading: false,
-        error: 'Please enter a valid 10-digit mobile number',
+        error: t("phoneValidationError"),
         isAvailable: null,
         formatError: true
       });
@@ -303,7 +356,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       if (value === userData.contactNumber) {
         setAltContactValidation({
           loading: false,
-          error: 'Alternate number cannot be same as contact number',
+          error: t("alternateNumberCannotBeSame"),
           isAvailable: false,
           formatError: false
         });
@@ -313,7 +366,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     } else if (value) {
       setAltContactValidation({
         loading: false,
-        error: 'Please enter a valid 10-digit mobile number',
+        error: t("phoneValidationError"),
         isAvailable: null,
         formatError: true
       });
@@ -329,53 +382,17 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     }));
   };
 
-  // Format time slot for display
-  const formatTimeSlot = (timeslot: string | null): string => {
-    if (!timeslot) return "Not specified";
-    return timeslot.split(',').map(slot => slot.trim()).join(' • ');
-  };
-
-  // Get KYC status with details
-  const getKYCStatus = () => {
-    if (!providerData) return { status: "Pending", color: "red", icon: <XCircle size={14} /> };
-    
-    if (providerData.kyc) {
-      return { 
-        status: "Verified", 
-        color: "green", 
-        icon: <CheckCircle size={14} />,
-        details: providerData.kycType ? `(${providerData.kycType})` : ""
-      };
-    }
-    
-    if (providerData.kycNumber && providerData.kycType) {
-      return { 
-        status: "Pending Verification", 
-        color: "orange", 
-        icon: <AlertCircle size={14} />,
-        details: `${providerData.kycType} number provided - awaiting verification`
-      };
-    }
-    
-    return { 
-      status: "Not Submitted", 
-      color: "red", 
-      icon: <XCircle size={14} />,
-      details: "Please submit KYC documents"
-    };
-  };
-
   const handleSave = async () => {
     if (!userId) return;
 
     // Validate mobile numbers
     if (userData.contactNumber && !validateMobileFormat(userData.contactNumber)) {
-      alert("Please enter a valid 10-digit contact number");
+      alert(t("phoneValidationError"));
       return;
     }
 
     if (userData.altContactNumber && !validateMobileFormat(userData.altContactNumber)) {
-      alert("Please enter a valid 10-digit alternate contact number");
+      alert(t("phoneValidationError"));
       return;
     }
 
@@ -384,7 +401,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       userData.altContactNumber &&
       userData.contactNumber === userData.altContactNumber
     ) {
-      alert("Contact number and alternate contact number must be different");
+      alert(t("contactNumbersMustBeDifferent"));
       return;
     }
 
@@ -463,7 +480,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
       // If nothing changed, skip API
       if (Object.keys(payload).length === 0) {
-        alert("No changes detected");
+        alert(t("noChangesDetected"));
         setIsEditing(false);
         return;
       }
@@ -478,7 +495,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
     } catch (error) {
       console.error("Failed to save data:", error);
-      alert("Failed to save changes. Please try again.");
+      alert(t("saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -523,15 +540,15 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         {/* Header */}
         <div className="flex justify-between items-center border-b pb-3 mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Service Provider Profile</h2>
+            <h2 className="text-lg font-semibold text-gray-800">{t("serviceProvider")} {t("profile")}</h2>
             <div className="flex items-center mt-1 space-x-2">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 providerData?.isactive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
               }`}>
                 {providerData?.isactive ? (
-                  <><CheckCircle size={12} className="mr-1" /> Active</>
+                  <><CheckCircle size={12} className="mr-1" /> {t("active")}</>
                 ) : (
-                  <><XCircle size={12} className="mr-1" /> Inactive</>
+                  <><XCircle size={12} className="mr-1" /> {t("inactive")}</>
                 )}
               </span>
               {providerData?.rating && providerData.rating > 0 ? (
@@ -550,7 +567,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               }}
             >
               <Edit3 size={16} />
-              Edit Profile
+              {t("edit")} {t("profile")}
             </button>
           )}
         </div>
@@ -564,7 +581,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="flex items-center">
               <User size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Personal Information
+                {t("personalInformation")}
               </h3>
             </div>
             {expandedSections.personal ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -575,7 +592,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* First Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  First name
+                  {t("firstName")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -589,7 +606,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Middle Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Middle name
+                  {t("middleName")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -603,7 +620,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Last Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Last name
+                  {t("lastName")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -617,7 +634,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Email address
+                  {t("email")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
@@ -630,7 +647,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Mobile Number */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Contact Number
+                  {t("contactNumber")}
                 </label>
                 <div className="relative">
                   <input
@@ -638,7 +655,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                     value={userData.contactNumber}
                     onChange={handleContactNumberChange}
                     readOnly={!isEditing}
-                    placeholder="Enter 10-digit number"
+                    placeholder={t("enter10DigitNumber")}
                     style={{ 
                       backgroundColor: isEditing ? 'white' : '#f9fafb',
                       borderColor: contactValidation.error ? '#ef4444' : '#d1d5db'
@@ -661,7 +678,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Alternate Number */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Alternate Number
+                  {t("alternateContactNumber")}
                 </label>
                 <div className="relative">
                   <input
@@ -669,7 +686,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                     value={userData.altContactNumber}
                     onChange={handleAltContactNumberChange}
                     readOnly={!isEditing}
-                    placeholder="Enter 10-digit number"
+                    placeholder={t("enter10DigitNumber")}
                     style={{ 
                       backgroundColor: isEditing ? 'white' : '#f9fafb',
                       borderColor: altContactValidation.error ? '#ef4444' : '#d1d5db'
@@ -692,7 +709,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Gender */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Gender
+                  {t("gender")}
                 </label>
                 {isEditing ? (
                   <select
@@ -700,15 +717,19 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                     value={userData.gender}
                     onChange={(e) => setUserData(prev => ({ ...prev, gender: e.target.value }))}
                   >
-                    <option value="">Select Gender</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                    <option value="">{t("selectGender")}</option>
+                    {genderOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 ) : (
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                    value={userData.gender || "Not specified"}
+                    value={userData.gender ? 
+                      (genderOptions.find(g => g.value === userData.gender)?.label || userData.gender) 
+                      : t("notSpecified")}
                     readOnly
                     style={{ backgroundColor: '#f9fafb' }}
                   />
@@ -718,11 +739,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Date of Birth
+                  {t("dateOfBirth")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={userData.dob || "Not specified"}
+                  value={userData.dob || t("notSpecified")}
                   readOnly
                   style={{ backgroundColor: '#f9fafb' }}
                 />
@@ -734,215 +755,216 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         <div className="h-px bg-gray-200 my-4" />
 
         {/* Professional Information Section */}
-<div className="mb-6">
-  <div 
-    className="flex items-center justify-between cursor-pointer mb-4"
-    onClick={() => toggleSection('professional')}
-  >
-    <div className="flex items-center">
-      <Briefcase size={18} className="text-blue-600 mr-2" />
-      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-        Professional Information
-      </h3>
-    </div>
-    {expandedSections.professional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-  </div>
+        <div className="mb-6">
+          <div 
+            className="flex items-center justify-between cursor-pointer mb-4"
+            onClick={() => toggleSection('professional')}
+          >
+            <div className="flex items-center">
+              <Briefcase size={18} className="text-blue-600 mr-2" />
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                {t("professionalInformation")}
+              </h3>
+            </div>
+            {expandedSections.professional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
 
-  {expandedSections.professional && (
-    <div className="space-y-4">
-      {/* Service Types */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-600 mb-3">
-          Service Types
-        </label>
-        {isEditing ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {serviceTypes.map(service => (
-              <div
-                key={service.value}
-                className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                  userData.housekeepingRole.includes(service.value)
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleRoleToggle(service.value)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className={userData.housekeepingRole.includes(service.value) ? 'text-blue-600' : 'text-gray-600'}>
-                      {service.icon}
-                    </span>
-                    <span className={`text-sm font-medium ${
-                      userData.housekeepingRole.includes(service.value) ? 'text-blue-700' : 'text-gray-700'
-                    }`}>
-                      {service.label}
-                    </span>
+          {expandedSections.professional && (
+            <div className="space-y-4">
+              {/* Service Types */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-3">
+                  {t("serviceTypes")}
+                </label>
+                {isEditing ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {serviceTypes.map(service => (
+                      <div
+                        key={service.value}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                          userData.housekeepingRole.includes(service.value)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleRoleToggle(service.value)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className={userData.housekeepingRole.includes(service.value) ? 'text-blue-600' : 'text-gray-600'}>
+                              {service.icon}
+                            </span>
+                            <span className={`text-sm font-medium ${
+                              userData.housekeepingRole.includes(service.value) ? 'text-blue-700' : 'text-gray-700'
+                            }`}>
+                              {service.label}
+                            </span>
+                          </div>
+                          {userData.housekeepingRole.includes(service.value) && (
+                            <CheckCircle size={16} className="text-blue-600" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {userData.housekeepingRole.includes(service.value) && (
-                    <CheckCircle size={16} className="text-blue-600" />
-                  )}
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {userData.housekeepingRole.length > 0 ? (
+                      userData.housekeepingRole.map(role => (
+                        <span
+                          key={role}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {serviceTypes.find(s => s.value === role)?.label || role}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">{t("noServicesSelected")}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Service-specific fields */}
+              {userData.housekeepingRole.includes('COOK') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      {t("cookingSpeciality")}
+                    </label>
+                    {isEditing ? (
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                        value={userData.cookingSpeciality}
+                        onChange={(e) => setUserData(prev => ({ ...prev, cookingSpeciality: e.target.value }))}
+                      >
+                        <option value="">{t("selectSpeciality")}</option>
+                        {cookingSpecialityOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        value={userData.cookingSpeciality ? 
+                          (cookingSpecialityOptions.find(o => o.value === userData.cookingSpeciality)?.label || userData.cookingSpeciality) 
+                          : t("notSpecified")}
+                        readOnly
+                        style={{ backgroundColor: '#f9fafb' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {userData.housekeepingRole.includes('NANNY') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      {t("careType")}
+                    </label>
+                    {isEditing ? (
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                        value={userData.nannyCareType}
+                        onChange={(e) => setUserData(prev => ({ ...prev, nannyCareType: e.target.value }))}
+                      >
+                        <option value="">{t("selectCareType")}</option>
+                        {nannyCareOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        value={userData.nannyCareType ? 
+                          (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType) 
+                          : t("notSpecified")}
+                        readOnly
+                        style={{ backgroundColor: '#f9fafb' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Diet Preference */}
+              {(userData.housekeepingRole.includes('COOK') || 
+                userData.housekeepingRole.includes('NANNY') || 
+                userData.housekeepingRole.includes('MAID')) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      {t("dietPreference")}
+                    </label>
+                    {isEditing ? (
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                        value={userData.diet}
+                        onChange={(e) => setUserData(prev => ({ ...prev, diet: e.target.value }))}
+                      >
+                        <option value="">{t("selectDiet")}</option>
+                        {dietOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        value={userData.diet ? 
+                          (dietOptions.find(o => o.value === userData.diet)?.label || userData.diet) 
+                          : t("notSpecified")}
+                        readOnly
+                        style={{ backgroundColor: '#f9fafb' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Common fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    {t("experience")}
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    value={userData.experience}
+                    onChange={(e) => setUserData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
+                    readOnly={!isEditing}
+                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                    min="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    {t("languagesKnown")}
+                  </label>
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    value={userData.languageKnown}
+                    onChange={(e) => setUserData(prev => ({ ...prev, languageKnown: e.target.value }))}
+                    readOnly={!isEditing}
+                    placeholder={t("languagesPlaceholder")}
+                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {userData.housekeepingRole.length > 0 ? (
-              userData.housekeepingRole.map(role => (
-                <span
-                  key={role}
-                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                >
-                  {serviceTypes.find(s => s.value === role)?.label || role}
-                </span>
-              ))
-            ) : (
-              <span className="text-sm text-gray-500">No services selected</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Row: Cooking Speciality & Diet Preference */}
-      {(userData.housekeepingRole.includes('COOK') || 
-        userData.housekeepingRole.includes('NANNY') || 
-        userData.housekeepingRole.includes('MAID')) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-          
-          {/* Cooking Speciality - Only shown for COOK */}
-          {userData.housekeepingRole.includes('COOK') ? (
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
-                Cooking Speciality
-              </label>
-              {isEditing ? (
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                  value={userData.cookingSpeciality}
-                  onChange={(e) => setUserData(prev => ({ ...prev, cookingSpeciality: e.target.value }))}
-                >
-                  <option value="">Select Speciality</option>
-                  {cookingSpecialityOptions.map(opt => (
-                    <option key={opt} value={opt}>
-                      {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                  value={userData.cookingSpeciality ? 
-                    (userData.cookingSpeciality === "VEG" ? "Vegetarian" : 
-                     userData.cookingSpeciality === "NONVEG" ? "Non-Vegetarian" : 
-                     userData.cookingSpeciality) : "Not specified"}
-                  readOnly
-                />
-              )}
             </div>
-          ) : (
-            <div className="hidden md:block"></div> /* Spacer to keep Diet on the right */
           )}
-
-          {/* Diet Preference - Shown for COOK, NANNY, or MAID */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
-              Diet Preference
-            </label>
-            {isEditing ? (
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                value={userData.diet}
-                onChange={(e) => setUserData(prev => ({ ...prev, diet: e.target.value }))}
-              >
-                <option value="">Select Diet</option>
-                {dietOptions.map(opt => (
-                  <option key={opt} value={opt}>
-                    {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                value={userData.diet ? 
-                  (userData.diet === "VEG" ? "Vegetarian" : 
-                   userData.diet === "NONVEG" ? "Non-Vegetarian" : 
-                   userData.diet) : "Not specified"}
-                readOnly
-              />
-            )}
-          </div>
         </div>
-      )}
-
-      {/* Row: Nanny Care Type & Experience */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
-        {userData.housekeepingRole.includes('NANNY') && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
-              Nanny Care Type
-            </label>
-            {isEditing ? (
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                value={userData.nannyCareType}
-                onChange={(e) => setUserData(prev => ({ ...prev, nannyCareType: e.target.value }))}
-              >
-                <option value="">Select Care Type</option>
-                {nannyCareOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                value={userData.nannyCareType ? 
-                  (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType) 
-                  : "Not specified"}
-                readOnly
-              />
-            )}
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">
-            Experience (years)
-          </label>
-          <input
-            type="number"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-            value={userData.experience}
-            onChange={(e) => setUserData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
-            readOnly={!isEditing}
-            style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-            min="0"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-2">
-            Languages Known
-          </label>
-          <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-            value={userData.languageKnown}
-            onChange={(e) => setUserData(prev => ({ ...prev, languageKnown: e.target.value }))}
-            readOnly={!isEditing}
-            placeholder="e.g., English, Hindi"
-            style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-          />
-        </div>
-      </div>
-    </div>
-  )}
-</div>
 
         <div className="h-px bg-gray-200 my-4" />
 
-        {/* Availability Section - New */}
+        {/* Availability Section */}
         <div className="mb-6">
           <div 
             className="flex items-center justify-between cursor-pointer mb-4"
@@ -951,7 +973,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="flex items-center">
               <Clock size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Availability
+                {t("availability")}
               </h3>
             </div>
             {expandedSections.availability ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -961,14 +983,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Time Slots Available
+                  {t("timeSlotsAvailable")}
                 </label>
                 {isEditing ? (
                   <textarea
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     value={userData.timeslot}
                     onChange={(e) => setUserData(prev => ({ ...prev, timeslot: e.target.value }))}
-                    placeholder="e.g., 08:00-10:00, 12:00-20:00"
+                    placeholder={t("timeSlotPlaceholder")}
                     rows={3}
                     style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
                   />
@@ -985,13 +1007,13 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                         </span>
                       ))
                     ) : (
-                      <span className="text-sm text-gray-500">No time slots specified</span>
+                      <span className="text-sm text-gray-500">{t("noTimeSlotsSpecified")}</span>
                     )}
                   </div>
                 )}
                 {isEditing && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Enter time slots separated by commas (e.g., 08:00-10:00, 12:00-20:00)
+                    {t("timeSlotHelperText")}
                   </p>
                 )}
               </div>
@@ -1001,7 +1023,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
         <div className="h-px bg-gray-200 my-4" />
 
-        {/* KYC Information Section - Enhanced */}
+        {/* KYC Information Section */}
         <div className="mb-6">
           <div 
             className="flex items-center justify-between cursor-pointer mb-4"
@@ -1010,7 +1032,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="flex items-center">
               <IdCard size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                KYC Information
+                {t("kycInformation")}
               </h3>
             </div>
             {expandedSections.kyc ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -1021,7 +1043,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    KYC Status
+                    {t("kycStatus")}
                   </label>
                   <div className="flex items-center space-x-2">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -1038,7 +1060,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                 {providerData?.kycType && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      KYC Type
+                      {t("kycType")}
                     </label>
                     <div className="flex items-center space-x-2">
                       <FileText size={14} className="text-gray-500" />
@@ -1050,7 +1072,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                 {providerData?.kycNumber && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      KYC Number
+                      {t("kycNumber")}
                     </label>
                     <div className="flex items-center space-x-2">
                       <IdCard size={14} className="text-gray-500" />
@@ -1067,19 +1089,24 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                   </div>
                 )}
 
-               {providerData?.kycImage && (
-  <div className="md:col-span-2">
-    <label className="block text-sm font-semibold text-gray-600 mb-2">
-      KYC Document
-    </label>
-    <button 
-      className="text-blue-600 hover:text-blue-800 text-sm underline"
-      onClick={() => window.open(providerData.kycImage!, '_blank')}
-    >
-      View Document
-    </button>
-  </div>
-)}
+                {providerData?.kycImage && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      {t("kycDocument")}
+                    </label>
+                    <button 
+                      className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center gap-1"
+                      onClick={() => {
+                        if (providerData.kycImage) {
+                          window.open(providerData.kycImage, '_blank');
+                        }
+                      }}
+                    >
+                      <FileText size={14} />
+                      {t("viewDocument")}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1096,7 +1123,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="flex items-center">
               <MapPin size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Address Information
+                {t("addressInformation")}
               </h3>
             </div>
             {expandedSections.address ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -1107,7 +1134,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Current Location
+                    {t("currentLocation")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1120,7 +1147,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Locality
+                    {t("locality")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1133,7 +1160,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Street
+                    {t("street")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1146,7 +1173,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Building Name
+                    {t("buildingName")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1159,7 +1186,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Pincode
+                    {t("pincode")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1172,7 +1199,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Nearby Location
+                    {t("nearbyLocation")}
                   </label>
                   <input
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1190,7 +1217,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                   <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                     <h4 className="font-medium text-gray-800 mb-2 flex items-center">
                       <Home size={16} className="mr-2 text-blue-600" />
-                      Permanent Address
+                      {t("permanentAddress")}
                     </h4>
                     <div className="space-y-1 text-sm text-gray-600">
                       <p>{providerData.permanentAddress.field1} {providerData.permanentAddress.field2}</p>
@@ -1204,7 +1231,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                   <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                     <h4 className="font-medium text-gray-800 mb-2 flex items-center">
                       <MapPin size={16} className="mr-2 text-blue-600" />
-                      Correspondence Address
+                      {t("correspondenceAddress")}
                     </h4>
                     <div className="space-y-1 text-sm text-gray-600">
                       <p>{providerData.correspondenceAddress.field1} {providerData.correspondenceAddress.field2}</p>
@@ -1229,7 +1256,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="flex items-center">
               <Award size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Additional Information
+                {t("additionalInformation")}
               </h3>
             </div>
             {expandedSections.additional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -1239,11 +1266,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Enrolled Date
+                  {t("enrolledDate")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={providerData?.enrolleddate ? new Date(providerData.enrolleddate).toLocaleDateString() : "Not available"}
+                  value={providerData?.enrolleddate ? new Date(providerData.enrolleddate).toLocaleDateString() : t("notAvailable")}
                   readOnly
                   style={{ backgroundColor: '#f9fafb' }}
                 />
@@ -1251,11 +1278,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Key Facts
+                  {t("keyFacts")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={providerData?.keyFacts ? "Available" : "Not Available"}
+                  value={providerData?.keyFacts ? t("available") : t("notAvailable")}
                   readOnly
                   style={{ backgroundColor: '#f9fafb' }}
                 />
@@ -1263,11 +1290,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Profile Created
+                  {t("profileCreated")}
                 </label>
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={providerData?.enrolleddate ? new Date(providerData.enrolleddate).toLocaleDateString() : "Not available"}
+                  value={providerData?.enrolleddate ? new Date(providerData.enrolleddate).toLocaleDateString() : t("notAvailable")}
                   readOnly
                   style={{ backgroundColor: '#f9fafb' }}
                 />
@@ -1286,7 +1313,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                 variant="outline"
                 className="px-6 py-2"
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button 
                 onClick={handleSave} 
@@ -1294,8 +1321,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700"
               >
                 {isSaving ? (
-                  <><ClipLoader size={16} color="white" className="mr-2" />Saving...</>
-                ) : "Save Changes"}
+                  <><ClipLoader size={16} color="white" className="mr-2" />{t("saving")}</>
+                ) : t("saveChanges")}
               </Button>
             </div>
           </div>
