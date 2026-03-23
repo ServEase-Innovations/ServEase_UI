@@ -12,9 +12,6 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
-  Radio,
-  RadioGroup,
-  FormHelperText,
   Paper,
   Box,
   TextField,
@@ -34,7 +31,8 @@ import {
 } from "@mui/icons-material";
 import { Button } from "../Button/button";
 import { useLanguage } from "src/context/LanguageContext";
-
+// Add this helper component since FormHelperText is imported from @mui/material
+import { FormHelperText } from "@mui/material";
 
 interface ServiceDetailsProps {
   formData: any;
@@ -52,7 +50,7 @@ interface ServiceDetailsProps {
   onExperienceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDescriptionChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onReferralCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onAgentReferralIdChange: (e: React.ChangeEvent<HTMLInputElement>) => void; // Add this new prop
+  onAgentReferralIdChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFullTimeToggle: (checked: boolean) => void;
   onAddMorningSlot: () => void;
   onRemoveMorningSlot: (index: number) => void;
@@ -66,11 +64,9 @@ interface ServiceDetailsProps {
   DisabledRangesIndicator: React.FC<any>;
   getDisabledRangesForSlot: (slots: number[][], currentIndex: number) => number[][];
   formatDisplayTime: (value: number) => string;
-  // Add language props
   selectedLanguages?: string[];
   onLanguagesChange?: (languages: string[]) => void;
 }
-
 
 const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   formData,
@@ -102,13 +98,12 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   getDisabledRangesForSlot,
   onAgentReferralIdChange,
   formatDisplayTime,
-  // Add language props with default values
   selectedLanguages = [],
   onLanguagesChange,
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
 
-  // Language selection state (only available languages, selected comes from props)
+  // Language selection state
   const [availableLanguages] = useState<string[]>([
     "Assamese", "Bengali", "Gujarati", "Hindi", "Kannada", 
     "Kashmiri", "Marathi", "Malayalam", "Oriya", "Punjabi", 
@@ -158,7 +153,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
             </Typography>
             
             <Grid container spacing={3}>
-              {/* Service Type Selection - Now with clickable cards like diet section */}
+              {/* Service Type Selection */}
               <Grid item xs={12}>
                 <FormControl 
                   component="fieldset" 
@@ -225,13 +220,6 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                             sx={{ mb: 0.5 }}
                           >
                             {service.label}
-                          </Typography>
-                          <Typography 
-                            variant="caption" 
-                            color="text.secondary"
-                            sx={{ fontSize: '0.7rem' }}
-                          >
-                            {/* Empty description - can be added later if needed */}
                           </Typography>
                         </Box>
                       </Paper>
@@ -321,7 +309,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                 </Grid>
               )}
 
-              {/* Nanny Care Type - New section for Nanny */}
+              {/* Nanny Care Type */}
               {isNannySelected && (
                 <Grid item xs={12}>
                   <FormControl component="fieldset" error={!!errors.nannyCareType} required fullWidth>
@@ -486,13 +474,13 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
         />
       </Grid>
 
-      {/* Language  Section */}
+      {/* Languages Section */}
       <Grid item xs={12}>
         <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
           <CardContent>
             <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <LanguageIcon sx={{ mr: 1 }} />
-              Languages Spoken
+              {t("languagesSpoken")}
             </Typography>
             
             <Autocomplete
@@ -512,8 +500,8 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Select languages you speak"
-                  helperText="You can select multiple languages or type your own"
+                  placeholder={t("selectLanguagesYouSpeak")}
+                  helperText={t("selectLanguagesHelper")}
                 />
               )}
               sx={{
@@ -535,7 +523,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
             {selectedLanguages.length > 0 && (
               <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
                 <Typography variant="body2" color="primary" gutterBottom fontWeight="bold">
-                  Selected Languages ({selectedLanguages.length}):
+                  {t("selectedLanguagesCount", { count: selectedLanguages.length })}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {selectedLanguages.map((language, index) => (
@@ -564,7 +552,6 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
         </Card>
       </Grid>
       
-      
       {/* Experience and Referral Code Fields */}
       <Grid item xs={12} sm={6}>
         <TextField
@@ -588,16 +575,19 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           onChange={onReferralCodeChange}
         />
       </Grid>
+
+      {/* Agent Referral ID Field */}
       <Grid item xs={12}>
-  <TextField
-    placeholder="Agent Referral ID (Optional)"
-    name="agentReferralId"
-    fullWidth
-    value={formData.agentReferralId || ""}
-    onChange={onAgentReferralIdChange}
-    helperText="If you were referred by an agent, please enter their referral ID"
-  />
-</Grid>
+        <TextField
+          placeholder={t("agentReferralId")}
+          name="agentReferralId"
+          fullWidth
+          value={formData.agentReferralId || ""}
+          onChange={onAgentReferralIdChange}
+          helperText={t("agentReferralHelper")}
+        />
+      </Grid>
+
       {/* Time slot section */}
       <Grid item xs={12}>
         <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
@@ -966,5 +956,4 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
     </Grid>
   );
 };
-
 export default ServiceDetails;

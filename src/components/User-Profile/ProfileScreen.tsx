@@ -1,4 +1,4 @@
-// ProfileScreen.tsx (updated section)
+// ProfileScreen.tsx (updated with language support)
 import React, { useEffect, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useAppUser } from "src/context/AppUserContext";
@@ -10,7 +10,10 @@ import providerInstance from "src/services/providerInstance";
 import CustomerProfileSection from "./CustomerProfileSection";
 import ServiceProviderProfileSection from "./ServiceProviderProfileSection";
 import VendorProfileSection from "./VendorProfileSection";
+import { useLanguage } from "src/context/LanguageContext";
+
 const ProfileScreen = () => {
+  const { t } = useLanguage(); // Initialize the translation function
   const { user: auth0User, isAuthenticated } = useAuth0();
   const { appUser } = useAppUser();
 
@@ -92,13 +95,13 @@ const ProfileScreen = () => {
   const getRoleDisplay = () => {
     switch (userRole) {
       case "CUSTOMER":
-        return "Customer";
+        return t('customer');
       case "SERVICE_PROVIDER":
-        return "Service Provider";
+        return t('serviceProvider');
       case "VENDOR":
-        return "Vendor";
+        return t('vendor');
       default:
-        return "User";
+        return t('user');
     }
   };
 
@@ -147,19 +150,19 @@ const ProfileScreen = () => {
                 auth0User?.picture ||
                 "https://via.placeholder.com/80"
               }
-              alt={userName || "User"}
+              alt={userName || t('user')}
               className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-md"
             />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">
-                Hello, {userName || "User"}
+                {t('hello')}, {userName || t('user')}
               </h1>
 
               <p className="text-sm text-gray-600 mt-1">
                 {getRoleDisplay()}
                 {userRole === "CUSTOMER" && hasMobileNumber === false && (
                   <span className="ml-2 text-red-500 text-xs">
-                    ⚠️ Mobile number required
+                    ⚠️ {t('mobileNumberRequired')}
                   </span>
                 )}
               </p>
@@ -172,14 +175,14 @@ const ProfileScreen = () => {
               onClick={() => setMobileDialogOpen(true)}
               className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200"
             >
-              Add Mobile Number
+              {t('addMobileNumber')}
             </button>
           )}
 
           {/* Vendor ID Display */}
           {userRole === "VENDOR" && userId && (
             <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
-              Vendor ID: {userId}
+              {t('vendorId')}: {userId}
             </div>
           )}
         </div>
@@ -196,7 +199,7 @@ const ProfileScreen = () => {
 
       {/* Footer */}
       <div className="bg-gray-100 py-4 text-center text-gray-500 text-sm">
-        © 2025 MyApp. All rights reserved.
+        © 2025 MyApp. {t('allRightsReserved')}
       </div>
     </div>
   );

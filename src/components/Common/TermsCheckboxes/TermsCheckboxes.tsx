@@ -1,13 +1,15 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { useLanguage } from 'src/context/LanguageContext';
 
 export interface TermsCheckboxesProps {
   onChange?: (allAccepted: boolean) => void;
 }
 
 export const TermsCheckboxes: React.FC<TermsCheckboxesProps> = ({ onChange }) => {
+  const { t } = useLanguage(); // Add this line to use translations
+  
   const [termsAccepted, setTermsAccepted] = useState({
     keyFacts: false,
     termsConditions: false,
@@ -68,7 +70,7 @@ export const TermsCheckboxes: React.FC<TermsCheckboxesProps> = ({ onChange }) =>
             style={{ marginRight: '8px' }}
           />
           <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: 500 }}>
-            Please review and agree to the following policies before proceeding.
+            {t('reviewAndAgree')}
           </Typography>
         </li>
 
@@ -86,14 +88,14 @@ export const TermsCheckboxes: React.FC<TermsCheckboxesProps> = ({ onChange }) =>
             sx={{ color: '#4a5568', cursor: 'pointer' }}
             onClick={() => window.open('/KeyFactsStatement', '_blank')}
           >
-            I agree to the ServEaso{' '}
+            {t('iAgreeToServEaso')}{' '}
             <a
               href="/KeyFactsStatement"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             >
-              Key Facts Statement
+              {t('keyFactsStatement')}
               {/* <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} /> */}
             </a>
           </Typography>
@@ -113,14 +115,14 @@ export const TermsCheckboxes: React.FC<TermsCheckboxesProps> = ({ onChange }) =>
             sx={{ color: '#4a5568', cursor: 'pointer' }}
             onClick={() => window.open('/TnC', '_blank')}
           >
-            I agree to the ServEaso{' '}
+            {t('iAgreeToServEaso')}{' '}
             <a
               href="/TnC"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             >
-              Terms and Conditions
+              {t('termsAndConditions')}
               {/* <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} /> */}
             </a>
           </Typography>
@@ -140,14 +142,14 @@ export const TermsCheckboxes: React.FC<TermsCheckboxesProps> = ({ onChange }) =>
             sx={{ color: '#4a5568', cursor: 'pointer' }}
             onClick={() => window.open('/Privacy', '_blank')}
           >
-            I agree to the ServEaso{' '}
+            {t('iAgreeToServEaso')}{' '}
             <a
               href="/Privacy"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#3182ce', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             >
-              Privacy Statement
+              {t('privacyStatement')}
               {/* <OpenInNewIcon fontSize="small" style={{ marginLeft: 4, verticalAlign: 'middle' }} /> */}
             </a>
           </Typography>
