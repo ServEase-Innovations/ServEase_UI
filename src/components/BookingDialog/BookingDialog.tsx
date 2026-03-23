@@ -1,8 +1,6 @@
-/* eslint-disable */
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Radio,
@@ -17,17 +15,15 @@ import {
   Typography,
   IconButton,
 } from "@mui/material";
-import { LocalizationProvider, DateTimePicker, DesktopDateTimePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { DemoContainer } from "@mui/x-date-pickers/internals/demo";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 import { useLanguage } from "src/context/LanguageContext";
-// Adjust the import path as needed
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -78,20 +74,14 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
   // Use the language context
   const { t } = useLanguage();
   
-  const [value, setValue] = useState<Dayjs | null>(dayjs());
   const [lastSelectedDate, setLastSelectedDate] = useState<Dayjs | null>(null);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   
   const today = dayjs();
   const maxDate21Days = today.add(21, "day");
   const maxDate90Days = today.add(89, "day");
-
-  const prefers24Hour = !new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-  }).formatToParts(new Date()).some((part) => part.type === "dayPeriod");
   
   // Reset all date states when dialog closes
   useEffect(() => {
@@ -144,20 +134,18 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
     // Set default end time (1 hour after start)
     const defaultEndTime = adjustedTime.add(1, 'hour');
-    setEndDate(defaultEndTime.toISOString());
     setEndTime(defaultEndTime);
-
-    if (selectedOption === "Monthly") {
-      const endDateValue = adjustedTime.add(1, "month");
-      setEndDate(endDateValue.toISOString());
-      setEndTime(endDateValue);
+    
+    // For Date option, also update endDate
+    if (selectedOption === "Date") {
+      setEndDate(defaultEndTime.toISOString());
     }
-  };
-
-  const updateEndDate = (newValue: Dayjs | null) => {
-    if (!newValue) return;
-    setEndDate(newValue.toISOString());
-    setEndTime(newValue);
+    
+    // For Monthly option, set end date to exactly one month later
+    if (selectedOption === "Monthly") {
+      const endDateValue = adjustedTime.add(1, 'month');
+      setEndDate(endDateValue.toISOString());
+    }
   };
 
   const handleOptionChange = (val: string) => {
@@ -183,9 +171,215 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     }
   };
 
+  // Reusable duration selector component
+  const renderDurationSelector = () => {
+    // Don't show if start time is not set
+    if (!startTime) return null;
+
+    // For Monthly, we need end time
+    if (selectedOption === "Monthly" && !endTime) return null;
+    
+    // For Short term, we need start date and end date
+    if (selectedOption === "Short term" && (!startDate || !endDate)) return null;
+
+    // Calculate current duration
+    const currentDuration = endTime ? endTime.diff(startTime, 'hour') : 1;
+    
+    // Check if we can increase duration (not exceeding 10 PM)
+    const canIncreaseDuration = () => {
+      if (!startTime) return false;
+      const newEndTime = startTime.add(currentDuration + 1, 'hour');
+      return newEndTime.hour() < 22;
+    };
+
+    // Check if we can decrease duration (minimum 1 hour)
+    const canDecreaseDuration = () => {
+      return currentDuration > 1;
+    };
+
+    // Handle duration increase
+    const handleIncreaseDuration = () => {
+      if (!startTime) return;
+      
+      const newEndTime = startTime.add(currentDuration + 1, 'hour');
+      
+      // Check if exceeds max time
+      if (newEndTime.hour() >= 22) {
+        return;
+      }
+      
+      setEndTime(newEndTime);
+      // For Date option, also update endDate
+      if (selectedOption === "Date") {
+        setEndDate(newEndTime.toISOString());
+      }
+      // For Monthly and Short term, don't update endDate
+    };
+
+    // Handle duration decrease
+    const handleDecreaseDuration = () => {
+      if (!startTime) return;
+      
+      if (currentDuration > 1) {
+        const newEndTime = startTime.add(currentDuration - 1, 'hour');
+        setEndTime(newEndTime);
+        // For Date option, also update endDate
+        if (selectedOption === "Date") {
+          setEndDate(newEndTime.toISOString());
+        }
+        // For Monthly and Short term, don't update endDate
+      }
+    };
+
+    return (
+      <Box sx={{ 
+        border: '1px solid #e0e0e0', 
+        borderRadius: '8px', 
+        p: isMobile ? 2 : 3,
+        mb: 2,
+        backgroundColor: '#fafafa'
+      }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 600 }}>
+            {t('serviceDuration')}
+          </Typography>
+        </Box>
+
+        {/* Booking Details Summary */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
+            {t('bookingDetails')}
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+            {t('startDate')}: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : t('notSelected')}
+          </Typography>
+          {selectedOption === "Monthly" && endDate && (
+            <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+              {t('endDate')}: {dayjs(endDate).format('MMMM D, YYYY')} (1 month later)
+            </Typography>
+          )}
+          {selectedOption === "Short term" && endDate && (
+            <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+              {t('endDate')}: {dayjs(endDate).format('MMMM D, YYYY')}
+            </Typography>
+          )}
+          <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+            {t('startTime')}: {startTime ? startTime.format('h:mm A') : t('notSelected')}
+          </Typography>
+          {endTime && (
+            <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
+              {t('endTime')}: {endTime.format('h:mm A')}
+            </Typography>
+          )}
+          
+          {/* Show date range for Short term */}
+          {selectedOption === "Short term" && endDate && (
+            <Typography variant="body2" sx={{ 
+              fontSize: isMobile ? '0.8rem' : '0.875rem', 
+              color: 'primary.main',
+              mt: 1,
+              fontStyle: 'italic'
+            }}>
+              Service will run from {dayjs(startDate).format('MMMM D')} to {dayjs(endDate).format('MMMM D, YYYY')}, 
+              daily from {startTime?.format('h:mm A')} to {endTime?.format('h:mm A')}
+            </Typography>
+          )}
+          
+          {/* Show monthly subscription message */}
+          {selectedOption === "Monthly" && endDate && (
+            <Typography variant="body2" sx={{ 
+              fontSize: isMobile ? '0.8rem' : '0.875rem', 
+              color: 'primary.main',
+              mt: 1,
+              fontStyle: 'italic'
+            }}>
+              Monthly subscription from {dayjs(startDate).format('MMMM D, YYYY')} to {dayjs(endDate).format('MMMM D, YYYY')}
+            </Typography>
+          )}
+          
+          {selectedOption === "Date" && (
+            <Typography variant="body2" sx={{ 
+              fontSize: isMobile ? '0.8rem' : '0.875rem', 
+              color: 'primary.main',
+              mt: 1,
+              fontStyle: 'italic'
+            }}>
+              {t('serviceStartMessage', { 
+                date: startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___',
+                time: startTime ? startTime.format('h:mm A') : '___'
+              })}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Duration Selector */}
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
+            {t('serviceDuration')}
+          </Typography>
+          <Typography variant="body2" sx={{ 
+            fontSize: isMobile ? '0.8rem' : '0.875rem', 
+            color: 'text.secondary',
+            mb: 2
+          }}>
+            {selectedOption === "Short term" 
+              ? "This duration applies to each day of service" 
+              : selectedOption === "Monthly"
+              ? "This duration applies to each day of your monthly subscription"
+              : t('durationMessage')}
+          </Typography>
+
+          {/* Duration Control */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            backgroundColor: 'white',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            p: 2
+          }}>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={handleDecreaseDuration}
+              disabled={!canDecreaseDuration()}
+              sx={{ minWidth: '40px', height: '40px' }}
+            >
+              -
+            </Button>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 600 }}>
+                {currentDuration} {t('hourUnit')}
+                {currentDuration > 1 ? 's' : ''}
+              </Typography>
+              {endTime && (
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {t('until')} {endTime.format('h:mm A')}
+                </Typography>
+              )}
+            </Box>
+
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={handleIncreaseDuration}
+              disabled={!canIncreaseDuration()}
+              sx={{ minWidth: '40px', height: '40px' }}
+            >
+              +
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
   const handleAccept = () => {
     if (startTime && !isBookingValid(startTime)) {
-      alert(t('bookingTimeRestriction')); // You'll need to add this translation key
+      alert(t('bookingTimeRestriction'));
       return;
     }
 
@@ -196,37 +390,6 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       startTime,
       endTime,
     });
-  };
-
-  // Disable dates outside allowed range
-  const shouldDisableDate = (date: Dayjs) => {
-    if (selectedOption === "Monthly") return date.isBefore(today, "day") || date.isAfter(maxDate90Days, "day");
-    return date.isBefore(today, "day") || date.isAfter(maxDate21Days, "day");
-  };
-
-  const shouldDisableEndDate = (date: Dayjs) => {
-    if (!startDate) return true;
-    const start = dayjs(startDate);
-    return date.isBefore(start.add(1, "day"), "day") || date.isAfter(start.add(20, "day"), "day");
-  };
-
-  // Calculate duration in hours
-  const getDuration = () => {
-    if (!startTime || !endTime) return 1;
-    return endTime.diff(startTime, 'hour');
-  };
-
-  // Calculate estimated cost
-  const getEstimatedCost = () => {
-    const duration = getDuration();
-    return duration * 1200; // ₹1200 per hour
-  };
-
-  // Check if end time would exceed 10 PM
-  const wouldExceedMaxTime = (additionalHours: number = 1) => {
-    if (!startTime) return false;
-    const proposedEndTime = startTime.add(getDuration() + additionalHours, 'hour');
-    return proposedEndTime.hour() >= 22;
   };
 
   return (
@@ -381,118 +544,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                 </Box>
               </Box>
 
-              {/* Duration Selector Section */}
-              {startDate && startTime && (
-                <Box sx={{ 
-                  border: '1px solid #e0e0e0', 
-                  borderRadius: '8px', 
-                  p: isMobile ? 2 : 3,
-                  mb: 2,
-                  backgroundColor: '#fafafa'
-                }}>
-                  {/* Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" sx={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 600 }}>
-                      {t('confirmBooking')}
-                    </Typography>
-                  </Box>
-
-                  {/* Booking Details */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                      {t('bookingDetails')}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                      {t('startDate')}: {startDate ? dayjs(startDate).format('MMMM D, YYYY') : t('notSelected')}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem', color: 'text.secondary' }}>
-                      {t('startTime')}: {startTime ? startTime.format('h:mm A') : t('notSelected')}
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontSize: isMobile ? '0.8rem' : '0.875rem', 
-                      color: 'primary.main',
-                      mt: 1,
-                      fontStyle: 'italic'
-                    }}>
-                      {t('serviceStartMessage', { 
-  date: startDate ? dayjs(startDate).format('MMMM D, YYYY') : '___',
-  time: startTime ? startTime.format('h:mm A') : '___'
-})}
-                    </Typography>
-                  </Box>
-
-                  {/* Service Duration */}
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 600, mb: 1 }}>
-                      {t('serviceDuration')}
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      fontSize: isMobile ? '0.8rem' : '0.875rem', 
-                      color: 'text.secondary',
-                      mb: 2
-                    }}>
-                      {t('durationMessage')}
-                    </Typography>
-
-                    {/* Duration Selector */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      backgroundColor: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      p: 2,
-                      mb: 2
-                    }}>
-                      <Button 
-                        variant="outlined" 
-                        size="small"
-                        onClick={() => {
-                          if (startTime && endTime) {
-                            const currentDuration = endTime.diff(startTime, 'hour');
-                            if (currentDuration > 1) {
-                              const newEnd = startTime.add(currentDuration - 1, 'hour');
-                              setEndTime(newEnd);
-                              setEndDate(newEnd.toISOString());
-                            }
-                          }
-                        }}
-                        disabled={!startTime || !endTime || endTime.diff(startTime, 'hour') <= 1}
-                        sx={{ minWidth: '40px', height: '40px' }}
-                      >
-                        -
-                      </Button>
-
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6" sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 600 }}>
-                          {startTime && endTime ? endTime.diff(startTime, 'hour') : 1} {t('hourUnit')}
-                          {startTime && endTime && endTime.diff(startTime, 'hour') > 1 ? 's' : ''}
-                        </Typography>
-                      </Box>
-
-                      <Button 
-                        variant="outlined" 
-                        size="small"
-                        onClick={() => {
-                          if (startTime && endTime) {
-                            const currentDuration = endTime.diff(startTime, 'hour');
-                            const newEnd = startTime.add(currentDuration + 1, 'hour');
-                            if (newEnd.hour() < 22) { // max 10 PM
-                              setEndTime(newEnd);
-                              setEndDate(newEnd.toISOString());
-                            }
-                          }
-                        }}
-                        disabled={!startTime || !endTime || endTime.hour() >= 21}
-                        sx={{ minWidth: '40px', height: '40px' }}
-                      >
-                        +
-                      </Button>
-                    </Box>
-                  </Box>
-                </Box>
-              )}
+              {/* Duration Selector for Date option */}
+              {startDate && startTime && renderDurationSelector()}
 
               {/* Relax Message */}
               <Box sx={{ 
@@ -515,75 +568,126 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
           {/* --- Short Term Option --- */}
           {selectedOption === "Short term" && (
-            <Box
-              display="flex"
-              gap={isMobile ? 2 : 3}
-              flexDirection="column"
-              alignItems="center"
-            >
-              <DribbbleDateTimePicker
-                mode="range"   // ✅ REQUIRED
-                value={{
-                  startDate: startDate ? dayjs(startDate).toDate() : undefined,
-                  endDate: endDate ? dayjs(endDate).toDate() : undefined,
-                }}
-                onChange={({ startDate, endDate, time }) => {
-                  const start = dayjs(startDate);
-                  const end = dayjs(endDate);
-
-                  // ✅ SAME time applied to both dates
-                  setStartDate(start.format("YYYY-MM-DD"));
-                  setEndDate(end.format("YYYY-MM-DD"));
-
-                  setStartTime(start);
-                  setEndTime(end);
-                }}
-              />
+            <Box>
+              <Box sx={{ width: "100%", mb: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <Box sx={{ width: "100%", maxWidth: 380 }}>
+                    <DribbbleDateTimePicker
+                      mode="range"
+                      value={{
+                        startDate: startDate ? dayjs(startDate).toDate() : undefined,
+                        endDate: endDate ? dayjs(endDate).toDate() : undefined,
+                      }}
+                      onChange={({ startDate, endDate, time }) => {
+                        const start = dayjs(startDate);
+                        const end = dayjs(endDate);
+                        
+                        // Parse the time string
+                        const [t, meridian] = time.split(" ");
+                        let hour = Number(t.split(":")[0]);
+                        
+                        if (meridian === "PM" && hour !== 12) hour += 12;
+                        if (meridian === "AM" && hour === 12) hour = 0;
+                        
+                        // Apply the selected time to start date only
+                        const startWithTime = start.hour(hour).minute(0);
+                        
+                        setStartDate(startWithTime.toISOString());
+                        setStartTime(startWithTime);
+                        
+                        // Store the end date separately (without time)
+                        setEndDate(end.format('YYYY-MM-DD'));
+                        
+                        // Set default end time to start time + 1 hour (NOT based on end date)
+                        const defaultEndTime = startWithTime.add(1, 'hour');
+                        setEndTime(defaultEndTime);
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+              
+              {/* Duration Selector for Short term option */}
+              {startDate && startTime && endTime && renderDurationSelector()}
             </Box>
           )}
 
           {/* --- Monthly Option --- */}
           {selectedOption === "Monthly" && (
-            <Box
-              display="flex"
-              justifyContent="center"
-              width="100%"
-            >
-              <DribbbleDateTimePicker
-                mode="single"
-                value={startDate ? dayjs(startDate).toDate() : undefined}
-                onChange={(selectedDateTime: Date) => {
-                  const selected = dayjs(selectedDateTime);
-                  const now = dayjs();
+            <Box>
+              <Box sx={{ width: "100%", mb: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <Box sx={{ width: "100%", maxWidth: 380 }}>
+                    <DribbbleDateTimePicker
+                      mode="single"
+                      value={startDate ? dayjs(startDate).toDate() : undefined}
+                      onChange={(selectedDateTime: Date) => {
+                        const selected = dayjs(selectedDateTime);
+                        const now = dayjs();
 
-                  // ⛔ Minimum 30 minutes from now
-                  if (selected.isBefore(now.add(30, "minute"))) {
-                    alert(t('timeMinuteRestriction'));
-                    return;
-                  }
+                        // ⛔ Minimum 30 minutes from now
+                        if (selected.isBefore(now.add(30, "minute"))) {
+                          alert(t('timeMinuteRestriction'));
+                          return;
+                        }
 
-                  // ⛔ Allowed hours: 5 AM – 9 PM
-                  if (selected.hour() < 5 || selected.hour() > 21) {
-                    alert(t('timeHourRestriction'));
-                    return;
-                  }
+                        // ⛔ Allowed hours: 5 AM – 9 PM
+                        if (selected.hour() < 5 || selected.hour() > 21) {
+                          alert(t('timeHourRestriction'));
+                          return;
+                        }
 
-                  // ⛔ Max 90 days
-                  if (selected.isAfter(maxDate90Days, "day")) {
-                    alert(t('monthlyDateExceedRestriction'));
-                    return;
-                  }
+                        // ⛔ Max 90 days
+                        if (selected.isAfter(maxDate90Days, "day")) {
+                          alert(t('monthlyDateExceedRestriction'));
+                          return;
+                        }
 
-                  // ⛔ Disable past dates
-                  if (selected.isBefore(today, "day")) {
-                    alert(t('pastDateRestriction'));
-                    return;
-                  }
+                        // ⛔ Disable past dates
+                        if (selected.isBefore(today, "day")) {
+                          alert(t('pastDateRestriction'));
+                          return;
+                        }
 
-                  // ✅ Valid → update state
-                  updateStartDate(selected);
-                }}
-              />
+                        // ✅ Valid → update state
+                        updateStartDate(selected);
+                      }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+              
+              {/* Show end date info */}
+              {startDate && endDate && (
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  p: 1.5, 
+                  mb: 2,
+                  backgroundColor: '#e3f2fd',
+                  borderRadius: '8px'
+                }}>
+                  <Typography variant="body2" sx={{ color: '#1976d2' }}>
+                    📅 Subscription Period: {dayjs(startDate).format('MMMM D, YYYY')} - {dayjs(endDate).format('MMMM D, YYYY')}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Duration Selector for Monthly option */}
+              {startDate && startTime && endTime && renderDurationSelector()}
             </Box>
           )}
 

@@ -259,9 +259,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         base_amount: baseTotal,
         payment_mode: "razorpay",
         start_time: bookingType?.startTime || "",
-        ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
-          end_time: bookingType?.endTime || "",
-        }),
+        end_time: bookingType?.endTime || "",
       };
       
       const result = await BookingService.bookAndPay(payload);

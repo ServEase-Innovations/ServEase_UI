@@ -752,10 +752,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
         service_type: "MAID",
         base_amount: baseTotal,
         payment_mode: "razorpay",
-        // ✅ FIXED: Use consistent booking preference check
-        ...(getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND" && {
-          end_time: bookingType?.endTime || "",
-        }),
+        end_time: bookingType?.endTime || "",
       };
       const result = await BookingService.bookAndPay(payload);
 
