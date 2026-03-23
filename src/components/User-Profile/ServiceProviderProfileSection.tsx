@@ -22,7 +22,9 @@ import {
   Heart,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileText,
+  IdCard
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
 
@@ -35,6 +37,9 @@ interface ServiceProviderData {
   serviceproviderid: string;
   dob: string;
   kyc: any | null;
+  kycType?: string;
+  kycNumber?: string;
+  kycImage?: string | null;
   age: number | null;
   alternateNo: string;
   buildingName: string;
@@ -113,7 +118,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     street: "",
     buildingName: "",
     pincode: "",
-    nearbyLocation: ""
+    nearbyLocation: "",
+    timeslot: ""
   });
   
   const [originalData, setOriginalData] = useState({ ...userData });
@@ -138,6 +144,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     personal: true,
     professional: true,
     address: true,
+    availability: true,
+    kyc: true,
     additional: true
   });
 
@@ -250,7 +258,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         street: data.street || "",
         buildingName: data.buildingName || "",
         pincode: data.pincode?.toString() || "",
-        nearbyLocation: data.nearbyLocation || ""
+        nearbyLocation: data.nearbyLocation || "",
+        timeslot: data.timeslot || ""
       };
 
       setUserData(updatedUserData);
@@ -320,7 +329,42 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     }));
   };
 
-  // 🔥 FIXED: Optimized handleSave function - sends only changed fields
+  // Format time slot for display
+  const formatTimeSlot = (timeslot: string | null): string => {
+    if (!timeslot) return "Not specified";
+    return timeslot.split(',').map(slot => slot.trim()).join(' • ');
+  };
+
+  // Get KYC status with details
+  const getKYCStatus = () => {
+    if (!providerData) return { status: "Pending", color: "red", icon: <XCircle size={14} /> };
+    
+    if (providerData.kyc) {
+      return { 
+        status: "Verified", 
+        color: "green", 
+        icon: <CheckCircle size={14} />,
+        details: providerData.kycType ? `(${providerData.kycType})` : ""
+      };
+    }
+    
+    if (providerData.kycNumber && providerData.kycType) {
+      return { 
+        status: "Pending Verification", 
+        color: "orange", 
+        icon: <AlertCircle size={14} />,
+        details: `${providerData.kycType} number provided - awaiting verification`
+      };
+    }
+    
+    return { 
+      status: "Not Submitted", 
+      color: "red", 
+      icon: <XCircle size={14} />,
+      details: "Please submit KYC documents"
+    };
+  };
+
   const handleSave = async () => {
     if (!userId) return;
 
@@ -349,7 +393,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     try {
       const payload: any = {};
 
-      // 🔥 Compare field by field and add ONLY changed ones
+      // Compare field by field and add ONLY changed ones
       if (userData.contactNumber !== originalData.contactNumber) {
         payload.mobileNo = userData.contactNumber;
       }
@@ -413,14 +457,17 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         payload.nearbyLocation = userData.nearbyLocation;
       }
 
-      // ✅ If nothing changed, skip API
+      if (userData.timeslot !== originalData.timeslot) {
+        payload.timeslot = userData.timeslot;
+      }
+
+      // If nothing changed, skip API
       if (Object.keys(payload).length === 0) {
         alert("No changes detected");
         setIsEditing(false);
         return;
       }
 
-      // ✅ CORRECT API endpoint
       await providerInstance.put(
         `/api/service-providers/serviceprovider/${userId}`,
         payload
@@ -468,6 +515,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     );
   }
 
+  const kycStatus = getKYCStatus();
+
   return (
     <div className="flex justify-center w-full py-6">
       <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
@@ -475,7 +524,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         <div className="flex justify-between items-center border-b pb-3 mb-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">Service Provider Profile</h2>
-            <div className="flex items-center mt-1">
+            <div className="flex items-center mt-1 space-x-2">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 providerData?.isactive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
               }`}>
@@ -485,8 +534,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                   <><XCircle size={12} className="mr-1" /> Inactive</>
                 )}
               </span>
-              {providerData?.rating ? (
-                <span className="ml-2 flex items-center text-sm text-yellow-600">
+              {providerData?.rating && providerData.rating > 0 ? (
+                <span className="flex items-center text-sm text-yellow-600">
                   <Star size={14} className="fill-current" /> {providerData.rating}
                 </span>
               ) : null}
@@ -685,210 +734,352 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         <div className="h-px bg-gray-200 my-4" />
 
         {/* Professional Information Section */}
+<div className="mb-6">
+  <div 
+    className="flex items-center justify-between cursor-pointer mb-4"
+    onClick={() => toggleSection('professional')}
+  >
+    <div className="flex items-center">
+      <Briefcase size={18} className="text-blue-600 mr-2" />
+      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+        Professional Information
+      </h3>
+    </div>
+    {expandedSections.professional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+  </div>
+
+  {expandedSections.professional && (
+    <div className="space-y-4">
+      {/* Service Types */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-600 mb-3">
+          Service Types
+        </label>
+        {isEditing ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {serviceTypes.map(service => (
+              <div
+                key={service.value}
+                className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                  userData.housekeepingRole.includes(service.value)
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => handleRoleToggle(service.value)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className={userData.housekeepingRole.includes(service.value) ? 'text-blue-600' : 'text-gray-600'}>
+                      {service.icon}
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      userData.housekeepingRole.includes(service.value) ? 'text-blue-700' : 'text-gray-700'
+                    }`}>
+                      {service.label}
+                    </span>
+                  </div>
+                  {userData.housekeepingRole.includes(service.value) && (
+                    <CheckCircle size={16} className="text-blue-600" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {userData.housekeepingRole.length > 0 ? (
+              userData.housekeepingRole.map(role => (
+                <span
+                  key={role}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                >
+                  {serviceTypes.find(s => s.value === role)?.label || role}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-gray-500">No services selected</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Row: Cooking Speciality & Diet Preference */}
+      {(userData.housekeepingRole.includes('COOK') || 
+        userData.housekeepingRole.includes('NANNY') || 
+        userData.housekeepingRole.includes('MAID')) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+          
+          {/* Cooking Speciality - Only shown for COOK */}
+          {userData.housekeepingRole.includes('COOK') ? (
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 mb-2">
+                Cooking Speciality
+              </label>
+              {isEditing ? (
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                  value={userData.cookingSpeciality}
+                  onChange={(e) => setUserData(prev => ({ ...prev, cookingSpeciality: e.target.value }))}
+                >
+                  <option value="">Select Speciality</option>
+                  {cookingSpecialityOptions.map(opt => (
+                    <option key={opt} value={opt}>
+                      {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                  value={userData.cookingSpeciality ? 
+                    (userData.cookingSpeciality === "VEG" ? "Vegetarian" : 
+                     userData.cookingSpeciality === "NONVEG" ? "Non-Vegetarian" : 
+                     userData.cookingSpeciality) : "Not specified"}
+                  readOnly
+                />
+              )}
+            </div>
+          ) : (
+            <div className="hidden md:block"></div> /* Spacer to keep Diet on the right */
+          )}
+
+          {/* Diet Preference - Shown for COOK, NANNY, or MAID */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
+              Diet Preference
+            </label>
+            {isEditing ? (
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                value={userData.diet}
+                onChange={(e) => setUserData(prev => ({ ...prev, diet: e.target.value }))}
+              >
+                <option value="">Select Diet</option>
+                {dietOptions.map(opt => (
+                  <option key={opt} value={opt}>
+                    {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                value={userData.diet ? 
+                  (userData.diet === "VEG" ? "Vegetarian" : 
+                   userData.diet === "NONVEG" ? "Non-Vegetarian" : 
+                   userData.diet) : "Not specified"}
+                readOnly
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Row: Nanny Care Type & Experience */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+        {userData.housekeepingRole.includes('NANNY') && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
+              Nanny Care Type
+            </label>
+            {isEditing ? (
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                value={userData.nannyCareType}
+                onChange={(e) => setUserData(prev => ({ ...prev, nannyCareType: e.target.value }))}
+              >
+                <option value="">Select Care Type</option>
+                {nannyCareOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                value={userData.nannyCareType ? 
+                  (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType) 
+                  : "Not specified"}
+                readOnly
+              />
+            )}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">
+            Experience (years)
+          </label>
+          <input
+            type="number"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            value={userData.experience}
+            onChange={(e) => setUserData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
+            readOnly={!isEditing}
+            style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+            min="0"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-2">
+            Languages Known
+          </label>
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            value={userData.languageKnown}
+            onChange={(e) => setUserData(prev => ({ ...prev, languageKnown: e.target.value }))}
+            readOnly={!isEditing}
+            placeholder="e.g., English, Hindi"
+            style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+          />
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
+        <div className="h-px bg-gray-200 my-4" />
+
+        {/* Availability Section - New */}
         <div className="mb-6">
           <div 
             className="flex items-center justify-between cursor-pointer mb-4"
-            onClick={() => toggleSection('professional')}
+            onClick={() => toggleSection('availability')}
           >
             <div className="flex items-center">
-              <Briefcase size={18} className="text-blue-600 mr-2" />
+              <Clock size={18} className="text-blue-600 mr-2" />
               <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                Professional Information
+                Availability
               </h3>
             </div>
-            {expandedSections.professional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {expandedSections.availability ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
 
-          {expandedSections.professional && (
-            <div className="space-y-4">
-              {/* Service Types */}
+          {expandedSections.availability && (
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-3">
-                  Service Types
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                  Time Slots Available
                 </label>
                 {isEditing ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {serviceTypes.map(service => (
-                      <div
-                        key={service.value}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                          userData.housekeepingRole.includes(service.value)
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => handleRoleToggle(service.value)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className={userData.housekeepingRole.includes(service.value) ? 'text-blue-600' : 'text-gray-600'}>
-                              {service.icon}
-                            </span>
-                            <span className={`text-sm font-medium ${
-                              userData.housekeepingRole.includes(service.value) ? 'text-blue-700' : 'text-gray-700'
-                            }`}>
-                              {service.label}
-                            </span>
-                          </div>
-                          {userData.housekeepingRole.includes(service.value) && (
-                            <CheckCircle size={16} className="text-blue-600" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    value={userData.timeslot}
+                    onChange={(e) => setUserData(prev => ({ ...prev, timeslot: e.target.value }))}
+                    placeholder="e.g., 08:00-10:00, 12:00-20:00"
+                    rows={3}
+                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                  />
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {userData.housekeepingRole.length > 0 ? (
-                      userData.housekeepingRole.map(role => (
+                  <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                    {userData.timeslot ? (
+                      userData.timeslot.split(',').map((slot, index) => (
                         <span
-                          key={role}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
                         >
-                          {serviceTypes.find(s => s.value === role)?.label || role}
+                          <Clock size={12} className="mr-1" />
+                          {slot.trim()}
                         </span>
                       ))
                     ) : (
-                      <span className="text-sm text-gray-500">No services selected</span>
+                      <span className="text-sm text-gray-500">No time slots specified</span>
                     )}
                   </div>
                 )}
+                {isEditing && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter time slots separated by commas (e.g., 08:00-10:00, 12:00-20:00)
+                  </p>
+                )}
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Service-specific fields */}
-              {userData.housekeepingRole.includes('COOK') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Cooking Speciality
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.cookingSpeciality}
-                        onChange={(e) => setUserData(prev => ({ ...prev, cookingSpeciality: e.target.value }))}
-                      >
-                        <option value="">Select Speciality</option>
-                        {cookingSpecialityOptions.map(opt => (
-                          <option key={opt} value={opt}>
-                            {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.cookingSpeciality ? 
-                          (userData.cookingSpeciality === "VEG" ? "Vegetarian" : 
-                           userData.cookingSpeciality === "NONVEG" ? "Non-Vegetarian" : 
-                           userData.cookingSpeciality) : "Not specified"}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+        <div className="h-px bg-gray-200 my-4" />
 
-              {userData.housekeepingRole.includes('NANNY') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Nanny Care Type
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.nannyCareType}
-                        onChange={(e) => setUserData(prev => ({ ...prev, nannyCareType: e.target.value }))}
-                      >
-                        <option value="">Select Care Type</option>
-                        {nannyCareOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.nannyCareType ? 
-                          (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType) 
-                          : "Not specified"}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+        {/* KYC Information Section - Enhanced */}
+        <div className="mb-6">
+          <div 
+            className="flex items-center justify-between cursor-pointer mb-4"
+            onClick={() => toggleSection('kyc')}
+          >
+            <div className="flex items-center">
+              <IdCard size={18} className="text-blue-600 mr-2" />
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                KYC Information
+              </h3>
+            </div>
+            {expandedSections.kyc ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
 
-              {/* Diet Preference (for all selected roles) */}
-              {(userData.housekeepingRole.includes('COOK') || 
-                userData.housekeepingRole.includes('NANNY') || 
-                userData.housekeepingRole.includes('MAID')) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      Diet Preference
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.diet}
-                        onChange={(e) => setUserData(prev => ({ ...prev, diet: e.target.value }))}
-                      >
-                        <option value="">Select Diet</option>
-                        {dietOptions.map(opt => (
-                          <option key={opt} value={opt}>
-                            {opt === "VEG" ? "Vegetarian" : opt === "NONVEG" ? "Non-Vegetarian" : "Both"}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.diet ? 
-                          (userData.diet === "VEG" ? "Vegetarian" : 
-                           userData.diet === "NONVEG" ? "Non-Vegetarian" : 
-                           userData.diet) : "Not specified"}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Common fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+          {expandedSections.kyc && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Experience (years)
+                    KYC Status
                   </label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.experience}
-                    onChange={(e) => setUserData(prev => ({ ...prev, experience: parseInt(e.target.value) || 0 }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                    min="0"
-                  />
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      kycStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                      kycStatus.color === 'orange' ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {kycStatus.icon}
+                      <span className="ml-1">{kycStatus.status}</span>
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Languages Known
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.languageKnown}
-                    onChange={(e) => setUserData(prev => ({ ...prev, languageKnown: e.target.value }))}
-                    readOnly={!isEditing}
-                    placeholder="e.g., English, Hindi, Marathi"
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
+                {providerData?.kycType && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      KYC Type
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <FileText size={14} className="text-gray-500" />
+                      <span className="text-sm text-gray-700">{providerData.kycType}</span>
+                    </div>
+                  </div>
+                )}
+
+                {providerData?.kycNumber && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      KYC Number
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <IdCard size={14} className="text-gray-500" />
+                      <span className="text-sm text-gray-700">
+                        {providerData.kycNumber.replace(/(\d{4})(\d{4})(\d{4})/, '$1-$2-$3')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {kycStatus.details && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs text-gray-500 mt-1">{kycStatus.details}</p>
+                  </div>
+                )}
+
+               {providerData?.kycImage && (
+  <div className="md:col-span-2">
+    <label className="block text-sm font-semibold text-gray-600 mb-2">
+      KYC Document
+    </label>
+    <button 
+      className="text-blue-600 hover:text-blue-800 text-sm underline"
+      onClick={() => window.open(providerData.kycImage!, '_blank')}
+    >
+      View Document
+    </button>
+  </div>
+)}
               </div>
             </div>
           )}
@@ -1048,18 +1239,6 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  KYC Status
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                  value={providerData?.kyc ? "Verified" : "Pending"}
-                  readOnly
-                  style={{ backgroundColor: '#f9fafb' }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Enrolled Date
                 </label>
                 <input
@@ -1077,6 +1256,18 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                 <input
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
                   value={providerData?.keyFacts ? "Available" : "Not Available"}
+                  readOnly
+                  style={{ backgroundColor: '#f9fafb' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                  Profile Created
+                </label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                  value={providerData?.enrolleddate ? new Date(providerData.enrolleddate).toLocaleDateString() : "Not available"}
                   readOnly
                   style={{ backgroundColor: '#f9fafb' }}
                 />
