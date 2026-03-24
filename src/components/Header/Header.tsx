@@ -32,7 +32,7 @@ import {
   AGENT_DASHBOARD,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, MapPin, ShoppingCart, User, X } from "lucide-react";
+import { Bell, ChevronDown, MapPin, ShoppingCart, User, X, Globe } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -54,7 +54,7 @@ import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-import { useLanguage } from "src/context/LanguageContext";
+import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 
 
@@ -74,7 +74,8 @@ export const Header: React.FC<ChildComponentProps> = ({
   onLogoClick,
 }) => {
   // Use the language hook
-  const { t, currentLanguage } = useLanguage();
+  const { t, currentLanguage, setLanguage } = useLanguage();
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   
  const handleClick = (e: any) => {
   if (e === "sign_out") {
@@ -108,6 +109,14 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Get available languages
+  const languages: Language[] = ['en', 'hi', 'kn', 'bn'];
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
+    setIsLanguageMenuOpen(false);
+  };
 
   const handleNotificationClick = () => {
     setShowNotifications(true);
@@ -867,45 +876,6 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   </nav>
 )}
 
-        {/* Dialog components */}
-        <BookingDialog
-          open={dialogOpenState}
-          onClose={() => setDialogOpen(false)}
-          onSave={handleBookingSave}
-          selectedOption={selectedRadioButtonValue}
-          onOptionChange={setSelectedRadioButtonValue}
-          startDate={startDate}
-          endDate={endDate}
-          startTime={startTime}
-          endTime={endTime}
-          setStartDate={setStartDate}
-          setEndDate={setEndDate}
-          setStartTime={setStartTime}
-          setEndTime={setEndTime}
-        />
-
-        {selectedType === "COOK" && (
-          <CookServicesDialog
-            open={openServiceDialog}
-            handleClose={() => setOpenServiceDialog(false)}
-            sendDataToParent={sendDataToParent}
-          />
-        )}
-        {selectedType === "MAID" && (
-          <MaidServiceDialog
-            open={openServiceDialog}
-            handleClose={() => setOpenServiceDialog(false)}
-            sendDataToParent={sendDataToParent}
-          />
-        )}
-        {selectedType === "NANNY" && (
-          <NannyServicesDialog
-            open={openServiceDialog}
-            handleClose={() => setOpenServiceDialog(false)}
-            sendDataToParent={sendDataToParent}
-          />
-        )}
-        
         {/* Right Side Content */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Location Bar */}
@@ -978,6 +948,37 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 </ul>
               )}
             </div>
+          </div>
+
+          {/* Language Selector - Positioned after Location Bar */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              className="flex items-center space-x-1 px-3 py-1 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs md:text-sm transition-colors"
+            >
+              <Globe className="w-4 h-4" />
+              <span>{currentLanguage.toUpperCase()}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isLanguageMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Language Dropdown Menu */}
+            {isLanguageMenuOpen && (
+              <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden">
+                <div className="py-1">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => handleLanguageChange(lang)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                        currentLanguage === lang ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {t(lang)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notifications */}

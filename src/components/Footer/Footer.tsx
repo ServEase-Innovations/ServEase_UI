@@ -7,7 +7,7 @@ import {
   FaFacebook,
   FaXTwitter,
 } from "react-icons/fa6";
-import { Language, useLanguage } from "src/context/LanguageContext";
+import { useLanguage } from "src/context/LanguageContext";
 
 interface FooterProps {
   onAboutClick: () => void;
@@ -22,17 +22,8 @@ const Footer: React.FC<FooterProps> = ({
   onPrivacyPolicyClick,
   onTermsClick,
 }) => {
-  const { currentLanguage, setLanguage, t } = useLanguage();
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const { t } = useLanguage();
 
-  const handleLanguageChange = (lang: Language) => {
-    setLanguage(lang);
-    setIsLanguageMenuOpen(false);
-  };
-
-  // Get available languages
-const languages: Language[] = ['en', 'hi', 'kn', 'bn'];
-  
   return (
     <>
       <footer
@@ -203,46 +194,9 @@ const languages: Language[] = ['en', 'hi', 'kn', 'bn'];
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-200 py-1 px-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 text-center md:text-left md:ml-4">
+        {/* Bottom Bar - Removed language selector */}
+        <div className="border-t border-gray-200 py-1 px-4 flex justify-center items-center text-xs text-gray-600 text-center">
           <p>{t('copyright')}</p>
-          
-          {/* Language Selector - Dropdown appears at the top */}
-          <div className="relative mt-2 md:mt-0 md:mr-4">
-            <button
-              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-              className="flex items-center space-x-1 px-3 py-1 rounded border border-gray-300 hover:border-gray-400 bg-white text-gray-700 text-xs"
-            >
-              <span>{t('language')}: {currentLanguage.toUpperCase()}</span>
-              <svg 
-                className={`w-3 h-3 transition-transform ${isLanguageMenuOpen ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {/* Language Dropdown Menu - Opens at the top */}
-            {isLanguageMenuOpen && (
-              <div className="absolute bottom-full right-0 mb-1 bg-white border border-gray-200 rounded shadow-lg z-10 max-h-60 overflow-y-auto min-w-[120px]">
-                <div className="py-1">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => handleLanguageChange(lang)}
-                      className={`w-full text-left px-4 py-1.5 text-xs hover:bg-gray-100 transition-colors ${
-                        currentLanguage === lang ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
-                      }`}
-                    >
-                      {t(lang)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </footer>
     </>
