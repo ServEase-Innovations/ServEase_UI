@@ -28,6 +28,22 @@ import {
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
+import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
+// MUI Imports for time slots
+import { 
+  Slider, 
+  Chip, 
+  Tooltip, 
+  IconButton, 
+  Fade, 
+  Paper, 
+  Box,
+  Typography,
+  FormControlLabel,
+  Checkbox
+} from "@mui/material";
+import { AccessTime, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
 
 interface ServiceProviderProfileSectionProps {
   userId: number | null;
@@ -89,6 +105,107 @@ interface ServiceProviderData {
   };
 }
 
+interface DisabledRange {
+  start: number;
+  end: number;
+}
+
+// Time Slider Component
+const TimeSliderWithDisabledRanges: React.FC<{
+  value: number[];
+  onChange: (newValue: number[]) => void;
+  min: number;
+  max: number;
+  marks: Array<{ value: number; label: string }>;
+  disabledRanges: DisabledRange[];
+}> = ({ value, onChange, min, max, marks, disabledRanges }) => {
+  const theme = useTheme();
+
+  const isValueDisabled = (val: number): boolean => {
+    return disabledRanges.some(range => val >= range.start && val <= range.end);
+  };
+
+  const handleChange = (event: Event, newValue: number | number[]) => {
+    const newValues = newValue as number[];
+    const startDisabled = isValueDisabled(newValues[0]);
+    const endDisabled = isValueDisabled(newValues[1]);
+
+    if (!startDisabled && !endDisabled) {
+      onChange(newValues);
+    }
+  };
+
+  const valueLabelFormat = (value: number) => {
+    const hour = Math.floor(value);
+    const minute = (value % 1) * 60;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+    return `${displayHour}:${minute === 0 ? '00' : minute} ${ampm}`;
+  };
+
+  return (
+    <Slider
+      value={value}
+      onChange={handleChange}
+      valueLabelDisplay="auto"
+      valueLabelFormat={valueLabelFormat}
+      min={min}
+      max={max}
+      step={0.5}
+      marks={marks}
+      disableSwap
+      sx={{
+        '& .MuiSlider-track': {
+          backgroundColor: theme.palette.primary.main,
+        },
+        '& .MuiSlider-thumb': {
+          backgroundColor: theme.palette.primary.main,
+        },
+        '& .MuiSlider-rail': {
+          backgroundColor: '#e0e0e0',
+        },
+        '& .MuiSlider-mark': {
+          backgroundColor: '#bdbdbd',
+        },
+        '& .MuiSlider-markLabel': {
+          fontSize: '0.75rem',
+        },
+      }}
+    />
+  );
+};
+
+const DisabledRangesIndicator: React.FC<{
+  ranges: DisabledRange[];
+  min: number;
+  max: number;
+}> = ({ ranges, min, max }) => {
+  const getPosition = (value: number) => {
+    return ((value - min) / (max - min)) * 100;
+  };
+
+  return (
+    <Box sx={{ position: 'relative', height: 40, mb: 2 }}>
+      {ranges.map((range, index) => (
+        <Box
+          key={index}
+          sx={{
+            position: 'absolute',
+            left: `${getPosition(range.start)}%`,
+            width: `${getPosition(range.end) - getPosition(range.start)}%`,
+            height: 40,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderLeft: '1px solid rgba(0, 0, 0, 0.2)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.2)',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      ))}
+    </Box>
+  );
+};
+
 const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps> = ({ userId, userEmail }) => {
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -99,6 +216,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   // Refs for debouncing
   const contactDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const altContactDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Time slots state
+  const [morningSlots, setMorningSlots] = useState<number[][]>([]);
+  const [eveningSlots, setEveningSlots] = useState<number[][]>([]);
+  const [isFullTime, setIsFullTime] = useState(false);
   
   const [userData, setUserData] = useState({
     firstName: "",
@@ -181,6 +303,44 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     { value: "OTHER", label: t("other") }
   ];
 
+  // Helper functions for time slots
+  const formatDisplayTime = (value: number): string => {
+    const hour = Math.floor(value);
+    const minute = (value % 1) * 60;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+    return `${displayHour}:${minute === 0 ? '00' : minute} ${ampm}`;
+  };
+
+  const parseTimeToNumber = (timeStr: string): number => {
+    const [time, period] = timeStr.trim().split(' ');
+    let [hour, minute] = time.split(':').map(Number);
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    return hour + (minute / 60);
+  };
+
+  const getDisabledRangesForSlot = (slots: number[][], currentIndex: number): DisabledRange[] => {
+    const disabledRanges: DisabledRange[] = [];
+    
+    slots.forEach((slot, index) => {
+      if (index !== currentIndex) {
+        disabledRanges.push({ start: slot[0], end: slot[1] });
+      }
+    });
+    
+    return disabledRanges;
+  };
+
+  const formatSelectedTimeSlots = (): string => {
+    const allSlots = [...morningSlots, ...eveningSlots];
+    if (allSlots.length === 0) return '';
+    
+    return allSlots
+      .map(slot => `${formatDisplayTime(slot[0])} - ${formatDisplayTime(slot[1])}`)
+      .join(', ');
+  };
+
   useEffect(() => {
     if (userId) {
       fetchServiceProviderData();
@@ -255,6 +415,39 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         roles = data.housekeepingRole;
       }
 
+      // Parse time slots if they exist
+      if (data.timeslot) {
+        const slots = data.timeslot.split(',').map(slot => slot.trim());
+        const morning: number[][] = [];
+        const evening: number[][] = [];
+        
+        slots.forEach(slot => {
+          const [startStr, endStr] = slot.split('-');
+          if (startStr && endStr) {
+            try {
+              const start = parseTimeToNumber(startStr);
+              const end = parseTimeToNumber(endStr);
+              
+              if (start < 12) {
+                morning.push([start, end]);
+              } else {
+                evening.push([start, end]);
+              }
+            } catch (error) {
+              console.error("Error parsing time slot:", slot);
+            }
+          }
+        });
+        
+        setMorningSlots(morning);
+        setEveningSlots(evening);
+        setIsFullTime(morning.length === 0 && evening.length === 0);
+      } else {
+        setMorningSlots([]);
+        setEveningSlots([]);
+        setIsFullTime(true);
+      }
+
       const updatedUserData = {
         firstName: data.firstName || "",
         lastName: data.lastName || "",
@@ -292,40 +485,53 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     }
   };
 
-  // Format time slot for display
-  const formatTimeSlot = (timeslot: string | null): string => {
-    if (!timeslot) return t("notSpecified");
-    return timeslot.split(',').map(slot => slot.trim()).join(' • ');
+  // Time slot handlers
+  const handleAddMorningSlot = () => {
+    if (morningSlots.length < 12) {
+      setMorningSlots([...morningSlots, [6, 12]]);
+    }
   };
 
-  // Get KYC status with details
-  const getKYCStatus = () => {
-    if (!providerData) return { status: t("pending"), color: "red", icon: <XCircle size={14} /> };
-    
-    if (providerData.kyc) {
-      return { 
-        status: t("verified"), 
-        color: "green", 
-        icon: <CheckCircle size={14} />,
-        details: providerData.kycType ? `(${providerData.kycType})` : ""
-      };
+  const handleRemoveMorningSlot = (index: number) => {
+    setMorningSlots(morningSlots.filter((_, i) => i !== index));
+  };
+
+  const handleClearMorningSlots = () => {
+    setMorningSlots([]);
+  };
+
+  const handleAddEveningSlot = () => {
+    if (eveningSlots.length < 16) {
+      setEveningSlots([...eveningSlots, [12, 20]]);
     }
-    
-    if (providerData.kycNumber && providerData.kycType) {
-      return { 
-        status: t("pendingVerification"), 
-        color: "orange", 
-        icon: <AlertCircle size={14} />,
-        details: `${providerData.kycType} ${t("numberProvidedAwaitingVerification")}`
-      };
+  };
+
+  const handleRemoveEveningSlot = (index: number) => {
+    setEveningSlots(eveningSlots.filter((_, i) => i !== index));
+  };
+
+  const handleClearEveningSlots = () => {
+    setEveningSlots([]);
+  };
+
+  const handleMorningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...morningSlots];
+    updatedSlots[index] = newValue;
+    setMorningSlots(updatedSlots);
+  };
+
+  const handleEveningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...eveningSlots];
+    updatedSlots[index] = newValue;
+    setEveningSlots(updatedSlots);
+  };
+
+  const handleFullTimeToggle = (checked: boolean) => {
+    setIsFullTime(checked);
+    if (checked) {
+      setMorningSlots([]);
+      setEveningSlots([]);
     }
-    
-    return { 
-      status: t("notSubmitted"), 
-      color: "red", 
-      icon: <XCircle size={14} />,
-      details: t("pleaseSubmitKYCDocuments")
-    };
   };
 
   const handleContactNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -474,8 +680,19 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         payload.nearbyLocation = userData.nearbyLocation;
       }
 
-      if (userData.timeslot !== originalData.timeslot) {
-        payload.timeslot = userData.timeslot;
+      // Handle time slots
+      let timeslotString = '';
+      if (!isFullTime) {
+        const allSlots = [...morningSlots, ...eveningSlots];
+        if (allSlots.length > 0) {
+          timeslotString = allSlots
+            .map(slot => `${formatDisplayTime(slot[0])} - ${formatDisplayTime(slot[1])}`)
+            .join(',');
+        }
+      }
+      
+      if (timeslotString !== originalData.timeslot) {
+        payload.timeslot = timeslotString || null;
       }
 
       // If nothing changed, skip API
@@ -506,6 +723,38 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     setIsEditing(false);
     setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
     setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+    // Reset time slots to original state
+    if (providerData?.timeslot) {
+      const slots = providerData.timeslot.split(',').map(slot => slot.trim());
+      const morning: number[][] = [];
+      const evening: number[][] = [];
+      
+      slots.forEach(slot => {
+        const [startStr, endStr] = slot.split('-');
+        if (startStr && endStr) {
+          try {
+            const start = parseTimeToNumber(startStr);
+            const end = parseTimeToNumber(endStr);
+            
+            if (start < 12) {
+              morning.push([start, end]);
+            } else {
+              evening.push([start, end]);
+            }
+          } catch (error) {
+            console.error("Error parsing time slot:", slot);
+          }
+        }
+      });
+      
+      setMorningSlots(morning);
+      setEveningSlots(evening);
+      setIsFullTime(morning.length === 0 && evening.length === 0);
+    } else {
+      setMorningSlots([]);
+      setEveningSlots([]);
+      setIsFullTime(true);
+    }
   };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -513,7 +762,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   };
 
   const hasChanges = (): boolean => {
-    return JSON.stringify(userData) !== JSON.stringify(originalData);
+    // Check if time slots have changed
+    const currentTimeSlotString = !isFullTime ? formatSelectedTimeSlots() : '';
+    const timeSlotChanged = currentTimeSlotString !== originalData.timeslot;
+    
+    return JSON.stringify(userData) !== JSON.stringify(originalData) || timeSlotChanged;
   };
 
   const isFormValid = (): boolean => {
@@ -524,15 +777,208 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     return true;
   };
 
+  const kycStatus = getKYCStatus();
+
+  // Get KYC status with details
+  function getKYCStatus() {
+    if (!providerData) return { status: t("pending"), color: "red", icon: <XCircle size={14} /> };
+    
+    if (providerData.kyc) {
+      return { 
+        status: t("verified"), 
+        color: "green", 
+        icon: <CheckCircle size={14} />,
+        details: providerData.kycType ? `(${providerData.kycType})` : ""
+      };
+    }
+    
+    if (providerData.kycNumber && providerData.kycType) {
+      return { 
+        status: t("pendingVerification"), 
+        color: "orange", 
+        icon: <AlertCircle size={14} />,
+        details: `${providerData.kycType} ${t("numberProvidedAwaitingVerification")}`
+      };
+    }
+    
+    return { 
+      status: t("notSubmitted"), 
+      color: "red", 
+      icon: <XCircle size={14} />,
+      details: t("pleaseSubmitKYCDocuments")
+    };
+  }
+
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <ClipLoader size={40} color="#3b82f6" />
+      <div className="flex justify-center w-full py-6">
+        <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+          {/* Header Skeleton */}
+          <div className="flex justify-between items-center border-b pb-3 mb-6">
+            <div>
+              <SkeletonLoader width={180} height={24} className="mb-2" />
+              <div className="flex items-center mt-1 space-x-2">
+                <SkeletonLoader width={80} height={24} />
+                <SkeletonLoader width={60} height={20} />
+              </div>
+            </div>
+            <SkeletonLoader width={120} height={40} />
+          </div>
+
+          {/* Personal Information Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={150} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(8)].map((_, index) => (
+                <div key={index}>
+                  <SkeletonLoader width={100} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-4" />
+
+          {/* Professional Information Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={160} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div className="space-y-4">
+              <div>
+                <SkeletonLoader width={120} height={16} className="mb-3" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[...Array(3)].map((_, index) => (
+                    <SkeletonLoader key={index} height={60} />
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <SkeletonLoader width={120} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+                <div>
+                  <SkeletonLoader width={120} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <SkeletonLoader width={100} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+                <div>
+                  <SkeletonLoader width={120} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-4" />
+
+          {/* Availability Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={100} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div>
+              <SkeletonLoader width={140} height={16} className="mb-2" />
+              <SkeletonLoader height={80} />
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-4" />
+
+          {/* KYC Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={130} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <SkeletonLoader width={80} height={16} className="mb-2" />
+                  <SkeletonLoader width={120} height={32} />
+                </div>
+                <div>
+                  <SkeletonLoader width={80} height={16} className="mb-2" />
+                  <SkeletonLoader width={150} height={32} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-4" />
+
+          {/* Address Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={140} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {[...Array(6)].map((_, index) => (
+                <div key={index}>
+                  <SkeletonLoader width={100} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SkeletonLoader height={120} />
+              <SkeletonLoader height={120} />
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-4" />
+
+          {/* Additional Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <SkeletonLoader width={18} height={18} className="mr-2" />
+                <SkeletonLoader width={150} height={20} />
+              </div>
+              <SkeletonLoader width={20} height={20} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={index}>
+                  <SkeletonLoader width={100} height={16} className="mb-2" />
+                  <SkeletonLoader height={40} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
-
-  const kycStatus = getKYCStatus();
 
   return (
     <div className="flex justify-center w-full py-6">
@@ -964,7 +1410,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
         <div className="h-px bg-gray-200 my-4" />
 
-        {/* Availability Section */}
+        {/* Availability Section - Enhanced with Time Slider */}
         <div className="mb-6">
           <div 
             className="flex items-center justify-between cursor-pointer mb-4"
@@ -980,24 +1426,349 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
           </div>
 
           {expandedSections.availability && (
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  {t("timeSlotsAvailable")}
-                </label>
-                {isEditing ? (
-                  <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.timeslot}
-                    onChange={(e) => setUserData(prev => ({ ...prev, timeslot: e.target.value }))}
-                    placeholder={t("timeSlotPlaceholder")}
-                    rows={3}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                ) : (
-                  <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
-                    {userData.timeslot ? (
-                      userData.timeslot.split(',').map((slot, index) => (
+            <div className="space-y-4">
+              {isEditing ? (
+                <Box sx={{ width: '100%' }}>
+                  {/* Full Time Toggle */}
+                  <Paper 
+                    elevation={0} 
+                    sx={{ 
+                      p: 2, 
+                      mb: 2, 
+                      bgcolor: isFullTime ? '#e3f2fd' : 'transparent',
+                      borderRadius: 2,
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isFullTime}
+                          onChange={(e) => handleFullTimeToggle(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {t("fullTimeAvailability")}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {t("fullTimeDescription")}
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ width: '100%', m: 0 }}
+                    />
+                  </Paper>
+
+                  {!isFullTime && (
+                    <Fade in={!isFullTime}>
+                      <Box>
+                        {/* Morning Slots Section */}
+                        <Box sx={{ mb: 4 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                <AccessTime sx={{ mr: 1 }} />
+                                {t("morningAvailability")}
+                              </Typography>
+                              <Chip 
+                                label={morningSlots.length === 0 ? t("notAvailable") : `${morningSlots.length} ${t("slot")}`}
+                                color={morningSlots.length === 0 ? "default" : "primary"}
+                                size="small"
+                              />
+                            </Box>
+                            <Box>
+                              {morningSlots.length > 0 && morningSlots.length < 12 && (
+                                <Tooltip title={t("addSlot")}>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<AddIcon />}
+                                    onClick={handleAddMorningSlot}
+                                    sx={{ mr: 1 }}
+                                  >
+                                    {t("addSlot")}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              {morningSlots.length === 0 ? (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  startIcon={<AddIcon />}
+                                  onClick={handleAddMorningSlot}
+                                >
+                                  {t("addMorningSlots")}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  color="error"
+                                  onClick={handleClearMorningSlots}
+                                >
+                                  {t("clearAll")}
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
+
+                          {morningSlots.length === 0 ? (
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 3,
+                                borderRadius: 2,
+                                bgcolor: '#f5f5f5',
+                                textAlign: 'center',
+                                border: '2px dashed',
+                                borderColor: 'grey.300'
+                              }}
+                            >
+                              <Typography variant="body1" color="text.secondary">
+                                {t("notAvailableMorning")}
+                              </Typography>
+                            </Paper>
+                          ) : (
+                            morningSlots.map((slot, index) => {
+                              const disabledRanges = getDisabledRangesForSlot(morningSlots, index);
+                              
+                              return (
+                                <Paper
+                                  key={`morning-${index}`}
+                                  elevation={1}
+                                  sx={{
+                                    p: 2,
+                                    mb: 2,
+                                    borderRadius: 2,
+                                    bgcolor: '#fff',
+                                    border: '1px solid',
+                                    borderColor: 'primary.light'
+                                  }}
+                                >
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="subtitle2" color="primary">
+                                      {t("timeSlot")} {index + 1}
+                                    </Typography>
+                                    {morningSlots.length > 1 && (
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleRemoveMorningSlot(index)}
+                                        sx={{ color: 'error.main' }}
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    )}
+                                  </Box>
+                                  
+                                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+                                  </Typography>
+                                  
+                                  {disabledRanges.length > 0 && (
+                                    <>
+                                      <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
+                                        {t("warningGrayAreas")}
+                                      </Typography>
+                                      <DisabledRangesIndicator 
+                                        ranges={disabledRanges}
+                                        min={6}
+                                        max={12}
+                                      />
+                                    </>
+                                  )}
+                                  
+                                  <Box sx={{ px: 1 }}>
+                                    <TimeSliderWithDisabledRanges
+                                      value={slot}
+                                      onChange={(newValue) => handleMorningSlotChange(index, newValue)}
+                                      min={6}
+                                      max={12}
+                                      marks={[
+                                        { value: 6, label: "6:00 AM" },
+                                        { value: 8, label: "8:00 AM" },
+                                        { value: 10, label: "10:00 AM" },
+                                        { value: 12, label: "12:00 PM" },
+                                      ]}
+                                      disabledRanges={disabledRanges}
+                                    />
+                                  </Box>
+                                </Paper>
+                              );
+                            })
+                          )}
+                        </Box>
+
+                        {/* Evening Slots Section */}
+                        <Box sx={{ mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                                <AccessTime sx={{ mr: 1 }} />
+                                {t("eveningAvailability")}
+                              </Typography>
+                              <Chip 
+                                label={eveningSlots.length === 0 ? t("notAvailable") : `${eveningSlots.length} ${t("slot")}`}
+                                color={eveningSlots.length === 0 ? "default" : "primary"}
+                                size="small"
+                              />
+                            </Box>
+                            <Box>
+                              {eveningSlots.length > 0 && eveningSlots.length < 16 && (
+                                <Tooltip title={t("addSlot")}>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<AddIcon />}
+                                    onClick={handleAddEveningSlot}
+                                    sx={{ mr: 1 }}
+                                  >
+                                    {t("addSlot")}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              {eveningSlots.length === 0 ? (
+                                <Button
+                                  variant="contained"
+                                  size="small"
+                                  startIcon={<AddIcon />}
+                                  onClick={handleAddEveningSlot}
+                                >
+                                  {t("addEveningSlots")}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  color="error"
+                                  onClick={handleClearEveningSlots}
+                                >
+                                  {t("clearAll")}
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
+
+                          {eveningSlots.length === 0 ? (
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 3,
+                                borderRadius: 2,
+                                bgcolor: '#f5f5f5',
+                                textAlign: 'center',
+                                border: '2px dashed',
+                                borderColor: 'grey.300'
+                              }}
+                            >
+                              <Typography variant="body1" color="text.secondary">
+                                {t("notAvailableEvening")}
+                              </Typography>
+                            </Paper>
+                          ) : (
+                            eveningSlots.map((slot, index) => {
+                              const disabledRanges = getDisabledRangesForSlot(eveningSlots, index);
+                              
+                              return (
+                                <Paper
+                                  key={`evening-${index}`}
+                                  elevation={1}
+                                  sx={{
+                                    p: 2,
+                                    mb: 2,
+                                    borderRadius: 2,
+                                    bgcolor: '#fff',
+                                    border: '1px solid',
+                                    borderColor: 'primary.light'
+                                  }}
+                                >
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="subtitle2" color="primary">
+                                      {t("timeSlot")} {index + 1}
+                                    </Typography>
+                                    {eveningSlots.length > 1 && (
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleRemoveEveningSlot(index)}
+                                        sx={{ color: 'error.main' }}
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    )}
+                                  </Box>
+                                  
+                                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                                    {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+                                  </Typography>
+                                  
+                                  {disabledRanges.length > 0 && (
+                                    <>
+                                      <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
+                                        {t("warningGrayAreas")}
+                                      </Typography>
+                                      <DisabledRangesIndicator 
+                                        ranges={disabledRanges}
+                                        min={12}
+                                        max={20}
+                                      />
+                                    </>
+                                  )}
+                                  
+                                  <Box sx={{ px: 1 }}>
+                                    <TimeSliderWithDisabledRanges
+                                      value={slot}
+                                      onChange={(newValue) => handleEveningSlotChange(index, newValue)}
+                                      min={12}
+                                      max={20}
+                                      marks={[
+                                        { value: 12, label: "12:00 PM" },
+                                        { value: 14, label: "2:00 PM" },
+                                        { value: 16, label: "4:00 PM" },
+                                        { value: 18, label: "6:00 PM" },
+                                        { value: 20, label: "8:00 PM" },
+                                      ]}
+                                      disabledRanges={disabledRanges}
+                                    />
+                                  </Box>
+                                </Paper>
+                              );
+                            })
+                          )}
+                        </Box>
+
+                        {/* Summary Card */}
+                        {(morningSlots.length > 0 || eveningSlots.length > 0) && (
+                          <Paper
+                            elevation={3}
+                            sx={{
+                              mt: 3,
+                              p: 2,
+                              borderRadius: 2,
+                              bgcolor: '#e3f2fd',
+                              color: '#1976d2',
+                              border: '1px solid #90caf9'
+                            }}
+                          >
+                            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                              {t("yourSelectedTimeSlots")}
+                            </Typography>
+                            <Typography variant="body1">
+                              {formatSelectedTimeSlots()}
+                            </Typography>
+                          </Paper>
+                        )}
+                      </Box>
+                    </Fade>
+                  )}
+                </Box>
+              ) : (
+                // Read-only view
+                <div>
+                  {providerData?.timeslot ? (
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                      {providerData.timeslot.split(',').map((slot, index) => (
                         <span
                           key={index}
                           className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
@@ -1005,18 +1776,13 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                           <Clock size={12} className="mr-1" />
                           {slot.trim()}
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-500">{t("noTimeSlotsSpecified")}</span>
-                    )}
-                  </div>
-                )}
-                {isEditing && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("timeSlotHelperText")}
-                  </p>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">{t("noTimeSlotsSpecified")}</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

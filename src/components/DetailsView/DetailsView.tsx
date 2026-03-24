@@ -20,6 +20,7 @@ import { ServiceProviderDTO } from "src/types/ProviderDetailsType";
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { Button, Badge } from '@mui/material';
 import ProviderFilter,{ FilterCriteria } from "./ProviderFilter";
+import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -235,10 +236,52 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   console.log("Service Providers Data:", ServiceProvidersData);
   console.log("Service Providers Data:", serviceProviderData);
 
+  // Loading skeleton for providers list
+  const renderLoadingSkeleton = () => {
+    return (
+      <div className="main-container" style={{ paddingTop: '1%' }}>
+        {[1, 2, 3].map((index) => (
+          <div key={index} style={{ paddingTop: '1%' }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '16px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              border: '1px solid #e5e7eb'
+            }}>
+              {/* Provider Card Skeleton */}
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '16px' }}>
+                <SkeletonLoader variant="circular" width={80} height={80} />
+                <div style={{ flex: 1 }}>
+                  <SkeletonLoader width={200} height={24} className="mb-2" />
+                  <SkeletonLoader width={150} height={16} className="mb-2" />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <SkeletonLoader width={60} height={20} />
+                    <SkeletonLoader width={80} height={20} />
+                  </div>
+                </div>
+                <SkeletonLoader width={100} height={40} />
+              </div>
+              
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <SkeletonLoader width={120} height={20} />
+                  <SkeletonLoader width={120} height={20} />
+                  <SkeletonLoader width={120} height={20} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div style={{ position: "relative" }}>
-      {/* Back Button - Only shown when service providers are present */}
-      {Array.isArray(serviceProviderData) && serviceProviderData.length > 0 && (
+      {/* Back Button - Only shown when service providers are present or loading */}
+      {(loading || (Array.isArray(serviceProviderData) && serviceProviderData.length > 0)) && (
         <>
           <div
             onClick={handleBackClick}
@@ -269,7 +312,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
             <span>Back</span>
           </div>
 
-          {/* Filter Button */}
+          {/* Filter Button - Show while loading as well */}
           <div
             style={{
               position: "absolute",
@@ -313,112 +356,101 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         </>
       )}
 
-      <main className="main-container" style={{ paddingTop: '1%' }}>
-        {Array.isArray(filteredProviders) && filteredProviders.length > 0 ? (
-          filteredProviders.map((provider, index) => (
-            <div key={index} style={{ paddingTop: '1%' }}>
-              <ProviderDetails 
-                {...provider} 
-                selectedProvider={handleSelectedProvider}
-                sendDataToParent={sendDataToParent} 
-              />
-            </div>
-          ))
-        ) : loading === true ? (
-          // Show loading placeholder
-          <div
-            style={{
-              width: "100%",
-              display: "grid",
-              justifyContent: "center",
-              alignItems: "center",
-              position: "absolute",
-              top: "40%",
-              left: "0",
-              textAlign: "center"
-            }}
-          >
-            <img src="search.gif" alt="Loading" style={{ margin: "0 auto" }} />
-            <p> Searching providers near you...</p>
-          </div>
-        ) : (
-          // Show "no providers found" message
-          <div
-            style={{
-              width: "100%",
-              display: "grid",
-              justifyContent: "center",
-              alignItems: "center",
-              position: "absolute",
-              top: "40%",
-              left: "0",
-              textAlign: "center",
-              padding: "20px"
-            }}
-          >
-            <h3 style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              color: "#333",
-              marginBottom: "10px"
-            }}>
-              {activeFilters ? "No Providers Match Your Filters" : "Service Not Available in Your Area"}
-            </h3>
-            <p style={{
-              fontSize: "14px",
-              color: "#666",
-              lineHeight: "1.5",
-              maxWidth: "300px",
-              marginBottom: "20px",
-              marginLeft: "auto",
-              marginRight: "auto"
-            }}>
-              {activeFilters 
-                ? "Try adjusting your filters to see more providers." 
-                : "Currently, we are unable to provide services in your location. We hope to be available in your area soon."}
-            </p>
-            {activeFilters && (
+      {/* Content Area */}
+      {loading ? (
+        // Show skeleton loading state
+        renderLoadingSkeleton()
+      ) : (
+        <main className="main-container" style={{ paddingTop: '1%' }}>
+          {Array.isArray(filteredProviders) && filteredProviders.length > 0 ? (
+            filteredProviders.map((provider, index) => (
+              <div key={index} style={{ paddingTop: '1%' }}>
+                <ProviderDetails 
+                  {...provider} 
+                  selectedProvider={handleSelectedProvider}
+                  sendDataToParent={sendDataToParent} 
+                />
+              </div>
+            ))
+          ) : (
+            // Show "no providers found" message
+            <div
+              style={{
+                width: "100%",
+                display: "grid",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                top: "40%",
+                left: "0",
+                textAlign: "center",
+                padding: "20px"
+              }}
+            >
+              <h3 style={{
+                fontSize: "18px",
+                fontWeight: "600",
+                color: "#333",
+                marginBottom: "10px"
+              }}>
+                {activeFilters ? "No Providers Match Your Filters" : "Service Not Available in Your Area"}
+              </h3>
+              <p style={{
+                fontSize: "14px",
+                color: "#666",
+                lineHeight: "1.5",
+                maxWidth: "300px",
+                marginBottom: "20px",
+                marginLeft: "auto",
+                marginRight: "auto"
+              }}>
+                {activeFilters 
+                  ? "Try adjusting your filters to see more providers." 
+                  : "Currently, we are unable to provide services in your location. We hope to be available in your area soon."}
+              </p>
+              {activeFilters && (
+                <button
+                  style={{
+                    padding: "12px 24px",
+                    backgroundColor: "#007bff",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    cursor: "pointer",
+                    marginBottom: "10px",
+                    width: "200px",
+                    marginLeft: "auto",
+                    marginRight: "auto"
+                  }}
+                  onClick={handleClearFilters}
+                >
+                  Clear Filters
+                </button>
+              )}
               <button
                 style={{
                   padding: "12px 24px",
-                  backgroundColor: "#007bff",
+                  backgroundColor: activeFilters ? "#6c757d" : "#007bff",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
                   fontSize: "14px",
                   fontWeight: "500",
                   cursor: "pointer",
-                  marginBottom: "10px",
                   width: "200px",
                   marginLeft: "auto",
                   marginRight: "auto"
                 }}
-                onClick={handleClearFilters}
+                onClick={() => sendDataToParent("")}
               >
-                Clear Filters
+                Go Back
               </button>
-            )}
-            <button
-              style={{
-                padding: "12px 24px",
-                backgroundColor: activeFilters ? "#6c757d" : "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-                cursor: "pointer",
-                width: "200px",
-                marginLeft: "auto",
-                marginRight: "auto"
-              }}
-              onClick={() => sendDataToParent("")}
-            >
-              Go Back
-            </button>
-          </div>
-        )}
-      </main>
+            </div>
+          )}
+        </main>
+      )}
 
       {/* Filter Drawer */}
       <ProviderFilter

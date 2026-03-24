@@ -11,6 +11,7 @@ import { HiBuildingOffice } from "react-icons/hi2";
 import utilsInstance from "src/services/utilsInstance";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
+import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 
 interface Address {
   id: string;
@@ -37,13 +38,17 @@ interface UserData {
 interface CustomerProfileSectionProps {
   userId: number | null;
   userEmail: string | null;
-  initialData?: any; // Optional initial data from parent
+  initialData?: any; 
+  isExternalEdit?: boolean; // Add this
+  setExternalEdit?: (val: boolean) => void; // Add this
 }
 
 const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({ 
   userId, 
   userEmail,
-  initialData 
+  initialData ,
+  isExternalEdit,
+  setExternalEdit
 }) => {
   const { t } = useLanguage(); // Initialize the translation function
   const dispatch = useDispatch();
@@ -178,36 +183,48 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       console.error("Failed to fetch customer addresses:", err);
     }
   };
+useEffect(() => {
+    if (isExternalEdit !== undefined) {
+      setIsEditing(isExternalEdit);
+    }
+  }, [isExternalEdit]);
 
   useEffect(() => {
-    if (userId) {
-      if (initialData) {
-        // Use initial data if provided
-        const userDataFromProps = {
-          firstName: initialData.firstname || "",
-          lastName: initialData.lastname || "",
-          contactNumber: initialData.mobileno || "",
-          altContactNumber: initialData.alternateno || ""
-        };
-        setUserData(userDataFromProps);
-        setOriginalData(prev => ({
-          ...prev,
-          userData: userDataFromProps
-        }));
-        setIsLoading(false);
-        
-        // Update Redux if needed
-        if (initialData.mobileno) {
-          dispatch(setHasMobileNumber(true));
+    const loadData = async () => {
+      if (userId) {
+        if (initialData) {
+          // Use initial data if provided
+          const userDataFromProps = {
+            firstName: initialData.firstname || "",
+            lastName: initialData.lastname || "",
+            contactNumber: initialData.mobileno || "",
+            altContactNumber: initialData.alternateno || ""
+          };
+          setUserData(userDataFromProps);
+          setOriginalData(prev => ({
+            ...prev,
+            userData: userDataFromProps
+          }));
+          setIsLoading(false);
+          
+          // Update Redux if needed
+          if (initialData.mobileno) {
+            dispatch(setHasMobileNumber(true));
+          }
+          
+          // Still fetch addresses
+          await fetchCustomerAddresses(userId);
+        } else {
+          // Fetch data if not provided
+          await Promise.all([
+            fetchCustomerDetails(),
+            fetchCustomerAddresses(userId)
+          ]);
         }
-      } else {
-        // Fetch data if not provided
-        Promise.all([
-          fetchCustomerDetails(),
-          fetchCustomerAddresses(userId)
-        ]);
       }
-    }
+    };
+
+    loadData();
   }, [userId, initialData, dispatch]);
 
   const validateMobileFormat = (number: string): boolean => {
@@ -501,7 +518,8 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       }
 
       setOriginalData({ userData: { ...userData }, addresses: [...addresses] });
-      setIsEditing(false);
+   setIsEditing(false);
+      if (setExternalEdit) setExternalEdit(false);
     } catch (error) {
       console.error("Failed to save data:", error);
       alert(t('saveFailed'));
@@ -512,7 +530,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
 
   const handleCancel = () => {
     setIsEditing(false);
-    setShowAddAddress(false);
+    if (setExternalEdit) setExternalEdit(false);
     setUserData(originalData.userData);
     setAddresses([...originalData.addresses]);
     setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
@@ -543,10 +561,83 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
     return true;
   };
 
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <ClipLoader size={40} color="#3b82f6" />
+      <div className="flex justify-center w-full py-6">
+        <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+          {/* Header with edit button skeleton */}
+          <div className="flex justify-between items-center border-b pb-3 mb-6">
+            <SkeletonLoader width={120} height={24} />
+            <SkeletonLoader width={80} height={36} />
+          </div>
+
+          {/* User Information Section Skeleton */}
+          <div className="mb-6">
+            <SkeletonLoader width={150} height={20} className="mb-4" />
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={60} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={60} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={80} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={80} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-6" />
+
+          {/* Contact Information Section Skeleton */}
+          <div className="mb-6">
+            <SkeletonLoader width={150} height={20} className="mb-4" />
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={120} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <SkeletonLoader width={180} height={16} className="mb-2" />
+                <SkeletonLoader height={40} />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-gray-200 my-6" />
+
+          {/* Addresses Section Skeleton */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <SkeletonLoader width={80} height={20} />
+              <SkeletonLoader width={120} height={32} />
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2].map((item) => (
+                <div key={item} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <SkeletonLoader width={80} height={20} />
+                    <SkeletonLoader width={60} height={20} />
+                  </div>
+                  <div className="mt-2">
+                    <SkeletonLoader height={20} className="mb-1" />
+                    <SkeletonLoader width="80%" height={20} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -355,24 +355,30 @@ useEffect(() => {
   {!isAuthenticated && (
     <>
       <Button
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
-                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
-        onClick={() => loginWithRedirect()}
-      >
+className="text-[14px] px-4 py-2 bg-[#0d2a5c] text-white font-semibold 
+             rounded-full transition-all duration-300 ease-in-out
+             hover:bg-[#163a7a] hover:scale-105 active:scale-95
+             max-[640px]:text-[12px] max-[640px]:px-3 max-[640px]:py-1"
+  onClick={() => loginWithRedirect()}
+>
         {t('registerAsUser')} {/* Updated to use t() */}
       </Button>
 
-      <Button
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
-                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
-        onClick={handleWorkClick}
-      >
+     <Button
+  className="text-[14px] px-4 py-2 bg-[#0d2a5c] text-white font-semibold 
+             rounded-full transition-all duration-300 ease-in-out
+             hover:bg-[#163a7a] hover:scale-105 active:scale-95
+             max-[640px]:text-[12px] max-[640px]:px-3 max-[640px]:py-1"
+  onClick={handleWorkClick}
+>
         {t('registerAsProvider')} {/* Updated to use t() */}
       </Button>
 
       <Button
-        className="text-sm px-4 py-2 bg-white text-[#0a2a66] hover:bg-gray-200 font-semibold 
-                   max-[640px]:text-[10px] max-[640px]:px-2 max-[640px]:py-1 max-[640px]:leading-tight"
+      className="text-[14px] px-4 py-2 bg-[#0d2a5c] text-white font-semibold 
+             rounded-full transition-all duration-300 ease-in-out
+             hover:bg-[#163a7a] hover:scale-105 active:scale-95
+             max-[640px]:text-[12px] max-[640px]:px-3 max-[640px]:py-1"
         onClick={() => setIsAgentRegistrationOpen(true)}
       >
         {t('registerAsAgent')} {/* Updated to use t() */}
