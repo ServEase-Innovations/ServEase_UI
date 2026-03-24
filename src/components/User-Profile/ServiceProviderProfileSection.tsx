@@ -1897,85 +1897,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
           {expandedSections.address && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("currentLocation")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.currentLocation}
-                    onChange={(e) => setUserData(prev => ({ ...prev, currentLocation: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("locality")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.locality}
-                    onChange={(e) => setUserData(prev => ({ ...prev, locality: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("street")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.street}
-                    onChange={(e) => setUserData(prev => ({ ...prev, street: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("buildingName")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.buildingName}
-                    onChange={(e) => setUserData(prev => ({ ...prev, buildingName: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("pincode")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.pincode}
-                    onChange={(e) => setUserData(prev => ({ ...prev, pincode: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    {t("nearbyLocation")}
-                  </label>
-                  <input
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    value={userData.nearbyLocation}
-                    onChange={(e) => setUserData(prev => ({ ...prev, nearbyLocation: e.target.value }))}
-                    readOnly={!isEditing}
-                    style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
-                  />
-                </div>
-              </div>
+          
 
               {/* Permanent and Correspondence Addresses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2081,15 +2003,9 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               >
                 {t("cancel")}
               </Button>
-              <Button 
-                onClick={handleSave} 
-                disabled={isSaving || !isFormValid() || !hasChanges()}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700"
-              >
-                {isSaving ? (
-                  <><ClipLoader size={16} color="white" className="mr-2" />{t("saving")}</>
-                ) : t("saveChanges")}
-              </Button>
+             <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
+                             {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
+                           </Button>
             </div>
           </div>
         )}

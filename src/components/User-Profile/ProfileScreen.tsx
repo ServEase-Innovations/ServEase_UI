@@ -1,5 +1,4 @@
-// ProfileScreen.tsx (updated with better loading skeletons)
-
+/* eslint-disable */
 import React, { useEffect, useState, useCallback } from "react";
 
 import { useAuth0 } from "@auth0/auth0-react";
@@ -446,23 +445,17 @@ const ProfileScreen = () => {
 
           <div className="flex items-center gap-5">
 
-            <img
-
-              src={
-
-                appUser?.picture ||
-
-                auth0User?.picture ||
-
-                "https://via.placeholder.com/80"
-
-              }
-
-              alt={userName || t('user')}
-
-              className="w-20 h-20 rounded-full border-4 border-white object-cover shadow-md"
-
-            />
+             <div className="p-[3px] rounded-full bg-blue-500">
+              <img
+                src={
+                  appUser?.picture ||
+                  auth0User?.picture ||
+                  "https://via.placeholder.com/80"
+                }
+                alt={userName || t("user")}
+                className="w-16 h-16 rounded-full object-cover border-2 border-white"
+              />
+            </div>
 
             <div>
 
