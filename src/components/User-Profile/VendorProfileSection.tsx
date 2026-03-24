@@ -114,42 +114,7 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
-      {/* Company Header Card */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-lg p-6 mb-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="bg-white/20 p-4 rounded-full">
-            <Building2 className="w-10 h-10" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold">{vendorData.companyName}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-blue-100">{t("registrationId")}:</span>
-              <span className="font-mono bg-white/30 px-2 py-1 rounded text-sm">
-                {vendorData.registrationId}
-              </span>
-            </div>
-          </div>
-          <div className="ml-auto">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
-              vendorData.isActive 
-                ? "bg-green-500/20 text-green-100" 
-                : "bg-red-500/20 text-red-100"
-            }`}>
-              {vendorData.isActive ? (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">{t("active")}</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">{t("inactive")}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
