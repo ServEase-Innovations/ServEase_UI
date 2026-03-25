@@ -16,7 +16,7 @@ img {
    MAIN CONTAINER FIX
 ================================ */
 .main-container {
-  margin-top: 100px;            /* stable header offset */
+  margin-top: 80px;          /* stable header offset */
   height: auto;
   min-height: calc(100vh - 64px);
   width: 100%;

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Drawer,
   Box,
@@ -15,6 +15,7 @@ import {
   ListItemIcon,
   Alert,
   Tooltip,
+  Collapse,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -26,6 +27,11 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import HistoryIcon from '@mui/icons-material/History';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import moment from 'moment';
 import { ServiceProviderDTO } from '../../types/ProviderDetailsType';
 import { useLanguage } from 'src/context/LanguageContext';
@@ -64,6 +70,28 @@ const TimeSlot = styled(Paper)(({ theme }) => ({
   },
 }));
 
+const PreviousBookingCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  borderRadius: 12,
+  backgroundColor: theme.palette.info[50],
+  border: `1px solid ${theme.palette.info[200]}`,
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[2],
+  },
+}));
+
+const SectionHeader = styled(Stack)(({ theme }) => ({
+  cursor: 'pointer',
+  padding: theme.spacing(1.5, 0),
+  borderRadius: 8,
+  transition: 'background-color 0.2s ease',
+  '&:hover': {
+    backgroundColor: theme.palette.action.hover,
+  },
+}));
+
 interface ProviderAvailabilityDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -75,12 +103,23 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
   onClose,
   provider,
 }) => {
-  const { t } = useLanguage(); // Add this line to use translations
+  const { t } = useLanguage();
+  // Set both sections to collapsed by default (false)
+  const [previousBookingExpanded, setPreviousBookingExpanded] = useState(false);
+  const [scheduleExceptionsExpanded, setScheduleExceptionsExpanded] = useState(false);
 
   if (!provider) return null;
 
   const formatTime = (timeString: string) => {
     return moment(timeString, 'HH:mm').format('hh:mm A');
+  };
+
+  const formatDate = (dateString: string) => {
+    return moment(dateString).format('MMMM D, YYYY');
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return moment(dateString).format('MMM D, YYYY • hh:mm A');
   };
 
   const getAvailabilityStatus = () => {
@@ -110,6 +149,53 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
     }
   };
 
+  const getBookingTypeLabel = (bookingType: string) => {
+    switch(bookingType) {
+      case 'MONTHLY':
+        return t('monthlyBooking');
+      case 'WEEKLY':
+        return t('weeklyBooking');
+      case 'DAILY':
+        return t('dailyBooking');
+      default:
+        return bookingType;
+    }
+  };
+
+  const getServiceTypeLabel = (serviceType: string) => {
+    switch(serviceType) {
+      case 'COOK':
+        return t('cook');
+      case 'MAID':
+        return t('maid');
+      case 'NANNY':
+        return t('nanny');
+      default:
+        return serviceType;
+    }
+  };
+
+  const getEngagementStatusLabel = (status: string) => {
+    switch(status) {
+      case 'ASSIGNED':
+        return t('assigned');
+      case 'COMPLETED':
+        return t('completed');
+      case 'CANCELLED':
+        return t('cancelled');
+      default:
+        return status;
+    }
+  };
+
+  const togglePreviousBooking = () => {
+    setPreviousBookingExpanded(!previousBookingExpanded);
+  };
+
+  const toggleScheduleExceptions = () => {
+    setScheduleExceptionsExpanded(!scheduleExceptionsExpanded);
+  };
+
   return (
     <Drawer
       anchor="right"
@@ -137,6 +223,15 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                 label={t('bestMatch')}
                 size="small"
                 color="warning"
+                sx={{ fontWeight: 600 }}
+              />
+            )}
+            {provider.previouslyBooked && (
+              <Chip
+                icon={<HistoryIcon />}
+                label={t('previouslyBooked')}
+                size="small"
+                color="info"
                 sx={{ fontWeight: 600 }}
               />
             )}
@@ -175,6 +270,142 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
               {getBestMatchMessage()}
             </Typography>
           </Alert>
+        )}
+
+        {/* Previous Booking Details with Expand/Collapse - Collapsed by default */}
+        {provider.previouslyBooked && provider.previousBookingDetails && (
+          <PreviousBookingCard elevation={0} sx={{ mb: 3 }}>
+            <SectionHeader 
+              direction="row" 
+              justifyContent="space-between" 
+              alignItems="center"
+              onClick={togglePreviousBooking}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <HistoryIcon color="info" />
+                <Typography variant="h6" fontWeight={600}>
+                  {t('previousBooking')}
+                </Typography>
+                <Chip 
+                  label={`${t('clickToExpand')}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ 
+                    backgroundColor: 'transparent',
+                    borderColor: theme => theme.palette.info.main,
+                    color: theme => theme.palette.info.main,
+                  }}
+                />
+              </Stack>
+              <IconButton size="small">
+                {previousBookingExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </SectionHeader>
+            
+            <Collapse in={previousBookingExpanded}>
+              <Divider sx={{ mb: 2, mt: 1 }} />
+              
+              <Stack spacing={2}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ReceiptIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('bookingId')}:
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body2" fontWeight={500}>
+                    #{provider.previousBookingDetails.engagementId}
+                  </Typography>
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <AccessTimeIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('bookingType')}:
+                    </Typography>
+                  </Stack>
+                  <Chip 
+                    label={getBookingTypeLabel(provider.previousBookingDetails.bookingType)}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <HistoryIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('serviceType')}:
+                    </Typography>
+                  </Stack>
+                  <Chip 
+                    label={getServiceTypeLabel(provider.previousBookingDetails.serviceType)}
+                    size="small"
+                    color="secondary"
+                    variant="outlined"
+                  />
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CalendarTodayIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('duration')}:
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body2">
+                    {formatDate(provider.previousBookingDetails.startDate)} - {formatDate(provider.previousBookingDetails.endDate)}
+                  </Typography>
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <InfoIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('status')}:
+                    </Typography>
+                  </Stack>
+                  <Chip 
+                    label={getEngagementStatusLabel(provider.previousBookingDetails.engagementStatus)}
+                    size="small"
+                    color={provider.previousBookingDetails.engagementStatus === 'ASSIGNED' ? 'success' : 'default'}
+                    sx={{ fontWeight: 500 }}
+                  />
+                </Stack>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ReceiptIcon fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {t('amount')}:
+                    </Typography>
+                  </Stack>
+                  <Typography variant="h6" color="success.main" fontWeight={600}>
+                    ₹{provider.previousBookingDetails.baseAmount}
+                  </Typography>
+                </Stack>
+
+                <Divider />
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" color="text.secondary">
+                    {t('bookedOn')}:
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDateTime(provider.previousBookingDetails.createdAt)}
+                  </Typography>
+                </Stack>
+              </Stack>
+
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  {t('previousBookingMessage')}
+                </Typography>
+              </Alert>
+            </Collapse>
+          </PreviousBookingCard>
         )}
 
         {/* Monthly Availability Summary */}
@@ -280,83 +511,105 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
           </Stack>
         </Paper>
 
-        {/* Schedule Exceptions */}
+        {/* Schedule Exceptions with Expand/Collapse - Collapsed by default */}
         {provider.monthlyAvailability?.exceptions && 
          provider.monthlyAvailability.exceptions.length > 0 && (
           <Paper elevation={0} sx={{ p: 3, border: 1, borderColor: 'divider', borderRadius: 2 }}>
-            <Stack direction="row" spacing={2} alignItems="center" mb={3}>
-              <WarningIcon color="warning" />
-              <Typography variant="h6" fontWeight={600}>
-                {t('scheduleExceptions')}
-              </Typography>
-              <Chip 
-                label={`${provider.monthlyAvailability.exceptions.length} ${t('exceptions')}`}
-                size="small"
-                color="warning"
-                variant="outlined"
-              />
-            </Stack>
+            <SectionHeader 
+              direction="row" 
+              justifyContent="space-between" 
+              alignItems="center"
+              onClick={toggleScheduleExceptions}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <WarningIcon color="warning" />
+                <Typography variant="h6" fontWeight={600}>
+                  {t('scheduleExceptions')}
+                </Typography>
+                <Chip 
+                  label={`${provider.monthlyAvailability.exceptions.length} ${t('exceptions')}`}
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`${t('clickToExpand')}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ 
+                    backgroundColor: 'transparent',
+                    borderColor: theme => theme.palette.warning.main,
+                    color: theme => theme.palette.warning.main,
+                  }}
+                />
+              </Stack>
+              <IconButton size="small">
+                {scheduleExceptionsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </SectionHeader>
 
-            <List disablePadding>
-              {provider.monthlyAvailability.exceptions.map((exception, index) => (
-                <React.Fragment key={index}>
-                  <ListItem 
-                    alignItems="flex-start" 
-                    sx={{ 
-                      px: 0,
-                      py: 2,
-                      backgroundColor: 'warning.50',
-                      borderRadius: 1,
-                      mb: 1,
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
-                      <InfoIcon color="warning" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {moment(exception.date).format('ddd, MMM D, YYYY')}
-                          </Typography>
-                          <Chip 
-                            label={t(exception.reason.toLowerCase())}
-                            size="small"
-                            color="warning"
-                          />
-                        </Stack>
-                      }
-                      secondary={
-                        <Stack spacing={1} mt={1}>
-                          <Typography variant="body2" color="text.secondary">
-                            {exception.reason === 'ON_DEMAND' 
-                              ? t('availableOnDemand')
-                              : t('notAvailableAtPreferredTime')}
-                          </Typography>
-                          {exception.suggestedTime && (
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <AccessTimeIcon fontSize="small" />
-                              <Typography variant="body2" fontWeight={500}>
-                                {t('suggestedTime')}: {formatTime(exception.suggestedTime)}
-                              </Typography>
-                            </Stack>
-                          )}
-                        </Stack>
-                      }
-                    />
-                  </ListItem>
-                  {index < provider.monthlyAvailability.exceptions.length - 1 && (
-                    <Divider variant="inset" component="li" />
-                  )}
-                </React.Fragment>
-              ))}
-            </List>
+            <Collapse in={scheduleExceptionsExpanded}>
+              <List disablePadding sx={{ mt: 2 }}>
+                {provider.monthlyAvailability.exceptions.map((exception, index) => (
+                  <React.Fragment key={index}>
+                    <ListItem 
+                      alignItems="flex-start" 
+                      sx={{ 
+                        px: 0,
+                        py: 2,
+                        backgroundColor: 'warning.50',
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
+                        <InfoIcon color="warning" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Typography variant="subtitle1" fontWeight={600}>
+                              {moment(exception.date).format('ddd, MMM D, YYYY')}
+                            </Typography>
+                            <Chip 
+                              label={t(exception.reason.toLowerCase())}
+                              size="small"
+                              color="warning"
+                            />
+                          </Stack>
+                        }
+                        secondary={
+                          <Stack spacing={1} mt={1}>
+                            <Typography variant="body2" color="text.secondary">
+                              {exception.reason === 'ON_DEMAND' 
+                                ? t('availableOnDemand')
+                                : t('notAvailableAtPreferredTime')}
+                            </Typography>
+                            {exception.suggestedTime && (
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <AccessTimeIcon fontSize="small" />
+                                <Typography variant="body2" fontWeight={500}>
+                                  {t('suggestedTime')}: {formatTime(exception.suggestedTime)}
+                                </Typography>
+                              </Stack>
+                            )}
+                          </Stack>
+                        }
+                      />
+                    </ListItem>
+                    {index < provider.monthlyAvailability.exceptions.length - 1 && (
+                      <Divider variant="inset" component="li" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </List>
 
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                {t('scheduleExceptionsInfo')}
-              </Typography>
-            </Alert>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  {t('scheduleExceptionsInfo')}
+                </Typography>
+              </Alert>
+            </Collapse>
           </Paper>
         )}
 

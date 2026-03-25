@@ -148,7 +148,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
   const users = useSelector((state: any) => state.user?.value);
   const currentLocation = users?.customerDetails?.currentLocation;
-  const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
+  const providerFullName = `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
 
   // FIX: Add useEffect to reset loading when dialog closes
   useEffect(() => {
@@ -176,7 +176,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
       age: pkg.age,
       price: pkg.calculatedPrice,
       description: pkg.description.join(", "),
-      providerId: providerDetails?.serviceproviderId || '',
+      providerId: providerDetails?.serviceproviderid || '',
       providerName: providerFullName,
       activeTab: activeTab // Add current active tab
     };
@@ -330,7 +330,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
           age: pkg.age,
           price: pkg.calculatedPrice,
           description: pkg.description.join(", "),
-          providerId: providerDetails?.serviceproviderId || '',
+          providerId: providerDetails?.serviceproviderid || '',
           providerName: providerFullName,
           activeTab: activeTab
         }));
@@ -430,8 +430,8 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
 
       const payload: BookingPayload = {
         customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderId
-          ? Number(providerDetails.serviceproviderId)
+        serviceproviderid: providerDetails?.serviceproviderid
+          ? Number(providerDetails.serviceproviderid)
           : 0,
         start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
         end_date: bookingType?.endDate || "",

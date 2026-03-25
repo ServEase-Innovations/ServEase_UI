@@ -21,6 +21,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { Button, Badge } from '@mui/material';
 import ProviderFilter,{ FilterCriteria } from "./ProviderFilter";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
+import { useAppUser } from "src/context/AppUserContext";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -44,6 +45,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const [activeFilters, setActiveFilters] = useState<FilterCriteria | null>(null);
   const [filteredProviders, setFilteredProviders] = useState<ServiceProviderDTO[]>([]);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0); // Add state for total count
   
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
@@ -52,7 +54,15 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const dispatch = useDispatch();
   const location = useSelector((state: any) => state?.geoLocation?.value);
   
+  // Get appUser from context
+  const { appUser } = useAppUser();
+  
+  // Only get customerId if the user role is CUSTOMER
+  const customerId = appUser?.role === "CUSTOMER" ? appUser?.customerid : null;
+  
   console.log("HIKKERS", selectedProviderType);
+  console.log("App User Role:", appUser?.role);
+  console.log("Customer ID:", customerId); // For debugging
 
   const handleCheckoutData = (data: any) => {
     console.log("Received checkout data:", data);
@@ -116,16 +126,34 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         return dateString.split("T")[0];
       };
 
-      const response = await providerInstance.post('/api/service-providers/nearby-monthly', {
-        "lat" : latitude.toString(),
-        "lng" : longitude.toString(),
-        "radius" : 10,
-        "startDate" : formatDateOnly(bookingType?.startDate) || "2025-04-01",
-        "endDate" : formatDateOnly(bookingType?.endDate) || "2025-04-30",
-        preferredStartTime: bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
+      // Build the base payload without customerId
+      const payload: any = {
+        "lat": latitude.toString(),
+        "lng": longitude.toString(),
+        "radius": 10,
+        "startDate": formatDateOnly(bookingType?.startDate) || "2025-04-01",
+        "endDate": formatDateOnly(bookingType?.endDate) || "2025-04-30",
+        "preferredStartTime": bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
         "role": bookingType?.housekeepingRole || "COOK",
         "serviceDurationMinutes": 60
-      });
+      };
+
+      // Only add customerId if user role is CUSTOMER and customerId exists
+      if (appUser?.role === "CUSTOMER" && customerId && customerId !== 0 && customerId !== null && customerId !== undefined) {
+        payload.customerID = Number(customerId);
+        console.log("Adding customerId to payload:", customerId);
+      } else {
+        console.log("Not adding customerId - User is not a CUSTOMER or customerId not available");
+      }
+
+      console.log("Sending payload to API:", payload); // For debugging
+
+      const response = await providerInstance.post('/api/service-providers/nearby-monthly', payload);
+
+      console.log("API Response:", response.data); // For debugging
+
+      // Store total count from response
+      setTotalCount(response.data.count || 0);
 
       if (response.data.count === 0) {
         setServiceProviderData([]);
@@ -138,9 +166,21 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       console.error("Geolocation or API error:", error.message || error);
       setServiceProviderData([]);
       setFilteredProviders([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to normalize languages to array
+  const normalizeLanguages = (languages: string | string[] | null | undefined): string[] => {
+    if (!languages) return [];
+    if (Array.isArray(languages)) return languages;
+    // If it's a string, split by comma
+    if (typeof languages === 'string') {
+      return languages.split(',').map(lang => lang.trim());
+    }
+    return [];
   };
 
   const applyFilters = (providers: ServiceProviderDTO[], filters: FilterCriteria): ServiceProviderDTO[] => {
@@ -170,9 +210,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         return false;
       }
 
-      // Language filter
+      // Language filter - FIXED: Normalize to array first
       if (filters.language.length > 0) {
-        const providerLanguages = provider.languageknown || [];
+        const providerLanguages = normalizeLanguages(provider.languageknown);
         const hasMatchingLanguage = providerLanguages.some(lang => 
           filters.language.includes(lang)
         );
@@ -279,89 +319,109 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      {/* Back Button - Only shown when service providers are present or loading */}
-      {(loading || (Array.isArray(serviceProviderData) && serviceProviderData.length > 0)) && (
-        <>
-          <div
-            onClick={handleBackClick}
-            style={{
-              position: "absolute",
-              top: "-10px",
-              left: "15px",
-              zIndex: 1000,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              color: "#333",
-              fontSize: "16px",
-              fontWeight: "500",
-              padding: "8px 12px",
-              borderRadius: "4px",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
-          >
-            <span style={{ fontSize: "20px" }}>←</span>
-            <span>Back</span>
-          </div>
-
-          {/* Filter Button - Show while loading as well */}
-          <div
-            style={{
-              position: "absolute",
-              top: "-10px",
-              right: "15px",
-              zIndex: 1000,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px"
-            }}
-          >
-            <Badge badgeContent={activeFilterCount} color="primary">
-              <Button
-                variant="outlined"
-                startIcon={<FilterListIcon />}
-                onClick={() => setFilterOpen(true)}
-                sx={{
-                  backgroundColor: "white",
-                  '&:hover': {
-                    backgroundColor: "#f5f5f5",
-                  }
-                }}
-              >
-                Filter
-              </Button>
-            </Badge>
-            {activeFilterCount > 0 && (
-              <Button
-                size="small"
-                onClick={handleClearFilters}
-                sx={{
-                  color: "text.secondary",
-                  fontSize: "0.8rem",
-                  textTransform: "none"
-                }}
-              >
-                Clear all
-              </Button>
-            )}
-          </div>
-        </>
-      )}
-
+    <div style={{ position: "relative"}}>
       {/* Content Area */}
       {loading ? (
         // Show skeleton loading state
         renderLoadingSkeleton()
       ) : (
-        <main className="main-container" style={{ paddingTop: '1%' }}>
+        <main className="main-container" >
+          {/* COMBINED ACTION & MESSAGE BAR */}
+          {(totalCount > 0 || activeFilters) && (
+            <div
+              style={{
+                padding: '12px 16px',
+                margin: '0 0 16px 0',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap',
+                border: '1px solid #e9ecef',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+              }}
+            >
+              {/* BACK ACTION */}
+              <div
+                onClick={handleBackClick}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  color: "#495057",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  transition: "0.2s"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e9ecef";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <span style={{ fontSize: "20px" }}>←</span>
+                <span>Back</span>
+              </div>
+
+              {/* DYNAMIC MESSAGE */}
+              <div style={{
+                flex: 1,
+                textAlign: 'center',
+                fontSize: '14px',
+                color: '#6c757d',
+                fontWeight: 500
+              }}>
+                {activeFilters 
+                  ? `Found ${filteredProviders.length} provider${filteredProviders.length !== 1 ? 's' : ''} matching your filters`
+                  : `${totalCount} service provider${totalCount !== 1 ? 's' : ''} found near your location`
+                }
+              </div>
+
+              {/* FILTER ACTIONS */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Badge badgeContent={activeFilterCount} color="primary">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<FilterListIcon />}
+                    onClick={() => setFilterOpen(true)}
+                    sx={{ 
+                      textTransform: 'none', 
+                      borderRadius: '8px', 
+                      bgcolor: 'white',
+                      '&:hover': {
+                        bgcolor: '#f8f9fa'
+                      }
+                    }}
+                  >
+                    Filter
+                  </Button>
+                </Badge>
+                {activeFilterCount > 0 && (
+                  <Button
+                    size="small"
+                    onClick={handleClearFilters}
+                    sx={{ 
+                      color: "text.secondary", 
+                      fontSize: "0.75rem", 
+                      textTransform: "none",
+                      '&:hover': {
+                        bgcolor: '#f8f9fa'
+                      }
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          
           {Array.isArray(filteredProviders) && filteredProviders.length > 0 ? (
             filteredProviders.map((provider, index) => (
               <div key={index} style={{ paddingTop: '1%' }}>

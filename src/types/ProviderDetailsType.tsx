@@ -1,35 +1,4 @@
-// types.ts
-export interface ProviderDetailsType {
-    serviceproviderId: string;
-    firstname: string;
-    middleName?: string;
-    lastname: string;
-    gender: string;
-    dob: string;
-    diet: string;
-    language?: string;
-    experience?: string;
-    otherServices?: string;
-    housekeepingRole: string;
-    availableTimeSlots?: string[];
-  }
-  
-  export interface EnhancedProviderDetails extends ProviderDetailsType {
-    selectedMorningTime?: number | null;
-    selectedEveningTime?: number | null;
-    matchedMorningSelection?: string | null;
-    matchedEveningSelection?: string | null;
-    startTime?: string;
-    endTime?: string;
-  }
-  
-  export interface DialogProps {
-    open: boolean;
-    handleClose: () => void;
-    providerDetails: EnhancedProviderDetails;
-  }
-
-  /** Monthly availability summary */
+// ProviderDetailsType.ts
 export interface MonthlyAvailabilitySummary {
   totalDays: number;
   daysAtPreferredTime: number;
@@ -37,60 +6,68 @@ export interface MonthlyAvailabilitySummary {
   unavailableDays: number;
 }
 
-/** Monthly availability exception */
 export interface MonthlyAvailabilityException {
-  date: string;               // YYYY-MM-DD
+  date: string;
   reason: "ON_DEMAND" | "FULLY_BOOKED";
-  suggestedTime: string | null; // HH:mm or null
+  suggestedTime: string | null;
 }
 
-/** Monthly availability DTO */
 export interface MonthlyAvailabilityDTO {
-  preferredTime: string; // HH:mm
+  preferredTime: string;
   fullyAvailable: boolean;
   summary: MonthlyAvailabilitySummary;
   exceptions: MonthlyAvailabilityException[];
 }
 
-/** Service Provider DTO (Frontend) */
+export interface PreviousBookingDetails {
+  engagementId: string;
+  bookingType: string;
+  serviceType: string;
+  startDate: string;
+  endDate: string;
+  engagementStatus: string;
+  assignmentStatus: string;
+  taskStatus: string;
+  active: boolean;
+  baseAmount: number;
+  createdAt: string;
+}
+
 export interface ServiceProviderDTO {
   serviceproviderid: string;
-
-  // Basic info
   firstName: string;
   lastName: string;
   gender: "MALE" | "FEMALE" | "OTHER";
-  experience: number; // years
+  experience: number;
   rating: number;
-  dob: string; // ISO date string
+  dob: string;
   age: number;
   otherServices: string | null;
-
   housekeepingRole: string;
-
-  // Preferences
-  diet: "VEG" | "NON_VEG" | "BOTH";
-  cookingspeciality: "VEG" | "NON_VEG" | "BOTH";
-  languageknown: string[] | null;
-  
-  // Location
+  diet: "VEG" | "NONVEG" | "BOTH";
+  cookingspeciality: "VEG" | "NONVEG" | "BOTH";
+  languageknown: string | string[] | null;
   locality: string;
   location: string;
   pincode: number;
   latitude: number;
   longitude: number;
   distance_km: number;
-
-  // Ranking flags
   bestMatch: boolean;
-
-  // Availability
   monthlyAvailability: MonthlyAvailabilityDTO;
+  previouslyBooked: boolean;
+  previousBookingDetails: PreviousBookingDetails | null;
 }
-
 
 export interface NearbyMonthlyResponseDTO {
   count: number;
   providers: ServiceProviderDTO[];
 }
-
+ export interface EnhancedProviderDetails extends ServiceProviderDTO {
+    selectedMorningTime?: number | null;
+    selectedEveningTime?: number | null;
+    matchedMorningSelection?: string | null;
+    matchedEveningSelection?: string | null;
+    startTime?: string;
+    endTime?: string;
+  }

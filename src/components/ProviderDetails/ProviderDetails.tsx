@@ -46,7 +46,7 @@ import { PlusIcon } from "lucide-react";
 import MaidServiceDialog from "./MaidServiceDialog";
 import NannyServicesDialog from "./NannyServicesDialog";
 import CookServicesDialog from "./CookServicesDialog";
-import { EnhancedProviderDetails, ServiceProviderDTO } from "../../types/ProviderDetailsType";
+import {ServiceProviderDTO } from "../../types/ProviderDetailsType";
 import { useAppUser } from "src/context/AppUserContext";
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -58,6 +58,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { Button } from "../Button/button";
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
+import HistoryIcon from '@mui/icons-material/History';
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -65,20 +66,41 @@ interface ProviderDetailsProps extends ServiceProviderDTO  {
   sendDataToParent?: (data: string) => void;
 }
 
-// Styled components - KEEPING YOUR EXACT WEB VIEW STYLES
-const PremiumBadge = styled(Chip)(({ theme }) => ({
+// Styled components
+const BadgeContainer = styled(Box)(({ theme }) => ({
   position: 'absolute',
-  top: theme.spacing(1),
+  top: theme.spacing(-0.5),
   left: theme.spacing(1),
   zIndex: 10,
-  fontWeight: 700,
-  fontSize: '0.7rem',
+  display: 'flex',
+  gap: theme.spacing(1),
+  alignItems: 'center',
+}));
+
+const BestMatchBadge = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
   backgroundColor: theme.palette.warning.main,
   color: theme.palette.warning.contrastText,
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+  borderRadius: '4px',
   boxShadow: theme.shadows[2],
-  '& .MuiChip-icon': {
-    color: theme.palette.warning.contrastText,
-  },
+  fontWeight: 700,
+  fontSize: '0.7rem',
+}));
+
+const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+  backgroundColor: theme.palette.info.main,
+  color: theme.palette.info.contrastText,
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+  borderRadius: '4px',
+  boxShadow: theme.shadows[2],
+  fontWeight: 700,
+  fontSize: '0.7rem',
 }));
 
 const ProviderCard = styled(Card)(({ theme }) => ({
@@ -107,33 +129,6 @@ const MetricBox = styled(Box)(({ theme }) => ({
   minWidth: 80,
 }));
 
-const ProviderAvatar = styled(Avatar)(({ theme }) => ({
-  width: 56,
-  height: 56,
-  fontSize: '1.5rem',
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-}));
-
-// Best Match Ribbon Component
-const BestMatchRibbon = styled(Box)(({ theme }) => ({
-  position: 'absolute',
-  top: theme.spacing(-0.5),
-  left: theme.spacing(1),
-  zIndex: 10,
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(0.5),
-  backgroundColor: theme.palette.warning.main,
-  color: theme.palette.warning.contrastText,
-  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-  borderRadius: '4px',
-  boxShadow: theme.shadows[2],
-  fontWeight: 700,
-  fontSize: '0.7rem',
-}));
-
-// Availability Info Chip Component
 const AvailabilityChip = styled(Chip)(({ theme }) => ({
   backgroundColor: theme.palette.success.light,
   color: theme.palette.success.contrastText,
@@ -149,7 +144,7 @@ const AvailabilityChip = styled(Chip)(({ theme }) => ({
 }));
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
-  const { t } = useLanguage(); // Add this line to use translations
+  const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
   const [morningSelection, setMorningSelection] = useState<number | null>(null);
@@ -173,12 +168,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const hasCheckedRef = useRef(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const dietImages = {
-    VEG: "veg.png",
-    NONVEG: "nonveg.png",
-    BOTH: "nonveg.png",
-  };
 
   const dispatch = useDispatch();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
@@ -352,7 +341,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     }
   };
   
-  // Fixed: Get availability status for the chip
   const getAvailabilityStatus = () => {
     if (!props.monthlyAvailability) return t('available');
     
@@ -363,24 +351,20 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       if (exceptions > 0) {
         return `${t('partiallyAvailable')} (${exceptions} ${t('exceptions')})`;
       }
-      // FIXED: Changed from "Available" to "Partially Available"
       return t('partiallyAvailable');
     }
   };
 
-  // Fixed: Get availability chip class
   const getAvailabilityChipClass = () => {
     if (!props.monthlyAvailability) return "";
     
     if (props.monthlyAvailability.fullyAvailable) {
-      return ""; // Default class for fully available
+      return "";
     } else {
-      // Apply "partial" class for all non-fully available cases
       return "partial";
     }
   };
 
-  // NEW: Helper function to get appropriate availability message
   const getAvailabilityMessage = () => {
     if (!props.monthlyAvailability) {
       return t('availabilityNotSpecified');
@@ -403,7 +387,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return `${t('availableAt')} ${formatTimeForDisplay(props.monthlyAvailability.preferredTime)}`;
   };
 
-  // NEW: Helper function to get time icon color based on availability
   const getTimeIconColor = () => {
     if (!props.monthlyAvailability) return "disabled";
     
@@ -435,7 +418,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     hasCheckedRef.current = true;
   }
 
-  const dietImage = dietImages[props.diet as keyof typeof dietImages];
   const isBookNowEnabled = 
     (morningSelection !== null || eveningSelection !== null) || 
     (matchedMorningSelection !== null || matchedEveningSelection !== null);
@@ -464,6 +446,41 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return `${props.firstName?.[0] || ''}${props.lastName?.[0] || ''}`.toUpperCase();
   };
 
+  // Helper function to get all languages as array
+  const getAllLanguages = (): string[] => {
+    const languages = props.languageknown;
+    if (!languages) return [];
+    
+    if (Array.isArray(languages)) {
+      return languages;
+    }
+    
+    if (typeof languages === 'string') {
+      return languages.split(',').map(lang => lang.trim());
+    }
+    
+    return [];
+  };
+
+  // Helper function to format rating display
+  const formatRating = () => {
+    if (!props.rating || props.rating === 0) {
+      return "0.0";
+    }
+    return props.rating.toFixed(1);
+  };
+
+  // Helper function to get rating value
+  const getRatingValue = () => {
+    if (!props.rating || props.rating === 0) {
+      return 0;
+    }
+    return props.rating;
+  };
+
+  const allLanguages = getAllLanguages();
+  const hasLanguages = allLanguages.length > 0;
+
   return (
     <>
       <ProviderCard sx={{
@@ -475,19 +492,30 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           marginTop: 2
         }
       }}>
-        {props.bestMatch && (
-          <BestMatchRibbon sx={{
-            '@media (max-width: 900px)': {
-              top: 8,
-              left: 8,
-              fontSize: '0.65rem',
-              padding: '2px 8px',
-            }
-          }}>
-            <LocalFireDepartmentIcon fontSize="small" />
-            <span>{t('bestMatch')}</span>
-          </BestMatchRibbon>
-        )}
+        {/* Badges Container - Both badges on left side */}
+        <BadgeContainer sx={{
+          '@media (max-width: 900px)': {
+            top: 8,
+            left: 8,
+            gap: 0.5,
+          }
+        }}>
+          {/* Best Match Badge */}
+          {props.bestMatch && (
+            <BestMatchBadge>
+              <LocalFireDepartmentIcon fontSize="small" />
+              <span>{t('bestMatch')}</span>
+            </BestMatchBadge>
+          )}
+          
+          {/* Previously Booked Badge */}
+          {props.previouslyBooked && (
+            <PreviouslyBookedBadge>
+              <HistoryIcon fontSize="small" />
+              <span>{t('previouslyBooked')}</span>
+            </PreviouslyBookedBadge>
+          )}
+        </BadgeContainer>
         
         <CardContent sx={{ 
           p: 3,
@@ -575,35 +603,37 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       }} 
                     />
                     
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                       <LanguageIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
-                        {props.languageknown?.[0] || t('english')}
-                      </Typography>
+                      {hasLanguages ? (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {allLanguages.map((language, index) => (
+                            <Chip
+                              key={index}
+                              label={language}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                height: 24,
+                                fontSize: '0.75rem',
+                                '@media (max-width: 600px)': {
+                                  height: 20,
+                                  fontSize: '0.65rem',
+                                }
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.8rem',
+                          }
+                        }}>
+                          {t('notSpecified')}
+                        </Typography>
+                      )}
                     </Stack>
-                    
-                    {/* <Divider 
-                      orientation="vertical" 
-                      flexItem 
-                      sx={{
-                        display: isMobile ? 'none' : 'flex'
-                      }} 
-                    /> */}
-                    
-                    {/* <Stack direction="row" spacing={1} alignItems="center">
-                      <LocationOnIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
-                        {props.locality || t('nearby')}
-                      </Typography>
-                    </Stack> */}
                   </Stack>
               
                   <Box mt={2} sx={{
@@ -622,7 +652,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                   
                     </Stack>
                     
-                    {/* FIXED: Availability message section with proper logic */}
                     <Stack direction="row" spacing={2} alignItems="center" sx={{
                       '@media (max-width: 900px)': {
                         flexWrap: 'wrap',
@@ -637,23 +666,23 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       }}>
                         {getAvailabilityMessage()}
                       </Typography>
-                    <Chip 
-  label={
-    props.monthlyAvailability?.summary?.totalDays >= 30 
-      ? t('monthly') 
-      : t('shortTerm')
-  } 
-  size="small" 
-  color="primary" 
-  variant="outlined"
-  sx={{
-    '@media (max-width: 600px)': {
-      fontSize: '0.7rem',
-      height: 22,
-    }
-  }}
-/>
-                          <AvailabilityChip
+                      <Chip 
+                        label={
+                          props.monthlyAvailability?.summary?.totalDays >= 30 
+                            ? t('monthly') 
+                            : t('shortTerm')
+                        } 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                        sx={{
+                          '@media (max-width: 600px)': {
+                            fontSize: '0.7rem',
+                            height: 22,
+                          }
+                        }}
+                      />
+                      <AvailabilityChip
                         label={getAvailabilityStatus()}
                         size="small"
                         className={getAvailabilityChipClass()}
@@ -666,7 +695,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       />
                     </Stack>
                     
-                    {/* Show exceptions count if any */}
                     {props.monthlyAvailability?.exceptions && props.monthlyAvailability.exceptions.length > 0 && (
                       <Typography 
                         variant="caption" 
@@ -684,7 +712,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     )}
                     
-                    {/* Show fully available message */}
                     {props.monthlyAvailability?.fullyAvailable && (
                       <Typography 
                         variant="caption" 
@@ -702,7 +729,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                       </Typography>
                     )}
                     
-                    {/* Show partially available message (when not fully available but no exceptions) */}
                     {props.monthlyAvailability && !props.monthlyAvailability.fullyAvailable && 
                      (!props.monthlyAvailability.exceptions || props.monthlyAvailability.exceptions.length === 0) && (
                       <Typography 
@@ -815,7 +841,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                             fontSize: '1rem',
                           }
                         }}>
-                          {props.rating?.toFixed(1)}
+                          {formatRating()}
                         </Typography>
                       </Stack>
                       <Typography variant="caption" color="text.secondary" sx={{
@@ -824,7 +850,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           marginLeft: 'auto',
                         }
                       }}>
-                        {props.rating} {t('reviews')}
+                        {getRatingValue() === 0 ? t('Ratings') : t('reviews')}
                       </Typography>
                     </MetricBox>
 
@@ -842,7 +868,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                           fontSize: '1rem',
                         }
                       }}>
-                        {props.experience || 12}
+                        {props.experience || 0}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{
                         '@media (max-width: 600px)': {

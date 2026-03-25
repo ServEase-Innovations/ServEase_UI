@@ -46,6 +46,8 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.3.24",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.474.0",
     "moment": "^2.30.1",

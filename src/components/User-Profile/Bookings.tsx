@@ -112,6 +112,143 @@ interface Booking {
   payment?: Payment;
 }
 
+// Skeleton Loader Component
+interface SkeletonLoaderProps {
+  width?: string | number;
+  height?: string | number;
+  className?: string;
+  style?: React.CSSProperties;
+  variant?: "rectangular" | "circular" | "text";
+}
+
+const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
+  width = "100%",
+  height = "1rem",
+  className = "",
+  style = {},
+  variant = "rectangular"
+}) => {
+  const baseStyle: React.CSSProperties = {
+    width,
+    height,
+    backgroundColor: "#e5e7eb",
+    borderRadius: variant === "circular" ? "50%" : variant === "text" ? "4px" : "8px",
+    animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+    display: "inline-block",
+    ...style
+  };
+
+  return (
+    <>
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        `}
+      </style>
+      <div 
+        className={`skeleton-loader ${className}`} 
+        style={baseStyle}
+      />
+    </>
+  );
+};
+
+// Booking Card Skeleton
+const BookingCardSkeleton: React.FC = () => {
+  return (
+    <Card className="shadow-card">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1">
+            <SkeletonLoader width="2rem" height="2rem" variant="circular" />
+            <div className="flex-1">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div>
+                  <SkeletonLoader width="150px" height="1.5rem" className="mb-2" />
+                  <SkeletonLoader width="100px" height="1rem" />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="text-left sm:text-right">
+                    <SkeletonLoader width="140px" height="1.25rem" className="mb-1" />
+                    <SkeletonLoader width="80px" height="0.875rem" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <SkeletonLoader width="80px" height="1.5rem" />
+            <SkeletonLoader width="100px" height="1.5rem" />
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
+              <SkeletonLoader width="200px" height="1rem" />
+            </div>
+            <div className="flex items-center gap-2">
+              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
+              <SkeletonLoader width="150px" height="1rem" />
+            </div>
+            <div className="flex items-center gap-2">
+              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
+              <SkeletonLoader width="250px" height="1rem" />
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <SkeletonLoader width="120px" height="1rem" className="mb-2" />
+              <div className="flex flex-wrap gap-2">
+                <SkeletonLoader width="100px" height="1.5rem" />
+                <SkeletonLoader width="120px" height="1.5rem" />
+                <SkeletonLoader width="80px" height="1.5rem" />
+              </div>
+            </div>
+            <div className="text-right">
+              <SkeletonLoader width="100px" height="2rem" className="ml-auto" />
+            </div>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div className="flex flex-wrap gap-2">
+          <SkeletonLoader width="100px" height="2rem" />
+          <SkeletonLoader width="100px" height="2rem" />
+          <SkeletonLoader width="100px" height="2rem" />
+          <SkeletonLoader width="100px" height="2rem" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Status Tabs Skeleton
+const StatusTabsSkeleton: React.FC = () => {
+  return (
+    <div className="mb-6">
+      <div className="flex flex-wrap gap-1 md:gap-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <SkeletonLoader key={i} width="80px" height="2.25rem" />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const getServiceIcon = (type: string) => {
   const iconClass = "text-2xl";
   switch (type) {
@@ -258,7 +395,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
-  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -356,7 +492,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                 element.classList.add('highlight-booking');
                 
                 // MODIFIED: Always open drawer by default, regardless of action parameter
-                // If action parameter exists, use it; otherwise default to drawer
                 const shouldOpenDrawer = deepLinkAction === 'drawer' || !deepLinkAction || deepLinkAction === 'open';
                 
                 if (shouldOpenDrawer) {
@@ -800,7 +935,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     };
 
     loadBookings();
-  }, [appUser?.customerid, isAuthenticated]); // Only depend on these
+  }, [appUser?.customerid, isAuthenticated]);
 
   const fetchBookings = async (id: string) => {
     try {
@@ -1328,23 +1463,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
   ];
 
-  // Debounced loading overlay effect
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    
-    if (isLoading) {
-      timer = setTimeout(() => {
-        setShowLoadingOverlay(true);
-      }, 300); // Only show loading if it takes more than 300ms
-    } else {
-      setShowLoadingOverlay(false);
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isLoading]);
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -1358,59 +1476,48 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         }}
       >
         <div className="container mx-auto">
-          {/* Back Button Row */}
-          <div className="mb-4">
-            <button
-              onClick={() => window.history.back()}
-              className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200 hover:border-blue-200"
-              style={{ color: "rgb(14, 48, 92)" }}
-            >
-              <div className="relative h-5 w-5 overflow-hidden">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 absolute inset-0 transition-all duration-300 group-hover:-translate-x-full"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 absolute inset-0 translate-x-full transition-all duration-300 group-hover:translate-x-0"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              
-              <span className="font-medium transition-colors duration-200 group-hover:text-blue-700">
-                Back
-              </span>
-              
-              <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></div>
-            </button>
-          </div>
+    
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="hidden md:block w-1/3"></div>
+           {/* LEFT SECTION (Back Button) */}
+<div className="w-full md:w-1/3 flex justify-start">
+  <button
+    onClick={() => window.history.back()}
+     style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    cursor: "pointer",
+    fontWeight: "600",
+    color: "#12375d",
+    padding: "6px 10px",
+    borderRadius: "6px",
+    transition: "0.2s",
+    userSelect: "none",
+    background: "none",
+   
+  }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.backgroundColor = "#e9ecef";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.backgroundColor = "transparent";
+    }}
+  >
+    <span style={{ fontSize: "20px" }}>←</span>
+    <span>Back</span>
+  </button>
+</div>
 
-            <div className="text-center order-1 md:order-2 w-full md:w-1/3">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
-                My Bookings
-              </h1>
-              <p className="mt-1 text-xs md:text-sm lg:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
-                Manage your househelp service appointments
-              </p>
-            </div>
+  {/* CENTER SECTION */}
+  <div className="text-center w-full md:w-1/3">
+    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: "rgb(14, 48, 92)" }}>
+      My Bookings
+    </h1>
+    <p className="mt-1 text-xs md:text-sm lg:text-base opacity-90" style={{ color: "rgb(14, 48, 92)" }}>
+      Manage your househelp service appointments
+    </p>
+  </div>
 
             <div className="flex items-center justify-end w-full md:w-1/3 order-2 md:order-3 gap-3">
               <div className="relative flex-1 md:flex-none w-full md:w-64">
@@ -1525,14 +1632,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       </div>
 
       <div className="container mx-auto px-4 py-4 md:py-8">
-        {/* Debounced loading overlay */}
-        {showLoadingOverlay && (
-          <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm" style={{ top: '64px' }}>
-            <ClipLoader color="#3b82f6" size={50} />
-            <p className="mt-4 text-lg font-medium text-gray-700">Loading your bookings...</p>
-          </div>
-        )}
-
         {/* Upcoming Bookings Section */}
         <section className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-3 md:p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
@@ -1540,38 +1639,53 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             <div className="flex-1">
               <h2 className="text-lg md:text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
               <p className="text-xs md:text-sm text-muted-foreground">
-                {filteredUpcomingBookings.length} {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+                {isLoading ? (
+                  <SkeletonLoader width="100px" height="1rem" />
+                ) : (
+                  `${filteredUpcomingBookings.length} ${filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled`
+                )}
               </p>
             </div>
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 mt-2 md:mt-0 w-fit">
-              {upcomingBookings.length}
+              {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : upcomingBookings.length}
             </Badge>
           </div>
 
           {/* Status Tabs */}
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-1 md:gap-2">
-              {statusTabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  onClick={() => setStatusFilter(tab.value)}
-                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                    statusFilter === tab.value
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                  <span className="ml-2 bg-gray-200 text-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-xs">
-                    {tab.count}
-                  </span>
-                </button>
+          {isLoading ? (
+            <StatusTabsSkeleton />
+          ) : (
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-1 md:gap-2">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setStatusFilter(tab.value)}
+                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                      statusFilter === tab.value
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                    <span className="ml-2 bg-gray-200 text-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-xs">
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isLoading ? (
+            // Show skeleton loaders while loading
+            <div className="grid gap-4">
+              {[1, 2, 3].map((i) => (
+                <BookingCardSkeleton key={i} />
               ))}
             </div>
-          </div>
-
-          {upcomingBookings.length > 0 ? (
+          ) : upcomingBookings.length > 0 ? (
             <div className="grid gap-4">
               {filteredUpcomingBookings.map((booking) => (
                 <Card 
@@ -1791,15 +1905,26 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             <div className="flex-1">
               <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-card-foreground">Past Bookings</h2>
               <p className="text-xs md:text-sm text-muted-foreground">
-                {filteredPastBookings.length} {filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history
+                {isLoading ? (
+                  <SkeletonLoader width="100px" height="1rem" />
+                ) : (
+                  `${filteredPastBookings.length} ${filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history`
+                )}
               </p>
             </div>
             <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground mt-2 md:mt-0 w-fit">
-              {pastBookings.length}
+              {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : pastBookings.length}
             </Badge>
           </div>
 
-          {pastBookings.length > 0 ? (
+          {isLoading ? (
+            // Show skeleton loaders while loading
+            <div className="grid gap-4">
+              {[1, 2].map((i) => (
+                <BookingCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : pastBookings.length > 0 ? (
             <div className="grid gap-4">
               {filteredPastBookings.map((booking) => (
                 <Card 

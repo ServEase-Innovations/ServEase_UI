@@ -46,7 +46,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user, loginWithRedirect, isAuthenticated } = useAuth0();
-  const providerFullName = `${providerDetails?.firstname || ""} ${providerDetails?.lastname || ""}`.trim();
+  const providerFullName = `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
   const { getBookingType, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -247,8 +247,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
 
       const payload: BookingPayload = {
         customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderId
-          ? Number(providerDetails.serviceproviderId)
+        serviceproviderid: providerDetails?.serviceproviderid
+          ? Number(providerDetails.serviceproviderid)
           : 0,
         start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
         end_date: bookingType?.endDate || "",
