@@ -115,6 +115,8 @@ export const BookingService = {
     let longitude = 0;
 
 
+    console.log("Location from store:", location);
+
     if(location?.geometry?.location){
       latitude = location?.geometry?.location?.lat;
       longitude = location?.geometry?.location?.lng;
@@ -131,6 +133,7 @@ export const BookingService = {
     payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
     payload.latitude = latitude;
     payload.longitude = longitude;
+    payload.address = location?.formatted_address || null;
     const engagementData = await BookingService.createEngagement(payload);
 
     // Extract order id & amount
