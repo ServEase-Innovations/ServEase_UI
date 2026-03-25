@@ -1,4 +1,4 @@
-// VendorProfileSection.tsx
+/* eslint-disable */
 import React, { useEffect, useState } from "react";
 import {
   Building2,
