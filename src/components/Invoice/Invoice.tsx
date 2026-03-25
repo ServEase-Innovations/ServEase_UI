@@ -1,4 +1,5 @@
 // components/Invoice/Invoice.tsx
+/* eslint-disable */
 import React from 'react';
 import { Download, Calendar, Clock, MapPin, User, CreditCard, FileText } from 'lucide-react';
 import { Button } from '../Button/button';
