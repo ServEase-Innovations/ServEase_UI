@@ -1477,37 +1477,49 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       >
         <div className="container mx-auto">
     
-
+ 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
            {/* LEFT SECTION (Back Button) */}
-<div className="w-full md:w-1/3 flex justify-start">
-  <button
-    onClick={() => window.history.back()}
-     style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    cursor: "pointer",
-    fontWeight: "600",
-    color: "#12375d",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    transition: "0.2s",
-    userSelect: "none",
-    background: "none",
-   
-  }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.backgroundColor = "#e9ecef";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.backgroundColor = "transparent";
-    }}
-  >
-    <span style={{ fontSize: "20px" }}>←</span>
-    <span>Back</span>
-  </button>
-</div>
+  <div className="mb-4">
+            <button
+              onClick={() => window.history.back()}
+              className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200 hover:border-blue-200"
+              style={{ color: "rgb(14, 48, 92)" }}
+            >
+              <div className="relative h-5 w-5 overflow-hidden">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 absolute inset-0 transition-all duration-300 group-hover:-translate-x-full"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 absolute inset-0 translate-x-full transition-all duration-300 group-hover:translate-x-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              
+              <span className="font-medium transition-colors duration-200 group-hover:text-blue-700">
+                Back
+              </span>
+              
+              <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></div>
+            </button>
+          </div>
 
   {/* CENTER SECTION */}
   <div className="text-center w-full md:w-1/3">
