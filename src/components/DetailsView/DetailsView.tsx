@@ -103,75 +103,141 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     setSearchData(formData);
   };
   
-  const performSearch = async () => {
-    try {
-      setLoading(true);
+ const performSearch = async () => {
+  try {
+    setLoading(true);
+    console.log("Booking start time:", bookingType?.startTime);
+    console.log("Booking end time:", bookingType?.endTime);
+    console.log("Booking Type in performSearch:", location);
+    console.log("Location object:", location?.geometry?.location);
 
-      console.log("Booking Type in performSearch:", location);
-      console.log("Location object:", location?.geometry?.location);
+    let latitude = 0;
+    let longitude = 0;
 
-      let latitude = 0;
-      let longitude = 0;
+    if (location?.geometry?.location) {
+      latitude = location?.geometry?.location?.lat;
+      longitude = location?.geometry?.location?.lng;
+    } else if (location?.lat && location?.lng) {
+      latitude = location?.lat;
+      longitude = location?.lng;
+    }
 
-      if(location?.geometry?.location){
-        latitude = location?.geometry?.location?.lat;
-        longitude = location?.geometry?.location?.lng;
-      } else if (location?.lat && location?.lng) {
-        latitude = location?.lat;
-        longitude = location?.lng;
+    const formatDateOnly = (dateString?: string) => {
+      if (!dateString) return "";
+      return dateString.split("T")[0];
+    };
+
+    // Function to calculate duration in minutes
+    const calculateDurationInMinutes = (startTime?: string, endTime?: string): number => {
+      if (!startTime || !endTime) return 60; // Default to 60 minutes if not available
+      
+      try {
+        // Parse time strings (assuming format like "09:00" or "09:00 AM")
+        const startTimeStr = startTime.trim();
+        const endTimeStr = endTime.trim();
+        
+        // Create date objects for today with the specified times
+        const today = new Date();
+        const startDateTime = new Date(today);
+        const endDateTime = new Date(today);
+        
+        // Parse time - handle both 24-hour and 12-hour formats
+        const startParts = startTimeStr.match(/(\d+):(\d+)(?:\s*(AM|PM))?/i);
+        const endParts = endTimeStr.match(/(\d+):(\d+)(?:\s*(AM|PM))?/i);
+        
+        if (startParts && endParts) {
+          let startHour = parseInt(startParts[1]);
+          let startMinute = parseInt(startParts[2]);
+          let endHour = parseInt(endParts[1]);
+          let endMinute = parseInt(endParts[2]);
+          
+          // Handle AM/PM if present
+          if (startParts[3]) {
+            const startPeriod = startParts[3].toUpperCase();
+            if (startPeriod === 'PM' && startHour !== 12) startHour += 12;
+            if (startPeriod === 'AM' && startHour === 12) startHour = 0;
+          }
+          
+          if (endParts[3]) {
+            const endPeriod = endParts[3].toUpperCase();
+            if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
+            if (endPeriod === 'AM' && endHour === 12) endHour = 0;
+          }
+          
+          startDateTime.setHours(startHour, startMinute, 0, 0);
+          endDateTime.setHours(endHour, endMinute, 0, 0);
+          
+          // Calculate difference in minutes
+          const diffInMilliseconds = endDateTime.getTime() - startDateTime.getTime();
+          const diffInMinutes = Math.round(diffInMilliseconds / (1000 * 60));
+          
+          // If negative duration (end time is next day), add 24 hours
+          if (diffInMinutes < 0) {
+            return diffInMinutes + (24 * 60);
+          }
+          
+          return diffInMinutes > 0 ? diffInMinutes : 60; // Minimum 60 minutes
+        }
+      } catch (error) {
+        console.error("Error calculating duration:", error);
       }
+      
+      return 60; // Default to 60 minutes if parsing fails
+    };
 
-      const formatDateOnly = (dateString?: string) => {
-        if (!dateString) return "";
-        return dateString.split("T")[0];
-      };
+    // Calculate service duration
+    const serviceDurationMinutes = calculateDurationInMinutes(
+      bookingType?.startTime,
+      bookingType?.endTime
+    );
+    
+    console.log("Calculated service duration in minutes:", serviceDurationMinutes);
 
-      // Build the base payload without customerId
-      const payload: any = {
-        "lat": latitude.toString(),
-        "lng": longitude.toString(),
-        "radius": 10,
-        "startDate": formatDateOnly(bookingType?.startDate) || "2025-04-01",
-        "endDate": formatDateOnly(bookingType?.endDate) || "2025-04-30",
-        "preferredStartTime": bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
-        "role": bookingType?.housekeepingRole || "COOK",
-        "serviceDurationMinutes": 60
-      };
+    // Build the base payload without customerId
+    const payload: any = {
+      "lat": latitude.toString(),
+      "lng": longitude.toString(),
+      "radius": 10,
+      "startDate": formatDateOnly(bookingType?.startDate) || "2025-04-01",
+      "endDate": formatDateOnly(bookingType?.endDate) || "2025-04-30",
+      "preferredStartTime": bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
+      "role": bookingType?.housekeepingRole || "COOK",
+      "serviceDurationMinutes": serviceDurationMinutes // Use calculated value instead of hardcoded 60
+    };
 
-      // Only add customerId if user role is CUSTOMER and customerId exists
-      if (appUser?.role === "CUSTOMER" && customerId && customerId !== 0 && customerId !== null && customerId !== undefined) {
-        payload.customerID = Number(customerId);
-        console.log("Adding customerId to payload:", customerId);
-      } else {
-        console.log("Not adding customerId - User is not a CUSTOMER or customerId not available");
-      }
+    // Only add customerId if user role is CUSTOMER and customerId exists
+    if (appUser?.role === "CUSTOMER" && customerId && customerId !== 0 && customerId !== null && customerId !== undefined) {
+      payload.customerID = Number(customerId);
+      console.log("Adding customerId to payload:", customerId);
+    } else {
+      console.log("Not adding customerId - User is not a CUSTOMER or customerId not available");
+    }
 
-      console.log("Sending payload to API:", payload); // For debugging
+    console.log("Sending payload to API:", payload);
 
-      const response = await providerInstance.post('/api/service-providers/nearby-monthly', payload);
+    const response = await providerInstance.post('/api/service-providers/nearby-monthly', payload);
 
-      console.log("API Response:", response.data); // For debugging
+    console.log("API Response:", response.data);
 
-      // Store total count from response
-      setTotalCount(response.data.count || 0);
+    // Store total count from response
+    setTotalCount(response.data.count || 0);
 
-      if (response.data.count === 0) {
-        setServiceProviderData([]);
-        setFilteredProviders([]);
-      } else {
-        setServiceProviderData(response.data.providers);
-        setFilteredProviders(response.data.providers);
-      }
-    } catch (error: any) {
-      console.error("Geolocation or API error:", error.message || error);
+    if (response.data.count === 0) {
       setServiceProviderData([]);
       setFilteredProviders([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
+    } else {
+      setServiceProviderData(response.data.providers);
+      setFilteredProviders(response.data.providers);
     }
-  };
-
+  } catch (error: any) {
+    console.error("Geolocation or API error:", error.message || error);
+    setServiceProviderData([]);
+    setFilteredProviders([]);
+    setTotalCount(0);
+  } finally {
+    setLoading(false);
+  }
+};
   // Helper function to normalize languages to array
   const normalizeLanguages = (languages: string | string[] | null | undefined): string[] => {
     if (!languages) return [];
