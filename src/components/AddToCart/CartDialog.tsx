@@ -1,10 +1,11 @@
 /* eslint-disable */
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton, CircularProgress } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton, CircularProgress, Chip } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
 import { CartItem, isMaidCartItem, isMealCartItem, isNannyCartItem } from '../../types/cartSlice';
 import CloseIcon from '@mui/icons-material/Close';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import { Button } from '../../components/Button/button';
 import { useEffect, useState } from 'react';
 import { TermsCheckboxes } from '../Common/TermsCheckboxes/TermsCheckboxes';
@@ -14,6 +15,8 @@ import MobileNumberDialog from '../User-Profile/MobileNumberDialog';
 import { RootState } from '../../store/userStore';
 import { setHasMobileNumber } from '../../features/customer/customerSlice';
 import { useLanguage } from 'src/context/LanguageContext';
+import { CouponDialog, Coupon } from '../Coupons/CouponDialog';
+
 
 interface CartDialogProps {
   open: boolean;
@@ -43,10 +46,15 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   handleNannyCheckout,
   onMobileNumberRequired
 }) => {
-  const { t } = useLanguage(); // Initialize the translation function
+  const { t } = useLanguage();
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const { appUser } = useAppUser();
+  
+  // Coupon state
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponDialogOpen, setCouponDialogOpen] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   
   // Get customer state from Redux
   const customerState = useSelector((state: RootState) => state.customer);
@@ -68,14 +76,58 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const maidCartTotal = maidCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const nannyCartTotal = nannyCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalPrice = mealCartTotal + maidCartTotal + nannyCartTotal;
-  const tax = totalPrice * 0.18; 
-  const platformFee = totalPrice * 0.06; 
-  const grandTotal = totalPrice + tax + platformFee;
+  
+  // Determine service type based on cart items
+  const getServiceType = (): string => {
+    if (mealCartItems.length > 0) return 'COOK';
+    if (maidCartItems.length > 0) return 'MAID';
+    if (nannyCartItems.length > 0) return 'NANNY';
+    return 'COOK'; // Default
+  };
+  
+  // Get user city from appUser
+  const getUserCity = (): string => {
+    return appUser?.city || 'Bangalore';
+  };
+  
+  // Apply coupon discount to subtotal
+  const discountedTotal = Math.max(0, totalPrice - couponDiscount);
+  const tax = discountedTotal * 0.18; 
+  const platformFee = discountedTotal * 0.06; 
+  const grandTotal = discountedTotal + tax + platformFee;
+  
+  // Calculate total savings
+  const originalTax = totalPrice * 0.18;
+  const originalPlatformFee = totalPrice * 0.06;
+  const totalSaved = couponDiscount + (originalTax - tax) + (originalPlatformFee - platformFee);
 
   const [allTermsAccepted, setAllTermsAccepted] = useState(false);
 
   const handleRemoveItem = (id: string, itemType: CartItem['type']) => {
     dispatch(removeFromCart({ id, type: itemType }));
+    // Reset coupon when cart items change
+    if (appliedCoupon) {
+      handleRemoveCoupon();
+    }
+  };
+
+  // Coupon handlers
+  const handleApplyCoupon = (coupon: Coupon) => {
+    let discount = 0;
+    if (coupon.discount_type === 'PERCENTAGE') {
+      discount = (totalPrice * coupon.discount_value) / 100;
+      // You can add max discount logic here if needed
+    } else {
+      discount = coupon.discount_value;
+    }
+    
+    setAppliedCoupon(coupon);
+    setCouponDiscount(discount);
+  };
+  
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
   };
 
   // Reset checkboxes whenever dialog closes
@@ -87,10 +139,17 @@ export const CartDialog: React.FC<CartDialogProps> = ({
     }
   }, [open]);
 
+  // Reset coupon when cart becomes empty
+  useEffect(() => {
+    if (allCartItems.length === 0 && appliedCoupon) {
+      handleRemoveCoupon();
+    }
+  }, [allCartItems.length, appliedCoupon]);
+
   // Check mobile number before proceeding to checkout
   const checkMobileNumberAndProceed = async () => {
     if (!appUser?.customerid) {
-      console.error(t('noCustomerId'));
+      console.error('No customer ID found');
       return;
     }
 
@@ -98,7 +157,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
 
     // Check loading state first
     if (loadingCustomer) {
-      console.log(t('loadingCustomerDetails'));
+      console.log('Loading customer details...');
       // Wait a bit and check again
       setTimeout(() => {
         checkMobileNumberAndProceed();
@@ -118,7 +177,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       await proceedWithCheckout();
     } else {
       // If hasMobileNumber is null, the data hasn't been fetched yet
-      console.warn(t('mobileNumberStatusUnknown'));
+      console.warn('Mobile number status unknown');
       await proceedWithCheckout();
     }
   };
@@ -132,7 +191,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
       } else if (nannyCartItems.length > 0 && handleNannyCheckout) {
         await handleNannyCheckout();
       } else {
-        console.error(t('noCheckoutHandler'));
+        console.error('No checkout handler available');
       }
     } finally {
       setCheckoutLoading(false);
@@ -178,9 +237,9 @@ export const CartDialog: React.FC<CartDialogProps> = ({
         }
       }}>
         <DialogHeader>
-          {t('orderSummary')}
+          Order Summary
           <IconButton
-            aria-label={t('close')}
+            aria-label="close"
             onClick={handleClose}
             sx={{
               position: 'absolute',
@@ -207,7 +266,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
               backgroundColor: '#ffffff'
             }}>
               <Typography variant="body1" sx={{ color: '#4a5568', mb: 2 }}>
-                {t('cartEmpty')}
+                Your cart is empty
               </Typography>
               <Button 
                 variant="contained" 
@@ -224,7 +283,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                   }
                 }}
               >
-                {t('browseServices')}
+                Browse Services
               </Button>
             </Box>
           ) : (
@@ -234,7 +293,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {mealCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      {t('mealServices')}
+                      Meal Services
                     </Typography>
                     {mealCartItems.map((item, index) => (
                       <CartItemCard 
@@ -252,7 +311,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {maidCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      {t('maidServices')}
+                      Maid Services
                     </Typography>
                     {maidCartItems.map((item, index) => (
                       <CartItemCard 
@@ -270,7 +329,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 {nannyCartItems.length > 0 && (
                   <>
                     <Typography variant="h6" sx={{ mb: 2, color: '#2d3748' }}>
-                      {t('nannyServices')}
+                      Nanny Services
                     </Typography>
                     {nannyCartItems.map((item, index) => (
                       <CartItemCard 
@@ -284,6 +343,83 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 )}
               </Box>
 
+              {/* Coupons Section */}
+              <Box 
+                sx={{ 
+                  backgroundColor: '#ffffff',
+                  borderTop: '1px solid #edf2f7',
+                  borderBottom: '1px solid #edf2f7',
+                  p: 3,
+                  mb: 1,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setCouponDialogOpen(true)}
+              >
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <LocalOfferIcon sx={{ color: '#0984e3', fontSize: '20px' }} />
+                    <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: 500 }}>
+                      {appliedCoupon ? 'Coupon Applied' : 'Coupons and Offers'}
+                    </Typography>
+                    {appliedCoupon && (
+                      <Chip 
+                        label={appliedCoupon.coupon_code}
+                        size="small"
+                        sx={{
+                          backgroundColor: '#38a169',
+                          color: 'white',
+                          height: '24px',
+                          fontSize: '0.7rem'
+                        }}
+                      />
+                    )}
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {couponDiscount > 0 && (
+                      <Typography variant="body2" sx={{ color: '#38a169', fontWeight: 600 }}>
+                        -₹{couponDiscount.toFixed(2)}
+                      </Typography>
+                    )}
+                    <Typography variant="body2" sx={{ color: '#0984e3' }}>
+                      View all →
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                {appliedCoupon && (
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
+                    <Typography variant="caption" sx={{ color: '#718096' }}>
+                      {appliedCoupon.description}
+                    </Typography>
+                    <Button 
+                      size="small" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveCoupon();
+                      }}
+                      sx={{ 
+                        textTransform: 'none', 
+                        color: '#e53e3e',
+                        minWidth: 'auto',
+                        p: 0,
+                        '&:hover': {
+                          backgroundColor: 'transparent',
+                          textDecoration: 'underline'
+                        }
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </Box>
+                )}
+                
+                {!appliedCoupon && totalSaved > 0 && (
+                  <Typography variant="caption" sx={{ color: '#38a169', display: 'block', mt: 1 }}>
+                    ₹{totalSaved.toFixed(2)} saved with coupons
+                  </Typography>
+                )}
+              </Box>
+
               {/* Pricing Summary */}
               <Box sx={{ 
                 backgroundColor: '#ffffff',
@@ -293,24 +429,47 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 boxShadow: '0 -1px 3px rgba(0,0,0,0.04)'
               }}>
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('subtotal')}:</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Subtotal:</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{totalPrice.toFixed(2)}</Typography>
                 </Box>
+                
+                {/* Show coupon discount if applied */}
+                {couponDiscount > 0 && (
+                  <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#38a169' }}>
+                      Coupon Discount ({appliedCoupon?.coupon_code}):
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#38a169' }}>
+                      -₹{couponDiscount.toFixed(2)}
+                    </Typography>
+                  </Box>
+                )}
+                
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('tax', { percentage: '18' })}:</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Tax (18%):</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{tax.toFixed(2)}</Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#4a5568' }}>{t('platformFee', { percentage: '6' })}:</Typography>
+                  <Typography variant="body2" sx={{ color: '#4a5568' }}>Platform Fee (6%):</Typography>
                   <Typography variant="body2" sx={{ color: '#4a5568' }}>₹{platformFee.toFixed(2)}</Typography>
                 </Box>
                 
                 <Divider sx={{ my: 2 }} />
                 
                 <Box display="flex" justifyContent="space-between">
-                  <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>{t('total')}:</Typography>
+                  <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2d3748' }}>Total:</Typography>
                   <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2b6cb0' }}>₹{grandTotal.toFixed(2)}</Typography>
                 </Box>
+                
+                {/* Show total savings */}
+                {totalSaved > 0 && (
+                  <Box display="flex" justifyContent="flex-end" mt={1}>
+                    <Typography variant="caption" sx={{ color: '#38a169', fontWeight: 500 }}>
+                      Total savings: ₹{totalSaved.toFixed(2)}
+                    </Typography>
+                  </Box>
+                )}
+                
                 <Divider sx={{ 
                   my: 2,
                   borderColor: '#cbd5e0',
@@ -339,7 +498,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
             fontWeight: '500',
             fontSize: '0.875rem'
           }}>
-            {t('itemsSelected', { count: allCartItems.length })}
+            {`${allCartItems.length} item${allCartItems.length !== 1 ? 's' : ''} selected`}
           </Typography>
           
           <Box display="flex" gap={2}>
@@ -362,7 +521,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                 }
               }}
             >
-              {t('modifyBooking')}
+              Modify Booking
             </Button>
             
             <Button
@@ -383,7 +542,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                       marginRight: 1 
                     }} 
                   />
-                  {t('processing')}
+                  Processing...
                 </>
               ) : loadingCustomer ? (
                 <>
@@ -394,15 +553,27 @@ export const CartDialog: React.FC<CartDialogProps> = ({
                       marginRight: 1 
                     }} 
                   />
-                  {t('checking')}
+                  Checking...
                 </>
               ) : (
-                t('proceedToCheckout', { amount: grandTotal.toFixed(2) })
+                `Proceed to Pay ₹${grandTotal.toFixed(2)}`
               )}
             </Button>
           </Box>
         </Box>
       </Dialog>
+
+      {/* Coupon Dialog */}
+      <CouponDialog
+        open={couponDialogOpen}
+        handleClose={() => setCouponDialogOpen(false)}
+        currentTotal={totalPrice}
+        onApplyCoupon={handleApplyCoupon}
+        onRemoveCoupon={handleRemoveCoupon}
+        appliedCoupon={appliedCoupon}
+        serviceType={getServiceType()}
+        userCity={getUserCity()}
+      />
 
       {/* Mobile Number Dialog */}
       {appUser?.customerid && (
@@ -426,16 +597,14 @@ interface CartItemCardProps {
 }
 
 const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
-  const { t } = useLanguage(); // Initialize the translation function in the nested component
-
   const getItemType = () => {
     if (isNannyCartItem(item)) {
-      return t('nannyService');
+      return 'Nanny Service';
     }
     if (isMaidCartItem(item)) {
-      return item.serviceType === 'package' ? t('package') : t('addOn');
+      return item.serviceType === 'package' ? 'Package' : 'Add-on';
     }
-    return t('mealPackage');
+    return 'Meal Package';
   };
 
   const getItemName = () => {
@@ -443,10 +612,9 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       return item.name.replace(/([A-Z])/g, ' $1').trim();
     }
     if (isNannyCartItem(item)) {
-      return t('careTypeService', { 
-        careType: item.careType === 'baby' ? t('baby') : t('elderly'),
-        packageType: item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1)
-      });
+      const careType = item.careType === 'baby' ? 'Baby' : 'Elderly';
+      const packageType = item.packageType.charAt(0).toUpperCase() + item.packageType.slice(1);
+      return `${careType} Care - ${packageType}`;
     }
     if (isMealCartItem(item)) {
       return item.mealType;
@@ -468,7 +636,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
     >
       <IconButton
         onClick={onRemove}
-        aria-label={t('removeItem')}
+        aria-label="Remove item"
         sx={{
           position: 'absolute',
           right: 8,
@@ -500,7 +668,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
         fontWeight: '500',
         fontSize: '0.875rem'
       }}>
-        {t('includes')}:
+        Includes:
       </Typography>
       
       <Box component="ul" sx={{ 
@@ -530,7 +698,7 @@ const CartItemCard = ({ item, onRemove, itemType }: CartItemCardProps) => {
       
       <Box display="flex" justifyContent="space-between" sx={{ mt: 2.5 }}>
         <Typography variant="body2" sx={{ color: '#4a5568', fontWeight: '500' }}>
-          {t('price')}:
+          Price:
         </Typography>
         <Typography variant="body2" fontWeight="600" sx={{ color: '#2d3748' }}>
           ₹{item.price.toFixed(2)}
