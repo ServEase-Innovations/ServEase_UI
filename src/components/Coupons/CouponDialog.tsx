@@ -46,7 +46,6 @@ interface CouponDialogProps {
   appliedCoupon?: Coupon | null;
   serviceType?: string;
   userCity?: string;
-  autoApplyBestCoupon?: boolean; // New prop to enable/disable auto-apply
 }
 
 export const CouponDialog: React.FC<CouponDialogProps> = ({
@@ -57,8 +56,7 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
   onRemoveCoupon,
   appliedCoupon,
   serviceType = 'COOK',
-  userCity = 'Bangalore',
-  autoApplyBestCoupon = true // Default to true
+  userCity = 'Bangalore'
 }) => {
   const [couponCode, setCouponCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,7 +64,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [fetchingCoupons, setFetchingCoupons] = useState(false);
-  const [autoApplied, setAutoApplied] = useState(false);
 
   // Fetch coupons from API when dialog opens
   useEffect(() => {
@@ -74,17 +71,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
       fetchCoupons();
     }
   }, [open]);
-
-  // Auto-apply best coupon when coupons are loaded and no coupon is applied
-  useEffect(() => {
-    if (autoApplyBestCoupon && !appliedCoupon && !autoApplied && coupons.length > 0 && !fetchingCoupons) {
-      const bestCoupon = findBestCoupon(coupons);
-      if (bestCoupon) {
-        handleApplyCoupon(bestCoupon);
-        setAutoApplied(true);
-      }
-    }
-  }, [coupons, fetchingCoupons, appliedCoupon, autoApplied]);
 
   const fetchCoupons = async () => {
     setFetchingCoupons(true);
@@ -151,33 +137,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
     return { valid: true };
   };
 
-  const calculateDiscount = (coupon: Coupon): number => {
-    if (coupon.discount_type === 'PERCENTAGE') {
-      let discount = (currentTotal * coupon.discount_value) / 100;
-      // You can add max discount logic here if needed
-      return discount;
-    } else {
-      return coupon.discount_value;
-    }
-  };
-
-  // Find the best coupon based on discount amount
-  const findBestCoupon = (couponList: Coupon[]): Coupon | null => {
-    const applicableCoupons = couponList.filter(coupon => {
-      const validation = validateCoupon(coupon);
-      return validation.valid;
-    });
-
-    if (applicableCoupons.length === 0) return null;
-
-    // Sort by discount amount in descending order and return the best one
-    return applicableCoupons.sort((a, b) => {
-      const discountA = calculateDiscount(a);
-      const discountB = calculateDiscount(b);
-      return discountB - discountA;
-    })[0];
-  };
-
   const handleApplyCoupon = async (coupon: Coupon) => {
     // Validate coupon
     const validation = validateCoupon(coupon);
@@ -206,7 +165,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
     onRemoveCoupon();
     setSuccess(null);
     setError(null);
-    setAutoApplied(false); // Reset auto-applied flag when coupon is removed
   };
 
   const handleCustomCouponApply = async () => {
@@ -224,6 +182,16 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
       await handleApplyCoupon(foundCoupon);
     } else {
       setError('Invalid coupon code');
+    }
+  };
+
+  const calculateDiscount = (coupon: Coupon): number => {
+    if (coupon.discount_type === 'PERCENTAGE') {
+      let discount = (currentTotal * coupon.discount_value) / 100;
+      // You can add max discount logic here if needed
+      return discount;
+    } else {
+      return coupon.discount_value;
     }
   };
 
@@ -260,9 +228,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
       ))}
     </>
   );
-
-  // Get best coupon info for display
-  const bestCoupon = !appliedCoupon && coupons.length > 0 ? findBestCoupon(coupons) : null;
 
   return (
     <Dialog
@@ -307,30 +272,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
       </DialogHeader>
 
       <DialogContent sx={{ p: 3, backgroundColor: '#ffffff' }}>
-        {/* Auto-apply notification */}
-        {autoApplyBestCoupon && bestCoupon && !appliedCoupon && !autoApplied && !fetchingCoupons && (
-          <Box sx={{ mb: 3 }}>
-            <Alert
-              severity="info"
-              icon={<LocalOfferIcon />}
-              sx={{ 
-                borderRadius: '8px',
-                backgroundColor: '#e3f2fd',
-                '& .MuiAlert-icon': {
-                  color: '#0984e3'
-                }
-              }}
-            >
-              <Typography variant="body2" fontWeight={500}>
-                Best coupon available: {bestCoupon.coupon_code}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                You save ₹{calculateDiscount(bestCoupon).toFixed(2)} • {bestCoupon.description}
-              </Typography>
-            </Alert>
-          </Box>
-        )}
-
         {/* Applied Coupon */}
         {appliedCoupon && (
           <Box sx={{ mb: 3 }}>
@@ -368,7 +309,7 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
         {/* Custom Coupon Input */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="subtitle2" sx={{ mb: 1, color: '#4a5568', fontWeight: 500 }}>
-            Have a different coupon code?
+            Have a coupon code?
           </Typography>
           <Box display="flex" gap={1}>
             <TextField
@@ -417,7 +358,7 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
 
         {/* Available Coupons */}
         <Typography variant="subtitle2" sx={{ mb: 2, color: '#4a5568', fontWeight: 500 }}>
-          All Available Coupons
+          Available Coupons
         </Typography>
 
         {fetchingCoupons ? (
@@ -435,7 +376,6 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
               const isApplicable = !coupon.minimum_order_value || currentTotal >= coupon.minimum_order_value;
               const discountAmount = calculateDiscount(coupon);
               const isApplied = appliedCoupon?.coupon_id === coupon.coupon_id;
-              const isBestCoupon = bestCoupon?.coupon_id === coupon.coupon_id && !appliedCoupon;
 
               return (
                 <Box
@@ -444,38 +384,22 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
                     mb: 2,
                     p: 2,
                     borderRadius: '8px',
-                    border: '2px solid',
-                    borderColor: isApplied ? '#0984e3' : isBestCoupon ? '#ff9800' : isApplicable ? '#e0e0e0' : '#f0f0f0',
-                    backgroundColor: isApplied ? '#e3f2fd' : isBestCoupon ? '#fff3e0' : '#ffffff',
+                    border: '1px solid',
+                    borderColor: isApplied ? '#0984e3' : isApplicable ? '#e0e0e0' : '#f0f0f0',
+                    backgroundColor: isApplied ? '#e3f2fd' : '#ffffff',
                     opacity: isApplicable ? 1 : 0.6,
                     transition: 'all 0.2s ease'
                   }}
                 >
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
                     <Box flex={1}>
-                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight={600}
-                          sx={{ color: '#2d3748', letterSpacing: '0.5px' }}
-                        >
-                          {coupon.coupon_code}
-                        </Typography>
-                        {isBestCoupon && !appliedCoupon && (
-                          <Chip
-                            label="Best Deal"
-                            size="small"
-                            sx={{
-                              backgroundColor: '#ff9800',
-                              color: 'white',
-                              fontWeight: 500,
-                              borderRadius: '6px',
-                              height: '20px',
-                              fontSize: '10px'
-                            }}
-                          />
-                        )}
-                      </Box>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={600}
+                        sx={{ color: '#2d3748', letterSpacing: '0.5px' }}
+                      >
+                        {coupon.coupon_code}
+                      </Typography>
                       <Typography variant="body2" sx={{ color: '#4a5568', mt: 0.5 }}>
                         {coupon.description}
                       </Typography>
@@ -495,31 +419,23 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
                     </Box>
                     {isApplicable && !isApplied && (
                       <Button
-                        variant={isBestCoupon ? "contained" : "outlined"}
+                        variant="outlined"
                         size="small"
                         onClick={() => handleApplyCoupon(coupon)}
                         disabled={loading}
                         sx={{
                           borderRadius: '6px',
                           textTransform: 'none',
-                          ...(isBestCoupon ? {
-                            backgroundColor: '#ff9800',
-                            color: 'white',
-                            '&:hover': {
-                              backgroundColor: '#f57c00'
-                            }
-                          } : {
-                            borderColor: '#0984e3',
-                            color: '#0984e3',
-                            '&:hover': {
-                              borderColor: '#0773c5',
-                              backgroundColor: '#0984e310'
-                            }
-                          }),
-                          ml: 2
+                          borderColor: '#0984e3',
+                          color: '#0984e3',
+                          ml: 2,
+                          '&:hover': {
+                            borderColor: '#0773c5',
+                            backgroundColor: '#0984e310'
+                          }
                         }}
                       >
-                        {isBestCoupon ? 'Apply Best Offer' : 'Collect'}
+                        Collect
                       </Button>
                     )}
                     {isApplied && (
