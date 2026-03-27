@@ -69,12 +69,17 @@ interface ProviderDetailsProps extends ServiceProviderDTO  {
 // Styled components
 const BadgeContainer = styled(Box)(({ theme }) => ({
   position: 'absolute',
-  top: theme.spacing(-0.5),
-  left: theme.spacing(1),
+  top: theme.spacing(1.5),
+  left: theme.spacing(1.5),
   zIndex: 10,
   display: 'flex',
   gap: theme.spacing(1),
   alignItems: 'center',
+  [theme.breakpoints.down('sm')]: {
+    top: theme.spacing(1),
+    left: theme.spacing(1),
+    gap: theme.spacing(0.75),
+  },
 }));
 
 const BestMatchBadge = styled(Box)(({ theme }) => ({
@@ -88,6 +93,10 @@ const BestMatchBadge = styled(Box)(({ theme }) => ({
   boxShadow: theme.shadows[2],
   fontWeight: 700,
   fontSize: '0.7rem',
+  [theme.breakpoints.down('sm')]: {
+    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    fontSize: '0.65rem',
+  },
 }));
 
 const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
@@ -101,19 +110,26 @@ const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
   boxShadow: theme.shadows[2],
   fontWeight: 700,
   fontSize: '0.7rem',
+  [theme.breakpoints.down('sm')]: {
+    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    fontSize: '0.65rem',
+  },
 }));
 
-const ProviderCard = styled(Card)(({ theme }) => ({
+const ProviderCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== 'selected',
+})<{ selected?: boolean }>(({ theme, selected }) => ({
   borderRadius: 16,
   overflow: 'visible',
   transition: 'all 0.3s ease',
   border: '1px solid',
-  borderColor: theme.palette.divider,
+  borderColor: selected ? theme.palette.primary.main : theme.palette.divider,
   position: 'relative',
+  backgroundColor: selected ? `${theme.palette.primary.light}15` : theme.palette.background.paper,
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.shadows[8],
-    borderColor: theme.palette.primary.main,
+    borderColor: selected ? theme.palette.primary.main : theme.palette.primary.main,
   },
 }));
 
@@ -164,6 +180,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const hasCheckedRef = useRef(false);
   const theme = useTheme();
@@ -239,12 +256,17 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     }
   };
 
-  const handleViewDetails = () => {
+  const handleViewDetails = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    // Set the selected card ID to this provider's ID
+    setSelectedCardId(props.serviceproviderid);
     setDrawerOpen(true);
   };
 
   const handleDrawerClose = () => {
     setDrawerOpen(false);
+    // Clear the selected card when drawer closes
+    setSelectedCardId(null);
   };
 
   const calculateAge = (dob: string) => {
@@ -483,23 +505,20 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   return (
     <>
-      <ProviderCard sx={{
-        '@media (max-width: 900px)': {
-          borderRadius: 12,
-        },
-        '@media (max-width: 600px)': {
-          borderRadius: 10,
-          marginTop: 2
-        }
-      }}>
-        {/* Badges Container - Both badges on left side */}
-        <BadgeContainer sx={{
+      <ProviderCard 
+        selected={selectedCardId === props.serviceproviderid}
+        sx={{
           '@media (max-width: 900px)': {
-            top: 8,
-            left: 8,
-            gap: 0.5,
+            borderRadius: 12,
+          },
+          '@media (max-width: 600px)': {
+            borderRadius: 10,
+            marginTop: 2
           }
-        }}>
+        }}
+      >
+        {/* Badges Container - Consistent positioning across all devices */}
+        <BadgeContainer>
           {/* Best Match Badge */}
           {props.bestMatch && (
             <BestMatchBadge>
@@ -512,7 +531,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           {props.previouslyBooked && (
             <PreviouslyBookedBadge>
               <HistoryIcon fontSize="small" />
-              <span>{t('previouslyBooked')}</span>
+              <span>{t('PreviouslyBooked')}</span>
             </PreviouslyBookedBadge>
           )}
         </BadgeContainer>
@@ -520,10 +539,10 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         <CardContent sx={{ 
           p: 3,
           '@media (max-width: 900px)': {
-            p: 2,
+            p: 2.5,
           },
           '@media (max-width: 600px)': {
-            p: 1.5,
+            p: 2,
           }
         }}>
           <Stack 
@@ -550,7 +569,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     flexWrap="wrap"
                     sx={{
                       '@media (max-width: 600px)': {
-                        mt: 2,
+                        mt: 2.5, // Added margin top to account for badges
                       }
                     }}
                   >
