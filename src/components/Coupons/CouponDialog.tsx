@@ -19,6 +19,7 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import axios from 'axios';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import { SkeletonLoader } from '../Common/SkeletonLoader/SkeletonLoader';
+import { useAppUser } from 'src/context/AppUserContext'; // Import AppUser context
 
 export interface Coupon {
   coupon_id: string;
@@ -58,6 +59,7 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
   serviceType = 'COOK',
   userCity = 'Bangalore'
 }) => {
+  const { appUser } = useAppUser(); // Get appUser from context
   const [couponCode, setCouponCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,22 +67,26 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [fetchingCoupons, setFetchingCoupons] = useState(false);
 
-  // Fetch coupons from API when dialog opens
+  // Get customer ID from appUser
+  const customerId = appUser?.customerid || null;
+
+  // Fetch coupons from API when dialog opens - using customer ID from appUser
   useEffect(() => {
-    if (open) {
+    if (open && customerId) {
       fetchCoupons();
     }
-  }, [open]);
+  }, [open, customerId]);
 
   const fetchCoupons = async () => {
     setFetchingCoupons(true);
     setError(null);
     try {
-      const response = await axios.get('https://coupons-o26r.onrender.com/api/coupons/all');
+      // Use customer-specific API endpoint with the customer ID from appUser
+      const response = await axios.get(`https://coupons-o26r.onrender.com/api/coupons/customer/${customerId}`);
       if (response.data.success) {
         const now = new Date();
         // Filter coupons by service type, city, active status, and date range
-        const filteredCoupons = response.data.data.filter((coupon: Coupon) => {
+        const filteredCoupons = response.data.data.coupons.filter((coupon: Coupon) => {
           const startDate = new Date(coupon.start_date);
           const endDate = new Date(coupon.end_date);
           return (
@@ -228,6 +234,46 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
       ))}
     </>
   );
+
+  // Show message if no customer ID is available
+  if (!customerId && open) {
+    return (
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogHeader>
+          <Box display="flex" alignItems="center" gap={1}>
+            <LocalOfferIcon sx={{ color: '#dbe3ea' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#ebeef4' }}>
+              Coupons and Offers
+            </Typography>
+          </Box>
+          <IconButton
+            aria-label="close"
+            onClick={handleClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: '#fafafaff',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogHeader>
+        <DialogContent>
+          <Box textAlign="center" py={4}>
+            <Typography variant="body2" sx={{ color: '#718096' }}>
+              Please log in to view available coupons
+            </Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog
