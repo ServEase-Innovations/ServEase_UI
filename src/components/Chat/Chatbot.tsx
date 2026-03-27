@@ -49,7 +49,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   
   const [showViewAllBtn, setShowViewAllBtn] = useState(false);
   const [showAccordion, setShowAccordion] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
 
   const [selectedChat, setSelectedChat] = useState<any>(null);
   const [mongoUser, setMongoUser] = useState<any>(null);
@@ -57,22 +56,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const accordionRef = useRef<HTMLDivElement | null>(null);
-  const draggableNodeRef = useRef<HTMLDivElement | null>(null);
-
-  /* ---------------- DETECT MOBILE DEVICE ---------------- */
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobileDevice = window.innerWidth <= 768 || 
-        ('ontouchstart' in window) || 
-        (navigator.maxTouchPoints > 0);
-      setIsMobile(isMobileDevice);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   /* ---------------- SOCKET CONNECT ---------------- */
   useEffect(() => {
@@ -111,26 +94,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
     ]);
     setShowViewAllBtn(true);
     setShowAccordion(false);
-  };
-
-  /* ---------------- BACK BUTTON HANDLER ---------------- */
-  const handleBackClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setChatOpen(false);
-    setIsLiveChat(false);
-    setShowAccordion(true);
-    setShowViewAllBtn(false);
-    setMessages([
-      { content: "Namaste! Welcome to ServEaso. How can we assist you today?", sender: "bot" }
-    ]);
-  };
-
-  /* ---------------- CLOSE BUTTON HANDLER ---------------- */
-  const handleCloseClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onClose();
   };
 
   /* ---------------- START LIVE CHAT ---------------- */
@@ -173,7 +136,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
 
       setIsLiveChat(true);
       setChatOpen(true);
-      
       setShowViewAllBtn(false);
       setShowAccordion(false);
 
@@ -219,177 +181,189 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
     }
   };
 
+  /* ---------------- HANDLE BACK BUTTON ---------------- */
+  const handleBack = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setChatOpen(false);
+    setIsLiveChat(false);
+    setShowAccordion(true);
+    setShowViewAllBtn(false);
+    setMessages([
+      { content: "Namaste! Welcome to ServEaso. How can we assist you today?", sender: "bot" }
+    ]);
+  };
+
+  /* ---------------- HANDLE CLOSE BUTTON ---------------- */
+  const handleClose = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
   if (!open) return null;
 
   const allFaqs = appUser?.role === "CUSTOMER" 
     ? [...generalFaqData, ...customerFaqData]
     : generalFaqData;
 
-  const chatContent = (
-    <div className="fixed bottom-20 right-2 z-[9998] w-[320px]">
-      <Card className="shadow-2xl border rounded-xl bg-white flex flex-col max-h-[75vh] overflow-hidden">
-        <DialogHeader className="chatbot-header">
-          <div className="flex justify-between items-center w-full">
-            {chatOpen && (
-              <Button
-                onClick={handleBackClick}
-                onTouchStart={handleBackClick}
-                sx={{
-                  minWidth: "auto",
-                  padding: "4px",
-                  marginLeft: "-8px",
-                  color: "#fff",
-                  zIndex: 10,
+  return (
+    <Draggable bounds="parent" handle=".chatbot-header">
+      <div className="fixed bottom-20 right-2 z-[9998] w-[320px]">
+        <Card className="shadow-2xl border rounded-xl bg-white flex flex-col max-h-[75vh] overflow-hidden">
+
+          <DialogHeader className="chatbot-header" style={{ cursor: 'move', userSelect: 'none' }}>
+            <div className="flex justify-between items-center w-full">
+              {chatOpen && (
+                <Button
+                  onClick={handleBack}
+                  onTouchStart={handleBack}
+                  sx={{
+                    minWidth: "auto",
+                    padding: "4px",
+                    marginLeft: "-8px", 
+                    color: "#fff",
+                    zIndex: 10,
+                    position: "relative"
+                  }}
+                >
+                  <ArrowLeft size={20} />
+                </Button>
+              )}
+              <h2 className="text-sm font-bold flex-grow text-center">
+                Chat Support
+              </h2>
+              <button 
+                onClick={handleClose}
+                onTouchStart={handleClose}
+                style={{ 
+                  zIndex: 10, 
+                  position: "relative",
+                  background: "transparent",
+                  border: "none",
                   cursor: "pointer"
                 }}
               >
-                <ArrowLeft size={20} />
-              </Button>
-            )}
-            <h2 className="text-sm font-bold flex-grow text-center">
-              Chat Support
-            </h2>
-            <button 
-              onClick={handleCloseClick}
-              onTouchStart={handleCloseClick}
-              style={{ zIndex: 10, cursor: "pointer" }}
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </DialogHeader>
-
-        <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
-          <div className="flex flex-col flex-grow overflow-y-auto p-3 bg-gray-50 space-y-2">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`p-2 rounded-xl text-sm max-w-[75%] ${
-                  msg.sender === "user"
-                    ? "bg-blue-500 text-white self-end"
-                    : msg.sender === "admin"
-                    ? "bg-gray-300 text-black self-start"
-                    : "bg-gray-200 text-gray-800 self-start"
-                }`}
-              >
-                {msg.content}
-              </div>
-            ))}
-
-            {!isLiveChat && (
-              <>
-                {showAccordion && (
-                  <div ref={accordionRef} className="mt-3">
-                    <div className="mb-2 text-sm font-semibold text-gray-700">
-                      FAQs:
-                    </div>
-                    {allFaqs.map((faq, index) => (
-                      <Accordion key={index}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography className="text-sm font-medium">
-                            {faq.question}
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Typography className="text-sm text-gray-600">
-                            {faq.answer}
-                          </Typography>
-                        </AccordionDetails>
-                      </Accordion>
-                    ))}
-                  </div>
-                )}
-
-                {showViewAllBtn && !showAccordion && (
-                  <Button
-                    variant="text"
-                    onClick={() => setShowAccordion(true)}
-                    className="w-full text-blue-600"
-                  >
-                    View All FAQs
-                  </Button>
-                )}
-
-                {showViewAllBtn && showAccordion && (
-                  <Button
-                    variant="text"
-                    onClick={() => setShowAccordion(false)}
-                    className="w-full text-blue-600"
-                  >
-                    Hide FAQs
-                  </Button>
-                )}
-
-                <div className="border-t my-3"></div>
-
-                {appUser ? (
-                  <Button
-                    variant="contained"
-                    onClick={startLiveChat}
-                    className="w-full"
-                  >
-                    <MessageCircle size={16} className="mr-2" />
-                    Chat with Assistant
-                  </Button>
-                ) : (
-                  <div className="text-sm text-center text-gray-500">
-                    Please login to chat with our support team.
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-center gap-2 border rounded-lg px-3 py-2 bg-gray-50 shadow-sm text-center">
-                  <Mail size={16} className="text-blue-500" />
-                  <span className="text-sm text-gray-700">
-                    support@serveaso.com
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 border rounded-lg px-3 py-2 bg-gray-50 shadow-sm mt-2 text-center">
-                  <Phone size={16} className="text-green-500" />
-                  <span className="text-sm text-gray-700">
-                    080-123456789
-                  </span>
-                </div>
-              </>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {chatOpen && (
-            <div className="flex items-center border-t p-2 bg-gray-100">
-              <input
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && handleSendMessage()
-                }
-                className="flex-grow p-2 border rounded-lg outline-none"
-                placeholder="Type your message..."
-              />
-              <Button onClick={handleSendMessage}>
-                <Send size={18} />
-              </Button>
+                <X size={20} style={{ color: "#fff" }} />
+              </button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+          </DialogHeader>
 
-  // Disable dragging on mobile devices to prevent touch event conflicts
-  if (isMobile) {
-    return chatContent;
-  }
+          <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
 
-  return (
-    <Draggable 
-      bounds="parent" 
-      handle=".chatbot-header"
-      nodeRef={draggableNodeRef}
-    >
-      <div ref={draggableNodeRef}>
-        {chatContent}
+            <div className="flex flex-col flex-grow overflow-y-auto p-3 bg-gray-50 space-y-2">
+
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2 rounded-xl text-sm max-w-[75%] ${
+                    msg.sender === "user"
+                      ? "bg-blue-500 text-white self-end"
+                      : msg.sender === "admin"
+                      ? "bg-gray-300 text-black self-start"
+                      : "bg-gray-200 text-gray-800 self-start"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              ))}
+
+              {!isLiveChat && (
+                <>
+                  {showAccordion && (
+                    <div ref={accordionRef} className="mt-3">
+                      <div className="mb-2 text-sm font-semibold text-gray-700">
+                        FAQs:
+                      </div>
+                      {allFaqs.map((faq, index) => (
+                        <Accordion key={index}>
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography className="text-sm font-medium">
+                              {faq.question}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <Typography className="text-sm text-gray-600">
+                              {faq.answer}
+                            </Typography>
+                          </AccordionDetails>
+                        </Accordion>
+                      ))}
+                    </div>
+                  )}
+
+                  {showViewAllBtn && !showAccordion && (
+                    <Button
+                      variant="text"
+                      onClick={() => setShowAccordion(true)}
+                      className="w-full text-blue-600"
+                    >
+                      View All FAQs
+                    </Button>
+                  )}
+
+                  {showViewAllBtn && showAccordion && (
+                    <Button
+                      variant="text"
+                      onClick={() => setShowAccordion(false)}
+                      className="w-full text-blue-600"
+                    >
+                      Hide FAQs
+                    </Button>
+                  )}
+
+                  <div className="border-t my-3"></div>
+
+                  {appUser ? (
+                    <Button
+                      variant="contained"
+                      onClick={startLiveChat}
+                      className="w-full"
+                    >
+                      <MessageCircle size={16} className="mr-2" />
+                      Chat with Assistant
+                    </Button>
+                  ) : (
+                    <div className="text-sm text-center text-gray-500">
+                      Please login to chat with our support team.
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-center gap-2 border rounded-lg px-3 py-2 bg-gray-50 shadow-sm text-center">
+                    <Mail size={16} className="text-blue-500" />
+                    <span className="text-sm text-gray-700">
+                      support@serveaso.com
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 border rounded-lg px-3 py-2 bg-gray-50 shadow-sm mt-2 text-center">
+                    <Phone size={16} className="text-green-500" />
+                    <span className="text-sm text-gray-700">
+                      080-123456789
+                    </span>
+                  </div>
+                </>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {chatOpen && (
+              <div className="flex items-center border-t p-2 bg-gray-100">
+                <input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleSendMessage()
+                  }
+                  className="flex-grow p-2 border rounded-lg outline-none"
+                  placeholder="Type your message..."
+                />
+                <Button onClick={handleSendMessage}>
+                  <Send size={18} />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Draggable>
   );
