@@ -269,7 +269,7 @@ function App() {
   const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
     console.log("Data received from child component:", data);
     
-    if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD) {
+    if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD ||data === AGENT_DASHBOARD ) {
       setSelection(data);
       setCurrentSection("HOME");
     } else if (type === 'section') {
