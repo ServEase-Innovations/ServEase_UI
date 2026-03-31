@@ -1395,7 +1395,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
           currentLocation: formData.currentLocation,
           nearbyLocation: formData.nearbyLocation,
           location: formData.currentLocation,
-          housekeepingRole: primaryRole,
+          housekeepingRoles: formData.housekeepingRole,
           serviceTypes: formData.housekeepingRole,
           diet: formData.diet,
           languages: selectedLanguages, // <-- ADDED LANGUAGES PARAMETER HERE

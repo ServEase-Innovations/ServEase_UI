@@ -928,9 +928,10 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 mt: 2,
               })
             }}>
-              {props.housekeepingRole && (
-                <Chip 
-                  label={props.housekeepingRole}
+              {props?.housekeepingRoles?.length > 0 && (
+                props.housekeepingRoles.map((role, index) => (
+                  <Chip 
+                  label={role}
                   color="primary"
                   variant="filled"
                   size="small"
@@ -942,6 +943,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     }
                   }}
                 />
+                ))
               )}
               <Button 
                 variant="outlined" 
