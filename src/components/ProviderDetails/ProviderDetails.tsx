@@ -69,12 +69,16 @@ interface ProviderDetailsProps extends ServiceProviderDTO  {
 // Styled components
 const BadgeContainer = styled(Box)(({ theme }) => ({
   position: 'absolute',
-  top: theme.spacing(1.5),
-  left: theme.spacing(1.5),
+top: -theme.spacing(2),
+  left: theme.spacing(2),
   zIndex: 10,
   display: 'flex',
   gap: theme.spacing(1),
   alignItems: 'center',
+    [theme.breakpoints.down('md')]: {
+    top: theme.spacing(1), // keep inside for tablet
+    left: theme.spacing(1.5),
+  },
   [theme.breakpoints.down('sm')]: {
     top: theme.spacing(1),
     left: theme.spacing(1),
