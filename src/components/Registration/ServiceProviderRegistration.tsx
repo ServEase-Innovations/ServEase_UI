@@ -459,116 +459,30 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   }, [morningSlots, eveningSlots, isFullTime, updateSelectedTimeSlots]);
 
   const handleAddMorningSlot = () => {
-    setMorningSlots(prevSlots => {
-      // Find an available time range that doesn't conflict with existing slots
-      const existingRanges = prevSlots;
-      let newStart = 6;
-      let newEnd = 6.5;
-      let foundAvailableSlot = false;
+    // Simply add a new slot with default morning range – no overlap check
+    setMorningSlots(prevSlots => [...prevSlots, [6, 12]]);
+  };
 
-      // Try to find an available 30-minute slot
-      for (let time = 6; time < 12; time += 0.5) {
-        const potentialEnd = time + 0.5;
-        const hasConflict = existingRanges.some(range => 
-          isRangeOverlapping([time, potentialEnd], range)
-        );
-        
-        if (!hasConflict) {
-          newStart = time;
-          newEnd = potentialEnd;
-          foundAvailableSlot = true;
-          break;
-        }
-      }
+    const handleAddEveningSlot = () => {
+    // Simply add a new slot with default evening range – no overlap check
+    setEveningSlots(prevSlots => [...prevSlots, [12, 20]]);
+  };
 
-      // If no 30-minute slot available, try to find any non-overlapping range
-      if (!foundAvailableSlot) {
-        for (let time = 6; time < 12; time += 0.5) {
-          for (let endTime = time + 0.5; endTime <= 12; endTime += 0.5) {
-            const hasConflict = existingRanges.some(range => 
-              isRangeOverlapping([time, endTime], range)
-            );
-            
-            if (!hasConflict) {
-              newStart = time;
-              newEnd = endTime;
-              foundAvailableSlot = true;
-              break;
-            }
-          }
-          if (foundAvailableSlot) break;
-        }
-      }
+  const handleMorningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...morningSlots];
+    updatedSlots[index] = newValue;
+    setMorningSlots(updatedSlots);
+  };
 
-      // If still no slot found
-      if (!foundAvailableSlot) {
-        setSnackbarMessage(t("noAvailableMorningSlots"));
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-        return prevSlots;
-      }
-
-      return [...prevSlots, [newStart, newEnd]];
-    });
+  const handleEveningSlotChange = (index: number, newValue: number[]) => {
+    const updatedSlots = [...eveningSlots];
+    updatedSlots[index] = newValue;
+    setEveningSlots(updatedSlots);
   };
 
   const handleRemoveMorningSlot = (index: number) => {
     const newSlots = morningSlots.filter((_, i) => i !== index);
     setMorningSlots(newSlots.length > 0 ? newSlots : []);
-  };
-
-  const handleAddEveningSlot = () => {
-    setEveningSlots(prevSlots => {
-      // Find an available time range that doesn't conflict with existing slots
-      const existingRanges = prevSlots;
-      let newStart = 12;
-      let newEnd = 12.5;
-      let foundAvailableSlot = false;
-
-      // Try to find an available 30-minute slot
-      for (let time = 12; time < 20; time += 0.5) {
-        const potentialEnd = time + 0.5;
-        const hasConflict = existingRanges.some(range => 
-          isRangeOverlapping([time, potentialEnd], range)
-        );
-        
-        if (!hasConflict) {
-          newStart = time;
-          newEnd = potentialEnd;
-          foundAvailableSlot = true;
-          break;
-        }
-      }
-
-      // If no 30-minute slot available, try to find any non-overlapping range
-      if (!foundAvailableSlot) {
-        for (let time = 12; time < 20; time += 0.5) {
-          for (let endTime = time + 0.5; endTime <= 20; endTime += 0.5) {
-            const hasConflict = existingRanges.some(range => 
-              isRangeOverlapping([time, endTime], range)
-            );
-            
-            if (!hasConflict) {
-              newStart = time;
-              newEnd = endTime;
-              foundAvailableSlot = true;
-              break;
-            }
-          }
-          if (foundAvailableSlot) break;
-        }
-      }
-
-      // If still no slot found
-      if (!foundAvailableSlot) {
-        setSnackbarMessage(t("noAvailableEveningSlots"));
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-        return prevSlots;
-      }
-
-      return [...prevSlots, [newStart, newEnd]];
-    });
   };
 
   const handleRemoveEveningSlot = (index: number) => {
@@ -583,36 +497,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const handleClearEveningSlots = () => {
     setEveningSlots([]);
   };
-
-  const handleMorningSlotChange = (index: number, newValue: number[]) => {
-    const updatedSlots = [...morningSlots];
-    const otherSlots = updatedSlots.filter((_, i) => i !== index);
-    
-    // Check if new range overlaps with any other slots
-    const hasOverlap = otherSlots.some(slot => 
-      isRangeOverlapping(newValue, slot)
-    );
-    
-    if (!hasOverlap && newValue[0] <= newValue[1]) {
-      updatedSlots[index] = newValue;
-      setMorningSlots(updatedSlots);
-    }
-  };
-
-  const handleEveningSlotChange = (index: number, newValue: number[]) => {
-    const updatedSlots = [...eveningSlots];
-    const otherSlots = updatedSlots.filter((_, i) => i !== index);
-    
-    // Check if new range overlaps with any other slots
-    const hasOverlap = otherSlots.some(slot => 
-      isRangeOverlapping(newValue, slot)
-    );
-    
-    if (!hasOverlap && newValue[0] <= newValue[1]) {
-      updatedSlots[index] = newValue;
-      setEveningSlots(updatedSlots);
-    }
-  };
+  // -----------------------------------------------------------
 
   const handleFullTimeToggle = (checked: boolean) => {
     setIsFullTime(checked);
@@ -1864,39 +1749,36 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       
       case 2:
         return (
-          <ServiceDetails
-            formData={formData}
-            errors={errors}
-            isCookSelected={isCookSelected}
-            isNannySelected={isNannySelected}
-            morningSlots={morningSlots}
-            eveningSlots={eveningSlots}
-            isFullTime={isFullTime}
-            selectedTimeSlots={selectedTimeSlots}
-            onServiceTypeChange={handleServiceTypeChange}
-            onCookingSpecialityChange={handleCookingSpecialityChange}
-            onNannyCareTypeChange={handleNannyCareTypeChange}
-            onDietChange={handledietChange}
-            onExperienceChange={handleExperienceChange}
-            onDescriptionChange={handleChange}
-            onReferralCodeChange={handleChange}
-            onAgentReferralIdChange={handleAgentReferralIdChange}
-            onFullTimeToggle={handleFullTimeToggle}
-            onAddMorningSlot={handleAddMorningSlot}
-            onRemoveMorningSlot={handleRemoveMorningSlot}
-            onClearMorningSlots={handleClearMorningSlots}
-            onAddEveningSlot={handleAddEveningSlot}
-            onRemoveEveningSlot={handleRemoveEveningSlot}
-            onClearEveningSlots={handleClearEveningSlots}
-            onMorningSlotChange={handleMorningSlotChange}
-            onEveningSlotChange={handleEveningSlotChange}
-            TimeSliderWithDisabledRanges={TimeSliderWithDisabledRanges}
-            DisabledRangesIndicator={DisabledRangesIndicator}
-            getDisabledRangesForSlot={getDisabledRangesForSlot}
-            formatDisplayTime={formatDisplayTime}
-            selectedLanguages={selectedLanguages}
-            onLanguagesChange={setSelectedLanguages}
-          />
+      <ServiceDetails
+  formData={formData}
+  errors={errors}
+  isCookSelected={isCookSelected}
+  isNannySelected={isNannySelected}
+  morningSlots={morningSlots}
+  eveningSlots={eveningSlots}
+  isFullTime={isFullTime}
+  selectedTimeSlots={selectedTimeSlots}
+  onServiceTypeChange={handleServiceTypeChange}
+  onCookingSpecialityChange={handleCookingSpecialityChange}
+  onNannyCareTypeChange={handleNannyCareTypeChange}
+  onDietChange={handledietChange}
+  onExperienceChange={handleExperienceChange}
+  onDescriptionChange={handleChange}
+  onReferralCodeChange={handleChange}
+  onAgentReferralIdChange={handleAgentReferralIdChange}
+  onFullTimeToggle={handleFullTimeToggle}
+  onAddMorningSlot={handleAddMorningSlot}
+  onRemoveMorningSlot={handleRemoveMorningSlot}
+  onClearMorningSlots={handleClearMorningSlots}
+  onAddEveningSlot={handleAddEveningSlot}
+  onRemoveEveningSlot={handleRemoveEveningSlot}
+  onClearEveningSlots={handleClearEveningSlots}
+  onMorningSlotChange={handleMorningSlotChange}
+  onEveningSlotChange={handleEveningSlotChange}
+  formatDisplayTime={formatDisplayTime}
+  selectedLanguages={selectedLanguages}
+  onLanguagesChange={setSelectedLanguages}
+/>
         );
       
       case 3:

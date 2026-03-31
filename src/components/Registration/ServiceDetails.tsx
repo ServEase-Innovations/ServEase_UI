@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 // components/Registration/ServiceDetails.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Grid,
   Typography,
@@ -21,6 +21,7 @@ import {
   Fade,
   Alert,
   Autocomplete,
+  Slider,
 } from "@mui/material";
 import {
   Home as HomeIcon,
@@ -31,7 +32,6 @@ import {
 } from "@mui/icons-material";
 import { Button } from "../Button/button";
 import { useLanguage } from "src/context/LanguageContext";
-// Add this helper component since FormHelperText is imported from @mui/material
 import { FormHelperText } from "@mui/material";
 
 interface ServiceDetailsProps {
@@ -60,9 +60,6 @@ interface ServiceDetailsProps {
   onClearEveningSlots: () => void;
   onMorningSlotChange: (index: number, newValue: number[]) => void;
   onEveningSlotChange: (index: number, newValue: number[]) => void;
-  TimeSliderWithDisabledRanges: React.FC<any>;
-  DisabledRangesIndicator: React.FC<any>;
-  getDisabledRangesForSlot: (slots: number[][], currentIndex: number) => number[][];
   formatDisplayTime: (value: number) => string;
   selectedLanguages?: string[];
   onLanguagesChange?: (languages: string[]) => void;
@@ -93,9 +90,6 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   onClearEveningSlots,
   onMorningSlotChange,
   onEveningSlotChange,
-  TimeSliderWithDisabledRanges,
-  DisabledRangesIndicator,
-  getDisabledRangesForSlot,
   onAgentReferralIdChange,
   formatDisplayTime,
   selectedLanguages = [],
@@ -103,16 +97,108 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
 }) => {
   const { t } = useLanguage();
 
-  // Language selection state
+  // State to track duplicate errors per slot
+  const [duplicateErrors, setDuplicateErrors] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Reset errors when slots change (add/remove/clear)
+  useEffect(() => {
+    setDuplicateErrors({});
+  }, [morningSlots, eveningSlots]);
+
+  // Helper to merge overlapping/adjacent time slots
+  const mergeTimeSlots = (
+    slots: number[][],
+    format: (value: number) => string
+  ): string => {
+    if (!slots.length) return "";
+
+    // Sort by start time
+    const sorted = [...slots].sort((a, b) => a[0] - b[0]);
+    const merged: number[][] = [];
+
+    for (const slot of sorted) {
+      if (merged.length === 0) {
+        merged.push([slot[0], slot[1]]);
+      } else {
+        const last = merged[merged.length - 1];
+        // Overlaps or touches (adjacent) -> merge
+        if (slot[0] <= last[1]) {
+          last[1] = Math.max(last[1], slot[1]);
+        } else {
+          merged.push([slot[0], slot[1]]);
+        }
+      }
+    }
+
+    return merged
+      .map(([start, end]) => `${format(start)} - ${format(end)}`)
+      .join(", ");
+  };
+
+  // Compute merged time slots string for summary display
+  const mergedTimeSlotsString = useMemo(() => {
+    const allSlots = [...morningSlots, ...eveningSlots];
+    return mergeTimeSlots(allSlots, formatDisplayTime);
+  }, [morningSlots, eveningSlots, formatDisplayTime]);
+
+  // Handler for morning slots with duplicate check
+  const handleMorningSlotChange = (index: number, newValue: number[]) => {
+    // Check if the same range already exists in any other morning slot
+    const exists = morningSlots.some(
+      (slot, i) =>
+        i !== index && slot[0] === newValue[0] && slot[1] === newValue[1]
+    );
+    if (exists) {
+      setDuplicateErrors((prev) => ({ ...prev, [`morning-${index}`]: true }));
+      return;
+    }
+    setDuplicateErrors((prev) => ({ ...prev, [`morning-${index}`]: false }));
+    onMorningSlotChange(index, newValue);
+  };
+
+  // Handler for evening slots with duplicate check
+  const handleEveningSlotChange = (index: number, newValue: number[]) => {
+    const exists = eveningSlots.some(
+      (slot, i) =>
+        i !== index && slot[0] === newValue[0] && slot[1] === newValue[1]
+    );
+    if (exists) {
+      setDuplicateErrors((prev) => ({ ...prev, [`evening-${index}`]: true }));
+      return;
+    }
+    setDuplicateErrors((prev) => ({ ...prev, [`evening-${index}`]: false }));
+    onEveningSlotChange(index, newValue);
+  };
+
+  // Language selection
   const [availableLanguages] = useState<string[]>([
-    "Assamese", "Bengali", "Gujarati", "Hindi", "Kannada", 
-    "Kashmiri", "Marathi", "Malayalam", "Oriya", "Punjabi", 
-    "Sanskrit", "Tamil", "Telugu", "Urdu", "Sindhi", 
-    "Konkani", "Nepali", "Manipuri", "Bodo", "Dogri", 
-    "Maithili", "Santhali", "English"
+    "Assamese",
+    "Bengali",
+    "Gujarati",
+    "Hindi",
+    "Kannada",
+    "Kashmiri",
+    "Marathi",
+    "Malayalam",
+    "Oriya",
+    "Punjabi",
+    "Sanskrit",
+    "Tamil",
+    "Telugu",
+    "Urdu",
+    "Sindhi",
+    "Konkani",
+    "Nepali",
+    "Manipuri",
+    "Bodo",
+    "Dogri",
+    "Maithili",
+    "Santhali",
+    "English",
   ]);
 
-  // Handler for language changes
   const handleLanguageChange = (event: any, newValue: string[]) => {
     if (onLanguagesChange) {
       onLanguagesChange(newValue);
@@ -133,11 +219,15 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   ];
 
   const getDietLabel = (option: string) => {
-    switch(option) {
-      case "VEG": return t("veg");
-      case "NONVEG": return t("nonVeg");
-      case "BOTH": return t("both");
-      default: return option;
+    switch (option) {
+      case "VEG":
+        return t("veg");
+      case "NONVEG":
+        return t("nonVeg");
+      case "BOTH":
+        return t("both");
+      default:
+        return option;
     }
   };
 
@@ -145,78 +235,114 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
     <Grid container spacing={2}>
       {/* Combined Services Card */}
       <Grid item xs={12}>
-        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
+        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: "#f8f9fa" }}>
           <CardContent>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Typography
+              variant="h6"
+              color="primary"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center", mb: 3 }}
+            >
               <HomeIcon sx={{ mr: 1 }} />
               {t("serviceDetails")}
             </Typography>
-            
+
             <Grid container spacing={3}>
               {/* Service Type Selection */}
               <Grid item xs={12}>
-                <FormControl 
-                  component="fieldset" 
+                <FormControl
+                  component="fieldset"
                   error={!!errors.housekeepingRole}
                   required
                   fullWidth
                 >
-                  <FormLabel 
-                    component="legend" 
-                    sx={{ 
+                  <FormLabel
+                    component="legend"
+                    sx={{
                       mb: 2,
-                      '& .MuiFormLabel-asterisk': {
-                        color: '#d32f2f',
-                        fontSize: '1rem',
-                        marginLeft: '2px'
-                      }
+                      "& .MuiFormLabel-asterisk": {
+                        color: "#d32f2f",
+                        fontSize: "1rem",
+                        marginLeft: "2px",
+                      },
                     }}
                   >
-                    <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.95rem', display: 'inline' }}>
+                    <Typography
+                      variant="body1"
+                      color="primary"
+                      fontWeight="bold"
+                      sx={{ fontSize: "0.95rem", display: "inline" }}
+                    >
                       {t("selectServiceType")}
                     </Typography>
                   </FormLabel>
-                  
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'row', 
-                    gap: 2, 
-                    flexWrap: 'wrap',
-                    width: '100%',
-                  }}>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 2,
+                      flexWrap: "wrap",
+                      width: "100%",
+                    }}
+                  >
                     {serviceTypes.map((service) => (
                       <Paper
                         key={service.value}
-                        elevation={formData.housekeepingRole.includes(service.value) ? 2 : 0}
+                        elevation={
+                          formData.housekeepingRole.includes(service.value)
+                            ? 2
+                            : 0
+                        }
                         sx={{
                           p: 2,
                           px: 3,
                           borderRadius: 2,
-                          bgcolor: formData.housekeepingRole.includes(service.value) ? '#e3f2fd' : '#fff',
-                          border: '1px solid',
-                          borderColor: formData.housekeepingRole.includes(service.value) ? '#1976d2' : '#e0e0e0',
-                          transition: 'all 0.2s',
-                          cursor: 'pointer',
-                          flex: { xs: '1 1 auto', sm: '0 1 auto' },
-                          minWidth: '155px',
-                          textAlign: 'center',
-                          '&:hover': {
-                            borderColor: '#1976d2',
-                            bgcolor: formData.housekeepingRole.includes(service.value) ? '#e3f2fd' : '#f5f5f5',
+                          bgcolor: formData.housekeepingRole.includes(
+                            service.value
+                          )
+                            ? "#e3f2fd"
+                            : "#fff",
+                          border: "1px solid",
+                          borderColor: formData.housekeepingRole.includes(
+                            service.value
+                          )
+                            ? "#1976d2"
+                            : "#e0e0e0",
+                          transition: "all 0.2s",
+                          cursor: "pointer",
+                          flex: { xs: "1 1 auto", sm: "0 1 auto" },
+                          minWidth: "155px",
+                          textAlign: "center",
+                          "&:hover": {
+                            borderColor: "#1976d2",
+                            bgcolor: formData.housekeepingRole.includes(
+                              service.value
+                            )
+                              ? "#e3f2fd"
+                              : "#f5f5f5",
                           },
                         }}
                         onClick={() => {
                           const event = {
-                            target: { value: service.value }
+                            target: { value: service.value },
                           } as React.ChangeEvent<HTMLInputElement>;
                           onServiceTypeChange(event);
                         }}
                       >
                         <Box>
-                          <Typography 
-                            variant="body2" 
-                            fontWeight={formData.housekeepingRole.includes(service.value) ? 'bold' : 'normal'}
-                            color={formData.housekeepingRole.includes(service.value) ? '#1976d2' : 'text.primary'}
+                          <Typography
+                            variant="body2"
+                            fontWeight={
+                              formData.housekeepingRole.includes(service.value)
+                                ? "bold"
+                                : "normal"
+                            }
+                            color={
+                              formData.housekeepingRole.includes(service.value)
+                                ? "#1976d2"
+                                : "text.primary"
+                            }
                             sx={{ mb: 0.5 }}
                           >
                             {service.label}
@@ -225,7 +351,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                       </Paper>
                     ))}
                   </Box>
-                  
+
                   {errors.housekeepingRole && (
                     <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
                       {errors.housekeepingRole}
@@ -237,69 +363,100 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
               {/* Cooking Speciality - Only show when Cook is selected */}
               {isCookSelected && (
                 <Grid item xs={12}>
-                  <FormControl component="fieldset" error={!!errors.cookingSpeciality} required fullWidth>
-                    <FormLabel 
-                      component="legend" 
-                      sx={{ 
+                  <FormControl
+                    component="fieldset"
+                    error={!!errors.cookingSpeciality}
+                    required
+                    fullWidth
+                  >
+                    <FormLabel
+                      component="legend"
+                      sx={{
                         mb: 1.5,
-                        '& .MuiFormLabel-asterisk': {
-                          color: '#d32f2f',
-                          fontSize: '0.95rem',
-                          marginLeft: '2px'
-                        }
+                        "& .MuiFormLabel-asterisk": {
+                          color: "#d32f2f",
+                          fontSize: "0.95rem",
+                          marginLeft: "2px",
+                        },
                       }}
                     >
-                      <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
+                      <Typography
+                        variant="body1"
+                        color="primary"
+                        fontWeight="bold"
+                        sx={{ fontSize: "0.9rem", display: "inline" }}
+                      >
                         {t("cookingSpeciality")}
                       </Typography>
                     </FormLabel>
-                    
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'row', 
-                      gap: 2,
-                      flexWrap: 'wrap',
-                      width: '100%',
-                    }}>
-                      {['VEG', 'NONVEG', 'BOTH'].map((option) => (
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 2,
+                        flexWrap: "wrap",
+                        width: "100%",
+                      }}
+                    >
+                      {["VEG", "NONVEG", "BOTH"].map((option) => (
                         <Paper
                           key={option}
-                          elevation={formData.cookingSpeciality === option ? 2 : 0}
+                          elevation={
+                            formData.cookingSpeciality === option ? 2 : 0
+                          }
                           sx={{
                             p: 1.5,
                             px: 3,
                             borderRadius: 2,
-                            bgcolor: formData.cookingSpeciality === option ? '#e3f2fd' : '#fff',
-                            border: '1px solid',
-                            borderColor: formData.cookingSpeciality === option ? '#1976d2' : '#e0e0e0',
-                            transition: 'all 0.2s',
-                            cursor: 'pointer',
-                            flex: { xs: '1 1 auto', sm: '0 1 auto' },
-                            minWidth: '100px',
-                            textAlign: 'center',
-                            '&:hover': {
-                              borderColor: '#1976d2',
-                              bgcolor: formData.cookingSpeciality === option ? '#e3f2fd' : '#f5f5f5',
+                            bgcolor:
+                              formData.cookingSpeciality === option
+                                ? "#e3f2fd"
+                                : "#fff",
+                            border: "1px solid",
+                            borderColor:
+                              formData.cookingSpeciality === option
+                                ? "#1976d2"
+                                : "#e0e0e0",
+                            transition: "all 0.2s",
+                            cursor: "pointer",
+                            flex: { xs: "1 1 auto", sm: "0 1 auto" },
+                            minWidth: "100px",
+                            textAlign: "center",
+                            "&:hover": {
+                              borderColor: "#1976d2",
+                              bgcolor:
+                                formData.cookingSpeciality === option
+                                  ? "#e3f2fd"
+                                  : "#f5f5f5",
                             },
                           }}
                           onClick={() => {
                             const event = {
-                              target: { value: option, name: 'cookingSpeciality' }
+                              target: { value: option, name: "cookingSpeciality" },
                             } as React.ChangeEvent<HTMLInputElement>;
                             onCookingSpecialityChange(event);
                           }}
                         >
-                          <Typography 
-                            variant="body2" 
-                            fontWeight={formData.cookingSpeciality === option ? 'bold' : 'normal'}
-                            color={formData.cookingSpeciality === option ? '#1976d2' : 'text.primary'}
+                          <Typography
+                            variant="body2"
+                            fontWeight={
+                              formData.cookingSpeciality === option
+                                ? "bold"
+                                : "normal"
+                            }
+                            color={
+                              formData.cookingSpeciality === option
+                                ? "#1976d2"
+                                : "text.primary"
+                            }
                           >
                             {getDietLabel(option)}
                           </Typography>
                         </Paper>
                       ))}
                     </Box>
-                    
+
                     {errors.cookingSpeciality && (
                       <FormHelperText error sx={{ mt: 1 }}>
                         {errors.cookingSpeciality}
@@ -312,69 +469,100 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
               {/* Nanny Care Type */}
               {isNannySelected && (
                 <Grid item xs={12}>
-                  <FormControl component="fieldset" error={!!errors.nannyCareType} required fullWidth>
-                    <FormLabel 
-                      component="legend" 
-                      sx={{ 
+                  <FormControl
+                    component="fieldset"
+                    error={!!errors.nannyCareType}
+                    required
+                    fullWidth
+                  >
+                    <FormLabel
+                      component="legend"
+                      sx={{
                         mb: 1.5,
-                        '& .MuiFormLabel-asterisk': {
-                          color: '#d32f2f',
-                          fontSize: '0.95rem',
-                          marginLeft: '2px'
-                        }
+                        "& .MuiFormLabel-asterisk": {
+                          color: "#d32f2f",
+                          fontSize: "0.95rem",
+                          marginLeft: "2px",
+                        },
                       }}
                     >
-                      <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
+                      <Typography
+                        variant="body1"
+                        color="primary"
+                        fontWeight="bold"
+                        sx={{ fontSize: "0.9rem", display: "inline" }}
+                      >
                         {t("careType")}
                       </Typography>
                     </FormLabel>
-                    
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'row', 
-                      gap: 2,
-                      flexWrap: 'wrap',
-                      width: '100%',
-                    }}>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 2,
+                        flexWrap: "wrap",
+                        width: "100%",
+                      }}
+                    >
                       {nannyCareOptions.map((option) => (
                         <Paper
                           key={option.value}
-                          elevation={formData.nannyCareType === option.value ? 2 : 0}
+                          elevation={
+                            formData.nannyCareType === option.value ? 2 : 0
+                          }
                           sx={{
                             p: 1.5,
                             px: 3,
                             borderRadius: 2,
-                            bgcolor: formData.nannyCareType === option.value ? '#e3f2fd' : '#fff',
-                            border: '1px solid',
-                            borderColor: formData.nannyCareType === option.value ? '#1976d2' : '#e0e0e0',
-                            transition: 'all 0.2s',
-                            cursor: 'pointer',
-                            flex: { xs: '1 1 auto', sm: '0 1 auto' },
-                            minWidth: '120px',
-                            textAlign: 'center',
-                            '&:hover': {
-                              borderColor: '#1976d2',
-                              bgcolor: formData.nannyCareType === option.value ? '#e3f2fd' : '#f5f5f5',
+                            bgcolor:
+                              formData.nannyCareType === option.value
+                                ? "#e3f2fd"
+                                : "#fff",
+                            border: "1px solid",
+                            borderColor:
+                              formData.nannyCareType === option.value
+                                ? "#1976d2"
+                                : "#e0e0e0",
+                            transition: "all 0.2s",
+                            cursor: "pointer",
+                            flex: { xs: "1 1 auto", sm: "0 1 auto" },
+                            minWidth: "120px",
+                            textAlign: "center",
+                            "&:hover": {
+                              borderColor: "#1976d2",
+                              bgcolor:
+                                formData.nannyCareType === option.value
+                                  ? "#e3f2fd"
+                                  : "#f5f5f5",
                             },
                           }}
                           onClick={() => {
                             const event = {
-                              target: { value: option.value, name: 'nannyCareType' }
+                              target: { value: option.value, name: "nannyCareType" },
                             } as React.ChangeEvent<HTMLInputElement>;
                             onNannyCareTypeChange(event);
                           }}
                         >
-                          <Typography 
-                            variant="body2" 
-                            fontWeight={formData.nannyCareType === option.value ? 'bold' : 'normal'}
-                            color={formData.nannyCareType === option.value ? '#1976d2' : 'text.primary'}
+                          <Typography
+                            variant="body2"
+                            fontWeight={
+                              formData.nannyCareType === option.value
+                                ? "bold"
+                                : "normal"
+                            }
+                            color={
+                              formData.nannyCareType === option.value
+                                ? "#1976d2"
+                                : "text.primary"
+                            }
                           >
                             {option.label}
                           </Typography>
                         </Paper>
                       ))}
                     </Box>
-                    
+
                     {errors.nannyCareType && (
                       <FormHelperText error sx={{ mt: 1 }}>
                         {errors.nannyCareType}
@@ -386,30 +574,42 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
 
               {/* Diet Section */}
               <Grid item xs={12}>
-                <FormControl component="fieldset" error={!!errors.diet} required fullWidth>
-                  <FormLabel 
-                    component="legend" 
-                    sx={{ 
+                <FormControl
+                  component="fieldset"
+                  error={!!errors.diet}
+                  required
+                  fullWidth
+                >
+                  <FormLabel
+                    component="legend"
+                    sx={{
                       mb: 1.5,
-                      '& .MuiFormLabel-asterisk': {
-                        color: '#d32f2f',
-                        fontSize: '0.95rem',
-                        marginLeft: '2px'
-                      }
+                      "& .MuiFormLabel-asterisk": {
+                        color: "#d32f2f",
+                        fontSize: "0.95rem",
+                        marginLeft: "2px",
+                      },
                     }}
                   >
-                    <Typography variant="body1" color="primary" fontWeight="bold" sx={{ fontSize: '0.9rem', display: 'inline' }}>
+                    <Typography
+                      variant="body1"
+                      color="primary"
+                      fontWeight="bold"
+                      sx={{ fontSize: "0.9rem", display: "inline" }}
+                    >
                       {t("dietPreference")}
                     </Typography>
                   </FormLabel>
-                  
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'row', 
-                    gap: 2,
-                    flexWrap: 'wrap',
-                    width: '100%',
-                  }}>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 2,
+                      flexWrap: "wrap",
+                      width: "100%",
+                    }}
+                  >
                     {dietOptions.map((option) => (
                       <Paper
                         key={option}
@@ -418,37 +618,42 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           p: 1.5,
                           px: 3,
                           borderRadius: 2,
-                          bgcolor: formData.diet === option ? '#e3f2fd' : '#fff',
-                          border: '1px solid',
-                          borderColor: formData.diet === option ? '#1976d2' : '#e0e0e0',
-                          transition: 'all 0.2s',
-                          cursor: 'pointer',
-                          flex: { xs: '1 1 auto', sm: '0 1 auto' },
-                          minWidth: '100px',
-                          textAlign: 'center',
-                          '&:hover': {
-                            borderColor: '#1976d2',
-                            bgcolor: formData.diet === option ? '#e3f2fd' : '#f5f5f5',
+                          bgcolor:
+                            formData.diet === option ? "#e3f2fd" : "#fff",
+                          border: "1px solid",
+                          borderColor:
+                            formData.diet === option ? "#1976d2" : "#e0e0e0",
+                          transition: "all 0.2s",
+                          cursor: "pointer",
+                          flex: { xs: "1 1 auto", sm: "0 1 auto" },
+                          minWidth: "100px",
+                          textAlign: "center",
+                          "&:hover": {
+                            borderColor: "#1976d2",
+                            bgcolor:
+                              formData.diet === option ? "#e3f2fd" : "#f5f5f5",
                           },
                         }}
                         onClick={() => {
                           const event = {
-                            target: { value: option, name: 'diet' }
+                            target: { value: option, name: "diet" },
                           } as React.ChangeEvent<HTMLInputElement>;
                           onDietChange(event);
                         }}
                       >
-                        <Typography 
-                          variant="body2" 
-                          fontWeight={formData.diet === option ? 'bold' : 'normal'}
-                          color={formData.diet === option ? '#1976d2' : 'text.primary'}
+                        <Typography
+                          variant="body2"
+                          fontWeight={formData.diet === option ? "bold" : "normal"}
+                          color={
+                            formData.diet === option ? "#1976d2" : "text.primary"
+                          }
                         >
                           {getDietLabel(option)}
                         </Typography>
                       </Paper>
                     ))}
                   </Box>
-                  
+
                   {errors.diet && (
                     <FormHelperText error sx={{ mt: 1 }}>
                       {errors.diet}
@@ -460,7 +665,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           </CardContent>
         </Card>
       </Grid>
-      
+
       {/* Description Field */}
       <Grid item xs={12}>
         <TextField
@@ -476,13 +681,18 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
 
       {/* Languages Section */}
       <Grid item xs={12}>
-        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
+        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: "#f8f9fa" }}>
           <CardContent>
-            <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Typography
+              variant="h6"
+              color="primary"
+              gutterBottom
+              sx={{ display: "flex", alignItems: "center", mb: 3 }}
+            >
               <LanguageIcon sx={{ mr: 1 }} />
               {t("languagesSpoken")}
             </Typography>
-            
+
             <Autocomplete
               multiple
               options={availableLanguages}
@@ -505,43 +715,50 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                 />
               )}
               sx={{
-                '& .MuiAutocomplete-tag': {
-                  bgcolor: '#e3f2fd',
-                  color: '#1976d2',
+                "& .MuiAutocomplete-tag": {
+                  bgcolor: "#e3f2fd",
+                  color: "#1976d2",
                   borderRadius: 1.5,
-                  '& .MuiChip-deleteIcon': {
-                    color: '#1976d2',
-                    '&:hover': {
-                      color: '#1565c0'
-                    }
-                  }
-                }
+                  "& .MuiChip-deleteIcon": {
+                    color: "#1976d2",
+                    "&:hover": {
+                      color: "#1565c0",
+                    },
+                  },
+                },
               }}
             />
-            
+
             {/* Selected Languages Summary */}
             {selectedLanguages.length > 0 && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
-                <Typography variant="body2" color="primary" gutterBottom fontWeight="bold">
+              <Box sx={{ mt: 2, p: 2, bgcolor: "#e3f2fd", borderRadius: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  gutterBottom
+                  fontWeight="bold"
+                >
                   {t("selectedLanguagesCount", { count: selectedLanguages.length })}
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selectedLanguages.map((language, index) => (
                     <Chip
                       key={index}
                       label={language}
                       size="small"
                       onDelete={() => {
-                        const newLanguages = selectedLanguages.filter((_, i) => i !== index);
+                        const newLanguages = selectedLanguages.filter(
+                          (_, i) => i !== index
+                        );
                         if (onLanguagesChange) {
                           onLanguagesChange(newLanguages);
                         }
                       }}
                       sx={{
-                        bgcolor: '#fff',
-                        '& .MuiChip-deleteIcon': {
-                          color: '#1976d2'
-                        }
+                        bgcolor: "#fff",
+                        "& .MuiChip-deleteIcon": {
+                          color: "#1976d2",
+                        },
                       }}
                     />
                   ))}
@@ -551,7 +768,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           </CardContent>
         </Card>
       </Grid>
-      
+
       {/* Experience and Referral Code Fields */}
       <Grid item xs={12} sm={6}>
         <TextField
@@ -565,7 +782,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           helperText={errors.experience || t("experienceHelperText")}
         />
       </Grid>
-      
+
       <Grid item xs={12} sm={6}>
         <TextField
           placeholder={t("referralCode")}
@@ -590,7 +807,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
 
       {/* Time slot section */}
       <Grid item xs={12}>
-        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: '#f8f9fa' }}>
+        <Card variant="outlined" sx={{ borderRadius: 2, bgcolor: "#f8f9fa" }}>
           <CardContent>
             <FormControl component="fieldset" fullWidth>
               <FormLabel component="legend" sx={{ mb: 2 }}>
@@ -598,16 +815,16 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                   {t("selectAvailableTimeSlots")}
                 </Typography>
               </FormLabel>
-              
+
               <FormGroup>
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 2, 
-                    mb: 2, 
-                    bgcolor: isFullTime ? '#e3f2fd' : 'transparent',
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    bgcolor: isFullTime ? "#e3f2fd" : "transparent",
                     borderRadius: 2,
-                    transition: 'all 0.3s'
+                    transition: "all 0.3s",
                   }}
                 >
                   <FormControlLabel
@@ -628,7 +845,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                         </Typography>
                       </Box>
                     }
-                    sx={{ width: '100%', m: 0 }}
+                    sx={{ width: "100%", m: 0 }}
                   />
                 </Paper>
 
@@ -637,44 +854,47 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                     <Box>
                       {/* Morning Slots Section */}
                       <Box sx={{ mb: 4 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            mb: 2,
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Typography
+                              variant="h6"
+                              color="primary"
+                              sx={{ display: "flex", alignItems: "center", mr: 2 }}
+                            >
                               <AccessTime sx={{ mr: 1 }} />
                               {t("morningAvailability")}
                             </Typography>
-                            <Chip 
-                              label={morningSlots.length === 0 ? t("notAvailable") : `${morningSlots.length} ${t("slot")}`}
+                            <Chip
+                              label={
+                                morningSlots.length === 0
+                                  ? t("notAvailable")
+                                  : `${morningSlots.length} ${t("slot")}`
+                              }
                               color={morningSlots.length === 0 ? "default" : "primary"}
                               size="small"
                               variant={morningSlots.length === 0 ? "outlined" : "filled"}
                             />
                           </Box>
                           <Box>
-                            {morningSlots.length > 0 && morningSlots.length < 12 && (
-                              <Tooltip title={t("addSlot")}>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  startIcon={<AddIcon />}
-                                  onClick={onAddMorningSlot}
-                                  sx={{ borderRadius: 2, mr: 1 }}
-                                >
-                                  {t("addSlot")}
-                                </Button>
-                              </Tooltip>
-                            )}
-                            {morningSlots.length === 0 ? (
+                            <Tooltip title={t("addSlot")}>
                               <Button
                                 variant="contained"
                                 size="small"
                                 startIcon={<AddIcon />}
                                 onClick={onAddMorningSlot}
-                                sx={{ borderRadius: 2 }}
+                                sx={{ borderRadius: 2, mr: 1 }}
                               >
-                                {t("addMorningSlots")}
+                                {t("addSlot")}
                               </Button>
-                            ) : (
+                            </Tooltip>
+                            {morningSlots.length > 0 && (
                               <Button
                                 variant="outlined"
                                 size="small"
@@ -695,10 +915,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                               p: 3,
                               mb: 2,
                               borderRadius: 2,
-                              bgcolor: '#f5f5f5',
-                              textAlign: 'center',
-                              border: '2px dashed',
-                              borderColor: 'grey.300'
+                              bgcolor: "#f5f5f5",
+                              textAlign: "center",
+                              border: "2px dashed",
+                              borderColor: "grey.300",
                             }}
                           >
                             <Typography variant="body1" color="text.secondary" gutterBottom>
@@ -710,8 +930,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           </Paper>
                         ) : (
                           morningSlots.map((slot, index) => {
-                            const disabledRanges = getDisabledRangesForSlot(morningSlots, index);
-                            
+                            const hasError = duplicateErrors[`morning-${index}`];
                             return (
                               <Paper
                                 key={`morning-${index}`}
@@ -720,13 +939,20 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                   p: 2,
                                   mb: 2,
                                   borderRadius: 2,
-                                  position: 'relative',
-                                  bgcolor: '#fff',
-                                  border: '1px solid',
-                                  borderColor: 'primary.light'
+                                  position: "relative",
+                                  bgcolor: "#fff",
+                                  border: "1px solid",
+                                  borderColor: "primary.light",
                                 }}
                               >
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    mb: 1,
+                                  }}
+                                >
                                   <Typography variant="subtitle2" color="primary">
                                     {t("timeSlot")} {index + 1}
                                   </Typography>
@@ -734,44 +960,54 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                     <IconButton
                                       size="small"
                                       onClick={() => onRemoveMorningSlot(index)}
-                                      sx={{ color: 'error.main' }}
+                                      sx={{ color: "error.main" }}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   )}
                                 </Box>
-                                
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  gutterBottom
+                                >
+                                  {t("selected")} {formatDisplayTime(slot[0])} -{" "}
+                                  {formatDisplayTime(slot[1])}
                                 </Typography>
-                                
-                                {disabledRanges.length > 0 && (
-                                  <>
-                                    <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                      {t("warningGrayAreas")}
-                                    </Typography>
-                                    <DisabledRangesIndicator 
-                                      ranges={disabledRanges}
-                                      min={6}
-                                      max={12}
-                                    />
-                                  </>
-                                )}
-                                
-                                <Box sx={{ px: 1 }}>
-                                  <TimeSliderWithDisabledRanges
+
+                                <Box sx={{ px: 1, mt: 2 }}>
+                                  <Slider
                                     value={slot}
-                                    onChange={(newValue) => onMorningSlotChange(index, newValue)}
+                                    onChange={(_, newValue) =>
+                                      handleMorningSlotChange(index, newValue as number[])
+                                    }
                                     min={6}
                                     max={12}
+                                    step={0.5}
                                     marks={[
                                       { value: 6, label: "6:00 AM" },
                                       { value: 8, label: "8:00 AM" },
                                       { value: 10, label: "10:00 AM" },
                                       { value: 12, label: "12:00 PM" },
                                     ]}
-                                    disabledRanges={disabledRanges}
+                                    valueLabelDisplay="auto"
+                                    valueLabelFormat={(value) =>
+                                      formatDisplayTime(value)
+                                    }
+                                    getAriaValueText={(value) =>
+                                      formatDisplayTime(value)
+                                    }
+                                    disableSwap={false} // Allow free range selection
                                   />
+                                  {hasError && (
+                                    <Alert
+                                      severity="error"
+                                      sx={{ mt: 1, borderRadius: 1 }}
+                                    >
+                                      {t("duplicateTimeSlotError")}
+                                    </Alert>
+                                  )}
                                 </Box>
                               </Paper>
                             );
@@ -781,44 +1017,47 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
 
                       {/* Evening Slots Section */}
                       <Box sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            mb: 2,
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Typography
+                              variant="h6"
+                              color="primary"
+                              sx={{ display: "flex", alignItems: "center", mr: 2 }}
+                            >
                               <AccessTime sx={{ mr: 1 }} />
                               {t("eveningAvailability")}
                             </Typography>
-                            <Chip 
-                              label={eveningSlots.length === 0 ? t("notAvailable") : `${eveningSlots.length} ${t("slot")}`}
+                            <Chip
+                              label={
+                                eveningSlots.length === 0
+                                  ? t("notAvailable")
+                                  : `${eveningSlots.length} ${t("slot")}`
+                              }
                               color={eveningSlots.length === 0 ? "default" : "primary"}
                               size="small"
                               variant={eveningSlots.length === 0 ? "outlined" : "filled"}
                             />
                           </Box>
                           <Box>
-                            {eveningSlots.length > 0 && eveningSlots.length < 16 && (
-                              <Tooltip title={t("addSlot")}>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  startIcon={<AddIcon />}
-                                  onClick={onAddEveningSlot}
-                                  sx={{ borderRadius: 2, mr: 1 }}
-                                >
-                                  {t("addSlot")}
-                                </Button>
-                              </Tooltip>
-                            )}
-                            {eveningSlots.length === 0 ? (
+                            <Tooltip title={t("addSlot")}>
                               <Button
                                 variant="contained"
                                 size="small"
                                 startIcon={<AddIcon />}
                                 onClick={onAddEveningSlot}
-                                sx={{ borderRadius: 2 }}
+                                sx={{ borderRadius: 2, mr: 1 }}
                               >
-                                {t("addEveningSlots")}
+                                {t("addSlot")}
                               </Button>
-                            ) : (
+                            </Tooltip>
+                            {eveningSlots.length > 0 && (
                               <Button
                                 variant="outlined"
                                 size="small"
@@ -839,10 +1078,10 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                               p: 3,
                               mb: 2,
                               borderRadius: 2,
-                              bgcolor: '#f5f5f5',
-                              textAlign: 'center',
-                              border: '2px dashed',
-                              borderColor: 'grey.300'
+                              bgcolor: "#f5f5f5",
+                              textAlign: "center",
+                              border: "2px dashed",
+                              borderColor: "grey.300",
                             }}
                           >
                             <Typography variant="body1" color="text.secondary" gutterBottom>
@@ -854,8 +1093,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                           </Paper>
                         ) : (
                           eveningSlots.map((slot, index) => {
-                            const disabledRanges = getDisabledRangesForSlot(eveningSlots, index);
-                            
+                            const hasError = duplicateErrors[`evening-${index}`];
                             return (
                               <Paper
                                 key={`evening-${index}`}
@@ -864,13 +1102,20 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                   p: 2,
                                   mb: 2,
                                   borderRadius: 2,
-                                  position: 'relative',
-                                  bgcolor: '#fff',
-                                  border: '1px solid',
-                                  borderColor: 'primary.light'
+                                  position: "relative",
+                                  bgcolor: "#fff",
+                                  border: "1px solid",
+                                  borderColor: "primary.light",
                                 }}
                               >
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    mb: 1,
+                                  }}
+                                >
                                   <Typography variant="subtitle2" color="primary">
                                     {t("timeSlot")} {index + 1}
                                   </Typography>
@@ -878,36 +1123,31 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                     <IconButton
                                       size="small"
                                       onClick={() => onRemoveEveningSlot(index)}
-                                      sx={{ color: 'error.main' }}
+                                      sx={{ color: "error.main" }}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   )}
                                 </Box>
-                                
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
+
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  gutterBottom
+                                >
+                                  {t("selected")} {formatDisplayTime(slot[0])} -{" "}
+                                  {formatDisplayTime(slot[1])}
                                 </Typography>
-                                
-                                {disabledRanges.length > 0 && (
-                                  <>
-                                    <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                      {t("warningGrayAreas")}
-                                    </Typography>
-                                    <DisabledRangesIndicator 
-                                      ranges={disabledRanges}
-                                      min={12}
-                                      max={20}
-                                    />
-                                  </>
-                                )}
-                                
-                                <Box sx={{ px: 1 }}>
-                                  <TimeSliderWithDisabledRanges
+
+                                <Box sx={{ px: 1, mt: 2 }}>
+                                  <Slider
                                     value={slot}
-                                    onChange={(newValue) => onEveningSlotChange(index, newValue)}
+                                    onChange={(_, newValue) =>
+                                      handleEveningSlotChange(index, newValue as number[])
+                                    }
                                     min={12}
                                     max={20}
+                                    step={0.5}
                                     marks={[
                                       { value: 12, label: "12:00 PM" },
                                       { value: 14, label: "2:00 PM" },
@@ -915,8 +1155,23 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                                       { value: 18, label: "6:00 PM" },
                                       { value: 20, label: "8:00 PM" },
                                     ]}
-                                    disabledRanges={disabledRanges}
+                                    valueLabelDisplay="auto"
+                                    valueLabelFormat={(value) =>
+                                      formatDisplayTime(value)
+                                    }
+                                    getAriaValueText={(value) =>
+                                      formatDisplayTime(value)
+                                    }
+                                    disableSwap={false} // Allow free range selection
                                   />
+                                  {hasError && (
+                                    <Alert
+                                      severity="error"
+                                      sx={{ mt: 1, borderRadius: 1 }}
+                                    >
+                                      {t("duplicateTimeSlotError")}
+                                    </Alert>
+                                  )}
                                 </Box>
                               </Paper>
                             );
@@ -924,25 +1179,23 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                         )}
                       </Box>
 
-                      {/* Summary Card */}
-                      {selectedTimeSlots && (
+                      {/* Summary Card - Now uses mergedTimeSlotsString */}
+                      {mergedTimeSlotsString && (
                         <Paper
                           elevation={3}
                           sx={{
                             mt: 3,
                             p: 2,
                             borderRadius: 2,
-                            bgcolor: '#e3f2fd',
-                            color: '#1976d2',
-                            border: '1px solid #90caf9'
+                            bgcolor: "#e3f2fd",
+                            color: "#1976d2",
+                            border: "1px solid #90caf9",
                           }}
                         >
                           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                             {t("yourSelectedTimeSlots")}
                           </Typography>
-                          <Typography variant="body1">
-                            {selectedTimeSlots}
-                          </Typography>
+                          <Typography variant="body1">{mergedTimeSlotsString}</Typography>
                         </Paper>
                       )}
                     </Box>
@@ -956,4 +1209,5 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
     </Grid>
   );
 };
+
 export default ServiceDetails;
