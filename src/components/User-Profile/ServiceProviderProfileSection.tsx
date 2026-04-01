@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "../Button/button";
 import { ClipLoader } from "react-spinners";
 import { 
@@ -29,21 +29,16 @@ import {
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
-// MUI Imports for time slots
+
 import { 
-  Slider, 
-  Chip, 
-  Tooltip, 
-  IconButton, 
-  Fade, 
-  Paper, 
+  FormControlLabel,
+  Checkbox,
   Box,
   Typography,
-  FormControlLabel,
-  Checkbox
+  Paper,
+  Fade
 } from "@mui/material";
-import { AccessTime, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
+import TimeSlotSelector from "../Common/TimeSlotSelector/TimeSlotSelector";
 
 interface ServiceProviderProfileSectionProps {
   userId: number | null;
@@ -72,6 +67,7 @@ interface ServiceProviderData {
   firstName: string;
   gender: string;
   housekeepingRole: string | string[];
+  housekeepingRoles?: string[];
   lastName: string;
   latitude: number;
   locality: string;
@@ -105,107 +101,6 @@ interface ServiceProviderData {
   };
 }
 
-interface DisabledRange {
-  start: number;
-  end: number;
-}
-
-// Time Slider Component
-const TimeSliderWithDisabledRanges: React.FC<{
-  value: number[];
-  onChange: (newValue: number[]) => void;
-  min: number;
-  max: number;
-  marks: Array<{ value: number; label: string }>;
-  disabledRanges: DisabledRange[];
-}> = ({ value, onChange, min, max, marks, disabledRanges }) => {
-  const theme = useTheme();
-
-  const isValueDisabled = (val: number): boolean => {
-    return disabledRanges.some(range => val >= range.start && val <= range.end);
-  };
-
-  const handleChange = (event: Event, newValue: number | number[]) => {
-    const newValues = newValue as number[];
-    const startDisabled = isValueDisabled(newValues[0]);
-    const endDisabled = isValueDisabled(newValues[1]);
-
-    if (!startDisabled && !endDisabled) {
-      onChange(newValues);
-    }
-  };
-
-  const valueLabelFormat = (value: number) => {
-    const hour = Math.floor(value);
-    const minute = (value % 1) * 60;
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-    return `${displayHour}:${minute === 0 ? '00' : minute} ${ampm}`;
-  };
-
-  return (
-    <Slider
-      value={value}
-      onChange={handleChange}
-      valueLabelDisplay="auto"
-      valueLabelFormat={valueLabelFormat}
-      min={min}
-      max={max}
-      step={0.5}
-      marks={marks}
-      disableSwap
-      sx={{
-        '& .MuiSlider-track': {
-          backgroundColor: theme.palette.primary.main,
-        },
-        '& .MuiSlider-thumb': {
-          backgroundColor: theme.palette.primary.main,
-        },
-        '& .MuiSlider-rail': {
-          backgroundColor: '#e0e0e0',
-        },
-        '& .MuiSlider-mark': {
-          backgroundColor: '#bdbdbd',
-        },
-        '& .MuiSlider-markLabel': {
-          fontSize: '0.75rem',
-        },
-      }}
-    />
-  );
-};
-
-const DisabledRangesIndicator: React.FC<{
-  ranges: DisabledRange[];
-  min: number;
-  max: number;
-}> = ({ ranges, min, max }) => {
-  const getPosition = (value: number) => {
-    return ((value - min) / (max - min)) * 100;
-  };
-
-  return (
-    <Box sx={{ position: 'relative', height: 40, mb: 2 }}>
-      {ranges.map((range, index) => (
-        <Box
-          key={index}
-          sx={{
-            position: 'absolute',
-            left: `${getPosition(range.start)}%`,
-            width: `${getPosition(range.end) - getPosition(range.start)}%`,
-            height: 40,
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            borderLeft: '1px solid rgba(0, 0, 0, 0.2)',
-            borderRight: '1px solid rgba(0, 0, 0, 0.2)',
-            pointerEvents: 'none',
-            zIndex: 1,
-          }}
-        />
-      ))}
-    </Box>
-  );
-};
-
 const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps> = ({ userId, userEmail }) => {
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
@@ -221,6 +116,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   const [morningSlots, setMorningSlots] = useState<number[][]>([]);
   const [eveningSlots, setEveningSlots] = useState<number[][]>([]);
   const [isFullTime, setIsFullTime] = useState(false);
+  
+  // Original time slots for change detection
+  const [originalMorningSlots, setOriginalMorningSlots] = useState<number[][]>([]);
+  const [originalEveningSlots, setOriginalEveningSlots] = useState<number[][]>([]);
+  const [originalIsFullTime, setOriginalIsFullTime] = useState<boolean>(true);
   
   const [userData, setUserData] = useState({
     firstName: "",
@@ -312,6 +212,15 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     return `${displayHour}:${minute === 0 ? '00' : minute} ${ampm}`;
   };
 
+  // New helper for payload format: "08:00"
+  const formatTimeForPayload = (value: number): string => {
+    const hour = Math.floor(value);
+    const minute = (value % 1) * 60;
+    const paddedHour = hour.toString().padStart(2, '0');
+    const paddedMinute = minute === 0 ? '00' : minute.toString().padStart(2, '0');
+    return `${paddedHour}:${paddedMinute}`;
+  };
+
   const parseTimeToNumber = (timeStr: string): number => {
     const [time, period] = timeStr.trim().split(' ');
     let [hour, minute] = time.split(':').map(Number);
@@ -320,17 +229,38 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     return hour + (minute / 60);
   };
 
-  const getDisabledRangesForSlot = (slots: number[][], currentIndex: number): DisabledRange[] => {
-    const disabledRanges: DisabledRange[] = [];
-    
-    slots.forEach((slot, index) => {
-      if (index !== currentIndex) {
-        disabledRanges.push({ start: slot[0], end: slot[1] });
+  // Helper to merge overlapping/adjacent time slots
+  const mergeTimeSlots = (slots: number[][]): string => {
+    if (!slots.length) return "";
+
+    // Sort by start time
+    const sorted = [...slots].sort((a, b) => a[0] - b[0]);
+    const merged: number[][] = [];
+
+    for (const slot of sorted) {
+      if (merged.length === 0) {
+        merged.push([slot[0], slot[1]]);
+      } else {
+        const last = merged[merged.length - 1];
+        // Overlaps or touches (adjacent) -> merge
+        if (slot[0] <= last[1]) {
+          last[1] = Math.max(last[1], slot[1]);
+        } else {
+          merged.push([slot[0], slot[1]]);
+        }
       }
-    });
-    
-    return disabledRanges;
+    }
+
+    return merged
+      .map(([start, end]) => `${formatDisplayTime(start)} - ${formatDisplayTime(end)}`)
+      .join(", ");
   };
+
+  // Compute merged time slots string for summary display
+  const mergedTimeSlotsString = useMemo(() => {
+    const allSlots = [...morningSlots, ...eveningSlots];
+    return mergeTimeSlots(allSlots);
+  }, [morningSlots, eveningSlots, formatDisplayTime]);
 
   const formatSelectedTimeSlots = (): string => {
     const allSlots = [...morningSlots, ...eveningSlots];
@@ -403,9 +333,11 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         languageKnown = languageKnown.join(", ");
       }
 
-      // Parse housekeepingRole
+      // Parse housekeepingRole - prioritize housekeepingRoles array if present
       let roles: string[] = [];
-      if (typeof data.housekeepingRole === 'string') {
+      if (data.housekeepingRoles && Array.isArray(data.housekeepingRoles)) {
+        roles = data.housekeepingRoles;
+      } else if (typeof data.housekeepingRole === 'string') {
         if (data.housekeepingRole.includes(',')) {
           roles = data.housekeepingRole.split(',').map((r: string) => r.trim());
         } else {
@@ -416,10 +348,10 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       }
 
       // Parse time slots if they exist
+      let morning: number[][] = [];
+      let evening: number[][] = [];
       if (data.timeslot) {
         const slots = data.timeslot.split(',').map(slot => slot.trim());
-        const morning: number[][] = [];
-        const evening: number[][] = [];
         
         slots.forEach(slot => {
           const [startStr, endStr] = slot.split('-');
@@ -438,15 +370,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
             }
           }
         });
-        
-        setMorningSlots(morning);
-        setEveningSlots(evening);
-        setIsFullTime(morning.length === 0 && evening.length === 0);
-      } else {
-        setMorningSlots([]);
-        setEveningSlots([]);
-        setIsFullTime(true);
       }
+      
+      setMorningSlots(morning);
+      setEveningSlots(evening);
+      setIsFullTime(morning.length === 0 && evening.length === 0);
+      setOriginalMorningSlots(morning);
+      setOriginalEveningSlots(evening);
+      setOriginalIsFullTime(morning.length === 0 && evening.length === 0);
 
       const updatedUserData = {
         firstName: data.firstName || "",
@@ -489,6 +420,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   const handleAddMorningSlot = () => {
     if (morningSlots.length < 12) {
       setMorningSlots([...morningSlots, [6, 12]]);
+    } else {
+      alert(t("maxMorningSlotsReached")); // optional: add translation key
     }
   };
 
@@ -503,6 +436,8 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   const handleAddEveningSlot = () => {
     if (eveningSlots.length < 16) {
       setEveningSlots([...eveningSlots, [12, 20]]);
+    } else {
+      alert(t("maxEveningSlotsReached"));
     }
   };
 
@@ -680,18 +615,23 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         payload.nearbyLocation = userData.nearbyLocation;
       }
 
-      // Handle time slots
+      // Handle time slots – compare with original slots
       let timeslotString = '';
       if (!isFullTime) {
         const allSlots = [...morningSlots, ...eveningSlots];
         if (allSlots.length > 0) {
           timeslotString = allSlots
-            .map(slot => `${formatDisplayTime(slot[0])} - ${formatDisplayTime(slot[1])}`)
+            .map(slot => `${formatTimeForPayload(slot[0])}-${formatTimeForPayload(slot[1])}`)
             .join(',');
         }
       }
-      
-      if (timeslotString !== originalData.timeslot) {
+
+      const slotsChanged = 
+        isFullTime !== originalIsFullTime ||
+        JSON.stringify(morningSlots) !== JSON.stringify(originalMorningSlots) ||
+        JSON.stringify(eveningSlots) !== JSON.stringify(originalEveningSlots);
+
+      if (slotsChanged) {
         payload.timeslot = timeslotString || null;
       }
 
@@ -724,37 +664,9 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
     setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
     // Reset time slots to original state
-    if (providerData?.timeslot) {
-      const slots = providerData.timeslot.split(',').map(slot => slot.trim());
-      const morning: number[][] = [];
-      const evening: number[][] = [];
-      
-      slots.forEach(slot => {
-        const [startStr, endStr] = slot.split('-');
-        if (startStr && endStr) {
-          try {
-            const start = parseTimeToNumber(startStr);
-            const end = parseTimeToNumber(endStr);
-            
-            if (start < 12) {
-              morning.push([start, end]);
-            } else {
-              evening.push([start, end]);
-            }
-          } catch (error) {
-            console.error("Error parsing time slot:", slot);
-          }
-        }
-      });
-      
-      setMorningSlots(morning);
-      setEveningSlots(evening);
-      setIsFullTime(morning.length === 0 && evening.length === 0);
-    } else {
-      setMorningSlots([]);
-      setEveningSlots([]);
-      setIsFullTime(true);
-    }
+    setMorningSlots(originalMorningSlots);
+    setEveningSlots(originalEveningSlots);
+    setIsFullTime(originalIsFullTime);
   };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -762,11 +674,12 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   };
 
   const hasChanges = (): boolean => {
-    // Check if time slots have changed
-    const currentTimeSlotString = !isFullTime ? formatSelectedTimeSlots() : '';
-    const timeSlotChanged = currentTimeSlotString !== originalData.timeslot;
-    
-    return JSON.stringify(userData) !== JSON.stringify(originalData) || timeSlotChanged;
+    const userDataChanged = JSON.stringify(userData) !== JSON.stringify(originalData);
+    const slotsChanged = 
+      isFullTime !== originalIsFullTime ||
+      JSON.stringify(morningSlots) !== JSON.stringify(originalMorningSlots) ||
+      JSON.stringify(eveningSlots) !== JSON.stringify(originalEveningSlots);
+    return userDataChanged || slotsChanged;
   };
 
   const isFormValid = (): boolean => {
@@ -809,7 +722,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     };
   }
 
-  // Loading skeleton
+  // Loading skeleton (unchanged)
   if (isLoading) {
     return (
       <div className="flex justify-center w-full py-6">
@@ -1218,160 +1131,167 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
           {expandedSections.professional && (
             <div className="space-y-4">
               {/* Service Types */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-3">
-                  {t("serviceTypes")}
-                </label>
-                {isEditing ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {serviceTypes.map(service => (
-                      <div
-                        key={service.value}
-                        className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                          userData.housekeepingRole.includes(service.value)
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => handleRoleToggle(service.value)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className={userData.housekeepingRole.includes(service.value) ? 'text-blue-600' : 'text-gray-600'}>
-                              {service.icon}
-                            </span>
-                            <span className={`text-sm font-medium ${
-                              userData.housekeepingRole.includes(service.value) ? 'text-blue-700' : 'text-gray-700'
-                            }`}>
-                              {service.label}
-                            </span>
-                          </div>
-                          {userData.housekeepingRole.includes(service.value) && (
-                            <CheckCircle size={16} className="text-blue-600" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {userData.housekeepingRole.length > 0 ? (
-                      userData.housekeepingRole.map(role => (
-                        <span
-                          key={role}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {serviceTypes.find(s => s.value === role)?.label || role}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-500">{t("noServicesSelected")}</span>
-                    )}
-                  </div>
-                )}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+  {serviceTypes.map(service => {
+    const isSelected = userData.housekeepingRole.includes(service.value);
+
+    return (
+      <div
+        key={service.value}
+        className={`border rounded-lg p-3 transition-all ${
+          isSelected
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200'
+        } ${isEditing ? 'cursor-pointer hover:border-gray-300' : 'opacity-90'}`}
+        
+        onClick={() => {
+          if (isEditing) {
+            handleRoleToggle(service.value);
+          }
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className={isSelected ? 'text-blue-600' : 'text-gray-600'}>
+              {service.icon}
+            </span>
+            <span className={`text-sm font-medium ${
+              isSelected ? 'text-blue-700' : 'text-gray-700'
+            }`}>
+              {service.label}
+            </span>
+          </div>
+
+          {isSelected && (
+            <CheckCircle size={16} className="text-blue-600" />
+          )}
+        </div>
+      </div>
+    );
+  })}
+</div>
 
               {/* Service-specific fields */}
-              {userData.housekeepingRole.includes('COOK') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      {t("cookingSpeciality")}
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.cookingSpeciality}
-                        onChange={(e) => setUserData(prev => ({ ...prev, cookingSpeciality: e.target.value }))}
-                      >
-                        <option value="">{t("selectSpeciality")}</option>
-                        {cookingSpecialityOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.cookingSpeciality ? 
-                          (cookingSpecialityOptions.find(o => o.value === userData.cookingSpeciality)?.label || userData.cookingSpeciality) 
-                          : t("notSpecified")}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* Service-specific fields in one row */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
 
-              {userData.housekeepingRole.includes('NANNY') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      {t("careType")}
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.nannyCareType}
-                        onChange={(e) => setUserData(prev => ({ ...prev, nannyCareType: e.target.value }))}
-                      >
-                        <option value="">{t("selectCareType")}</option>
-                        {nannyCareOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.nannyCareType ? 
-                          (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType) 
-                          : t("notSpecified")}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+  {/* COOK */}
+  {userData.housekeepingRole.includes('COOK') && (
+    <div>
+      <label className="block text-sm font-semibold text-gray-600 mb-2">
+        {t("cookingSpeciality")}
+      </label>
+      {isEditing ? (
+        <select
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+          value={userData.cookingSpeciality}
+          onChange={(e) =>
+            setUserData(prev => ({
+              ...prev,
+              cookingSpeciality: e.target.value
+            }))
+          }
+        >
+          <option value="">{t("selectSpeciality")}</option>
+          {cookingSpecialityOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+          value={
+            userData.cookingSpeciality
+              ? (cookingSpecialityOptions.find(o => o.value === userData.cookingSpeciality)?.label || userData.cookingSpeciality)
+              : t("notSpecified")
+          }
+          readOnly
+        />
+      )}
+    </div>
+  )}
 
-              {/* Diet Preference */}
-              {(userData.housekeepingRole.includes('COOK') || 
-                userData.housekeepingRole.includes('NANNY') || 
-                userData.housekeepingRole.includes('MAID')) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
-                      {t("dietPreference")}
-                    </label>
-                    {isEditing ? (
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                        value={userData.diet}
-                        onChange={(e) => setUserData(prev => ({ ...prev, diet: e.target.value }))}
-                      >
-                        <option value="">{t("selectDiet")}</option>
-                        {dietOptions.map(opt => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                        value={userData.diet ? 
-                          (dietOptions.find(o => o.value === userData.diet)?.label || userData.diet) 
-                          : t("notSpecified")}
-                        readOnly
-                        style={{ backgroundColor: '#f9fafb' }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+  {/* NANNY */}
+  {userData.housekeepingRole.includes('NANNY') && (
+    <div>
+      <label className="block text-sm font-semibold text-gray-600 mb-2">
+        {t("careType")}
+      </label>
+      {isEditing ? (
+        <select
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+          value={userData.nannyCareType}
+          onChange={(e) =>
+            setUserData(prev => ({
+              ...prev,
+              nannyCareType: e.target.value
+            }))
+          }
+        >
+          <option value="">{t("selectCareType")}</option>
+          {nannyCareOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+          value={
+            userData.nannyCareType
+              ? (nannyCareOptions.find(o => o.value === userData.nannyCareType)?.label || userData.nannyCareType)
+              : t("notSpecified")
+          }
+          readOnly
+        />
+      )}
+    </div>
+  )}
+
+  {/* DIET */}
+  {(userData.housekeepingRole.includes('COOK') ||
+    userData.housekeepingRole.includes('NANNY') ||
+    userData.housekeepingRole.includes('MAID')) && (
+    <div>
+      <label className="block text-sm font-semibold text-gray-600 mb-2">
+        {t("dietPreference")}
+      </label>
+      {isEditing ? (
+        <select
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+          value={userData.diet}
+          onChange={(e) =>
+            setUserData(prev => ({
+              ...prev,
+              diet: e.target.value
+            }))
+          }
+        >
+          <option value="">{t("selectDiet")}</option>
+          {dietOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+          value={
+            userData.diet
+              ? (dietOptions.find(o => o.value === userData.diet)?.label || userData.diet)
+              : t("notSpecified")
+          }
+          readOnly
+        />
+      )}
+    </div>
+  )}
+
+</div>
 
               {/* Common fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
@@ -1410,7 +1330,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
         <div className="h-px bg-gray-200 my-4" />
 
-        {/* Availability Section - Enhanced with Time Slider */}
+        {/* Availability Section - Using TimeSlotSelector */}
         <div className="mb-6">
           <div 
             className="flex items-center justify-between cursor-pointer mb-4"
@@ -1465,281 +1385,59 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                   {!isFullTime && (
                     <Fade in={!isFullTime}>
                       <Box>
-                        {/* Morning Slots Section */}
-                        <Box sx={{ mb: 4 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                                <AccessTime sx={{ mr: 1 }} />
-                                {t("morningAvailability")}
-                              </Typography>
-                              <Chip 
-                                label={morningSlots.length === 0 ? t("notAvailable") : `${morningSlots.length} ${t("slot")}`}
-                                color={morningSlots.length === 0 ? "default" : "primary"}
-                                size="small"
-                              />
-                            </Box>
-                            <Box>
-                              {morningSlots.length > 0 && morningSlots.length < 12 && (
-                                <Tooltip title={t("addSlot")}>
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    startIcon={<AddIcon />}
-                                    onClick={handleAddMorningSlot}
-                                    sx={{ mr: 1 }}
-                                  >
-                                    {t("addSlot")}
-                                  </Button>
-                                </Tooltip>
-                              )}
-                              {morningSlots.length === 0 ? (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  startIcon={<AddIcon />}
-                                  onClick={handleAddMorningSlot}
-                                >
-                                  {t("addMorningSlots")}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color="error"
-                                  onClick={handleClearMorningSlots}
-                                >
-                                  {t("clearAll")}
-                                </Button>
-                              )}
-                            </Box>
-                          </Box>
+                        {/* Morning Time Slot Selector */}
+                        <TimeSlotSelector
+                          title={t("morningAvailability")}
+                          slots={morningSlots}
+                          minTime={6}
+                          maxTime={12}
+                          marks={[
+                            { value: 6, label: "6:00 AM" },
+                            { value: 8, label: "8:00 AM" },
+                            { value: 10, label: "10:00 AM" },
+                            { value: 12, label: "12:00 PM" },
+                          ]}
+                          notAvailableMessage={t("notAvailableMorning")}
+                          addSlotMessage={t("addMorningSlots")}
+                          slotLabel={t("timeSlot")}
+                          addButtonLabel={t("addSlot")}
+                          clearButtonLabel={t("clearAll")}
+                          duplicateErrorKey={t("timeSlotDuplicateError")}
+                          onAddSlot={handleAddMorningSlot}
+                          onRemoveSlot={handleRemoveMorningSlot}
+                          onClearSlots={handleClearMorningSlots}
+                          onSlotChange={handleMorningSlotChange}
+                          formatDisplayTime={formatDisplayTime}
+                        />
 
-                          {morningSlots.length === 0 ? (
-                            <Paper
-                              elevation={0}
-                              sx={{
-                                p: 3,
-                                borderRadius: 2,
-                                bgcolor: '#f5f5f5',
-                                textAlign: 'center',
-                                border: '2px dashed',
-                                borderColor: 'grey.300'
-                              }}
-                            >
-                              <Typography variant="body1" color="text.secondary">
-                                {t("notAvailableMorning")}
-                              </Typography>
-                            </Paper>
-                          ) : (
-                            morningSlots.map((slot, index) => {
-                              const disabledRanges = getDisabledRangesForSlot(morningSlots, index);
-                              
-                              return (
-                                <Paper
-                                  key={`morning-${index}`}
-                                  elevation={1}
-                                  sx={{
-                                    p: 2,
-                                    mb: 2,
-                                    borderRadius: 2,
-                                    bgcolor: '#fff',
-                                    border: '1px solid',
-                                    borderColor: 'primary.light'
-                                  }}
-                                >
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="subtitle2" color="primary">
-                                      {t("timeSlot")} {index + 1}
-                                    </Typography>
-                                    {morningSlots.length > 1 && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => handleRemoveMorningSlot(index)}
-                                        sx={{ color: 'error.main' }}
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    )}
-                                  </Box>
-                                  
-                                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
-                                  </Typography>
-                                  
-                                  {disabledRanges.length > 0 && (
-                                    <>
-                                      <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                        {t("warningGrayAreas")}
-                                      </Typography>
-                                      <DisabledRangesIndicator 
-                                        ranges={disabledRanges}
-                                        min={6}
-                                        max={12}
-                                      />
-                                    </>
-                                  )}
-                                  
-                                  <Box sx={{ px: 1 }}>
-                                    <TimeSliderWithDisabledRanges
-                                      value={slot}
-                                      onChange={(newValue) => handleMorningSlotChange(index, newValue)}
-                                      min={6}
-                                      max={12}
-                                      marks={[
-                                        { value: 6, label: "6:00 AM" },
-                                        { value: 8, label: "8:00 AM" },
-                                        { value: 10, label: "10:00 AM" },
-                                        { value: 12, label: "12:00 PM" },
-                                      ]}
-                                      disabledRanges={disabledRanges}
-                                    />
-                                  </Box>
-                                </Paper>
-                              );
-                            })
-                          )}
-                        </Box>
+                        {/* Evening Time Slot Selector */}
+                        <TimeSlotSelector
+                          title={t("eveningAvailability")}
+                          slots={eveningSlots}
+                          minTime={12}
+                          maxTime={20}
+                          marks={[
+                            { value: 12, label: "12:00 PM" },
+                            { value: 14, label: "2:00 PM" },
+                            { value: 16, label: "4:00 PM" },
+                            { value: 18, label: "6:00 PM" },
+                            { value: 20, label: "8:00 PM" },
+                          ]}
+                          notAvailableMessage={t("notAvailableEvening")}
+                          addSlotMessage={t("addEveningSlots")}
+                          slotLabel={t("timeSlot")}
+                          addButtonLabel={t("addSlot")}
+                          clearButtonLabel={t("clearAll")}
+                          duplicateErrorKey={t("timeSlotDuplicateError")}
+                          onAddSlot={handleAddEveningSlot}
+                          onRemoveSlot={handleRemoveEveningSlot}
+                          onClearSlots={handleClearEveningSlots}
+                          onSlotChange={handleEveningSlotChange}
+                          formatDisplayTime={formatDisplayTime}
+                        />
 
-                        {/* Evening Slots Section */}
-                        <Box sx={{ mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                                <AccessTime sx={{ mr: 1 }} />
-                                {t("eveningAvailability")}
-                              </Typography>
-                              <Chip 
-                                label={eveningSlots.length === 0 ? t("notAvailable") : `${eveningSlots.length} ${t("slot")}`}
-                                color={eveningSlots.length === 0 ? "default" : "primary"}
-                                size="small"
-                              />
-                            </Box>
-                            <Box>
-                              {eveningSlots.length > 0 && eveningSlots.length < 16 && (
-                                <Tooltip title={t("addSlot")}>
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    startIcon={<AddIcon />}
-                                    onClick={handleAddEveningSlot}
-                                    sx={{ mr: 1 }}
-                                  >
-                                    {t("addSlot")}
-                                  </Button>
-                                </Tooltip>
-                              )}
-                              {eveningSlots.length === 0 ? (
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  startIcon={<AddIcon />}
-                                  onClick={handleAddEveningSlot}
-                                >
-                                  {t("addEveningSlots")}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color="error"
-                                  onClick={handleClearEveningSlots}
-                                >
-                                  {t("clearAll")}
-                                </Button>
-                              )}
-                            </Box>
-                          </Box>
-
-                          {eveningSlots.length === 0 ? (
-                            <Paper
-                              elevation={0}
-                              sx={{
-                                p: 3,
-                                borderRadius: 2,
-                                bgcolor: '#f5f5f5',
-                                textAlign: 'center',
-                                border: '2px dashed',
-                                borderColor: 'grey.300'
-                              }}
-                            >
-                              <Typography variant="body1" color="text.secondary">
-                                {t("notAvailableEvening")}
-                              </Typography>
-                            </Paper>
-                          ) : (
-                            eveningSlots.map((slot, index) => {
-                              const disabledRanges = getDisabledRangesForSlot(eveningSlots, index);
-                              
-                              return (
-                                <Paper
-                                  key={`evening-${index}`}
-                                  elevation={1}
-                                  sx={{
-                                    p: 2,
-                                    mb: 2,
-                                    borderRadius: 2,
-                                    bgcolor: '#fff',
-                                    border: '1px solid',
-                                    borderColor: 'primary.light'
-                                  }}
-                                >
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="subtitle2" color="primary">
-                                      {t("timeSlot")} {index + 1}
-                                    </Typography>
-                                    {eveningSlots.length > 1 && (
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => handleRemoveEveningSlot(index)}
-                                        sx={{ color: 'error.main' }}
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    )}
-                                  </Box>
-                                  
-                                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    {t("selected")} {formatDisplayTime(slot[0])} - {formatDisplayTime(slot[1])}
-                                  </Typography>
-                                  
-                                  {disabledRanges.length > 0 && (
-                                    <>
-                                      <Typography variant="caption" color="warning.main" sx={{ display: 'block', mb: 1 }}>
-                                        {t("warningGrayAreas")}
-                                      </Typography>
-                                      <DisabledRangesIndicator 
-                                        ranges={disabledRanges}
-                                        min={12}
-                                        max={20}
-                                      />
-                                    </>
-                                  )}
-                                  
-                                  <Box sx={{ px: 1 }}>
-                                    <TimeSliderWithDisabledRanges
-                                      value={slot}
-                                      onChange={(newValue) => handleEveningSlotChange(index, newValue)}
-                                      min={12}
-                                      max={20}
-                                      marks={[
-                                        { value: 12, label: "12:00 PM" },
-                                        { value: 14, label: "2:00 PM" },
-                                        { value: 16, label: "4:00 PM" },
-                                        { value: 18, label: "6:00 PM" },
-                                        { value: 20, label: "8:00 PM" },
-                                      ]}
-                                      disabledRanges={disabledRanges}
-                                    />
-                                  </Box>
-                                </Paper>
-                              );
-                            })
-                          )}
-                        </Box>
-
-                        {/* Summary Card */}
-                        {(morningSlots.length > 0 || eveningSlots.length > 0) && (
+                        {/* Summary Card - Now uses mergedTimeSlotsString */}
+                        {mergedTimeSlotsString && (
                           <Paper
                             elevation={3}
                             sx={{
@@ -1748,15 +1446,13 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                               borderRadius: 2,
                               bgcolor: '#e3f2fd',
                               color: '#1976d2',
-                              border: '1px solid #90caf9'
+                              border: '1px solid #90caf9',
                             }}
                           >
                             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                               {t("yourSelectedTimeSlots")}
                             </Typography>
-                            <Typography variant="body1">
-                              {formatSelectedTimeSlots()}
-                            </Typography>
+                            <Typography variant="body1">{mergedTimeSlotsString}</Typography>
                           </Paper>
                         )}
                       </Box>
@@ -1897,8 +1593,6 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
           {expandedSections.address && (
             <>
-          
-
               {/* Permanent and Correspondence Addresses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {providerData?.permanentAddress && (
@@ -2003,9 +1697,9 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               >
                 {t("cancel")}
               </Button>
-             <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
-                             {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
-                           </Button>
+              <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
+                {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
+              </Button>
             </div>
           </div>
         )}
