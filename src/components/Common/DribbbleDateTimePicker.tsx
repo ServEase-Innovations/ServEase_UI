@@ -9,9 +9,12 @@ const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const generateTimeSlots = () => {
   const slots: string[] = [];
   for (let h = 5; h <= 20; h++) {
-    const hour12 = h % 12 || 12;
-    const ampm = h < 12 ? "AM" : "PM";
-    slots.push(`${hour12}:00 ${ampm}`);
+    for (let m = 0; m < 60; m += 30) {
+      const hour12 = h % 12 || 12;
+      const minute = m === 0 ? "00" : m;
+      const ampm = h < 12 ? "AM" : "PM";
+      slots.push(`${hour12}:${minute} ${ampm}`);
+    }
   }
   return slots;
 };
@@ -89,64 +92,32 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   /* -------------------- Helper Functions -------------------- */
 
-  // Check if a date is today
-  const isToday = (date: Dayjs): boolean => {
-    return date.isSame(now, "day");
-  };
+  const isToday = (date: Dayjs): boolean => date.isSame(now, "day");
+  const isPastDate = (date: Dayjs): boolean => date.isBefore(today, "day");
+  const isPastMonth = (month: Dayjs): boolean => month.isBefore(today, "month");
 
-  // Check if a date is in the past (before today)
-  const isPastDate = (date: Dayjs): boolean => {
-    return date.isBefore(today, "day");
-  };
-
-  // Check if a month is in the past
-  const isPastMonth = (month: Dayjs): boolean => {
-    return month.isBefore(today, "month");
-  };
-
-  // Check if a time slot should be disabled based on selected date
+  // ✅ FIXED: parse time fully (hour + minute) for disabling logic
   const isTimeSlotDisabled = (time: string): boolean => {
-    // For range mode, if no dates selected, disable all times
-    if (mode === "range" && (!rangeStart || !rangeEnd)) {
-      return true;
-    }
+    if (mode === "range" && (!rangeStart || !rangeEnd)) return true;
 
-    // Get the selected date(s) to check
     let selectedDateToCheck: Dayjs | null = null;
-    
-    if (mode === "single") {
-      selectedDateToCheck = selectedDate;
-    } else if (mode === "range" && rangeStart) {
-      selectedDateToCheck = rangeStart;
-    }
+    if (mode === "single") selectedDateToCheck = selectedDate;
+    else if (mode === "range" && rangeStart) selectedDateToCheck = rangeStart;
 
-    // If no date selected, disable in range mode
-    if (!selectedDateToCheck) {
-      return mode === "range";
-    }
+    if (!selectedDateToCheck) return mode === "range";
+    if (isPastDate(selectedDateToCheck)) return true;
+    if (!isToday(selectedDateToCheck)) return false;
 
-    // If the selected date is in the past, disable ALL time slots
-    if (isPastDate(selectedDateToCheck)) {
-      return true;
-    }
+    // Parse full time (e.g., "7:30 PM")
+    const parsedTime = dayjs(time, "h:mm A");
+    if (!parsedTime.isValid()) return true;
 
-    // Only apply time restrictions if the selected date is today
-    if (!isToday(selectedDateToCheck)) {
-      return false; // Future dates can select any time
-    }
+    const timeDateTime = now
+      .hour(parsedTime.hour())
+      .minute(parsedTime.minute())
+      .second(0)
+      .millisecond(0);
 
-    // Parse the time string
-    const [t, meridian] = time.split(" ");
-    let hour = Number(t.split(":")[0]);
-
-    // Convert to 24-hour format
-    if (meridian === "PM" && hour !== 12) hour += 12;
-    if (meridian === "AM" && hour === 12) hour = 0;
-
-    // Create a datetime object for today with the selected time
-    const timeDateTime = now.hour(hour).minute(0).second(0).millisecond(0);
-
-    // For start times, require at least 30 minutes buffer
     if (mode === "single" || (mode === "range" && rangeStart === selectedDateToCheck)) {
       return timeDateTime.isBefore(now.add(30, "minute"));
     } else {
@@ -168,56 +139,35 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   const isDisabledInRangeMode = (day: number) => {
     const date = currentMonth.date(day);
-
-    // ❌ Disable ALL past dates (including previous months)
-    if (isPastDate(date)) {
-      return true;
-    }
-
-    // ❌ Range mode: disable dates beyond +21 days from start
+    if (isPastDate(date)) return true;
     if (mode === "range" && rangeStart && !rangeEnd) {
-      if (date.isAfter(rangeStart.add(MAX_RANGE_DAYS, "day"), "day")) {
-        return true;
-      }
+      if (date.isAfter(rangeStart.add(MAX_RANGE_DAYS, "day"), "day")) return true;
     }
-
     return false;
   };
 
-  // Get the appropriate message for disabled times
   const getDisabledTimeMessage = () => {
-    if (mode === "range" && (!rangeStart || !rangeEnd)) {
+    if (mode === "range" && (!rangeStart || !rangeEnd))
       return "Select start and end dates first";
-    }
-    
     const selectedDateToCheck = mode === "single" ? selectedDate : rangeStart;
-    
     if (selectedDateToCheck) {
-      if (isPastDate(selectedDateToCheck)) {
-        return "Past dates cannot be booked";
-      }
-      if (isToday(selectedDateToCheck)) {
-        return "Past times are disabled for today";
-      }
+      if (isPastDate(selectedDateToCheck)) return "Past dates cannot be booked";
+      if (isToday(selectedDateToCheck)) return "Past times are disabled for today";
     }
-    
     return null;
   };
 
-  // Determine if time selection should be disabled overall
   const isTimeSelectionDisabled = mode === "range" && (!rangeStart || !rangeEnd);
 
   /* -------------------- Handlers -------------------- */
 
   const selectDate = (day: number) => {
     const date = currentMonth.date(day);
-
-    // Don't allow selecting disabled dates
     if (isDisabledInRangeMode(day)) return;
 
     if (mode === "single") {
       setSelectedDate(date);
-      setSelectedTime(null); // Clear selected time when date changes
+      setSelectedTime(null);
       return;
     }
 
@@ -225,63 +175,56 @@ export default function DribbbleDateTimePicker(props: Props) {
     if (!rangeStart || rangeEnd) {
       setRangeStart(date);
       setRangeEnd(null);
-      setSelectedTime(null); // Clear selected time when date changes
+      setSelectedTime(null);
       return;
     }
 
-    // Prevent selecting same day as range start
-    if (date.isSame(rangeStart, "day")) {
-      return;
-    }
+    if (date.isSame(rangeStart, "day")) return;
 
-    // ⛔ Prevent selecting more than 21 days
     if (date.diff(rangeStart, "day") > MAX_RANGE_DAYS) {
       setShowTimeHint(true);
       setTimeout(() => setShowTimeHint(false), 3000);
       return;
     }
 
-    if (date.isBefore(rangeStart, "day")) {
-      setRangeStart(date);
-    } else {
-      setRangeEnd(date);
-    }
-    setSelectedTime(null); // Clear selected time when date changes
+    if (date.isBefore(rangeStart, "day")) setRangeStart(date);
+    else setRangeEnd(date);
+    setSelectedTime(null);
   };
 
+  // ✅ FIXED: preserve minutes when selecting a time
   const selectTime = (time: string) => {
-    // Don't allow selecting disabled times
     if (isTimeSlotDisabled(time)) return;
-
-    // For range mode, require both dates selected
     if (mode === "range" && (!rangeStart || !rangeEnd)) return;
 
     setSelectedTime(time);
 
-    const [t, meridian] = time.split(" ");
-    let hour = Number(t.split(":")[0]);
-
-    if (meridian === "PM" && hour !== 12) hour += 12;
-    if (meridian === "AM" && hour === 12) hour = 0;
+    const parsedTime = dayjs(time, "h:mm A");
+    if (!parsedTime.isValid()) return;
 
     if (mode === "single") {
       const finalDate = selectedDate
-        .hour(hour)
-        .minute(0)
+        .hour(parsedTime.hour())
+        .minute(parsedTime.minute())
         .second(0)
         .toDate();
 
-      const singleProps = props as SingleProps;
-      singleProps.onChange(finalDate);
+      (props as SingleProps).onChange(finalDate);
       return;
     }
 
+    // Range mode
     if (!rangeStart || !rangeEnd) return;
-
     const rangeProps = props as RangeProps;
     rangeProps.onChange({
-      startDate: rangeStart.hour(hour).minute(0).toDate(),
-      endDate: rangeEnd.hour(hour).minute(0).toDate(),
+      startDate: rangeStart
+        .hour(parsedTime.hour())
+        .minute(parsedTime.minute())
+        .toDate(),
+      endDate: rangeEnd
+        .hour(parsedTime.hour())
+        .minute(parsedTime.minute())
+        .toDate(),
       time,
     });
   };
@@ -290,43 +233,38 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   return (
     <div className="dtp-card">
-      {/* Header */}
       <div className="dtp-header">
-        <button 
-          onClick={() => setCurrentMonth(m => m.subtract(1, "month"))}
+        <button
+          onClick={() => setCurrentMonth((m) => m.subtract(1, "month"))}
           disabled={isPastMonth(currentMonth.subtract(1, "month"))}
-          style={{ 
+          style={{
             opacity: isPastMonth(currentMonth.subtract(1, "month")) ? 0.3 : 1,
-            cursor: isPastMonth(currentMonth.subtract(1, "month")) ? 'not-allowed' : 'pointer'
+            cursor: isPastMonth(currentMonth.subtract(1, "month")) ? "not-allowed" : "pointer",
           }}
         >
           ‹
         </button>
         <h3>{currentMonth.format("MMMM YYYY")}</h3>
-        <button onClick={() => setCurrentMonth(m => m.add(1, "month"))}>
-          ›
-        </button>
+        <button onClick={() => setCurrentMonth((m) => m.add(1, "month"))}>›</button>
       </div>
 
-      {/* Week Days */}
       <div className="dtp-week">
-        {WEEK_DAYS.map(d => (
+        {WEEK_DAYS.map((d) => (
           <span key={d}>{d}</span>
         ))}
       </div>
 
-      {/* Calendar */}
       <div className="dtp-grid">
         {calendarCells.map((day, i) => {
           const disabled = day ? isDisabledInRangeMode(day) : true;
-
           return (
             <div
               key={i}
               className={[
                 "dtp-day",
                 disabled ? "disabled" : "",
-                day && mode === "single" &&
+                day &&
+                mode === "single" &&
                 selectedDate.isSame(currentMonth.date(day), "day")
                   ? "active"
                   : "",
@@ -343,14 +281,8 @@ export default function DribbbleDateTimePicker(props: Props) {
         })}
       </div>
 
-      {/* Range hint */}
-      {showTimeHint && (
-        <div className="dtp-range-hint">
-          Maximum range is {MAX_RANGE_DAYS} days
-        </div>
-      )}
+      {showTimeHint && <div className="dtp-range-hint">Maximum range is {MAX_RANGE_DAYS} days</div>}
 
-      {/* Time */}
       <div className="dtp-divider" />
       <div className="dtp-time-header">
         <h4 className="dtp-time-title">Select Time</h4>
@@ -360,17 +292,16 @@ export default function DribbbleDateTimePicker(props: Props) {
       </div>
 
       <div className="dtp-time-grid">
-        {TIMES.map(time => {
+        {TIMES.map((time) => {
           const isDisabled = isTimeSlotDisabled(time);
           const isSelected = selectedTime === time;
-
           return (
             <button
               key={time}
               className={[
                 "dtp-time",
                 isSelected ? "active" : "",
-                (isDisabled || isTimeSelectionDisabled) ? "disabled" : "",
+                isDisabled || isTimeSelectionDisabled ? "disabled" : "",
               ].join(" ")}
               onClick={() => selectTime(time)}
               disabled={isDisabled || isTimeSelectionDisabled}
