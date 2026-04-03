@@ -656,7 +656,7 @@ const updateUserSetting = async () => {
     };
 
     const response = await utilsInstance.put(
-      `/user-settings/${user.customerid}`,
+      `/user-settings/${appUser.customerid}`,
       payload
     );
 
