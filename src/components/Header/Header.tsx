@@ -893,7 +893,10 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 readOnly
               />
               {showDropdown && (
-                <ul className="absolute z-50 bg-white border rounded shadow-md mt-1 w-full max-h-60 overflow-y-auto text-xs md:text-sm">
+              <ul className="absolute left-0 z-50 bg-white border rounded shadow-md mt-1 
+               w-[220px] sm:w-[260px] md:w-full 
+               max-w-[90vw] 
+               max-h-60 overflow-y-auto text-xs md:text-sm">
                   <li
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     onClick={() => {
@@ -952,14 +955,20 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
           {/* Language Selector - Positioned after Location Bar */}
           <div className="relative">
-            <button
-              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-              className="flex items-center space-x-1 px-3 py-1 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs md:text-sm transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              <span>{currentLanguage.toUpperCase()}</span>
-              <ChevronDown className={`w-3 h-3 transition-transform ${isLanguageMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
+          <button
+  onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+  className="flex items-center space-x-1 px-1 sm:px-2 md:px-3 py-1 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs md:text-sm transition-colors"
+>
+  <Globe className="w-3 h-3 sm:w-4 sm:h-4" />
+  <span className="hidden xs:inline sm:inline">
+    {currentLanguage.toUpperCase()}
+  </span>
+  <ChevronDown
+    className={`w-3 h-3 transition-transform ${
+      isLanguageMenuOpen ? "rotate-180" : ""
+    }`}
+  />
+</button>
             
             {/* Language Dropdown Menu */}
             {isLanguageMenuOpen && (
@@ -982,9 +991,16 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           </div>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="bg-white rounded-full shadow" onClick={handleNotificationClick} >
-            <Bell className="w-5 h-5" />
-          </Button>
+      <Button
+  variant="ghost"
+  size="icon"
+  className="flex items-center justify-center 
+             p-1 sm:p-1.5 md:p-2 
+             bg-white rounded-full shadow"
+  onClick={handleNotificationClick}
+>
+  <Bell className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+</Button>
           
           {/* User / Auth */}
           {!isAuthenticated ? (
