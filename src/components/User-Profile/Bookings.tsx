@@ -1466,226 +1466,178 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div
-        className="px-4"
-        style={{
-          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
-          color: "rgb(14, 48, 92)",
-          paddingTop: '6.5rem',
-          paddingBottom: '0.5rem'
-        }}
-      >
-        <div className="container mx-auto">
-    
- 
-       <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-  
-  {/* ================= LEFT (Back Button) ================= */}
-  <div className="flex justify-start order-1 md:order-none">
-    <button
-      onClick={() => window.history.back()}
-      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200 hover:border-blue-200 relative"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      <div className="relative h-5 w-5 overflow-hidden">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 absolute inset-0 transition-all duration-300 group-hover:-translate-x-full"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-            clipRule="evenodd"
-          />
-        </svg>
+<div
+  className="px-4"
+  style={{
+    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
+    color: "rgb(14, 48, 92)",
+    paddingTop: "6.5rem",
+    paddingBottom: "0.5rem",
+  }}
+>
+  <div className="container mx-auto">
 
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 absolute inset-0 translate-x-full transition-all duration-300 group-hover:translate-x-0"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
 
-      <span className="font-medium group-hover:text-blue-700">
-        Back
-      </span>
-
-      <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-500 transition-all duration-300 group-hover:w-full"></div>
-    </button>
-  </div>
-
-  {/* ================= CENTER ================= */}
-  <div className="text-center order-2 md:order-none">
-    <h1
-      className="text-xl md:text-2xl lg:text-3xl font-bold"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      My Bookings
-    </h1>
-    <p
-      className="mt-1 text-xs md:text-sm lg:text-base opacity-90"
-      style={{ color: "rgb(14, 48, 92)" }}
-    >
-      Manage your househelp service appointments
-    </p>
-  </div>
-
-  {/* ================= RIGHT ================= */}
-  <div className="flex items-center justify-end gap-3 order-3 md:order-none">
-    
-    {/* SEARCH */}
-    <div className="relative flex-1 md:flex-none w-full md:w-64">
-      
-      {/* Desktop Search */}
-      <div className="hidden md:block">
-        <input
-          type="text"
-          placeholder="Search bookings..."
-          className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            <XCircle className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      {/* Mobile Search */}
+      {/* ================= MOBILE HEADER ================= */}
       <div className="md:hidden">
-        <div className="flex items-center gap-2">
-          {showMobileSearch ? (
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search bookings..."
-                className="w-full px-4 py-2.5 rounded-lg bg-white shadow-md text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoFocus
-              />
 
+        {/* Row: Back + Center Title */}
+        <div className="relative flex items-center">
+
+          {/* Back Button */}
+         <button
+  onClick={() => window.history.back()}
+  className="z-10 inline-flex items-center justify-center p-2 rounded-lg bg-white/90 shadow-sm border border-gray-200"
+>
+  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
+  </svg>
+</button>
+
+          {/* Center Title */}
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold">
+            My Bookings
+          </h1>
+        </div>
+
+        {/* Subtitle BELOW */}
+        <p className="text-center mt-1 text-xs opacity-90">
+          Manage your househelp service appointments
+        </p>
+      </div>
+
+      {/* ================= LEFT (Desktop) ================= */}
+      <div className="hidden md:flex justify-start">
+        <button
+          onClick={() => window.history.back()}
+          className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm border border-gray-200"
+        >
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
+          </svg>
+          <span className="font-medium">Back</span>
+        </button>
+      </div>
+
+      {/* ================= CENTER (Desktop) ================= */}
+      <div className="hidden md:block text-center">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">
+          My Bookings
+        </h1>
+        <p className="mt-1 text-xs md:text-sm lg:text-base opacity-90">
+          Manage your househelp service appointments
+        </p>
+      </div>
+
+      {/* ================= RIGHT ================= */}
+      <div className="flex items-center justify-center md:justify-end gap-3 w-full">
+
+        {/* SEARCH */}
+        <div className="relative w-[85%] md:w-64">
+
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden">
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              className="w-full px-4 py-3 rounded-xl bg-white shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {searchTerm && (
               <button
-                onClick={() => {
-                  setShowMobileSearch(false);
-                  setSearchTerm("");
-                }}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
               >
                 <XCircle className="h-5 w-5" />
               </button>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => setShowMobileSearch(true)}
-                className="w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center"
-              >
-                <Search className="h-5 w-5 text-gray-600" />
-              </button>
-
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center"
-                >
-                  <XCircle className="h-5 w-5 text-red-500" />
-                </button>
-              )}
-            </>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* WALLET */}
+        <div className="flex flex-col items-center flex-shrink-0">
+          <button
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50"
+            onClick={() => setWalletDialogOpen(true)}
+          >
+            <svg
+              className="h-5 w-5 md:h-6 md:w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="rgb(14, 48, 92)"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
+            </svg>
+          </button>
+
+          <span className="mt-1 text-xs">Wallet</span>
+        </div>
+
       </div>
-    </div>
-
-    {/* WALLET */}
-    <div className="flex flex-col items-center">
-      <button
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50"
-        onClick={() => setWalletDialogOpen(true)}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 md:h-6 md:w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="rgb(14, 48, 92)"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-          />
-        </svg>
-      </button>
-
-      <span
-        className="mt-1 text-xs"
-        style={{ color: "rgb(14, 48, 92)" }}
-      >
-        Wallet
-      </span>
     </div>
 
   </div>
 </div>
 
-          {searchTerm && (
-            <div className="mt-4 md:hidden">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search bookings..."
-                  className="w-full px-4 py-3 rounded-lg bg-white shadow-md text-base border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Upcoming Bookings Section */}
         <section className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-3 md:p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border-l-4 border-primary">
-            <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
-            <div className="flex-1">
-              <h2 className="text-lg md:text-xl font-semibold text-card-foreground">Upcoming Bookings</h2>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {isLoading ? (
-                  <SkeletonLoader width="100px" height="1rem" />
-                ) : (
-                  `${filteredUpcomingBookings.length} ${filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled`
-                )}
-              </p>
-            </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 mt-2 md:mt-0 w-fit">
-              {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : upcomingBookings.length}
-            </Badge>
-          </div>
+         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6 p-4 bg-gradient-to-br md:bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/10 border-l-4 border-l-primary shadow-sm">
+  
+  {/* Icon and Text Wrapper */}
+  <div className="flex gap-3 w-full">
+    <div className="mt-1 md:mt-0 p-2 bg-primary/10 rounded-lg md:bg-transparent md:p-0">
+      <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
+    </div>
+    
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between md:justify-start md:gap-3">
+        <h2 className="text-lg md:text-xl font-bold tracking-tight text-card-foreground">
+          Upcoming Bookings
+        </h2>
+        {/* Badge visible on Mobile inside this flex row */}
+        <Badge variant="secondary" className="md:hidden bg-primary text-primary-foreground border-none px-2 py-0.5 text-xs font-bold">
+          {isLoading ? <SkeletonLoader width="20px" height="10px" /> : upcomingBookings.length}
+        </Badge>
+      </div>
+      
+      <p className="text-sm text-muted-foreground mt-0.5">
+        {isLoading ? (
+          <SkeletonLoader width="100px" height="1rem" />
+        ) : (
+          <span className="flex items-center gap-1">
+            <span className="font-medium text-foreground/80">{filteredUpcomingBookings.length}</span>
+            {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
+          </span>
+        )}
+      </p>
+    </div>
+  </div>
+
+  {/* Badge for Desktop only */}
+  <Badge variant="secondary" className="hidden md:flex bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-semibold">
+    {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : upcomingBookings.length}
+  </Badge>
+</div>
 
           {/* Status Tabs */}
           {isLoading ? (
@@ -1724,8 +1676,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           ) : upcomingBookings.length > 0 ? (
             <div className="grid gap-4">
               {filteredUpcomingBookings.map((booking) => (
-                <Card 
-                  key={booking.id} 
+                <Card
+                  key={booking.id}
                   id={`booking-${booking.id}`}
                   className="shadow-card hover:shadow-hover transition-all duration-200"
                 >
@@ -1763,55 +1715,35 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-start md:items-end gap-1">
-                        <div className="flex flex-wrap gap-2">
-                          {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking.taskStatus)}
-                          {booking.taskStatus !== 'CANCELLED' && (
-                            <>
-                              {booking.modifications && booking.modifications.length > 0 && (
-                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                                  Modified
-                                </Badge>
-                              )}
-                              {booking.assignmentStatus === "UNASSIGNED" && (
-                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                                  Awaiting
-                                </Badge>
-                              )}
-                              {booking.payment && booking.payment.status === "PENDING" && (
-                                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                                  Payment Pending
-                                </Badge>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground pt-1">
-                          Booking Date:{" "}
-                          {new Date(booking.bookingDate).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric"
-                          })}
-                          {booking.modifications && booking.modifications.length > 0 && (
-                            <>
-                              <br />
-                              Last Modified:{" "}
-                              {new Date(booking.modifications[booking.modifications.length - 1].date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric"
-                              })}
-                            </>
-                          )}
-                        </p>
+                      <div className="flex flex-wrap gap-2">
+                        {getBookingTypeBadge(booking.bookingType)}
+                        {getStatusBadge(booking.taskStatus)}
+                        {booking.taskStatus !== 'CANCELLED' && (
+                          <>
+                            {booking.modifications && booking.modifications.length > 0 && (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                Modified
+                              </Badge>
+                            )}
+                            {booking.assignmentStatus === "UNASSIGNED" && (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
+                                Awaiting
+                              </Badge>
+                            )}
+                            {booking.payment && booking.payment.status === "PENDING" && (
+                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                                Payment Pending
+                              </Badge>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
+                      {/* Left column: date, time, address */}
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -1837,7 +1769,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                         
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">{booking.address}</span>
+                          <span className="text-xs md:text-sm break-words">{booking.address}</span>
                         </div>
 
                         {booking.modifications && booking.modifications.length > 0 && (
@@ -1847,16 +1779,17 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                         )}
                       </div>
                       
+                      {/* Right column: responsibilities and price */}
                       <div className="space-y-3">
                         <div>
                           <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          <div className="flex flex-wrap gap-1 md:gap-2">
+                          {/* Mobile: horizontal scrollable chips | Desktop: wrap */}
+                          <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible gap-1 pb-2 md:pb-0 scrollbar-thin">
                             {[
                               ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
                               ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
                             ].map((item: any, index: number) => {
                               const { task, isAddon } = item;
-
                               const taskLabel =
                                 typeof task === "object" && task !== null
                                   ? Object.entries(task)
@@ -1864,11 +1797,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                                       .map(([key, value]) => `${value} ${key}`)
                                       .join(", ")
                                   : "";
-
                               const taskName = typeof task === "object" ? task.taskType : task;
-
                               return (
-                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                                <Badge key={index} variant="outline" className="text-xs whitespace-nowrap md:whitespace-normal">
                                   {isAddon ? "Add-ons - " : ""}
                                   {taskName} {taskLabel && `- ${taskLabel}`}
                                 </Badge>
@@ -1910,7 +1841,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                     
                     <Separator />
                     
-                    <div className="flex flex-wrap gap-2">
+                    {/* Action buttons: 2‑column grid on mobile, flex-wrap on desktop */}
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                       {renderActionButtons(booking)}
                     </div>
                   </CardContent>
@@ -1963,10 +1895,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           ) : pastBookings.length > 0 ? (
             <div className="grid gap-4">
               {filteredPastBookings.map((booking) => (
-                <Card 
-                  key={booking.id} 
+                <Card
+                  key={booking.id}
                   id={`booking-${booking.id}`}
-                  className="shadow-card"
+                  className="shadow-card hover:shadow-hover transition-all duration-200"
                 >
                   <CardHeader className="pb-4">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -1998,7 +1930,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 ml-4">
+                      <div className="flex flex-wrap gap-2">
                         {getBookingTypeBadge(booking.bookingType)}
                         {getStatusBadge(booking.taskStatus)}
                         {booking.taskStatus !== 'CANCELLED' && (
@@ -2046,7 +1978,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                         
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">{booking.address}</span>
+                          <span className="text-xs md:text-sm break-words">{booking.address}</span>
                         </div>
 
                         {booking.modifications && booking.modifications.length > 0 && (
@@ -2059,13 +1991,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                       <div className="space-y-3">
                         <div>
                           <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          <div className="flex flex-wrap gap-1 md:gap-2">
+                          <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible gap-1 pb-2 md:pb-0 scrollbar-thin">
                             {[
                               ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
                               ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
                             ].map((item: any, index: number) => {
                               const { task, isAddon } = item;
-
                               const taskLabel =
                                 typeof task === "object" && task !== null
                                   ? Object.entries(task)
@@ -2073,11 +2004,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                                       .map(([key, value]) => `${value} ${key}`)
                                       .join(", ")
                                   : "";
-
                               const taskName = typeof task === "object" ? task.taskType : task;
-
                               return (
-                                <Badge key={index} variant="outline" className="text-xs max-w-full truncate">
+                                <Badge key={index} variant="outline" className="text-xs whitespace-nowrap md:whitespace-normal">
                                   {isAddon ? "Add-ons - " : ""}
                                   {taskName} {taskLabel && `- ${taskLabel}`}
                                 </Badge>
@@ -2119,7 +2048,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                     
                     <Separator />
                     
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                       {renderActionButtons(booking)}
                     </div>
                   </CardContent>
@@ -2236,7 +2165,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         </Alert>
       </Snackbar>
 
-      {/* Add CSS for highlight animation */}
+      {/* Add CSS for highlight animation and scrollbar */}
       <style>{`
         .highlight-booking {
           animation: highlightPulse 2s ease-in-out;
@@ -2253,6 +2182,19 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             border-color: #60a5fa;
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
           }
+        }
+
+        /* Custom scrollbar for responsibilities chips on mobile */
+        .scrollbar-thin::-webkit-scrollbar {
+          height: 4px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 10px;
         }
       `}</style>
     </div>
