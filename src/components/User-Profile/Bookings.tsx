@@ -1868,22 +1868,66 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
         {/* Past Bookings Section */}
         <section>
-          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6 p-3 md:p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
-            <History className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
-            <div className="flex-1">
-              <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-card-foreground">Past Bookings</h2>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {isLoading ? (
-                  <SkeletonLoader width="100px" height="1rem" />
-                ) : (
-                  `${filteredPastBookings.length} ${filteredPastBookings.length === 1 ? 'booking' : 'bookings'} in history`
-                )}
-              </p>
-            </div>
-            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground mt-2 md:mt-0 w-fit">
-              {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : pastBookings.length}
-            </Badge>
-          </div>
+         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
+
+  {/* Icon + Content */}
+  <div className="flex gap-3 w-full">
+    
+    {/* Icon */}
+    <div className="mt-1 md:mt-0 p-2 md:p-0 bg-muted/30 md:bg-transparent rounded-lg">
+      <History className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
+    </div>
+
+    {/* Text Section */}
+    <div className="flex-1 min-w-0">
+      
+      {/* Title + Mobile Badge */}
+      <div className="flex items-center justify-between md:justify-start md:gap-3">
+        <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-card-foreground">
+          Past Bookings
+        </h2>
+
+        {/* ✅ Mobile Badge */}
+        <Badge
+          variant="outline"
+          className="md:hidden border-muted-foreground/30 text-muted-foreground px-2 py-0.5 text-xs font-semibold"
+        >
+          {isLoading ? (
+            <SkeletonLoader width="20px" height="10px" />
+          ) : (
+            pastBookings.length
+          )}
+        </Badge>
+      </div>
+
+      {/* Subtitle */}
+      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+        {isLoading ? (
+          <SkeletonLoader width="100px" height="1rem" />
+        ) : (
+          <span className="flex items-center gap-1">
+            <span className="font-medium text-foreground/80">
+              {filteredPastBookings.length}
+            </span>
+            {filteredPastBookings.length === 1 ? "booking" : "bookings"} in history
+          </span>
+        )}
+      </p>
+    </div>
+  </div>
+
+  {/* ✅ Desktop Badge */}
+  <Badge
+    variant="outline"
+    className="hidden md:flex border-muted-foreground/30 text-muted-foreground px-3 py-1 text-sm font-semibold"
+  >
+    {isLoading ? (
+      <SkeletonLoader width="30px" height="1rem" />
+    ) : (
+      pastBookings.length
+    )}
+  </Badge>
+</div>
 
           {isLoading ? (
             // Show skeleton loaders while loading
