@@ -12,12 +12,14 @@ import {
   Stack,
   IconButton,
   Rating,
+  FormControl,
   Select,
   MenuItem,
   OutlinedInput,
-  FormControl,
   InputLabel,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Autocomplete,
+  TextField
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -44,7 +46,6 @@ const FilterSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }));
 
-// Language options - expanded list
 const LANGUAGES = [
   'English', 'Hindi', 'Bengali', 'Telugu', 'Tamil', 
   'Kannada', 'Malayalam', 'Marathi', 'Gujarati', 'Punjabi',
@@ -104,15 +105,6 @@ const ProviderFilter: React.FC<FilterProps> = ({
     }));
   };
 
-  // New handler for language dropdown (multi-select)
-  const handleLanguageChange = (event: SelectChangeEvent<typeof tempFilters.language>) => {
-    const { value } = event.target;
-    setTempFilters(prev => ({
-      ...prev,
-      language: typeof value === 'string' ? value.split(',') : value
-    }));
-  };
-
   const handleApply = () => {
     setFilters(tempFilters);
     onApplyFilters(tempFilters);
@@ -132,32 +124,6 @@ const ProviderFilter: React.FC<FilterProps> = ({
     setTempFilters(resetFilters);
     setFilters(resetFilters);
     onApplyFilters(resetFilters);
-  };
-
-  // Helper function to render selected chips in dropdown
-  const renderLanguageChips = (selected: string[]) => {
-    if (selected.length === 0) {
-      return <em>Select languages</em>;
-    }
-    
-    return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-        {selected.map((lang) => (
-          <Chip
-            key={lang}
-            label={lang}
-            size="small"
-            onDelete={() => {
-              setTempFilters(prev => ({
-                ...prev,
-                language: prev.language.filter(l => l !== lang)
-              }));
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-          />
-        ))}
-      </Box>
-    );
   };
 
   return (
@@ -292,36 +258,53 @@ const ProviderFilter: React.FC<FilterProps> = ({
           </FormGroup>
         </FilterSection>
 
-        {/* Language Filter - Dropdown */}
+        {/* Language Filter - using Autocomplete (fixes hidden input box) */}
         <FilterSection>
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Languages
           </Typography>
-          <FormControl fullWidth size="small">
-            <InputLabel id="language-select-label">Select Languages</InputLabel>
-            <Select
-              labelId="language-select-label"
-              multiple
-              value={tempFilters.language}
-              onChange={handleLanguageChange}
-              input={<OutlinedInput label="Select Languages" />}
-              renderValue={renderLanguageChips}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300,
-                    width: 250,
-                  },
-                },
-              }}
-            >
-              {LANGUAGES.map((language) => (
-                <MenuItem key={language} value={language}>
-                  {language}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            multiple
+            options={LANGUAGES}
+            value={tempFilters.language}
+            onChange={(_, newValue) => setTempFilters(prev => ({ ...prev, language: newValue }))}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                placeholder="Select languages"
+                size="small"
+              />
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  label={option}
+                  size="small"
+                  {...getTagProps({ index })}
+                  onDelete={() => {
+                    setTempFilters(prev => ({
+                      ...prev,
+                      language: prev.language.filter(l => l !== option)
+                    }));
+                  }}
+                />
+              ))
+            }
+            sx={{
+              '& .MuiAutocomplete-tag': {
+                margin: '2px',
+              },
+              '& .MuiOutlinedInput-root': {
+                padding: '4px 8px',
+                minHeight: '56px',
+                alignItems: 'flex-start',
+              },
+            }}
+            ListboxProps={{
+              style: { maxHeight: 300 }
+            }}
+          />
           {tempFilters.language.length > 0 && (
             <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
               <Button 

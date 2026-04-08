@@ -1238,7 +1238,44 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           </Button>
         </DialogActions>
       </Dialog>
+ {/* Dialog components */}
+        <BookingDialog
+          open={dialogOpenState}
+          onClose={() => setDialogOpen(false)}
+          onSave={handleBookingSave}
+          selectedOption={selectedRadioButtonValue}
+          onOptionChange={setSelectedRadioButtonValue}
+          startDate={startDate}
+          endDate={endDate}
+          startTime={startTime}
+          endTime={endTime}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
+          setStartTime={setStartTime}
+          setEndTime={setEndTime}
+        />
 
+        {selectedType === "COOK" && (
+          <CookServicesDialog
+            open={openServiceDialog}
+            handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
+          />
+        )}
+        {selectedType === "MAID" && (
+          <MaidServiceDialog
+            open={openServiceDialog}
+            handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
+          />
+        )}
+        {selectedType === "NANNY" && (
+          <NannyServicesDialog
+            open={openServiceDialog}
+            handleClose={() => setOpenServiceDialog(false)}
+            sendDataToParent={sendDataToParent}
+          />
+        )}
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbarOpen}
