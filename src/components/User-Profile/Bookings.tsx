@@ -1172,37 +1172,43 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setModifyDialogOpen(false);
   };
 
-  const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
-    if (!selectedBookingForLeave || !customerId) {
-      throw new Error("Missing required information for leave application");
-    }
+const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
+  if (!selectedBookingForLeave || !customerId) {
+    throw new Error("Missing required information for leave application");
+  }
 
-    try {
-      setIsRefreshing(true);
-      
-      await PaymentInstance.put(
-        `api/engagements/${selectedBookingForLeave.id}`,
-        {
-          modified_by_role: appUser.role,
-          vacation_start_date: startDate,
-          vacation_end_date: endDate,
-          modified_by_id : customerId,
-        }
-      );
+  try {
+    setIsRefreshing(true);
 
-      setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
-      await refreshBookings();
-      setSnackbarMessage('Leave applied successfully!');
-      setSnackbarSeverity('success');
-      setOpenSnackbar(true);
-      setHolidayDialogOpen(false);
-    } catch (error) {
-      console.error("Error applying leave:", error);
-      throw error;
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+    await PaymentInstance.post(
+      `api/v2/engagements/${selectedBookingForLeave.id}/vacation`,
+      {
+        customerid: customerId,                          // customer ID (as per spec)
+        vacation_start_date: startDate,
+        vacation_end_date: endDate,
+        leave_type: "VACATION",
+        modified_by_id: selectedBookingForLeave.id,      // ✅ engagement ID
+        modified_by_role: "CUSTOMER"
+      }
+    );
+
+    setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
+    await refreshBookings();
+    setSnackbarMessage('Leave applied successfully!');
+    setSnackbarSeverity('success');
+    setOpenSnackbar(true);
+    setHolidayDialogOpen(false);
+  } catch (error: any) {
+    console.error("Error applying leave:", error);
+    const errorMsg = error.response?.data?.message || 'Failed to apply leave. Please try again.';
+    setSnackbarMessage(errorMsg);
+    setSnackbarSeverity('error');
+    setOpenSnackbar(true);
+    throw error;
+  } finally {
+    setIsRefreshing(false);
+  }
+};
 
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking);
