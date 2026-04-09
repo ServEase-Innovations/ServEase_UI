@@ -9,6 +9,7 @@ import Payments from "./Payments";
 import Pricing from "./Pricing";
 import UploadData from "./UploadData";
 import Settings from "./Settings";
+import Coupons from "./Coupons";                     // 👈 import the new Coupons component
 import { SidebarProvider, SidebarTrigger } from "src/components/Common/Sidebar/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Bell, Search, User } from "lucide-react";
@@ -43,6 +44,9 @@ export function DashboardLayout ({ userRole }: { userRole: string })  {
           return <Chats />;
         case "permissions":
           return <Permissions />;
+        // Optionally add coupons for admin as well:
+        // case "coupons":
+        //   return <Coupons />;
         default:
           return <Dashboard />;
       }
@@ -73,6 +77,8 @@ export function DashboardLayout ({ userRole }: { userRole: string })  {
             return <Permissions />;
         case "ledger":
             return <AdminLedgerGrid />;
+        case "coupons":                              // 👈 new case for Coupons
+          return <Coupons />;
         default:
           return <Dashboard />;
       }

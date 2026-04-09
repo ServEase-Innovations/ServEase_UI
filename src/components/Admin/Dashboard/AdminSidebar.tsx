@@ -8,7 +8,8 @@ import {
     DollarSign, 
     Upload,
     UserCheck,
-    LayoutDashboard
+    LayoutDashboard,
+    Percent                        // 👈 import the icon for Coupons
   } from "lucide-react";
   
   import {
@@ -34,9 +35,10 @@ import { title } from "process";
     { title: "Payments", id: "payments", icon: CreditCard },
     { title: "Pricing", id: "pricing", icon: DollarSign },
     { title: "Upload Data", id: "upload-data", icon: Upload },
+    { title: "Coupons", id: "coupons", icon: Percent },   // 👈 new menu item
     { title: "Settings", id: "settings", icon: Settings },
     {title : "Permissions", id: "permissions", icon: Settings },
-    {title : "Ledger", id: "ledger", icon: Settings } // Assuming Permissions is a settings-like section
+    {title : "Ledger", id: "ledger", icon: Settings }
   ];
   
   interface AdminSidebarProps {
