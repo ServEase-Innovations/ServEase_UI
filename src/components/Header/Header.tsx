@@ -56,6 +56,7 @@ import NotificationsDialog from "../Notifications/NotificationsPage";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
+import preferenceInstance from "src/services/preferenceInstance";
 
 
 interface ChildComponentProps {
@@ -236,7 +237,9 @@ export const Header: React.FC<ChildComponentProps> = ({
   const getCustomerPreferences = async (customerId: number) => {
     try {
       setLoadingLocations(true);
-      const response = await utilsInstance.get(`/user-settings/${customerId}`);
+  const response = await preferenceInstance.get(
+  `/api/user-settings/${customerId}`
+);
       console.log("✅ Response from user settings API:", response.data);
 
       if (response.status === 200) {
@@ -301,7 +304,10 @@ export const Header: React.FC<ChildComponentProps> = ({
 
       console.log("Creating user preferences with payload:", payload);
 
-      const response = await utilsInstance.post("/user-settings", payload);
+    const response = await preferenceInstance.post(
+  "/api/user-settings",
+  payload
+);
 
       if (response.status === 200 || response.status === 201) {
         setUserPreference(payload);
@@ -655,10 +661,10 @@ const updateUserSetting = async () => {
       ],
     };
 
-    const response = await utilsInstance.put(
-      `/user-settings/${appUser.customerid}`,
-      payload
-    );
+   const response = await preferenceInstance.put(
+  `/api/user-settings/${appUser.customerid}`,
+  payload
+);
 
     if (response.status === 200 || response.status === 201) {
       console.log("✅ User settings updated successfully");
