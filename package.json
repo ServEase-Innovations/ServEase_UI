@@ -6,6 +6,7 @@
   "dependencies": {
     "@angular/material": "^19.0.1",
     "@auth0/auth0-react": "^2.3.0",
+    "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
@@ -85,15 +86,15 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "env-cmd -f .env.prod react-app-rewired start",
-    "start:dev": "env-cmd -f .env.dev react-app-rewired start",
-    "start:qa": "env-cmd -f .env.qa react-app-rewired start",
-    "start:prod": "env-cmd -f .env.prod react-app-rewired start",
-    "build": "react-app-rewired build",
-    "build:dev": "env-cmd -f .env.dev npm run build",
-    "build:qa": "env-cmd -f .env.qa npm run build",
-    "build:prod": "env-cmd -f .env.prod npm run build",
-    "test": "react-app-rewired test",
+    "start": "env-cmd -f .env.prod craco start",
+    "start:dev": "env-cmd -f .env.dev craco start",
+    "start:qa": "env-cmd -f .env.qa craco start",
+    "start:prod": "env-cmd -f .env.prod craco start",
+    "build": "craco build",
+    "build:dev": "env-cmd -f .env.dev craco build",
+    "build:qa": "env-cmd -f .env.qa craco build",
+    "build:prod": "env-cmd -f .env.prod craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint . || true"
   },
