@@ -12,6 +12,7 @@ import utilsInstance from "src/services/utilsInstance";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
+import preferenceInstance from "src/services/preferenceInstance";
 
 interface Address {
   id: string;
@@ -132,7 +133,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
 
   const fetchCustomerAddresses = async (customerId: number) => {
     try {
-      const response = await utilsInstance.get(`/user-settings/${customerId}`);
+      const response = await preferenceInstance.get(`/api/user-settings/${customerId}`);
       const data = response.data;
 
       if (Array.isArray(data) && data.length > 0) {
@@ -314,7 +315,7 @@ useEffect(() => {
     if (!userId) return;
 
     try {
-      const response = await utilsInstance.get(`/user-settings/${userId}`);
+      const response = await preferenceInstance.get(`/api/user-settings/${userId}`);
       const currentSettings = response.data;
 
       let existingLocations = [];
@@ -351,7 +352,7 @@ useEffect(() => {
       };
 
       const updatedLocations = [...existingLocations, newLocation];
-      await utilsInstance.put(`/user-settings/${userId}`, {
+      await preferenceInstance.put(`/api/user-settings/${userId}`, {
         customerId: userId,
         savedLocations: updatedLocations
       });
@@ -390,7 +391,7 @@ useEffect(() => {
         }
       }));
 
-      await utilsInstance.put(`/user-settings/${userId}`, {
+      await preferenceInstance.put(`/api/user-settings/${userId}`, {
         customerId: userId,
         savedLocations: savedLocations
       });

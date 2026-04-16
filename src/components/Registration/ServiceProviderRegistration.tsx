@@ -37,11 +37,11 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { debounce } from "src/utils/debounce";
 import { useFieldValidation } from "./useFieldValidation";
 
-
 // Import the components
 import BasicInformation from "./BasicInformation";
 import ServiceDetails from "./ServiceDetails";
 import KYCVerification from "./KYCVerification";
+import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails"; // NEW IMPORT
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 
@@ -105,6 +105,8 @@ interface FormData {
     country: string;
     pincode: string;
   };
+  // NEW: Bank details
+  bankDetails: BankDetailsData;
 }
 
 // Define the shape of errors to hold string messages
@@ -155,6 +157,8 @@ interface FormErrors {
     country?: string;
     pincode?: string;
   };
+  // NEW: Bank details errors
+  bankDetails?: BankDetailsErrors;
 }
 
 // Regex for validation
@@ -179,13 +183,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   onBackToLogin,
 }) => {
   const { t } = useLanguage(); // Use the language context
-  
-  // Steps with translations
+
+  // Steps with translations - added Bank Details step
   const steps = [
     t("basicInformation"),
     t("addressInformation"),
     t("additionalDetails"),
     t("kycVerification"),
+    t("bankDetails"),      // NEW STEP
     t("confirmation"),
   ];
 
@@ -204,10 +209,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSameAddress, setIsSameAddress] = useState(false);
   const [isDobValid, setIsDobValid] = useState(true);
-  
-  
+
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-  
+
   // New state variables for multi-slot time selection
   const [morningSlots, setMorningSlots] = useState<number[][]>([[6, 12]]);
   const [eveningSlots, setEveningSlots] = useState<number[][]>([[12, 20]]);
@@ -233,7 +237,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     latitude: 0,
     longitude: 0,
     AADHAR: "",
-    agentReferralId: "", 
+    agentReferralId: "",
     pan: "",
     panImage: null,
     housekeepingRole: [],
@@ -273,12 +277,57 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       country: "",
       pincode: ""
     },
+    // NEW: Bank details initial state
+    bankDetails: {
+      bankName: "",
+      ifscCode: "",
+      accountHolderName: "",
+      accountNumber: "",
+      accountType: "",
+      upiId: ""
+    }
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [image, setImage] = useState<Blob | null>(null);
+
+  // NEW: Handler for bank details field changes
+  const handleBankFieldChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    if (name) {
+      setFormData(prev => ({
+        ...prev,
+        bankDetails: {
+          ...prev.bankDetails,
+          [name]: value
+        }
+      }));
+      // Clear bank error for this field if any
+      if (errors.bankDetails && errors.bankDetails[name as keyof BankDetailsErrors]) {
+        setErrors(prev => ({
+          ...prev,
+          bankDetails: {
+            ...prev.bankDetails,
+            [name]: ""
+          }
+        }));
+      }
+    }
+  };
+
+  const handleBankFieldFocus = (fieldName: string) => {
+    if (errors.bankDetails && errors.bankDetails[fieldName as keyof BankDetailsErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        bankDetails: {
+          ...prev.bankDetails,
+          [fieldName]: ""
+        }
+      }));
+    }
+  };
 
   // Helper function to check if two time ranges overlap
   const isRangeOverlapping = (range1: number[], range2: number[]): boolean => {
@@ -309,69 +358,67 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     return `${formattedHour}:${minute}`;
   };
 
- // Custom Slider component with disabled ranges
- const TimeSliderWithDisabledRanges: React.FC<{
-  value: number[];
-  onChange: (newValue: number[]) => void;
-  min: number;
-  max: number;
-  marks: Array<{ value: number; label: string }>;
-  disabledRanges: number[][];
-}> = ({ value, onChange, min, max, marks, disabledRanges }) => {
-  
-  const handleSliderChange = (event: Event, newValue: number | number[]) => {
-    const range = newValue as number[];
-    const [start, end] = range;
-    
-    // Check if the new range overlaps with any disabled ranges
-    const hasOverlap = disabledRanges.some(disabledRange => 
-      isRangeOverlapping([start, end], disabledRange)
+  // Custom Slider component with disabled ranges
+  const TimeSliderWithDisabledRanges: React.FC<{
+    value: number[];
+    onChange: (newValue: number[]) => void;
+    min: number;
+    max: number;
+    marks: Array<{ value: number; label: string }>;
+    disabledRanges: number[][];
+  }> = ({ value, onChange, min, max, marks, disabledRanges }) => {
+
+    const handleSliderChange = (event: Event, newValue: number | number[]) => {
+      const range = newValue as number[];
+      const [start, end] = range;
+
+      // Check if the new range overlaps with any disabled ranges
+      const hasOverlap = disabledRanges.some(disabledRange =>
+        isRangeOverlapping([start, end], disabledRange)
+      );
+
+      if (!hasOverlap) {
+        onChange(range);
+      } else {
+        setSnackbarMessage("This time range overlaps with another selected slot");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+      }
+    };
+
+    return (
+      <Slider
+        value={value}
+        onChange={handleSliderChange}
+        valueLabelDisplay="on"
+        valueLabelFormat={(value) => formatDisplayTime(value)}
+        min={min}
+        max={max}
+        step={0.5}
+        marks={marks}
+        sx={{
+          color: "primary.main",
+          '& .MuiSlider-markLabel': {
+            fontSize: '0.75rem'
+          },
+          '& .MuiSlider-mark': {
+            backgroundColor: '#bfbfbf',
+            height: 8,
+            width: 2,
+          },
+          '& .MuiSlider-rail': {
+            opacity: 0.3,
+            backgroundColor: '#bfbfbf',
+          },
+          '& .MuiSlider-track': {
+            backgroundColor: '#1976d2',
+          },
+        }}
+      />
     );
-    
-    if (!hasOverlap) {
-      onChange(range);
-    } else {
-      setSnackbarMessage("This time range overlaps with another selected slot");
-      setSnackbarSeverity("warning");
-      setSnackbarOpen(true);
-    }
   };
 
-  return (
-    <Slider
-      value={value}
-      onChange={handleSliderChange}
-      valueLabelDisplay="on"
-      valueLabelFormat={(value) => formatDisplayTime(value)}
-      min={min}
-      max={max}
-      step={0.5}
-      marks={marks}
-      sx={{
-        color: "primary.main",
-        '& .MuiSlider-markLabel': {
-          fontSize: '0.75rem'
-        },
-        '& .MuiSlider-mark': {
-          backgroundColor: '#bfbfbf',
-          height: 8,
-          width: 2,
-        },
-        '& .MuiSlider-rail': {
-          opacity: 0.3,
-          backgroundColor: '#bfbfbf',
-        },
-        '& .MuiSlider-track': {
-          backgroundColor: '#1976d2',
-        },
-      }}
-    />
-  );
-};
-
-
-
- // Component to visually show disabled ranges
+  // Component to visually show disabled ranges
   const DisabledRangesIndicator: React.FC<{
     ranges: number[][];
     min: number;
@@ -380,14 +427,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     if (ranges.length === 0) return null;
 
     const totalWidth = max - min;
-    
+
     return (
       <Box sx={{ position: 'relative', width: '100%', height: 4, mt: 1, mb: 2 }}>
         <Box sx={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#e0e0e0', borderRadius: 2 }} />
         {ranges.map((range, index) => {
           const startPercent = ((range[0] - min) / totalWidth) * 100;
           const widthPercent = ((range[1] - range[0]) / totalWidth) * 100;
-          
+
           return (
             <Tooltip
               key={index}
@@ -420,11 +467,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       return;
     }
 
-    const morningSlotStrings = morningSlots.map(([start, end]) => 
+    const morningSlotStrings = morningSlots.map(([start, end]) =>
       `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
     );
-    
-    const eveningSlotStrings = eveningSlots.map(([start, end]) => 
+
+    const eveningSlotStrings = eveningSlots.map(([start, end]) =>
       `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
     );
 
@@ -435,7 +482,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     morningSlots.forEach(([start, end]) => {
       displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
     });
-    
+
     eveningSlots.forEach(([start, end]) => {
       displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
     });
@@ -463,7 +510,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     setMorningSlots(prevSlots => [...prevSlots, [6, 12]]);
   };
 
-    const handleAddEveningSlot = () => {
+  const handleAddEveningSlot = () => {
     // Simply add a new slot with default evening range – no overlap check
     setEveningSlots(prevSlots => [...prevSlots, [12, 20]]);
   };
@@ -531,7 +578,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error for this field when user types
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
@@ -543,14 +590,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   const handleSameAddressToggle = (checked: boolean) => {
     setIsSameAddress(checked);
-    
+
     if (checked) {
       // Copy permanent address to correspondence address
       setFormData(prev => ({
         ...prev,
         correspondenceAddress: { ...prev.permanentAddress }
       }));
-      
+
       // Clear correspondence address errors
       setErrors(prev => ({
         ...prev,
@@ -564,12 +611,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       ...formData,
       [type === 'permanent' ? 'permanentAddress' : 'correspondenceAddress']: data
     };
-    
+
     // If isSameAddress is true and we're updating permanent address, also update correspondence address
     if (isSameAddress && type === 'permanent') {
       newFormData.correspondenceAddress = data;
     }
-    
+
     setFormData(newFormData);
 
     // Clear address errors when address is being filled
@@ -596,7 +643,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     if (data.apartment && data.street && data.city && data.state && data.pincode) {
       try {
         const fullAddress = `${data.apartment}, ${data.street}, ${data.city}, ${data.state}, ${data.pincode}, ${data.country}`;
-        
+
         const response = await axios.get(
           "https://maps.googleapis.com/maps/api/geocode/json",
           {
@@ -638,25 +685,25 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
   };
-const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { value } = e.target;
-  setFormData(prev => ({
-    ...prev,
-    agentReferralId: value
-  }));
-};
+  const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      agentReferralId: value
+    }));
+  };
   const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation({ t });
   // Handler for KYC type change
   const handleKycTypeChange = (kycType: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       kycType,
       kycNumber: "" // Clear the number when type changes
     }));
-    setErrors(prev => ({ 
-      ...prev, 
+    setErrors(prev => ({
+      ...prev,
       kycType: "",
-      kycNumber: "" 
+      kycNumber: ""
     }));
   };
 
@@ -718,21 +765,21 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
   // Helper function to check if step 0 is ready for next
   const isStep0ReadyForNext = () => {
     // Check if required fields are filled
-    const requiredFieldsFilled = formData.firstName.trim() && 
-                                 formData.lastName.trim() && 
-                                 formData.gender && 
-                                 formData.emailId.trim() && 
-                                 formData.password.trim() && 
-                                 formData.confirmPassword.trim() && 
-                                 formData.mobileNo.trim() &&
-                                 formData.dob.trim();
+    const requiredFieldsFilled = formData.firstName.trim() &&
+      formData.lastName.trim() &&
+      formData.gender &&
+      formData.emailId.trim() &&
+      formData.password.trim() &&
+      formData.confirmPassword.trim() &&
+      formData.mobileNo.trim() &&
+      formData.dob.trim();
 
     // Check if there are any validation errors
-    const hasValidationErrors = validationResults.email.error || 
-                               validationResults.mobile.error ||
-                               !validationResults.email.isAvailable ||
-                               !validationResults.mobile.isAvailable ||
-                               !!errors.dob;
+    const hasValidationErrors = validationResults.email.error ||
+      validationResults.mobile.error ||
+      !validationResults.email.isAvailable ||
+      !validationResults.mobile.isAvailable ||
+      !!errors.dob;
 
     // Check if DOB is valid
     const isDobFieldValid = isDobValid && !errors.dob;
@@ -882,7 +929,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
     if (name === "emailId") {
       const trimmedValue = value.trim();
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -907,7 +954,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
     if (name === "mobileNo") {
       const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
-      
+
       if (!trimmedValue) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -932,7 +979,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
     if (name === "AlternateNumber" && value) {
       const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
-      
+
       if (trimmedValue && !mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -963,13 +1010,13 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
     if (name === "kycNumber") {
       const trimmedValue = value.trim();
       setFormData(prev => ({ ...prev, kycNumber: trimmedValue }));
-      
+
       // Validate based on kycType
       if (trimmedValue) {
         let isValid = true;
         let errorMessage = "";
-        
-        switch(formData.kycType) {
+
+        switch (formData.kycType) {
           case "AADHAR":
             isValid = /^[0-9]{12}$/.test(trimmedValue);
             errorMessage = t("aadhaarInvalid");
@@ -991,7 +1038,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             errorMessage = t("passportInvalid");
             break;
         }
-        
+
         if (!isValid) {
           setErrors(prev => ({ ...prev, kycNumber: errorMessage }));
         } else {
@@ -1005,7 +1052,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
     if (name === "pincode") {
       const numericValue = value.replace(/\D/g, "");
       const trimmedValue = numericValue.slice(0, 6);
-      
+
       setFormData((prevData) => ({
         ...prevData,
         [name]: trimmedValue,
@@ -1041,7 +1088,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
   // Separate handler for DOB field
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     // Update form data
     setFormData((prevData) => ({
       ...prevData,
@@ -1111,7 +1158,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       if (!formData.gender) {
         tempErrors.gender = t("genderRequired");
       }
-      
+
       if (!formData.emailId.trim()) {
         tempErrors.emailId = t("emailRequired");
       } else if (!emailIdRegex.test(formData.emailId.trim())) {
@@ -1121,19 +1168,19 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       } else if (!validationResults.email.isAvailable) {
         tempErrors.emailId = t("emailNotAvailable");
       }
-      
+
       if (!formData.password.trim()) {
         tempErrors.password = t("passwordRequired");
       } else if (!strongPasswordRegex.test(formData.password.trim())) {
         tempErrors.password = t("passwordComplexity");
       }
-      
+
       if (!formData.confirmPassword.trim()) {
         tempErrors.confirmPassword = t("confirmPasswordRequired");
       } else if (formData.password.trim() !== formData.confirmPassword.trim()) {
         tempErrors.confirmPassword = t("passwordsDoNotMatch");
       }
-      
+
       if (!formData.mobileNo.trim()) {
         tempErrors.mobileNo = t("mobileRequired");
       } else if (!phoneRegex.test(formData.mobileNo.trim())) {
@@ -1143,7 +1190,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       } else if (!validationResults.mobile.isAvailable) {
         tempErrors.mobileNo = t("mobileNotAvailable");
       }
-      
+
       // Validate alternate number if provided
       if (formData.AlternateNumber.trim()) {
         if (!phoneRegex.test(formData.AlternateNumber.trim())) {
@@ -1249,7 +1296,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
         tempErrors.kycNumber = t("kycNumberRequired").replace("{documentName}", getKycLabel(formData.kycType));
       } else {
         // Add specific validation based on KYC type
-        switch(formData.kycType) {
+        switch (formData.kycType) {
           case "AADHAR":
             if (!aadhaarRegex.test(formData.kycNumber)) {
               tempErrors.kycNumber = t("aadhaarInvalid");
@@ -1282,7 +1329,13 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       }
     }
 
+    // NEW: Bank details step – optional, always valid
     if (step === 4) {
+      // No required fields, always valid
+      return true;
+    }
+
+    if (step === 5) { // Confirmation step (was step 4 before)
       if (!formData.keyFacts) {
         tempErrors.keyFacts = t("keyFactsRequired");
       }
@@ -1299,7 +1352,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       setErrors(tempErrors);
       return false;
     }
-    
+
     return true;
   };
 
@@ -1312,12 +1365,12 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
         setSnackbarOpen(true);
         return;
       }
-      
+
       // Validate the current step
       if (!validateStep(activeStep)) {
         return;
       }
-      
+
       // Additional check for validation results
       if (!isStep0ReadyForNext()) {
         setSnackbarMessage(t("pleaseFixValidationErrors"));
@@ -1331,7 +1384,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
         return;
       }
     }
-    
+
     setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
     if (activeStep === steps.length - 1) {
       setSnackbarMessage(t("registrationSuccessful"));
@@ -1375,9 +1428,14 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             profilePicUrl = imageResponse.data.imageUrl;
           }
         }
-        
+
         const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
-        
+
+        // Prepare bank details object (only include non-empty fields)
+        const bankDetailsPayload = Object.fromEntries(
+          Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
+        );
+
         const payload = {
           firstName: formData.firstName,
           middleName: formData.middleName,
@@ -1398,7 +1456,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
           housekeepingRoles: formData.housekeepingRole,
           serviceTypes: formData.housekeepingRole,
           diet: formData.diet,
-          languages: selectedLanguages, // <-- ADDED LANGUAGES PARAMETER HERE
+          languages: selectedLanguages,
           ...(formData.housekeepingRole.includes("COOK") && {
             cookingSpeciality: formData.cookingSpeciality
           }),
@@ -1410,7 +1468,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
           experience: parseInt(formData.experience) || 0,
           username: formData.emailId,
           password: formData.password,
-          agentReferralId: formData.agentReferralId, 
+          agentReferralId: formData.agentReferralId,
           privacy: formData.privacy,
           keyFacts: formData.keyFacts,
           permanentAddress: {
@@ -1432,7 +1490,9 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
           active: true,
           kycType: formData.kycType,
           kycNumber: formData.kycNumber,
-          dob: formData.dob
+          dob: formData.dob,
+          // NEW: Include bank details if any field is filled
+          ...(Object.keys(bankDetailsPayload).length > 0 && { bankDetails: bankDetailsPayload })
         };
 
         const response = await providerInstance.post(
@@ -1608,7 +1668,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       terms: allAccepted,
       privacy: allAccepted,
     }));
-    
+
     if (allAccepted) {
       setErrors(prev => ({
         ...prev,
@@ -1623,7 +1683,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
   const handleServiceTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     let updatedRoles: string[];
-    
+
     if (formData.housekeepingRole.includes(value)) {
       // Remove if already selected
       updatedRoles = formData.housekeepingRole.filter(role => role !== value);
@@ -1638,11 +1698,11 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
       // Add if not selected
       updatedRoles = [...formData.housekeepingRole, value];
     }
-    
+
     setFormData(prev => ({ ...prev, housekeepingRole: updatedRoles }));
     setIsCookSelected(updatedRoles.includes("COOK"));
     setIsNannySelected(updatedRoles.includes("NANNY"));
-    
+
     // Clear error if at least one role is selected
     if (updatedRoles.length > 0) {
       setErrors(prev => ({ ...prev, housekeepingRole: "" }));
@@ -1677,7 +1737,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             onClearAlternate={handleClearAlternate}
           />
         );
-      
+
       case 1:
         return (
           <Grid container spacing={3}>
@@ -1694,7 +1754,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
                 }}
               />
             </Grid>
-            
+
             <Grid item xs={12}>
               <Card variant="outlined" sx={{ borderRadius: 2 }}>
                 <CardContent>
@@ -1705,14 +1765,14 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {t("useGpsToFetchLocation")}
                   </Typography>
-                  
+
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     <Button
                       variant="contained"
                       color="primary"
                       onClick={fetchLocationData}
                       startIcon={<MyLocationIcon />}
-                      sx={{ 
+                      sx={{
                         borderRadius: 2,
                         px: 3,
                         py: 1.5,
@@ -1722,17 +1782,17 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
                     >
                       {t("fetchMyLocation")}
                     </Button>
-                    
+
                     {(formData.latitude !== 0 || formData.longitude !== 0) && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CheckCircleIcon color="success" />
                       </Box>
                     )}
                   </Box>
-                  
+
                   {(formData.latitude !== 0 || formData.longitude !== 0) && (
-                    <Alert 
-                      severity="success" 
+                    <Alert
+                      severity="success"
                       sx={{ mt: 2, borderRadius: 2 }}
                       icon={false}
                     >
@@ -1746,41 +1806,41 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             </Grid>
           </Grid>
         );
-      
+
       case 2:
         return (
-      <ServiceDetails
-  formData={formData}
-  errors={errors}
-  isCookSelected={isCookSelected}
-  isNannySelected={isNannySelected}
-  morningSlots={morningSlots}
-  eveningSlots={eveningSlots}
-  isFullTime={isFullTime}
-  selectedTimeSlots={selectedTimeSlots}
-  onServiceTypeChange={handleServiceTypeChange}
-  onCookingSpecialityChange={handleCookingSpecialityChange}
-  onNannyCareTypeChange={handleNannyCareTypeChange}
-  onDietChange={handledietChange}
-  onExperienceChange={handleExperienceChange}
-  onDescriptionChange={handleChange}
-  onReferralCodeChange={handleChange}
-  onAgentReferralIdChange={handleAgentReferralIdChange}
-  onFullTimeToggle={handleFullTimeToggle}
-  onAddMorningSlot={handleAddMorningSlot}
-  onRemoveMorningSlot={handleRemoveMorningSlot}
-  onClearMorningSlots={handleClearMorningSlots}
-  onAddEveningSlot={handleAddEveningSlot}
-  onRemoveEveningSlot={handleRemoveEveningSlot}
-  onClearEveningSlots={handleClearEveningSlots}
-  onMorningSlotChange={handleMorningSlotChange}
-  onEveningSlotChange={handleEveningSlotChange}
-  formatDisplayTime={formatDisplayTime}
-  selectedLanguages={selectedLanguages}
-  onLanguagesChange={setSelectedLanguages}
-/>
+          <ServiceDetails
+            formData={formData}
+            errors={errors}
+            isCookSelected={isCookSelected}
+            isNannySelected={isNannySelected}
+            morningSlots={morningSlots}
+            eveningSlots={eveningSlots}
+            isFullTime={isFullTime}
+            selectedTimeSlots={selectedTimeSlots}
+            onServiceTypeChange={handleServiceTypeChange}
+            onCookingSpecialityChange={handleCookingSpecialityChange}
+            onNannyCareTypeChange={handleNannyCareTypeChange}
+            onDietChange={handledietChange}
+            onExperienceChange={handleExperienceChange}
+            onDescriptionChange={handleChange}
+            onReferralCodeChange={handleChange}
+            onAgentReferralIdChange={handleAgentReferralIdChange}
+            onFullTimeToggle={handleFullTimeToggle}
+            onAddMorningSlot={handleAddMorningSlot}
+            onRemoveMorningSlot={handleRemoveMorningSlot}
+            onClearMorningSlots={handleClearMorningSlots}
+            onAddEveningSlot={handleAddEveningSlot}
+            onRemoveEveningSlot={handleRemoveEveningSlot}
+            onClearEveningSlots={handleClearEveningSlots}
+            onMorningSlotChange={handleMorningSlotChange}
+            onEveningSlotChange={handleEveningSlotChange}
+            formatDisplayTime={formatDisplayTime}
+            selectedLanguages={selectedLanguages}
+            onLanguagesChange={setSelectedLanguages}
+          />
         );
-      
+
       case 3:
         return (
           <KYCVerification
@@ -1792,8 +1852,19 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             onKycTypeChange={handleKycTypeChange}
           />
         );
-      
+
+      // NEW: Bank Details step
       case 4:
+        return (
+          <BankDetails
+            formData={formData.bankDetails}
+            errors={errors.bankDetails || {}}
+            onFieldChange={handleBankFieldChange}
+            onFieldFocus={handleBankFieldFocus}
+          />
+        );
+
+      case 5:
         return (
           <Grid container spacing={1}>
             <Grid item xs={12} sx={{ mt: 2 }}>
@@ -1807,7 +1878,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
             </Grid>
           </Grid>
         );
-      
+
       default:
         return t("unknownStep");
     }
@@ -1905,13 +1976,13 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
                       ? validationResults.email.loading || validationResults.mobile.loading
                         ? t("validatingEmailMobile")
                         : !isStep0ValidationsComplete() || !isDobValid
-                        ? t("fixValidationErrors")
-                        : t("completeAllRequiredFields")
+                          ? t("fixValidationErrors")
+                          : t("completeAllRequiredFields")
                       : activeStep === 2 && formData.housekeepingRole.length === 0
-                      ? t("pleaseSelectServiceType")
-                      : activeStep === 3 && (!formData.kycNumber || !formData.documentImage)
-                      ? t("pleaseCompleteKyc")
-                      : ""
+                        ? t("pleaseSelectServiceType")
+                        : activeStep === 3 && (!formData.kycNumber || !formData.documentImage)
+                          ? t("pleaseCompleteKyc")
+                          : ""
                   }
                 >
                   <span>
@@ -1924,7 +1995,7 @@ const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => 
                       }}
                       endIcon={<ArrowForward />}
                       disabled={
-                        isSubmitting || 
+                        isSubmitting ||
                         (activeStep === 0 && !isStep0ReadyForNext()) ||
                         (activeStep === 2 && formData.housekeepingRole.length === 0)
                       }
