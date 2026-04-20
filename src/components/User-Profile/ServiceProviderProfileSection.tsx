@@ -24,7 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  IdCard
+  IdCard,
+  CreditCard
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
@@ -98,6 +99,13 @@ interface ServiceProviderData {
     pinno: string;
     state: string;
   };
+  // Bank details fields
+  bankName?: string;
+  ifscCode?: string;
+  accountHolderName?: string;
+  accountNumber?: string;
+  accountType?: string;
+  upiId?: string;
 }
 
 const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps> = ({ userId, userEmail }) => {
@@ -142,7 +150,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     buildingName: "",
     pincode: "",
     nearbyLocation: "",
-    timeslot: ""
+    timeslot: "",
+    // Bank details
+    bankName: "",
+    ifscCode: "",
+    accountHolderName: "",
+    accountNumber: "",
+    accountType: "",
+    upiId: ""
   });
   
   const [originalData, setOriginalData] = useState({ ...userData });
@@ -169,6 +184,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     address: true,
     availability: true,
     kyc: true,
+    bankDetails: true,
     additional: true
   });
 
@@ -219,11 +235,18 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     return `${paddedHour}:${paddedMinute}`;
   };
 
+  // Parse 12-hour format like "06:00 AM" → number
   const parseTimeToNumber = (timeStr: string): number => {
     const [time, period] = timeStr.trim().split(' ');
     let [hour, minute] = time.split(':').map(Number);
     if (period === 'PM' && hour !== 12) hour += 12;
     if (period === 'AM' && hour === 12) hour = 0;
+    return hour + (minute / 60);
+  };
+
+  // NEW: Parse 24-hour format like "06:00" → number
+  const parse24HourTimeToNumber = (timeStr: string): number => {
+    const [hour, minute] = timeStr.split(':').map(Number);
     return hour + (minute / 60);
   };
 
@@ -318,17 +341,24 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         }
       }
 
+      // --- FIX: Parse timeslot in 24-hour format and split crossing noon ---
       let morning: number[][] = [];
       let evening: number[][] = [];
+
       if (data.timeslot) {
         const slots = data.timeslot.split(',').map(slot => slot.trim());
         slots.forEach(slot => {
           const [startStr, endStr] = slot.split('-');
           if (startStr && endStr) {
             try {
-              const start = parseTimeToNumber(startStr);
-              const end = parseTimeToNumber(endStr);
-              if (start < 12) {
+              let start = parse24HourTimeToNumber(startStr);
+              let end = parse24HourTimeToNumber(endStr);
+              
+              // If slot crosses 12:00 (noon), split it
+              if (start < 12 && end > 12) {
+                morning.push([start, 12]);
+                evening.push([12, end]);
+              } else if (start < 12) {
                 morning.push([start, end]);
               } else {
                 evening.push([start, end]);
@@ -368,7 +398,13 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         buildingName: data.buildingName || "",
         pincode: data.pincode?.toString() || "",
         nearbyLocation: data.nearbyLocation || "",
-        timeslot: data.timeslot || ""
+        timeslot: data.timeslot || "",
+        bankName: data.bankName || "",
+        ifscCode: data.ifscCode || "",
+        accountHolderName: data.accountHolderName || "",
+        accountNumber: data.accountNumber || "",
+        accountType: data.accountType || "",
+        upiId: data.upiId || ""
       };
 
       setUserData(updatedUserData);
@@ -523,7 +559,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
         payload.nannyCareType = userData.nannyCareType;
       }
 
-      // ✅ Send housekeepingRoles as an array
+      // Send housekeepingRoles as an array
       if (
         userData.housekeepingRoles.join(",") !==
         originalData.housekeepingRoles.join(",")
@@ -555,6 +591,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       if (userData.nearbyLocation !== originalData.nearbyLocation) {
         payload.nearbyLocation = userData.nearbyLocation;
       }
+
+      // Bank details
+      if (userData.accountHolderName !== originalData.accountHolderName) payload.accountHolderName = userData.accountHolderName;
+      if (userData.accountNumber !== originalData.accountNumber) payload.accountNumber = userData.accountNumber;
+      if (userData.accountType !== originalData.accountType) payload.accountType = userData.accountType;
+      if (userData.bankName !== originalData.bankName) payload.bankName = userData.bankName;
+      if (userData.ifscCode !== originalData.ifscCode) payload.ifscCode = userData.ifscCode;
+      if (userData.upiId !== originalData.upiId) payload.upiId = userData.upiId;
 
       let timeslotString = '';
       if (!isFullTime) {
@@ -1179,6 +1223,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                     <Fade in={!isFullTime}>
                       <Box>
                         <TimeSlotSelector
+                          key={`morning-${morningSlots.length}-${morningSlots.map(s => s.join()).join()}`}
                           title={t("morningAvailability")}
                           slots={morningSlots}
                           minTime={6}
@@ -1202,6 +1247,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                           formatDisplayTime={formatDisplayTime}
                         />
                         <TimeSlotSelector
+                          key={`evening-${eveningSlots.length}-${eveningSlots.map(s => s.join()).join()}`}
                           title={t("eveningAvailability")}
                           slots={eveningSlots}
                           minTime={12}
@@ -1325,6 +1371,100 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-gray-200 my-4" />
+
+        {/* Bank Details Section */}
+        <div className="mb-6">
+          <div 
+            className="flex items-center justify-between cursor-pointer mb-4"
+            onClick={() => toggleSection('bankDetails')}
+          >
+            <div className="flex items-center">
+              <CreditCard size={18} className="text-blue-600 mr-2" />
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                {t("bankDetails")}
+              </h3>
+            </div>
+            {expandedSections.bankDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
+
+          {expandedSections.bankDetails && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("accountHolderName")}</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  value={userData.accountHolderName}
+                  onChange={(e) => setUserData(prev => ({ ...prev, accountHolderName: e.target.value }))}
+                  readOnly={!isEditing}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("accountNumber")}</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  value={userData.accountNumber}
+                  onChange={(e) => setUserData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                  readOnly={!isEditing}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("accountType")}</label>
+                {isEditing ? (
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                    value={userData.accountType}
+                    onChange={(e) => setUserData(prev => ({ ...prev, accountType: e.target.value }))}
+                  >
+                    <option value="">{t("selectAccountType")}</option>
+                    <option value="SAVINGS">{t("savings")}</option>
+                    <option value="CURRENT">{t("current")}</option>
+                  </select>
+                ) : (
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                    value={userData.accountType || t("notSpecified")}
+                    readOnly
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("bankName")}</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  value={userData.bankName}
+                  onChange={(e) => setUserData(prev => ({ ...prev, bankName: e.target.value }))}
+                  readOnly={!isEditing}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("ifscCode")}</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  value={userData.ifscCode}
+                  onChange={(e) => setUserData(prev => ({ ...prev, ifscCode: e.target.value.toUpperCase() }))}
+                  readOnly={!isEditing}
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-2">{t("upiId")}</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  value={userData.upiId}
+                  onChange={(e) => setUserData(prev => ({ ...prev, upiId: e.target.value }))}
+                  readOnly={!isEditing}
+                  placeholder="example@okhdfcbank"
+                  style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
+                />
               </div>
             </div>
           )}

@@ -41,7 +41,7 @@ import { useFieldValidation } from "./useFieldValidation";
 import BasicInformation from "./BasicInformation";
 import ServiceDetails from "./ServiceDetails";
 import KYCVerification from "./KYCVerification";
-import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails"; // NEW IMPORT
+import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 
@@ -190,7 +190,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     t("addressInformation"),
     t("additionalDetails"),
     t("kycVerification"),
-    t("bankDetails"),      // NEW STEP
+    t("bankDetails"),
     t("confirmation"),
   ];
 
@@ -1288,45 +1288,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
+    // ============================================================
+    // STEP 3 (KYC) IS NOW OPTIONAL – ALWAYS VALID
+    // ============================================================
     if (step === 3) {
-      if (!formData.kycType) {
-        tempErrors.kycType = t("kycTypeRequired");
-      }
-      if (!formData.kycNumber) {
-        tempErrors.kycNumber = t("kycNumberRequired").replace("{documentName}", getKycLabel(formData.kycType));
-      } else {
-        // Add specific validation based on KYC type
-        switch (formData.kycType) {
-          case "AADHAR":
-            if (!aadhaarRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = t("aadhaarInvalid");
-            }
-            break;
-          case "PAN":
-            if (!panRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = t("panInvalid");
-            }
-            break;
-          case "DRIVING_LICENSE":
-            if (formData.kycNumber.length < 8) {
-              tempErrors.kycNumber = t("drivingLicenseInvalid");
-            }
-            break;
-          case "VOTER_ID":
-            if (!voterIdRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = t("voterIdInvalid");
-            }
-            break;
-          case "PASSPORT":
-            if (!passportRegex.test(formData.kycNumber)) {
-              tempErrors.kycNumber = t("passportInvalid");
-            }
-            break;
-        }
-      }
-      if (!formData.documentImage) {
-        tempErrors.documentImage = t("documentImageRequired");
-      }
+      // No validation – KYC is optional
+      return true;
     }
 
     // NEW: Bank details step – optional, always valid
@@ -1491,8 +1458,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           kycType: formData.kycType,
           kycNumber: formData.kycNumber,
           dob: formData.dob,
-          // NEW: Include bank details if any field is filled
-          ...(Object.keys(bankDetailsPayload).length > 0 && { bankDetails: bankDetailsPayload })
+          bankName: formData.bankDetails.bankName?.trim() || null,
+          ifscCode: formData.bankDetails.ifscCode?.trim() || null,
+          accountHolderName: formData.bankDetails.accountHolderName?.trim() || null,
+          accountNumber: formData.bankDetails.accountNumber?.trim() || null,
+          accountType: formData.bankDetails.accountType?.trim() || null,
+          upiId: formData.bankDetails.upiId?.trim() || null,
         };
 
         const response = await providerInstance.post(
@@ -1980,9 +1951,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                           : t("completeAllRequiredFields")
                       : activeStep === 2 && formData.housekeepingRole.length === 0
                         ? t("pleaseSelectServiceType")
-                        : activeStep === 3 && (!formData.kycNumber || !formData.documentImage)
-                          ? t("pleaseCompleteKyc")
-                          : ""
+                      : ""
                   }
                 >
                   <span>
