@@ -58,7 +58,6 @@ import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
 
-
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
   bookingType: string;
@@ -386,6 +385,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
+  const [selectedSaveOption, setSelectedSaveOption] = useState<string | null>(null);
 
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
   
@@ -550,6 +550,8 @@ export const Header: React.FC<ChildComponentProps> = ({
   const handleClose = () => {
     setOpen(false);
     setOpenSaveOptionForSave(false);
+    setSelectedSaveOption(null);
+    setShowInput(false);
   };
   
   const handleServiceClick = (service: string) => {
@@ -739,9 +741,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
     console.log("User preference selected: ", preference);
 
     if (!preference) {
+      setSelectedSaveOption('Others');
       setShowInput(true);
-      setLocationAs(locationAs);
+      setLocationAs('');
     } else {
+      setSelectedSaveOption(preference);
       setShowInput(false);
       setLocationAs(preference);
     }
@@ -938,18 +942,21 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   >
                     {t('detectLocation')}
                   </li>
-                  <li
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => {
-                      console.log("🏠 Add Address clicked");
-                      handleChange(t('addAddress'));
-                      setTimeout(() => {
-                        setShowDropdown(false);
-                      }, 100);
-                    }}
-                  >
-                    {t('addAddress')}
-                  </li>
+                  {/* Show "Add Address" only for authenticated CUSTOMER users */}
+                  {isAuthenticated && appUser?.role === "CUSTOMER" && (
+                    <li
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        console.log("🏠 Add Address clicked");
+                        handleChange(t('addAddress'));
+                        setTimeout(() => {
+                          setShowDropdown(false);
+                        }, 100);
+                      }}
+                    >
+                      {t('addAddress')}
+                    </li>
+                  )}
                   {loadingLocations ? (
                     <li className="px-4 py-2 text-gray-500 flex items-center justify-center gap-2">
                       <ClipLoader size={15} color="#6b7280" />
@@ -1105,7 +1112,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   <li
     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
     onClick={() => {
-      handleClick(AGENT_DASHBOARD); // This sends "AGENT_DASHBOARD" to parent
+      handleClick(AGENT_DASHBOARD);
       setdropDownOpen(false);
     }}
   >
@@ -1206,6 +1213,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             <Button
               startIcon={<FaHome />}
               className={undefined}
+              style={{
+                backgroundColor: selectedSaveOption === 'Home' ? '#bbdefb' : 'transparent',
+                border: selectedSaveOption === 'Home' ? '2px solid #1976d2' : 'none',
+                marginRight: '8px'
+              }}
               onClick={() => {
                 handleUserPreference("Home");
               }}
@@ -1216,6 +1228,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             <Button
               startIcon={<HiBuildingOffice />}
               className={undefined}
+              style={{
+                backgroundColor: selectedSaveOption === 'Office' ? '#bbdefb' : 'transparent',
+                border: selectedSaveOption === 'Office' ? '2px solid #1976d2' : 'none',
+                marginRight: '8px'
+              }}
               onClick={() => {
                 handleUserPreference("Office");
               }}
@@ -1226,6 +1243,10 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             <Button
               startIcon={<FaLocationArrow />}
               className={undefined}
+              style={{
+                backgroundColor: selectedSaveOption === 'Others' ? '#bbdefb' : 'transparent',
+                border: selectedSaveOption === 'Others' ? '2px solid #1976d2' : 'none'
+              }}
               onClick={() => {
                 handleUserPreference();
               }}
