@@ -388,6 +388,27 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   const serviceDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close services dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        serviceDropdownRef.current &&
+        !serviceDropdownRef.current.contains(event.target as Node)
+      ) {
+        setServiceDropdownOpen(false);
+      }
+    };
+
+    if (serviceDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [serviceDropdownOpen]);
+
   const handleCartOpen = () => setCartOpen(true);
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
@@ -805,36 +826,38 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       {t('home')}
     </button>
 
-    {/* Services Dropdown */}
-    <div className="relative" ref={serviceDropdownRef}>
-      <button
-        onClick={() => setServiceDropdownOpen((prev) => !prev)}
-        className="flex items-center gap-1 hover:text-gray-200 transition"
-      >
-        {t('ourServices')}
-        <ChevronDown className="w-4 h-4" />
-      </button>
+    {/* Services Dropdown - hide for SERVICE_PROVIDER */}
+    {!(isAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
+      <div className="relative" ref={serviceDropdownRef}>
+        <button
+          onClick={() => setServiceDropdownOpen((prev) => !prev)}
+          className="flex items-center gap-1 hover:text-gray-200 transition"
+        >
+          {t('ourServices')}
+          <ChevronDown className="w-4 h-4" />
+        </button>
 
-      {serviceDropdownOpen && (
-        <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
-          {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map(
-            (service, idx) => (
-              <li
-                key={idx}
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  setSelectedService(service);
-                  setServiceDropdownOpen(false);
-                  handleServiceClick(service);
-                }}
-              >
-                {service}
-              </li>
-            )
-          )}
-        </ul>
-      )}
-    </div>
+        {serviceDropdownOpen && (
+          <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+            {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map(
+              (service, idx) => (
+                <li
+                  key={idx}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setSelectedService(service);
+                    setServiceDropdownOpen(false);
+                    handleServiceClick(service);
+                  }}
+                >
+                  {service}
+                </li>
+              )
+            )}
+          </ul>
+        )}
+      </div>
+    )}
 
     {/* My Bookings Tab - Conditionally shown for authenticated CUSTOMER users */}
     {isAuthenticated && appUser?.role === "CUSTOMER" && (
