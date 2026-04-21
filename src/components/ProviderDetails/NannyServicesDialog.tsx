@@ -61,6 +61,7 @@ import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { BOOKINGS } from '../../Constants/pagesConstants';
 import { useLanguage } from 'src/context/LanguageContext';
+import { useAppUser } from 'src/context/AppUserContext';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -139,7 +140,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
-
+const { appUser } = useAppUser(); 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const { isAuthenticated, user, loginWithRedirect } = useAuth0();
@@ -420,7 +421,13 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
         return;
       }
 
-      const customerId = user?.customerid || "guest-id";
+       const customerId = appUser?.customerid;
+    if (!customerId) {
+      setSnackbarMessage("User information not found. Please login again.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
 
       const responsibilities = selectedPackages.map(pkg => ({
         taskType: `${pkg.category} care - ${pkg.packageType} service`,

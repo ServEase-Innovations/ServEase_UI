@@ -71,6 +71,7 @@ import { usePricingFilterService } from 'src/utils/PricingFilter';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
+import { useAppUser } from 'src/context/AppUserContext';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -211,7 +212,7 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
-
+const { appUser } = useAppUser();
   // Normalize pricing source (prefer hook -> store -> empty)
   const maidPricingRows: MaidPricingRow[] = useMemo(() => {
     const asArray = (data: any): MaidPricingRow[] => {
@@ -718,7 +719,13 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
         return;
       }
 
-      const customerId = user?.customerid || "guest-id";
+     const customerId = appUser?.customerid;
+      if (!customerId) {
+      setSnackbarMessage("User information not found. Please login again.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
       const packages = selectedServices.filter(item => item.serviceType === "package");
       const addOns = selectedServices.filter(item => item.serviceType === "addon");
 

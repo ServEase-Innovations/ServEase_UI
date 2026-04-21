@@ -18,13 +18,15 @@ import {
   CircularProgress,
   InputLabel,
   FormHelperText,
+  Tooltip,
 } from "@mui/material";
 import { 
   Visibility, 
   VisibilityOff, 
   FileCopy,
   CheckCircle,
-  Error as ErrorIcon 
+  Error as ErrorIcon,
+  InfoOutlined,
 } from "@mui/icons-material";
 
 import { Button } from "../Button/button";
@@ -37,7 +39,7 @@ import axios from "axios";
 
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
-  onClose?: () => void; // Add onClose prop
+  onClose?: () => void;
 }
 
 interface FormData {
@@ -64,7 +66,6 @@ interface ApiResponse {
   error?: string;
 }
 
-// API Request Payload Interface
 interface ApiRequestPayload {
   companyName: string;
   address: string;
@@ -75,9 +76,8 @@ interface ApiRequestPayload {
 
 const AgentRegistrationForm: React.FC<RegistrationProps> = ({
   onBackToLogin,
-  onClose, // Add onClose prop
+  onClose,
 }) => {
-  // Use the language context
   const { t, currentLanguage } = useLanguage();
   
   const [formData, setFormData] = useState<FormData>({
@@ -106,14 +106,10 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
 
   const [returnedRegistrationId, setReturnedRegistrationId] = useState("");
-  
-  // Loading state for submit button
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use the field validation hook
   const { validationResults, validateField, resetValidation } = useFieldValidation();
 
-  // Debounce timers
   const [emailTimer, setEmailTimer] = useState<NodeJS.Timeout | null>(null);
   const [mobileTimer, setMobileTimer] = useState<NodeJS.Timeout | null>(null);
 
@@ -124,13 +120,11 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       [name]: value,
     });
 
-    // Clear validation error for the field
     setValidationErrors({
       ...validationErrors,
       [name]: "",
     });
 
-    // Handle real-time validation for email and phone
     if (name === "emailId") {
       if (emailTimer) clearTimeout(emailTimer);
       const timer = setTimeout(() => {
@@ -213,9 +207,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
     }
   };
 
-  // Check if all validations pass
   const isFormValid = () => {
-    // Check basic field validations
     const basicValidations = 
       !validationErrors.phoneNo &&
       !validationErrors.emailId &&
@@ -230,7 +222,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       formData.password &&
       formData.confirmPassword;
 
-    // Check availability validations
     const availabilityValidations = 
       validationResults.email.isAvailable === true &&
       validationResults.mobile.isAvailable === true;
@@ -241,7 +232,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all fields before submission
     if (!formData.companyName || !formData.address) {
       setMessage(t("fillRequiredFields"));
       setSnackbarSeverity("error");
@@ -256,10 +246,8 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       return;
     }
 
-    // Set submitting state to true
     setIsSubmitting(true);
 
-    // Prepare the request body
     const requestData: ApiRequestPayload = {
       companyName: formData.companyName,
       address: formData.address,
@@ -302,7 +290,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
           console.error("Failed to copy registration ID: ", err);
         }
 
-        // Reset form
         setFormData({
           companyName: "",
           phoneNo: "",
@@ -313,16 +300,14 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
           confirmPassword: "",
         });
 
-        // Reset validations
         resetValidation();
 
-        // Close the dialog after 2 seconds (to allow user to see success message)
         setTimeout(() => {
           setIsSubmitting(false);
           if (onClose) {
-            onClose(); // Call onClose to close the dialog
+            onClose();
           } else {
-            onBackToLogin(true); // Fallback to onBackToLogin
+            onBackToLogin(true);
           }
         }, 2000);
       } else {
@@ -365,7 +350,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
       });
   };
 
-  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (emailTimer) clearTimeout(emailTimer);
@@ -373,7 +357,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
     };
   }, [emailTimer, mobileTimer]);
 
-  // Helper to render validation status icon
   const renderValidationIcon = (fieldType: 'email' | 'mobile') => {
     const result = validationResults[fieldType];
     
@@ -503,6 +486,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                 </Box>
               </Grid>
 
+              {/* Registration ID field with Info button */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -520,6 +504,25 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
                     style: { textTransform: 'uppercase' }
                   }}
                   disabled={isSubmitting}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Tooltip 
+                          title="Government-issued company registration ID"
+                          arrow
+                        >
+                          <IconButton 
+                            edge="end" 
+                            size="small"
+                            disabled={isSubmitting}
+                            aria-label="info about registration ID"
+                          >
+                            <InfoOutlined />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Grid>
 
@@ -628,7 +631,6 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
             </Box>
           </form>
 
-          {/* Registration ID Display Box */}
           {returnedRegistrationId && (
             <Box
               sx={{

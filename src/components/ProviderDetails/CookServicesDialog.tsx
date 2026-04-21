@@ -19,6 +19,7 @@ import { CartDialog } from '../AddToCart/CartDialog';
 import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
+import { useAppUser } from 'src/context/AppUserContext';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -46,6 +47,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user, loginWithRedirect, isAuthenticated } = useAuth0();
+  const { appUser } = useAppUser();  
   const providerFullName = `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
   const { getBookingType, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
@@ -238,8 +240,13 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         }));
 
       const baseTotal = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
-      const customerId = user?.customerid || "guest-id";
-
+       const customerId = appUser?.customerid;
+ if (!customerId) {
+      setSnackbarMessage("User information not found. Please login again.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
       const responsibilities = selectedPackages.map(pkg => ({
         taskType: pkg.taskType,
         persons: pkg.persons
