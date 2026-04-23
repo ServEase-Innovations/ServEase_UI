@@ -1446,7 +1446,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-100/80">
       <header className="border-b border-slate-200/80 bg-white">
-        <div className="container mx-auto max-w-6xl px-4 pb-4 pt-[calc(9rem+env(safe-area-inset-top,0px))] md:pt-[calc(8.25rem+env(safe-area-inset-top,0px))] lg:pt-[calc(5.75rem+env(safe-area-inset-top,0px))] md:pb-5">
+        <div className="container mx-auto max-w-6xl px-4 pb-4 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(5rem+env(safe-area-inset-top,0px))] md:pt-[calc(6rem+env(safe-area-inset-top,0px))] lg:pt-[calc(6.5rem+env(safe-area-inset-top,0px))] xl:pt-[calc(7rem+env(safe-area-inset-top,0px))] md:pb-5">
           <div className="flex flex-col gap-3.5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">

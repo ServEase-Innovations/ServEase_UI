@@ -32,7 +32,7 @@ import {
   AGENT_DASHBOARD,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, MapPin, ShoppingCart, User, X, Globe } from "lucide-react";
+import { Bell, ChevronDown, MapPin, Menu, ShoppingCart, User, X, Globe } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -57,6 +57,7 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
+import { publicAsset } from "src/utils/publicAsset";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
@@ -76,6 +77,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   // Use the language hook
   const { t, currentLanguage, setLanguage } = useLanguage();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   
  const handleClick = (e: any) => {
   if (e === "sign_out") {
@@ -117,6 +119,8 @@ export const Header: React.FC<ChildComponentProps> = ({
     setLanguage(lang);
     setIsLanguageMenuOpen(false);
   };
+
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   const handleNotificationClick = () => {
     setShowNotifications(true);
@@ -764,6 +768,24 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   const isMobile = useMediaQuery("(max-width:768px)");
 
   useEffect(() => {
+    if (!isMobile) setMobileNavOpen(false);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
     console.log("🔄 userPreference state changed:", userPreference);
     console.log("🔄 suggestions state changed:", suggestions);
   }, [userPreference, suggestions]);
@@ -793,61 +815,68 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
   return (
     <>
-      <header
-        className="fixed top-0 left-0 right-0 z-50 shadow-sm px-4 md:px-6 py-2 md:py-4 flex items-center justify-between bg-gradient-to-r from-[#0a2a66] to-[#004aad]"
-        style={{ height: "10%" }}
-      >
-        {/* Logo Section */}
-        <div
-          className="flex items-center space-x-2 cursor-pointer"
-          onClick={onLogoClick}
-        >
-          <img
-            src="ServEaso_Logo.png"
-            alt="ServEase Logo"
-            className="h-[7.5rem] w-auto md:hidden"
-          />
-          <img
-            src="ServEaso_Logo.png"
-            alt="ServEase Logo"
-            className="hidden md:block lg:hidden h-[9rem] w-auto max-w-[200px]"
-          />
-          <img
-            src="ServEaso_Logo.png"
-            alt="ServEase Logo"
-            className="hidden lg:block h-48 w-auto max-w-[340px]"
-          />
+      <header className="fixed left-0 right-0 top-0 z-50 overflow-visible border-b border-white/10 bg-gradient-to-r from-slate-950 via-[#0b2a5c] to-sky-950 pt-[env(safe-area-inset-top,0px)] shadow-[0_6px_24px_-6px_rgba(0,0,0,0.4)]">
+        <div className="relative mx-auto flex h-11 max-w-[90rem] items-center justify-between gap-1.5 overflow-visible px-2 py-0 sm:h-12 sm:gap-2 sm:px-3 md:h-14 md:gap-3 md:px-5 lg:px-7">
+        <div className="relative flex h-full shrink-0 items-center gap-1 sm:gap-1.5">
+          {isMobile && (
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen(true)}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-8 sm:w-8"
+            >
+              <Menu className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
+            </button>
+          )}
+          <div className="relative h-full min-w-[9.25rem] w-[10.25rem] sm:min-w-[10.75rem] sm:w-[11.75rem] md:min-w-[13.5rem] md:w-[15rem] lg:min-w-[15.5rem] lg:w-[17.25rem] xl:min-w-[17.5rem] xl:w-[19.25rem]">
+            <button
+              type="button"
+              onClick={() => {
+                onLogoClick();
+                closeMobileNav();
+              }}
+              className="group absolute left-0 top-1/2 z-20 flex -translate-y-1/2 items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
+              aria-label="ServEaso home"
+            >
+              <img
+                src={publicAsset("ServEaso_Logo.png")}
+                alt=""
+                className="h-16 w-auto max-w-[12rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
+              />
+            </button>
+          </div>
         </div>
 
-        {/* Navigation Links */}
-     {!isMobile && (
-  <nav className="flex items-center gap-6 text-white font-medium">
-    {/* Home Tab */}
+        {!isMobile && (
+  <nav className="flex min-w-0 flex-1 items-center justify-center gap-1 lg:gap-2" aria-label="Main">
     <button
+      type="button"
       onClick={() => handleClick("")}
-      className="hover:text-gray-200 transition"
+      className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
     >
       {t('home')}
     </button>
 
-    {/* Services Dropdown - hide for SERVICE_PROVIDER */}
     {!(isAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
       <div className="relative" ref={serviceDropdownRef}>
         <button
+          type="button"
           onClick={() => setServiceDropdownOpen((prev) => !prev)}
-          className="flex items-center gap-1 hover:text-gray-200 transition"
+          className="flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
+          aria-expanded={serviceDropdownOpen}
         >
           {t('ourServices')}
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${serviceDropdownOpen ? "rotate-180" : ""}`} />
         </button>
 
         {serviceDropdownOpen && (
-          <ul className="absolute left-0 mt-2 w-48 bg-white border rounded-lg shadow-md text-gray-800 z-50">
+          <ul className="absolute left-0 z-[100] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1.5 text-slate-800 shadow-2xl shadow-slate-900/25 ring-1 ring-black/5">
             {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map(
               (service, idx) => (
                 <li
                   key={idx}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  className="cursor-pointer px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-sky-50 hover:text-sky-950"
                   onClick={() => {
                     setSelectedService(service);
                     setServiceDropdownOpen(false);
@@ -863,58 +892,58 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </div>
     )}
 
-    {/* My Bookings Tab - Conditionally shown for authenticated CUSTOMER users */}
     {isAuthenticated && appUser?.role === "CUSTOMER" && (
       <button
+        type="button"
         onClick={() => handleClick(BOOKINGS)}
-        className="hover:text-gray-200 transition"
+        className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
       >
         {t('myBookings')}
       </button>
     )}
 
-    {/* Dashboard Tab - Conditionally shown for authenticated SERVICE_PROVIDER users */}
     {isAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
       <button
+        type="button"
         onClick={() => handleClick(DASHBOARD)}
-        className="hover:text-gray-200 transition"
+        className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
       >
         {t('dashboard')}
       </button>
     )}
 
-    {/* Agent Dashboard Tab - Conditionally shown for authenticated VENDOR users */}
     {isAuthenticated && appUser?.role === "VENDOR" && (
       <button
+        type="button"
         onClick={() => handleClick(AGENT_DASHBOARD)}
-        className="hover:text-gray-200 transition"
+        className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
       >
         Agent Dashboard
       </button>
     )}
 
     <button
+      type="button"
       onClick={() => handleClick("ABOUT")}
-      className="hover:text-gray-200"
+      className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
     >
       {t('aboutUs')}
     </button>
 
     <button
+      type="button"
       onClick={() => handleClick("CONTACT")}
-      className="hover:text-gray-200"
+      className="rounded-md px-2.5 py-1 text-sm font-medium text-white/90 transition-colors hover:bg-white/12 hover:text-white md:px-3"
     >
       {t('contactUs')}
     </button>
   </nav>
-)}
+        )}
 
-        {/* Right Side Content */}
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Location Bar */}
-          <div className="flex items-center border rounded-xl px-2 md:px-3 py-1 md:py-2 bg-gray-100 w-[140px] sm:w-[180px] md:w-[240px] lg:w-64 relative">
-            <MapPin className="w-4 h-4 text-gray-500 mr-2" />
-            <div className="relative w-full">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-3">
+          <div className="relative flex h-8 min-w-0 max-w-[6.75rem] items-center gap-1 rounded-md border border-white/25 bg-white/10 px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 sm:max-w-[10rem] sm:px-2 md:max-w-[13rem] lg:max-w-[16rem]">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-200 sm:h-4 sm:w-4" aria-hidden />
+            <div className="relative min-w-0 flex-1">
               <input
                 type="text"
                 placeholder={t('location')}
@@ -922,16 +951,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 onFocus={() => setShowDropdown(true)}
                 onClick={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                className="bg-transparent outline-none text-xs md:text-sm w-full px-1 cursor-pointer"
+                className="w-full cursor-pointer truncate bg-transparent text-[10px] text-white outline-none placeholder:text-white/45 sm:text-xs md:text-sm"
                 readOnly
               />
               {showDropdown && (
-              <ul className="absolute left-0 z-50 bg-white border rounded shadow-md mt-1 
-               w-[220px] sm:w-[260px] md:w-full 
-               max-w-[90vw] 
-               max-h-60 overflow-y-auto text-xs md:text-sm">
+              <ul className="absolute right-0 z-[100] mt-2 max-h-60 min-w-[14rem] max-w-[min(90vw,18rem)] overflow-y-auto rounded-xl border border-slate-200/90 bg-white py-1 text-xs text-slate-800 shadow-2xl ring-1 ring-black/5 sm:left-auto sm:right-0 sm:text-sm md:min-w-[16rem]">
                   <li
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                     onClick={() => {
                       console.log("📍 Detect Location clicked");
                       handleChange(t('detectLocation'));
@@ -945,7 +971,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   {/* Show "Add Address" only for authenticated CUSTOMER users */}
                   {isAuthenticated && appUser?.role === "CUSTOMER" && (
                     <li
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                       onClick={() => {
                         console.log("🏠 Add Address clicked");
                         handleChange(t('addAddress'));
@@ -958,8 +984,8 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                     </li>
                   )}
                   {loadingLocations ? (
-                    <li className="px-4 py-2 text-gray-500 flex items-center justify-center gap-2">
-                      <ClipLoader size={15} color="#6b7280" />
+                    <li className="flex items-center justify-center gap-2 px-4 py-2.5 text-slate-500">
+                      <ClipLoader size={15} color="#64748b" />
                       {t('loading')}...
                     </li>
                   ) : (
@@ -968,7 +994,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       .map((suggestion, index) => (
                         <li
                           key={index}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log(`📍 ${suggestion.name} clicked`);
@@ -989,33 +1015,33 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             </div>
           </div>
 
-          {/* Language Selector - Positioned after Location Bar */}
           <div className="relative">
           <button
-  onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-  className="flex items-center space-x-1 px-1 sm:px-2 md:px-3 py-1 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs md:text-sm transition-colors"
->
-  <Globe className="w-3 h-3 sm:w-4 sm:h-4" />
-  <span className="hidden xs:inline sm:inline">
-    {currentLanguage.toUpperCase()}
-  </span>
-  <ChevronDown
-    className={`w-3 h-3 transition-transform ${
-      isLanguageMenuOpen ? "rotate-180" : ""
-    }`}
-  />
-</button>
-            
-            {/* Language Dropdown Menu */}
+            type="button"
+            onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+            className="flex h-8 items-center gap-1 rounded-md border border-white/25 bg-white/10 px-2 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-white/18 sm:h-9 sm:px-2.5 sm:text-xs md:px-3"
+            aria-expanded={isLanguageMenuOpen}
+          >
+            <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+            <span className="tabular-nums">{currentLanguage.toUpperCase()}</span>
+            <ChevronDown
+              className={`h-3 w-3 shrink-0 transition-transform sm:h-3.5 sm:w-3.5 ${
+                isLanguageMenuOpen ? "rotate-180" : ""
+              }`}
+              aria-hidden
+            />
+          </button>
+
             {isLanguageMenuOpen && (
-              <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden">
-                <div className="py-1">
+              <div className="absolute right-0 top-full z-[100] mt-2 min-w-[10.5rem] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-2xl ring-1 ring-black/5">
+                <div className="py-0.5">
                   {languages.map((lang) => (
                     <button
+                      type="button"
                       key={lang}
                       onClick={() => handleLanguageChange(lang)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                        currentLanguage === lang ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                        currentLanguage === lang ? "bg-sky-50 font-medium text-sky-800" : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       {t(lang)}
@@ -1026,53 +1052,51 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             )}
           </div>
 
-          {/* Notifications */}
-      <Button
-  variant="ghost"
-  size="icon"
-  className="flex items-center justify-center 
-             p-1 sm:p-1.5 md:p-2 
-             bg-white rounded-full shadow"
-  onClick={handleNotificationClick}
->
-  <Bell className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-</Button>
-          
-          {/* User / Auth */}
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-8 sm:w-8"
+            onClick={handleNotificationClick}
+            aria-label="Notifications"
+          >
+            <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+          </button>
+
           {!isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-white rounded-full shadow"
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-8 sm:w-8"
               onClick={() => loginWithRedirect()}
+              aria-label="Sign in"
             >
-              <User className="w-5 h-5" />
-            </Button>
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+            </button>
           ) : (
-            <div className="relative inline-block text-left">
+            <div className="relative text-left">
               <button
+                type="button"
                 onClick={() => setdropDownOpen((prev) => !prev)}
-                className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                className="flex h-8 max-w-[10rem] items-center gap-1.5 rounded-md border border-white/25 bg-white/10 py-0 pl-1 pr-2 text-white transition hover:bg-white/18 sm:h-9 sm:max-w-[12rem] md:gap-2 md:pl-1.5 md:pr-3"
+                aria-expanded={dropDownOpen}
               >
                 <img
                   src={appUser?.picture}
-                  alt={appUser?.name}
-                  className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+                  alt=""
+                  className="h-7 w-7 shrink-0 rounded-full ring-2 ring-white/35 md:h-8 md:w-8"
                 />
-                <span className="font-medium hidden sm:inline">
+                <span className="hidden max-w-[6rem] truncate text-sm font-medium text-white/95 sm:inline md:max-w-[9rem]">
                   {user?.name}
                 </span>
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className={`hidden h-4 w-4 shrink-0 sm:block ${dropDownOpen ? "rotate-180" : ""}`} aria-hidden />
               </button>
 
               {dropDownOpen && (
                 <div
                   ref={dropdownRef}
-                  className="absolute right-0 mt-2 w-40 md:w-48 bg-white border rounded-lg shadow-md z-10"
+                  className="absolute right-0 z-[100] mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-2xl ring-1 ring-black/5 md:w-56"
                 >
-                  <ul className="py-2 text-sm">
+                  <ul className="py-1 text-sm text-slate-800">
                     <li
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                       onClick={() => {
                         handleClick(PROFILE);
                         setdropDownOpen(false);
@@ -1084,7 +1108,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                     {/* Customer Menu Items */}
                     {appUser?.role === "CUSTOMER" && (
                       <li
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                         onClick={() => {
                           handleClick(BOOKINGS);
                           setdropDownOpen(false);
@@ -1093,11 +1117,10 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         {t('myBookings')}
                       </li>
                     )}
-                    
-                    {/* Service Provider Menu Items */}
+
                     {appUser?.role === "SERVICE_PROVIDER" && (
                       <li
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
                         onClick={() => {
                           handleClick(DASHBOARD);
                           setdropDownOpen(false);
@@ -1106,22 +1129,21 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         {t('dashboard')}
                       </li>
                     )}
-                    
-                  {/* Vendor Menu Items - Show Agent Dashboard */}
-{appUser?.role === "VENDOR" && (
-  <li
-    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-    onClick={() => {
-      handleClick(AGENT_DASHBOARD);
-      setdropDownOpen(false);
-    }}
-  >
-    Agent Dashboard
-  </li>
-)}
-                    
+
+                    {appUser?.role === "VENDOR" && (
+                      <li
+                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                        onClick={() => {
+                          handleClick(AGENT_DASHBOARD);
+                          setdropDownOpen(false);
+                        }}
+                      >
+                        Agent Dashboard
+                      </li>
+                    )}
+
                     <li
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      className="cursor-pointer px-4 py-2.5 text-slate-700 transition-colors hover:bg-slate-50"
                       onClick={() => {
                         logout({
                           logoutParams: { returnTo: window.location.origin },
@@ -1137,7 +1159,126 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             </div>
           )}
         </div>
+        </div>
       </header>
+
+      {mobileNavOpen && isMobile && (
+        <>
+          <div
+            role="presentation"
+            className="fixed inset-0 z-[60] bg-slate-950/50 backdrop-blur-sm"
+            onClick={closeMobileNav}
+            aria-hidden
+          />
+          <aside
+            className="fixed inset-y-0 left-0 z-[70] flex w-[min(100vw-2rem,19.5rem)] flex-col border-r border-slate-200/90 bg-white shadow-2xl"
+            aria-label="Mobile navigation"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+              <span className="text-sm font-semibold tracking-tight text-slate-900">ServEaso</span>
+              <button
+                type="button"
+                onClick={closeMobileNav}
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3" aria-label="Main">
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                onClick={() => {
+                  handleClick("");
+                  closeMobileNav();
+                }}
+              >
+                {t("home")}
+              </button>
+              {!(isAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
+                <div className="mt-1 border-t border-slate-100 pt-2">
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    {t("ourServices")}
+                  </p>
+                  {[t("homeCook"), t("cleaningHelp"), t("caregiver")].map((service, idx) => (
+                    <button
+                      type="button"
+                      key={idx}
+                      className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-950"
+                      onClick={() => {
+                        setSelectedService(service);
+                        setServiceDropdownOpen(false);
+                        handleServiceClick(service);
+                        closeMobileNav();
+                      }}
+                    >
+                      {service}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isAuthenticated && appUser?.role === "CUSTOMER" && (
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                  onClick={() => {
+                    handleClick(BOOKINGS);
+                    closeMobileNav();
+                  }}
+                >
+                  {t("myBookings")}
+                </button>
+              )}
+              {isAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                  onClick={() => {
+                    handleClick(DASHBOARD);
+                    closeMobileNav();
+                  }}
+                >
+                  {t("dashboard")}
+                </button>
+              )}
+              {isAuthenticated && appUser?.role === "VENDOR" && (
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                  onClick={() => {
+                    handleClick(AGENT_DASHBOARD);
+                    closeMobileNav();
+                  }}
+                >
+                  Agent Dashboard
+                </button>
+              )}
+              <div className="my-2 border-t border-slate-100" />
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                onClick={() => {
+                  handleClick("ABOUT");
+                  closeMobileNav();
+                }}
+              >
+                {t("aboutUs")}
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
+                onClick={() => {
+                  handleClick("CONTACT");
+                  closeMobileNav();
+                }}
+              >
+                {t("contactUs")}
+              </button>
+            </nav>
+          </aside>
+        </>
+      )}
 
       {/* Location Selection Dialog */}
       <Dialog open={open} onClose={handleClose}>
