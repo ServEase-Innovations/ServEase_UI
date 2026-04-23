@@ -1,5 +1,4 @@
 /* eslint-disable */
-
 import { useEffect, useState, useMemo, useCallback } from "react";
 import "./DetailsView.css";
 import axiosInstance from "../../services/axiosInstance";
@@ -51,8 +50,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [allProviders, setAllProviders] = useState<ServiceProviderDTO[]>([]);
 
-  // ✅ No client-side filtering needed anymore – backend does it
-  // We keep allProviders as the raw API response (already filtered by backend)
+  // No client-side filtering needed – backend does it
   const filteredProviders = allProviders;
 
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
@@ -72,7 +70,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     }
   };
 
-  // Helper: calculate duration in minutes (unchanged)
+  // Helper: calculate duration in minutes
   const calculateDurationInMinutes = (startTime?: string, endTime?: string): number => {
     if (!startTime || !endTime) return 60;
     try {
@@ -111,7 +109,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     return 60;
   };
 
-  // Core fetch function with pagination + filter parameters
+  // Core fetch function with pagination + filter parameters (transformed to backend format)
   const fetchProviders = async (page: number, reset: boolean = false) => {
     try {
       if (reset) {
@@ -153,27 +151,40 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         serviceDurationMinutes: serviceDurationMinutes
       };
 
-      // ✅ Add filter parameters if present
+      // ✅ Transform filters to match required backend format
       if (activeFilters) {
-        if (activeFilters.experience && (activeFilters.experience[0] > 0 || activeFilters.experience[1] < 30)) {
-          payload.minExperience = activeFilters.experience[0];
-          payload.maxExperience = activeFilters.experience[1];
+        // Experience -> "min-max" string
+        const [minExp, maxExp] = activeFilters.experience;
+        if (minExp > 0 || maxExp < 30) {
+          payload.experienceRange = `${minExp}-${maxExp}`;
         }
+
+        // Rating -> minRating number
         if (activeFilters.rating) {
           payload.minRating = activeFilters.rating;
         }
+
+        // Gender -> single string (if selected and not empty)
+        if (activeFilters.gender && activeFilters.gender !== "") {
+          payload.gender = activeFilters.gender;
+        }
+
+        // Diet -> single string (if selected and not empty)
+        if (activeFilters.diet && activeFilters.diet !== "") {
+          payload.diet = activeFilters.diet;
+        }
+
+        // Languages -> array of strings
+        if (activeFilters.language.length > 0) {
+          payload.languages = activeFilters.language;
+        }
+
+        // Distance (optional, only if changed from default max 50)
         if (activeFilters.distance && activeFilters.distance[1] < 50) {
           payload.maxDistance = activeFilters.distance[1];
         }
-        if (activeFilters.gender.length > 0) {
-          payload.genders = activeFilters.gender;
-        }
-        if (activeFilters.diet.length > 0) {
-          payload.diets = activeFilters.diet;
-        }
-        if (activeFilters.language.length > 0) {
-          payload.languages = activeFilters.language; // backend expects exact strings
-        }
+
+        // Availability (optional)
         if (activeFilters.availability.length > 0) {
           payload.availabilityStatuses = activeFilters.availability;
         }
@@ -183,7 +194,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         payload.customerID = Number(customerId);
       }
 
-      console.log(`Fetching page ${page} with filters:`, payload);
+      console.log(`Fetching page ${page} with payload:`, payload);
 
       const response = await providerInstance.post(
         `/api/service-providers/nearby-monthly?page=${page}&limit=10`,
@@ -234,9 +245,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     await fetchProviders(reset ? 1 : currentPage + 1, reset);
   }, [location, bookingType, activeFilters, customerId, appUser]);
 
-  // ✅ Trigger search when any dependency changes (including filters)
+  // Trigger search when dependencies change
   useEffect(() => {
-    // Only search if we have the necessary data
     if (selectedProviderType !== undefined && location && bookingType) {
       performSearch(true);
     }
@@ -266,8 +276,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (filters.experience[0] > 0 || filters.experience[1] < 30) count++;
     if (filters.rating) count++;
     if (filters.distance[0] > 0 || filters.distance[1] < 50) count++;
-    if (filters.gender.length > 0) count++;
-    if (filters.diet.length > 0) count++;
+    if (filters.gender && filters.gender !== "") count++;
+    if (filters.diet && filters.diet !== "") count++;
     if (filters.language.length > 0) count++;
     if (filters.availability.length > 0) count++;
     setActiveFilterCount(count);

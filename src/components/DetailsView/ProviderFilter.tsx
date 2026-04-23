@@ -13,11 +13,10 @@ import {
   IconButton,
   Rating,
   FormControl,
-  Select,
-  MenuItem,
-  OutlinedInput,
-  InputLabel,
-  SelectChangeEvent,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
   Autocomplete,
   TextField
 } from '@mui/material';
@@ -33,10 +32,10 @@ interface FilterProps {
 }
 
 export interface FilterCriteria {
-  experience: number[];
+  experience: number[];        // [min, max] – will be sent as "min-max" string
   rating: number | null;
-  gender: string[];
-  diet: string[];
+  gender: string | null;       // single string
+  diet: string | null;         // single string
   language: string[];
   distance: number[];
   availability: string[];
@@ -47,7 +46,7 @@ const FilterSection = styled(Box)(({ theme }) => ({
 }));
 
 const LANGUAGES = [
-  'English', 'Hindi', 'Bengali', 'Telugu', 'Tamil', 
+  'English', 'Hindi', 'Bengali', 'Telugu', 'Tamil',
   'Kannada', 'Malayalam', 'Marathi', 'Gujarati', 'Punjabi',
   'Odia', 'Assamese', 'Urdu', 'Sanskrit', 'Nepali',
   'French', 'German', 'Spanish', 'Arabic', 'Japanese',
@@ -68,8 +67,8 @@ const ProviderFilter: React.FC<FilterProps> = ({
     initialFilters || {
       experience: [0, 30],
       rating: null,
-      gender: [],
-      diet: [],
+      gender: null,
+      diet: null,
       language: [],
       distance: [0, 50],
       availability: []
@@ -78,22 +77,14 @@ const ProviderFilter: React.FC<FilterProps> = ({
 
   const [tempFilters, setTempFilters] = useState<FilterCriteria>(filters);
 
+  // Single‑select for gender
   const handleGenderChange = (gender: string) => {
-    setTempFilters(prev => ({
-      ...prev,
-      gender: prev.gender.includes(gender)
-        ? prev.gender.filter(g => g !== gender)
-        : [...prev.gender, gender]
-    }));
+    setTempFilters(prev => ({ ...prev, gender }));
   };
 
+  // Single‑select for diet
   const handleDietChange = (diet: string) => {
-    setTempFilters(prev => ({
-      ...prev,
-      diet: prev.diet.includes(diet)
-        ? prev.diet.filter(d => d !== diet)
-        : [...prev.diet, diet]
-    }));
+    setTempFilters(prev => ({ ...prev, diet }));
   };
 
   const handleAvailabilityChange = (status: string) => {
@@ -112,11 +103,11 @@ const ProviderFilter: React.FC<FilterProps> = ({
   };
 
   const handleReset = () => {
-    const resetFilters = {
+    const resetFilters: FilterCriteria = {
       experience: [0, 30],
       rating: null,
-      gender: [],
-      diet: [],
+      gender: null,
+      diet: null,
       language: [],
       distance: [0, 50],
       availability: []
@@ -216,49 +207,39 @@ const ProviderFilter: React.FC<FilterProps> = ({
           </Box>
         </FilterSection>
 
-        {/* Gender Filter */}
+        {/* Gender Filter – Single Select (No "Any" option) */}
         <FilterSection>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Gender
-          </Typography>
-          <FormGroup>
-            <Stack direction="row" flexWrap="wrap" gap={1}>
+          <FormControl component="fieldset">
+            <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Gender</FormLabel>
+            <RadioGroup
+              row
+              value={tempFilters.gender || ''}
+              onChange={(e) => handleGenderChange(e.target.value)}
+            >
               {genderOptions.map(gender => (
-                <Chip
-                  key={gender}
-                  label={gender}
-                  clickable
-                  color={tempFilters.gender.includes(gender) ? 'primary' : 'default'}
-                  onClick={() => handleGenderChange(gender)}
-                  variant={tempFilters.gender.includes(gender) ? 'filled' : 'outlined'}
-                />
+                <FormControlLabel key={gender} value={gender} control={<Radio />} label={gender} />
               ))}
-            </Stack>
-          </FormGroup>
+            </RadioGroup>
+          </FormControl>
         </FilterSection>
 
-        {/* Diet Filter */}
+        {/* Diet Filter – Single Select (No "Any" option) */}
         <FilterSection>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Diet Preference
-          </Typography>
-          <FormGroup>
-            <Stack direction="row" flexWrap="wrap" gap={1}>
+          <FormControl component="fieldset">
+            <FormLabel component="legend" sx={{ fontWeight: 600, mb: 1 }}>Diet Preference</FormLabel>
+            <RadioGroup
+              row
+              value={tempFilters.diet || ''}
+              onChange={(e) => handleDietChange(e.target.value)}
+            >
               {dietOptions.map(diet => (
-                <Chip
-                  key={diet}
-                  label={diet}
-                  clickable
-                  color={tempFilters.diet.includes(diet) ? 'primary' : 'default'}
-                  onClick={() => handleDietChange(diet)}
-                  variant={tempFilters.diet.includes(diet) ? 'filled' : 'outlined'}
-                />
+                <FormControlLabel key={diet} value={diet} control={<Radio />} label={diet} />
               ))}
-            </Stack>
-          </FormGroup>
+            </RadioGroup>
+          </FormControl>
         </FilterSection>
 
-        {/* Language Filter - using Autocomplete (fixes hidden input box) */}
+        {/* Language Filter – Multi‑select */}
         <FilterSection>
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Languages
@@ -269,12 +250,7 @@ const ProviderFilter: React.FC<FilterProps> = ({
             value={tempFilters.language}
             onChange={(_, newValue) => setTempFilters(prev => ({ ...prev, language: newValue }))}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                placeholder="Select languages"
-                size="small"
-              />
+              <TextField {...params} variant="outlined" placeholder="Select languages" size="small" />
             )}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
@@ -292,26 +268,14 @@ const ProviderFilter: React.FC<FilterProps> = ({
               ))
             }
             sx={{
-              '& .MuiAutocomplete-tag': {
-                margin: '2px',
-              },
-              '& .MuiOutlinedInput-root': {
-                padding: '4px 8px',
-                minHeight: '56px',
-                alignItems: 'flex-start',
-              },
+              '& .MuiAutocomplete-tag': { margin: '2px' },
+              '& .MuiOutlinedInput-root': { padding: '4px 8px', minHeight: '56px', alignItems: 'flex-start' },
             }}
-            ListboxProps={{
-              style: { maxHeight: 300 }
-            }}
+            ListboxProps={{ style: { maxHeight: 300 } }}
           />
           {tempFilters.language.length > 0 && (
             <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button 
-                size="small" 
-                onClick={() => setTempFilters(prev => ({ ...prev, language: [] }))}
-                sx={{ textTransform: 'none' }}
-              >
+              <Button size="small" onClick={() => setTempFilters(prev => ({ ...prev, language: [] }))}>
                 Clear languages
               </Button>
             </Box>
@@ -343,18 +307,10 @@ const ProviderFilter: React.FC<FilterProps> = ({
       <Divider sx={{ my: 2 }} />
 
       <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={handleReset}
-        >
+        <Button fullWidth variant="outlined" onClick={handleReset}>
           Reset All
         </Button>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleApply}
-        >
+        <Button fullWidth variant="contained" onClick={handleApply}>
           Apply Filters
         </Button>
       </Box>
