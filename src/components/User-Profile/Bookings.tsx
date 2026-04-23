@@ -985,7 +985,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             monthlyAmount: item.base_amount,
             paymentMode: item.payment?.payment_mode || item.paymentMode,
             address: item.address || 'No address specified',
-            customerName: item.customerName,
+           customerName: item.customerName || (appUser?.firstname && appUser?.lastname 
+  ? `${appUser.firstname} ${appUser.lastname}` 
+  : appUser?.email?.split('@')[0] || 'Customer'),
             serviceProviderName: serviceProviderName,
             providerRating: providerRating,
             taskStatus: item.task_status,
@@ -1492,14 +1494,14 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         <div className="relative flex items-center">
 
           {/* Back Button */}
-         <button
+         {/* <button
   onClick={() => window.history.back()}
   className="z-10 inline-flex items-center justify-center p-2 rounded-lg bg-white/90 shadow-sm border border-gray-200"
 >
   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
     <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
   </svg>
-</button>
+</button> */}
 
           {/* Center Title */}
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold">
@@ -1515,7 +1517,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
 
       {/* ================= LEFT (Desktop) ================= */}
       <div className="hidden md:flex justify-start">
-        <button
+        {/* <button
           onClick={() => window.history.back()}
           className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm border border-gray-200"
         >
@@ -1523,7 +1525,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
             <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
           </svg>
           <span className="font-medium">Back</span>
-        </button>
+        </button> */}
       </div>
 
       {/* ================= CENTER (Desktop) ================= */}
