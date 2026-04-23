@@ -116,6 +116,13 @@ export const translations: Translations = {
     kn: "ಆರೈಕೆದಾರ",
     bn: "পরিচর্যাকারী"
   },
+
+  bookService: {
+    en: "Book",
+    hi: "बुक करें",
+    kn: "ಬುಕ್ ಮಾಡಿ",
+    bn: "বুক করুন"
+  },
   
   myBookings: {
     en: "My Bookings",
