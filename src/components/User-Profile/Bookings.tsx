@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, AlertCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -163,73 +163,45 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 // Booking Card Skeleton
 const BookingCardSkeleton: React.FC = () => {
   return (
-    <Card className="shadow-card">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
-            <SkeletonLoader width="2rem" height="2rem" variant="circular" />
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <div>
-                  <SkeletonLoader width="150px" height="1.5rem" className="mb-2" />
-                  <SkeletonLoader width="100px" height="1rem" />
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="text-left sm:text-right">
-                    <SkeletonLoader width="140px" height="1.25rem" className="mb-1" />
-                    <SkeletonLoader width="80px" height="0.875rem" />
-                  </div>
-                </div>
-              </div>
+    <Card className="overflow-hidden rounded-2xl border border-slate-200/90 shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-slate-50/40 p-4 sm:py-4">
+        <div className="flex gap-3 sm:gap-4">
+          <SkeletonLoader width="2.75rem" height="2.75rem" className="!rounded-xl shrink-0" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex justify-between gap-2">
+              <SkeletonLoader width="160px" height="1.25rem" />
+              <SkeletonLoader width="64px" height="1.25rem" className="shrink-0" />
             </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <SkeletonLoader width="80px" height="1.5rem" />
-            <SkeletonLoader width="100px" height="1.5rem" />
+            <SkeletonLoader width="220px" height="0.8rem" />
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              <SkeletonLoader width="72px" height="1.35rem" className="!rounded-full" />
+              <SkeletonLoader width="88px" height="1.35rem" className="!rounded-full" />
+            </div>
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
-              <SkeletonLoader width="200px" height="1rem" />
-            </div>
-            <div className="flex items-center gap-2">
-              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
-              <SkeletonLoader width="150px" height="1rem" />
-            </div>
-            <div className="flex items-center gap-2">
-              <SkeletonLoader width="1rem" height="1rem" variant="circular" />
-              <SkeletonLoader width="250px" height="1rem" />
-            </div>
+
+      <CardContent className="space-y-3 p-4 sm:pt-3">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2 rounded-lg border border-slate-100 p-3">
+            <SkeletonLoader width="100%" height="0.875rem" />
+            <SkeletonLoader width="85%" height="0.875rem" />
+            <SkeletonLoader width="95%" height="0.875rem" />
           </div>
-          
-          <div className="space-y-3">
-            <div>
-              <SkeletonLoader width="120px" height="1rem" className="mb-2" />
-              <div className="flex flex-wrap gap-2">
-                <SkeletonLoader width="100px" height="1.5rem" />
-                <SkeletonLoader width="120px" height="1.5rem" />
-                <SkeletonLoader width="80px" height="1.5rem" />
-              </div>
-            </div>
-            <div className="text-right">
-              <SkeletonLoader width="100px" height="2rem" className="ml-auto" />
+          <div className="rounded-lg border border-slate-100 p-3">
+            <SkeletonLoader width="100px" height="0.65rem" className="mb-2" />
+            <div className="flex flex-wrap gap-1.5">
+              <SkeletonLoader width="88px" height="1.35rem" className="!rounded-full" />
+              <SkeletonLoader width="100px" height="1.35rem" className="!rounded-full" />
             </div>
           </div>
         </div>
-        
+
         <Separator />
-        
+
         <div className="flex flex-wrap gap-2">
-          <SkeletonLoader width="100px" height="2rem" />
-          <SkeletonLoader width="100px" height="2rem" />
-          <SkeletonLoader width="100px" height="2rem" />
-          <SkeletonLoader width="100px" height="2rem" />
+          <SkeletonLoader width="96px" height="2rem" className="!rounded-md" />
+          <SkeletonLoader width="96px" height="2rem" className="!rounded-md" />
         </div>
       </CardContent>
     </Card>
@@ -239,10 +211,10 @@ const BookingCardSkeleton: React.FC = () => {
 // Status Tabs Skeleton
 const StatusTabsSkeleton: React.FC = () => {
   return (
-    <div className="mb-6">
-      <div className="flex flex-wrap gap-1 md:gap-2">
+    <div className="mb-4">
+      <div className="-mx-1 flex min-w-max gap-2 px-1 pb-1 md:flex-wrap md:min-w-0">
         {[1, 2, 3, 4, 5].map((i) => (
-          <SkeletonLoader key={i} width="80px" height="2.25rem" />
+          <SkeletonLoader key={i} width="88px" height="2.25rem" />
         ))}
       </div>
     </div>
@@ -1472,384 +1444,312 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-<div
-  className="px-4"
-  style={{
-    background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
-    color: "rgb(14, 48, 92)",
-    paddingTop: "6.5rem",
-    paddingBottom: "0.5rem",
-  }}
->
-  <div className="container mx-auto">
-
-    <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
-
-      {/* ================= MOBILE HEADER ================= */}
-      <div className="md:hidden">
-
-        {/* Row: Back + Center Title */}
-        <div className="relative flex items-center">
-
-          {/* Back Button */}
-         {/* <button
-  onClick={() => window.history.back()}
-  className="z-10 inline-flex items-center justify-center p-2 rounded-lg bg-white/90 shadow-sm border border-gray-200"
->
-  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
-  </svg>
-</button> */}
-
-          {/* Center Title */}
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold">
-            My Bookings
-          </h1>
-        </div>
-
-        {/* Subtitle BELOW */}
-        <p className="text-center mt-1 text-xs opacity-90">
-          Manage your househelp service appointments
-        </p>
-      </div>
-
-      {/* ================= LEFT (Desktop) ================= */}
-      <div className="hidden md:flex justify-start">
-        {/* <button
-          onClick={() => window.history.back()}
-          className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/90 hover:bg-white transition-all duration-300 shadow-sm border border-gray-200"
-        >
-          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
-          </svg>
-          <span className="font-medium">Back</span>
-        </button> */}
-      </div>
-
-      {/* ================= CENTER (Desktop) ================= */}
-      <div className="hidden md:block text-center">
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">
-          My Bookings
-        </h1>
-        <p className="mt-1 text-xs md:text-sm lg:text-base opacity-90">
-          Manage your househelp service appointments
-        </p>
-      </div>
-
-      {/* ================= RIGHT ================= */}
-      <div className="flex items-center justify-center md:justify-end gap-3 w-full">
-
-        {/* SEARCH */}
-        <div className="relative w-[85%] md:w-64">
-
-          {/* Desktop */}
-          <div className="hidden md:block">
-            <input
-              type="text"
-              placeholder="Search bookings..."
-              className="w-full px-4 py-2 rounded-lg bg-white shadow-md text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Mobile */}
-          <div className="md:hidden">
-            <input
-              type="text"
-              placeholder="Search bookings..."
-              className="w-full px-4 py-3 rounded-xl bg-white shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-
-            {searchTerm && (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-100/80">
+      <header className="border-b border-slate-200/80 bg-white">
+        <div className="container mx-auto max-w-6xl px-4 pb-4 pt-[calc(9rem+env(safe-area-inset-top,0px))] md:pt-[calc(8.25rem+env(safe-area-inset-top,0px))] lg:pt-[calc(5.75rem+env(safe-area-inset-top,0px))] md:pb-5">
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.history.back()}
+                  className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 md:h-10 md:w-10"
+                  aria-label="Go back"
+                >
+                  <ArrowLeft className="h-5 w-5" strokeWidth={2} />
+                </button>
+                <div className="min-w-0 flex-1 pr-1">
+                  <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-900 sm:text-xl md:text-2xl">
+                    My bookings
+                  </h1>
+                  <p className="mt-1 text-xs leading-snug text-slate-500 sm:text-sm">
+                    Search below, or open your wallet from the icon on the right.
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                type="button"
+                className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                onClick={() => setWalletDialogOpen(true)}
+                aria-label="Open wallet"
               >
-                <XCircle className="h-5 w-5" />
+                <Wallet className="h-5 w-5" strokeWidth={2} />
               </button>
-            )}
+            </div>
+
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <input
+                type="search"
+                placeholder="Search by provider, service, address, or booking #"
+                className="w-full rounded-lg border-0 bg-slate-100 py-2.5 pl-10 pr-10 text-sm text-slate-900 ring-1 ring-slate-200/80 transition placeholder:text-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm ? (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-slate-200/60 hover:text-slate-600"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Clear search"
+                >
+                  <XCircle className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* WALLET */}
-        <div className="flex flex-col items-center flex-shrink-0">
-          <button
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md border border-gray-200 hover:bg-blue-50"
-            onClick={() => setWalletDialogOpen(true)}
-          >
-            <svg
-              className="h-5 w-5 md:h-6 md:w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="rgb(14, 48, 92)"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+      <div className="container mx-auto max-w-6xl px-4 py-5 md:py-7">
+        <section className="mb-8 md:mb-10">
+          <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 items-stretch gap-3">
+              <div
+                className="w-1 shrink-0 rounded-full bg-gradient-to-b from-sky-500 to-sky-600"
+                aria-hidden
               />
-            </svg>
-          </button>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                  Upcoming
+                </h2>
+                <p className="mt-1 text-sm leading-snug text-slate-500">
+                  {isLoading ? (
+                    <SkeletonLoader width="180px" height="0.875rem" />
+                  ) : (
+                    <>
+                      <span className="font-medium text-slate-700">{filteredUpcomingBookings.length}</span>
+                      {filteredUpcomingBookings.length === 1 ? " booking" : " bookings"}
+                      {searchTerm.trim()
+                        ? " match your search"
+                        : statusFilter !== "ALL"
+                          ? " with this status"
+                          : " on your calendar"}
+                      <span className="text-slate-400"> · </span>
+                      <span className="tabular-nums text-slate-600">{upcomingBookings.length} total</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <span className="mt-1 text-xs">Wallet</span>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</div>
-
-      <div className="container mx-auto px-4 py-4 md:py-8">
-        {/* Upcoming Bookings Section */}
-        <section className="mb-8">
-         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6 p-4 bg-gradient-to-br md:bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/10 border-l-4 border-l-primary shadow-sm">
-  
-  {/* Icon and Text Wrapper */}
-  <div className="flex gap-3 w-full">
-    <div className="mt-1 md:mt-0 p-2 bg-primary/10 rounded-lg md:bg-transparent md:p-0">
-      <AlertCircle className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
-    </div>
-    
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between md:justify-start md:gap-3">
-        <h2 className="text-lg md:text-xl font-bold tracking-tight text-card-foreground">
-          Upcoming Bookings
-        </h2>
-        {/* Badge visible on Mobile inside this flex row */}
-        <Badge variant="secondary" className="md:hidden bg-primary text-primary-foreground border-none px-2 py-0.5 text-xs font-bold">
-          {isLoading ? <SkeletonLoader width="20px" height="10px" /> : upcomingBookings.length}
-        </Badge>
-      </div>
-      
-      <p className="text-sm text-muted-foreground mt-0.5">
-        {isLoading ? (
-          <SkeletonLoader width="100px" height="1rem" />
-        ) : (
-          <span className="flex items-center gap-1">
-            <span className="font-medium text-foreground/80">{filteredUpcomingBookings.length}</span>
-            {filteredUpcomingBookings.length === 1 ? 'booking' : 'bookings'} scheduled
-          </span>
-        )}
-      </p>
-    </div>
-  </div>
-
-  {/* Badge for Desktop only */}
-  <Badge variant="secondary" className="hidden md:flex bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm font-semibold">
-    {isLoading ? <SkeletonLoader width="30px" height="1rem" /> : upcomingBookings.length}
-  </Badge>
-</div>
-
-          {/* Status Tabs */}
           {isLoading ? (
             <StatusTabsSkeleton />
           ) : (
-            <div className="mb-6">
-              <div className="flex flex-wrap gap-1 md:gap-2">
-                {statusTabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setStatusFilter(tab.value)}
-                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-                      statusFilter === tab.value
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                    <span className="ml-2 bg-gray-200 text-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-xs">
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
+            <div className="mb-4">
+              <div className="-mx-1 overflow-x-auto pb-0.5 scrollbar-thin">
+                <div className="flex min-w-max gap-1.5 px-1 md:flex-wrap md:min-w-0 md:gap-2">
+                  {statusTabs.map((tab) => {
+                    const active = statusFilter === tab.value;
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setStatusFilter(tab.value)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all md:px-3.5 md:text-sm ${
+                          active
+                            ? "border-sky-600 bg-sky-600 text-white shadow-md shadow-sky-600/25"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="hidden sm:inline">{tab.label}</span>
+                        <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums md:text-xs ${
+                            active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
 
           {isLoading ? (
-            // Show skeleton loaders while loading
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {[1, 2, 3].map((i) => (
                 <BookingCardSkeleton key={i} />
               ))}
             </div>
           ) : upcomingBookings.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {filteredUpcomingBookings.map((booking) => (
                 <Card
                   key={booking.id}
                   id={`booking-${booking.id}`}
-                  className="shadow-card hover:shadow-hover transition-all duration-200"
+                  className="overflow-hidden rounded-2xl border border-slate-200/90 bg-card shadow-sm transition-all duration-200 hover:border-sky-200/70 hover:shadow-md"
                 >
-                  <CardHeader className="pb-4">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/40 p-4 sm:px-5 sm:py-4">
+                    <div className="flex gap-3 sm:gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm ring-1 ring-slate-200/70 sm:h-12 sm:w-12 sm:text-2xl">
                         {getServiceIcon(booking.service_type)}
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                            <div>
-                              <CardTitle className="text-base md:text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
-                              <p className="text-xs md:text-sm text-muted-foreground">Booking #{booking.id}</p>
-                            </div>
-                            
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                              <div className="text-left sm:text-right">
-                                <p className="text-sm md:text-base font-medium text-gray-800">
-                                  {booking.assignmentStatus === "UNASSIGNED" ? (
-                                    <span className="text-yellow-600">Awaiting Assignment</span>
-                                  ) : (
-                                    <>ServiceProvider: {booking.serviceProviderName}</>
-                                  )}
-                                </p>
-                                {booking.providerRating > 0 && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                    <span className="text-xs text-gray-600">
-                                      {booking.providerRating.toFixed(1)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <CardTitle className="mb-0 min-w-0 text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                            {getServiceTitle(booking.service_type)}
+                          </CardTitle>
+                          {!(booking.payment && booking.payment.status === "PENDING") && (
+                            <span className="shrink-0 text-lg font-bold tabular-nums tracking-tight text-slate-900 sm:text-xl">
+                              ₹{booking.monthlyAmount}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {getBookingTypeBadge(booking.bookingType)}
-                        {getStatusBadge(booking.taskStatus)}
-                        {booking.taskStatus !== 'CANCELLED' && (
-                          <>
-                            {booking.modifications && booking.modifications.length > 0 && (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                                Modified
-                              </Badge>
-                            )}
-                            {booking.assignmentStatus === "UNASSIGNED" && (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                                Awaiting
-                              </Badge>
-                            )}
-                            {booking.payment && booking.payment.status === "PENDING" && (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                                Payment Pending
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {/* Left column: date, time, address */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">
-                            {new Date(booking.startDate).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                            {booking.taskStatus !== 'CANCELLED' && booking.modifications && booking.modifications.length > 0 && (
-                              <span className="ml-1 text-xs text-green-600 font-medium">
-                                (Rescheduled)
-                              </span>
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600 sm:text-[13px]">
+                          <span className="text-slate-500">Booking #{booking.id}</span>
+                          <span className="text-slate-300" aria-hidden>
+                            ·
+                          </span>
+                          <span className="font-medium text-slate-700">
+                            {booking.assignmentStatus === "UNASSIGNED" ? (
+                              <span className="text-amber-700">Awaiting assignment</span>
+                            ) : (
+                              <>Provider: {booking.serviceProviderName}</>
                             )}
                           </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">{formatTimeRange(booking.start_time, booking.end_time)}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm break-words">{booking.address}</span>
-                        </div>
-
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
-                            {getModificationDetails(booking)}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Right column: responsibilities and price */}
-                      <div className="space-y-3">
-                        <div>
-                          <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          {/* Mobile: horizontal scrollable chips | Desktop: wrap */}
-                          <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible gap-1 pb-2 md:pb-0 scrollbar-thin">
-                            {[
-                              ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
-                              ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
-                            ].map((item: any, index: number) => {
-                              const { task, isAddon } = item;
-                              const taskLabel =
-                                typeof task === "object" && task !== null
-                                  ? Object.entries(task)
-                                      .filter(([key]) => key !== "taskType")
-                                      .map(([key, value]) => `${value} ${key}`)
-                                      .join(", ")
-                                  : "";
-                              const taskName = typeof task === "object" ? task.taskType : task;
-                              return (
-                                <Badge key={index} variant="outline" className="text-xs whitespace-nowrap md:whitespace-normal">
-                                  {isAddon ? "Add-ons - " : ""}
-                                  {taskName} {taskLabel && `- ${taskLabel}`}
+                          {booking.providerRating > 0 && (
+                            <>
+                              <span className="text-slate-300" aria-hidden>
+                                ·
+                              </span>
+                              <span className="inline-flex items-center gap-0.5 text-slate-600">
+                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                {booking.providerRating.toFixed(1)}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {getBookingTypeBadge(booking.bookingType)}
+                          {getStatusBadge(booking.taskStatus)}
+                          {booking.taskStatus !== "CANCELLED" && (
+                            <>
+                              {booking.modifications && booking.modifications.length > 0 && (
+                                <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
+                                  Modified
                                 </Badge>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          {booking.payment && booking.payment.status === "PENDING" ? (
-                            <div className="flex flex-col items-end gap-3">
-                              <p className="text-sm text-red-600 font-medium mb-1">
-                                Payment Required
-                              </p>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handlePaymentClick(booking)}
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                                disabled={booking.taskStatus === 'CANCELLED'}
-                              >
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                Complete Payment
-                              </Button>
-                              <p className="text-xs text-gray-500">
-                                Complete payment to confirm your booking
-                              </p>
-                            </div>
-                          ) : (
-                            <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                              )}
+                              {booking.assignmentStatus === "UNASSIGNED" && (
+                                <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
+                                  Awaiting
+                                </Badge>
+                              )}
+                              {booking.payment && booking.payment.status === "PENDING" && (
+                                <Badge variant="outline" className="border-red-200 bg-red-50 text-xs font-medium text-red-800">
+                                  Payment pending
+                                </Badge>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex justify-center">
-                      {renderScheduledMessage(booking)}
+                  </CardHeader>
+
+                  <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
+                    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+                      <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
+                        <div className="flex items-start gap-2.5 text-sm">
+                          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                            {new Date(booking.startDate).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                            {booking.taskStatus !== "CANCELLED" &&
+                              booking.modifications &&
+                              booking.modifications.length > 0 && (
+                                <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
+                              )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-sm">
+                          <Clock className="h-4 w-4 shrink-0 text-sky-600" />
+                          <span className="text-xs text-slate-700 sm:text-sm">
+                            {formatTimeRange(booking.start_time, booking.end_time)}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2.5 text-sm">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
+                            {booking.address}
+                          </span>
+                        </div>
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-lg border border-slate-100 bg-white p-2.5 sm:p-3">
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Responsibilities
+                        </p>
+                        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin md:flex-wrap md:overflow-visible md:pb-0">
+                          {[
+                            ...(booking.responsibilities?.tasks || []).map((task) => ({ task, isAddon: false })),
+                            ...(booking.responsibilities?.add_ons || []).map((task) => ({ task, isAddon: true })),
+                          ].map((item: any, index: number) => {
+                            const { task, isAddon } = item;
+                            const taskLabel =
+                              typeof task === "object" && task !== null
+                                ? Object.entries(task)
+                                    .filter(([key]) => key !== "taskType")
+                                    .map(([key, value]) => `${value} ${key}`)
+                                    .join(", ")
+                                : "";
+                            const taskName = typeof task === "object" ? task.taskType : task;
+                            return (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="whitespace-nowrap border-slate-200 bg-slate-50/80 text-xs text-slate-700 md:whitespace-normal"
+                              >
+                                {isAddon ? "Add-ons - " : ""}
+                                {taskName} {taskLabel && `- ${taskLabel}`}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    
-                    <Separator />
-                    
-                    {/* Action buttons: 2‑column grid on mobile, flex-wrap on desktop */}
+
+                    {booking.payment && booking.payment.status === "PENDING" && (
+                      <div className="flex flex-col gap-2 rounded-lg border border-red-100 bg-red-50/60 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-red-800">Payment required</p>
+                          <p className="text-xs text-slate-600">
+                            ₹{booking.monthlyAmount} · complete to confirm this booking
+                          </p>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handlePaymentClick(booking)}
+                          className="w-full shrink-0 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
+                          disabled={booking.taskStatus === "CANCELLED"}
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Pay now
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="flex w-full justify-center">{renderScheduledMessage(booking)}</div>
+
+                    <Separator className="bg-slate-200/80" />
+
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                       {renderActionButtons(booking)}
                     </div>
@@ -1858,248 +1758,217 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               ))}
             </div>
           ) : (
-            <Card className="text-center py-8">
-              <CardContent>
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg mb-2">No Upcoming Bookings</h3>
-                <p className="text-muted-foreground mb-4">Ready to book your next service?</p>
-                <Button 
-                  onClick={() => setServicesDialogOpen(true)}
-                  className="w-full sm:w-auto"
-                >
-                  Book a Service
+            <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
+              <CardContent className="px-6">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
+                  <Calendar className="h-7 w-7 text-sky-600" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">No upcoming bookings</h3>
+                <p className="mx-auto mb-6 max-w-sm text-sm text-slate-600">
+                  When you book a service, it will show up here with status, schedule, and quick actions.
+                </p>
+                <Button onClick={() => setServicesDialogOpen(true)} className="w-full rounded-xl sm:w-auto">
+                  Book a service
                 </Button>
               </CardContent>
             </Card>
           )}
         </section>
 
-        {/* Past Bookings Section */}
         <section>
-         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6 p-4 bg-gradient-to-r from-muted/30 to-transparent rounded-lg border-l-4 border-muted-foreground/30">
-
-  {/* Icon + Content */}
-  <div className="flex gap-3 w-full">
-    
-    {/* Icon */}
-    <div className="mt-1 md:mt-0 p-2 md:p-0 bg-muted/30 md:bg-transparent rounded-lg">
-      <History className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground flex-shrink-0" />
-    </div>
-
-    {/* Text Section */}
-    <div className="flex-1 min-w-0">
-      
-      {/* Title + Mobile Badge */}
-      <div className="flex items-center justify-between md:justify-start md:gap-3">
-        <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-card-foreground">
-          Past Bookings
-        </h2>
-
-        {/* ✅ Mobile Badge */}
-        <Badge
-          variant="outline"
-          className="md:hidden border-muted-foreground/30 text-muted-foreground px-2 py-0.5 text-xs font-semibold"
-        >
-          {isLoading ? (
-            <SkeletonLoader width="20px" height="10px" />
-          ) : (
-            pastBookings.length
-          )}
-        </Badge>
-      </div>
-
-      {/* Subtitle */}
-      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-        {isLoading ? (
-          <SkeletonLoader width="100px" height="1rem" />
-        ) : (
-          <span className="flex items-center gap-1">
-            <span className="font-medium text-foreground/80">
-              {filteredPastBookings.length}
-            </span>
-            {filteredPastBookings.length === 1 ? "booking" : "bookings"} in history
-          </span>
-        )}
-      </p>
-    </div>
-  </div>
-
-  {/* ✅ Desktop Badge */}
-  <Badge
-    variant="outline"
-    className="hidden md:flex border-muted-foreground/30 text-muted-foreground px-3 py-1 text-sm font-semibold"
-  >
-    {isLoading ? (
-      <SkeletonLoader width="30px" height="1rem" />
-    ) : (
-      pastBookings.length
-    )}
-  </Badge>
-</div>
+          <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 items-stretch gap-3">
+              <div
+                className="w-1 shrink-0 rounded-full bg-gradient-to-b from-slate-400 to-slate-500"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+                  History
+                </h2>
+                <p className="mt-1 text-sm leading-snug text-slate-500">
+                  {isLoading ? (
+                    <SkeletonLoader width="160px" height="0.875rem" />
+                  ) : (
+                    <>
+                      <span className="font-medium text-slate-700">{filteredPastBookings.length}</span>
+                      {filteredPastBookings.length === 1 ? " booking" : " bookings"}
+                      {searchTerm.trim() ? " match your search" : " in your history"}
+                      <span className="text-slate-400"> · </span>
+                      <span className="tabular-nums text-slate-600">{pastBookings.length} total</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {isLoading ? (
-            // Show skeleton loaders while loading
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {[1, 2].map((i) => (
                 <BookingCardSkeleton key={i} />
               ))}
             </div>
           ) : pastBookings.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {filteredPastBookings.map((booking) => (
                 <Card
                   key={booking.id}
                   id={`booking-${booking.id}`}
-                  className="shadow-card hover:shadow-hover transition-all duration-200"
+                  className="overflow-hidden rounded-2xl border border-slate-200/90 bg-card shadow-sm transition-all duration-200 hover:border-slate-300/90 hover:shadow-md"
                 >
-                  <CardHeader className="pb-4">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50/40 p-4 sm:px-5 sm:py-4">
+                    <div className="flex gap-3 sm:gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm ring-1 ring-slate-200/70 sm:h-12 sm:w-12 sm:text-2xl">
                         {getServiceIcon(booking.service_type)}
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                            <div>
-                              <CardTitle className="text-base md:text-lg">{getServiceTitle(booking.service_type)}</CardTitle>
-                              <p className="text-xs md:text-sm text-muted-foreground">Booking #{booking.id}</p>
-                            </div>
-                            
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                              <div className="text-left sm:text-right">
-                                <p className="text-sm md:text-base font-medium text-gray-800">
-                                  ServiceProvider: {booking.serviceProviderName}
-                                </p>
-                                {booking.providerRating > 0 && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                    <span className="text-xs text-gray-600">
-                                      {booking.providerRating.toFixed(1)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <CardTitle className="mb-0 min-w-0 text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                            {getServiceTitle(booking.service_type)}
+                          </CardTitle>
+                          {!(booking.payment && booking.payment.status === "PENDING") && (
+                            <span className="shrink-0 text-lg font-bold tabular-nums tracking-tight text-slate-900 sm:text-xl">
+                              ₹{booking.monthlyAmount}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {getBookingTypeBadge(booking.bookingType)}
-                        {getStatusBadge(booking.taskStatus)}
-                        {booking.taskStatus !== 'CANCELLED' && (
-                          <>
-                            {booking.modifications && booking.modifications.length > 0 && (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                                Modified
-                              </Badge>
-                            )}
-                            {booking.payment && booking.payment.status === "PENDING" && (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
-                                Payment Pending
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">
-                            {new Date(booking.startDate).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                            {booking.taskStatus !== 'CANCELLED' && booking.modifications && booking.modifications.length > 0 && (
-                              <span className="ml-1 text-xs text-green-600 font-medium">
-                                (Rescheduled)
-                              </span>
-                            )}
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600 sm:text-[13px]">
+                          <span className="text-slate-500">Booking #{booking.id}</span>
+                          <span className="text-slate-300" aria-hidden>
+                            ·
                           </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm">{formatTimeRange(booking.start_time, booking.end_time)}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs md:text-sm break-words">{booking.address}</span>
-                        </div>
-
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-50 rounded">
-                            {getModificationDetails(booking)}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <p className="font-medium text-sm mb-1">Responsibilities:</p>
-                          <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible gap-1 pb-2 md:pb-0 scrollbar-thin">
-                            {[
-                              ...(booking.responsibilities?.tasks || []).map(task => ({ task, isAddon: false })),
-                              ...(booking.responsibilities?.add_ons || []).map(task => ({ task, isAddon: true })),
-                            ].map((item: any, index: number) => {
-                              const { task, isAddon } = item;
-                              const taskLabel =
-                                typeof task === "object" && task !== null
-                                  ? Object.entries(task)
-                                      .filter(([key]) => key !== "taskType")
-                                      .map(([key, value]) => `${value} ${key}`)
-                                      .join(", ")
-                                  : "";
-                              const taskName = typeof task === "object" ? task.taskType : task;
-                              return (
-                                <Badge key={index} variant="outline" className="text-xs whitespace-nowrap md:whitespace-normal">
-                                  {isAddon ? "Add-ons - " : ""}
-                                  {taskName} {taskLabel && `- ${taskLabel}`}
+                          <span className="font-medium text-slate-700">Provider: {booking.serviceProviderName}</span>
+                          {booking.providerRating > 0 && (
+                            <>
+                              <span className="text-slate-300" aria-hidden>
+                                ·
+                              </span>
+                              <span className="inline-flex items-center gap-0.5 text-slate-600">
+                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                {booking.providerRating.toFixed(1)}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {getBookingTypeBadge(booking.bookingType)}
+                          {getStatusBadge(booking.taskStatus)}
+                          {booking.taskStatus !== "CANCELLED" && (
+                            <>
+                              {booking.modifications && booking.modifications.length > 0 && (
+                                <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
+                                  Modified
                                 </Badge>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          {booking.payment && booking.payment.status === "PENDING" ? (
-                            <div className="flex flex-col items-end gap-3">
-                              <p className="text-sm text-red-600 font-medium mb-1">
-                                Payment Required
-                              </p>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handlePaymentClick(booking)}
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                                disabled={booking.taskStatus === 'CANCELLED'}
-                              >
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                Complete Payment
-                              </Button>
-                              <p className="text-xs text-gray-500">
-                                Complete payment to confirm your booking
-                              </p>
-                            </div>
-                          ) : (
-                            <p className="text-xl md:text-2xl font-bold text-primary">₹{booking.monthlyAmount}</p>
+                              )}
+                              {booking.payment && booking.payment.status === "PENDING" && (
+                                <Badge variant="outline" className="border-red-200 bg-red-50 text-xs font-medium text-red-800">
+                                  Payment pending
+                                </Badge>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
                     </div>
+                  </CardHeader>
 
-                    <div className="mt-4">
-                      {renderScheduledMessage(booking)}
+                  <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
+                    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+                      <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
+                        <div className="flex items-start gap-2.5 text-sm">
+                          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                            {new Date(booking.startDate).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                            {booking.taskStatus !== "CANCELLED" &&
+                              booking.modifications &&
+                              booking.modifications.length > 0 && (
+                                <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
+                              )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-sm">
+                          <Clock className="h-4 w-4 shrink-0 text-slate-500" />
+                          <span className="text-xs text-slate-700 sm:text-sm">
+                            {formatTimeRange(booking.start_time, booking.end_time)}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2.5 text-sm">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
+                            {booking.address}
+                          </span>
+                        </div>
+                        {booking.modifications && booking.modifications.length > 0 && (
+                          <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
+                            {getModificationDetails(booking)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-lg border border-slate-100 bg-white p-2.5 sm:p-3">
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Responsibilities
+                        </p>
+                        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin md:flex-wrap md:overflow-visible md:pb-0">
+                          {[
+                            ...(booking.responsibilities?.tasks || []).map((task) => ({ task, isAddon: false })),
+                            ...(booking.responsibilities?.add_ons || []).map((task) => ({ task, isAddon: true })),
+                          ].map((item: any, index: number) => {
+                            const { task, isAddon } = item;
+                            const taskLabel =
+                              typeof task === "object" && task !== null
+                                ? Object.entries(task)
+                                    .filter(([key]) => key !== "taskType")
+                                    .map(([key, value]) => `${value} ${key}`)
+                                    .join(", ")
+                                : "";
+                            const taskName = typeof task === "object" ? task.taskType : task;
+                            return (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="whitespace-nowrap border-slate-200 bg-slate-50/80 text-xs text-slate-700 md:whitespace-normal"
+                              >
+                                {isAddon ? "Add-ons - " : ""}
+                                {taskName} {taskLabel && `- ${taskLabel}`}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    
-                    <Separator />
-                    
+
+                    {booking.payment && booking.payment.status === "PENDING" && (
+                      <div className="flex flex-col gap-2 rounded-lg border border-red-100 bg-red-50/60 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-red-800">Payment required</p>
+                          <p className="text-xs text-slate-600">
+                            ₹{booking.monthlyAmount} · complete to confirm this booking
+                          </p>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handlePaymentClick(booking)}
+                          className="w-full shrink-0 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
+                          disabled={booking.taskStatus === "CANCELLED"}
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Pay now
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="flex w-full justify-center">{renderScheduledMessage(booking)}</div>
+
+                    <Separator className="bg-slate-200/80" />
+
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                       {renderActionButtons(booking)}
                     </div>
@@ -2108,11 +1977,15 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               ))}
             </div>
           ) : (
-            <Card className="text-center py-8">
-              <CardContent>
-                <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg mb-2">No Past Bookings</h3>
-                <p className="text-muted-foreground">Your completed and cancelled bookings will appear here.</p>
+            <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
+              <CardContent className="px-6">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">
+                  <History className="h-7 w-7 text-slate-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">No past bookings yet</h3>
+                <p className="mx-auto max-w-sm text-sm text-slate-600">
+                  Finished and cancelled visits will appear here for your records.
+                </p>
               </CardContent>
             </Card>
           )}
