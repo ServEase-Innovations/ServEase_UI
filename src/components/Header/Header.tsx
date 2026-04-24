@@ -32,7 +32,7 @@ import {
   AGENT_DASHBOARD,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, MapPin, Menu, ShoppingCart, User, X, Globe } from "lucide-react";
+import { Bell, ChevronDown, Globe, HousePlus, LocateFixed, MapPin, MapPinned, Menu, ShoppingCart, User, X } from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -756,6 +756,26 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   };
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const locationMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const node = locationMenuRef.current;
+      if (node && !node.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowDropdown(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showDropdown]);
 
   function setDialogService(service: string) {
     setDialogServiceState(service);
@@ -941,79 +961,133 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         )}
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-3">
-          <div className="relative flex h-8 min-w-0 max-w-[6.75rem] items-center gap-1 rounded-md border border-white/25 bg-white/10 px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 sm:max-w-[10rem] sm:px-2 md:max-w-[13rem] lg:max-w-[16rem]">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-200 sm:h-4 sm:w-4" aria-hidden />
-            <div className="relative min-w-0 flex-1">
-              <input
-                type="text"
-                placeholder={t('location')}
-                value={location}
-                onFocus={() => setShowDropdown(true)}
-                onClick={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                className="w-full cursor-pointer truncate bg-transparent text-[10px] text-white outline-none placeholder:text-white/45 sm:text-xs md:text-sm"
-                readOnly
-              />
+          <div
+            ref={locationMenuRef}
+            className="relative flex h-8 min-w-0 max-w-[6.75rem] items-stretch rounded-md border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 sm:max-w-[10rem] md:max-w-[13rem] lg:max-w-[16rem]"
+          >
+            <button
+              type="button"
+              id="header-location-trigger"
+              aria-haspopup="menu"
+              aria-expanded={showDropdown}
+              aria-controls="header-location-menu"
+              aria-busy={loadingLocations}
+              onClick={() => setShowDropdown((open) => !open)}
+              className={`flex min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
+                showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
+              }`}
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-200 sm:h-4 sm:w-4" aria-hidden />
+              <span
+                className={`min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs md:text-sm ${
+                  location ? "text-white" : "text-white/50"
+                }`}
+              >
+                {location || t("location")}
+              </span>
+              {loadingLocations ? (
+                <span className="inline-flex shrink-0" aria-hidden>
+                  <ClipLoader size={14} color="rgba(255,255,255,0.85)" />
+                </span>
+              ) : (
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
+                    showDropdown ? "rotate-180" : ""
+                  }`}
+                  aria-hidden
+                />
+              )}
+            </button>
               {showDropdown && (
-              <ul className="absolute right-0 z-[100] mt-2 max-h-60 min-w-[14rem] max-w-[min(90vw,18rem)] overflow-y-auto rounded-xl border border-slate-200/90 bg-white py-1 text-xs text-slate-800 shadow-2xl ring-1 ring-black/5 sm:left-auto sm:right-0 sm:text-sm md:min-w-[16rem]">
-                  <li
-                    className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
-                    onClick={() => {
-                      console.log("📍 Detect Location clicked");
-                      handleChange(t('detectLocation'));
-                      setTimeout(() => {
-                        setShowDropdown(false);
-                      }, 100);
-                    }}
-                  >
-                    {t('detectLocation')}
-                  </li>
-                  {/* Show "Add Address" only for authenticated CUSTOMER users */}
-                  {isAuthenticated && appUser?.role === "CUSTOMER" && (
-                    <li
-                      className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                <div
+                  id="header-location-menu"
+                  role="menu"
+                  aria-labelledby="header-location-trigger"
+                  className="absolute right-0 z-[100] m-0 mt-1.5 max-h-[min(55vh,14rem)] min-w-[min(calc(100vw-2rem),14rem)] max-w-[min(92vw,18rem)] overflow-y-auto rounded-xl border border-slate-200/90 bg-white/95 p-0 text-slate-800 shadow-lg shadow-slate-900/15 ring-1 ring-slate-900/[0.04] backdrop-blur-md sm:left-auto sm:right-0 sm:min-w-[15rem] md:min-w-[16rem]"
+                >
+                  <div className="border-b border-slate-100 px-2 py-1">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t("setLocation")}</p>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="group flex w-full items-center gap-1.5 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
                       onClick={() => {
-                        console.log("🏠 Add Address clicked");
-                        handleChange(t('addAddress'));
-                        setTimeout(() => {
-                          setShowDropdown(false);
-                        }, 100);
+                        console.log("📍 Detect Location clicked");
+                        handleChange(t("detectLocation"));
+                        setTimeout(() => setShowDropdown(false), 100);
                       }}
                     >
-                      {t('addAddress')}
-                    </li>
-                  )}
-                  {loadingLocations ? (
-                    <li className="flex items-center justify-center gap-2 px-4 py-2.5 text-slate-500">
-                      <ClipLoader size={15} color="#64748b" />
-                      {t('loading')}...
-                    </li>
-                  ) : (
-                    suggestions
-                      .filter((s) => s.index > 2)
-                      .map((suggestion, index) => (
-                        <li
-                          key={index}
-                          className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log(`📍 ${suggestion.name} clicked`);
-                            console.log("📊 Current suggestions:", suggestions);
-                            console.log("📊 Current userPreference:", userPreference);
-                            handleChange(suggestion.name);
-                            setTimeout(() => {
-                              setShowDropdown(false);
-                            }, 100);
-                          }}
-                        >
-                          {suggestion.name}
-                        </li>
-                      ))
-                  )}
-                </ul>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-sky-100 to-slate-100 text-sky-700 shadow-sm ring-1 ring-sky-200/70 transition group-hover:from-sky-200/90 group-hover:to-sky-50">
+                        <LocateFixed className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("detectLocation")}</span>
+                    </button>
+
+                    {isAuthenticated && appUser?.role === "CUSTOMER" && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="group flex w-full items-center gap-1.5 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
+                        onClick={() => {
+                          console.log("🏠 Add Address clicked");
+                          handleChange(t("addAddress"));
+                          setTimeout(() => setShowDropdown(false), 100);
+                        }}
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-emerald-50 to-slate-100 text-emerald-700 shadow-sm ring-1 ring-emerald-200/70 transition group-hover:from-emerald-100/90 group-hover:to-emerald-50/80">
+                          <HousePlus className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("addAddress")}</span>
+                      </button>
+                    )}
+
+                    {(loadingLocations || suggestions.filter((s) => s.index > 2).length > 0) && (
+                      <div className="mx-2 my-1 h-px bg-slate-200/90" role="separator" aria-hidden />
+                    )}
+
+                    {loadingLocations ? (
+                      <div
+                        className="mx-2 mb-1 flex items-center justify-center gap-1.5 rounded-lg bg-slate-50/90 px-2 py-2 text-xs text-slate-500"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        <ClipLoader size={14} color="#64748b" />
+                        <span>{t("loading")}…</span>
+                      </div>
+                    ) : (
+                      suggestions
+                        .filter((s) => s.index > 2)
+                        .map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            role="menuitem"
+                            className="group flex w-full items-start gap-1.5 px-2 py-1.5 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log(`📍 ${suggestion.name} clicked`);
+                              console.log("📊 Current suggestions:", suggestions);
+                              console.log("📊 Current userPreference:", userPreference);
+                              handleChange(suggestion.name);
+                              setTimeout(() => setShowDropdown(false), 100);
+                            }}
+                          >
+                            <span className="mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 shadow-sm ring-1 ring-slate-200/80 transition group-hover:bg-slate-200/60 group-hover:text-slate-800">
+                              <MapPinned className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                            </span>
+                            <span className="line-clamp-2 min-w-0 flex-1 text-left text-xs font-medium leading-tight text-slate-800">
+                              {suggestion.name}
+                            </span>
+                          </button>
+                        ))
+                    )}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
 
           <div className="relative">
           <button
@@ -1054,21 +1128,21 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
           <button
             type="button"
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-8 sm:w-8"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
             onClick={handleNotificationClick}
             aria-label="Notifications"
           >
-            <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+            <Bell className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
           </button>
 
           {!isAuthenticated ? (
             <button
               type="button"
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-8 sm:w-8"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
               onClick={() => loginWithRedirect()}
               aria-label="Sign in"
             >
-              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2} />
+              <User className="h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
             </button>
           ) : (
             <div className="relative text-left">
