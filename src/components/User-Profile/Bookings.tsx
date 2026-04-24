@@ -619,22 +619,24 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   const handleCompletePayment = async (booking: Booking) => {
-    try {
-      const resumeRes = await PaymentInstance.get(
-        `/api/payments/${booking.payment?.engagement_id}/resume`
-      );
+   try {
+    // Use POST with request body
+    const resumeRes = await PaymentInstance.post(
+      '/api/v2/createEngagements/resume-payment',
+      { engagementId: booking.payment?.engagement_id }
+    );
 
       const {
         razorpay_order_id,
         amount,
         currency,
-        engagement_id,
+        engagementId: engagement_id,
         customer
       } = resumeRes.data;
 
       const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount: amount * 100,
+        key: "rzp_test_SHU1MPGbiCzst9",
+       amount: amount,
         currency,
         order_id: razorpay_order_id,
         name: "Serveaso",
@@ -644,7 +646,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           contact:  customer?.contact || '9999999999',
         },
         handler: async function (response: any) {
-          await PaymentInstance.post("/api/payments/verify", {
+          await PaymentInstance.post("/api/v2/createEngagements/verify", {
             engagementId: engagement_id,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
@@ -655,7 +657,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         theme: {
           color: "#0A7CFF",
         },
-      };
+     };
+     console.log("FINAL ORDER ID USED:", options.order_id);
+console.log("FULL OPTIONS:", options);
+console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
 
       const razorpay = new (window as any).Razorpay(options);
       razorpay.open();
