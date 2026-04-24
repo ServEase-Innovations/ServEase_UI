@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { Card, CardContent } from "../Card/card";
 import { ArrowRight, CalendarIcon, ChevronLeft, ChevronRight, HandIcon, HomeIcon, MapPin, ShoppingCart, User } from "lucide-react";
-import DialogComponent from "../Common/Dialog/DialogComponent";
 import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -566,14 +565,9 @@ useEffect(() => {
                 setEndTime={setEndTime}
             />
 
-            {/* Service Provider Registration Dialog */}
-            <DialogComponent 
-                open={showRegistrationDialog} 
-                onClose={handleCloseRegistrationDialog}
-                title={t('serviceProviderRegistration')} /* Updated to use t() */
-            >
-                <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
-            </DialogComponent>
+            {showRegistrationDialog ? (
+              <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
+            ) : null}
             <Chatbot open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
               {isAgentRegistrationOpen && (
   <AgentRegistrationForm 
