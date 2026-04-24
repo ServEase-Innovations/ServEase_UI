@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../Button/button";
 import { Card, CardContent } from "../Card/card";
 import { ArrowRight, CalendarIcon, ChevronLeft, ChevronRight, HandIcon, HomeIcon, MapPin, ShoppingCart, User } from "lucide-react";
-import DialogComponent from "../Common/Dialog/DialogComponent";
 import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -232,7 +231,7 @@ const handleSave = () => {
     return outputArray.buffer;
 }
  // AUTH & INITIALIZATION
- const { user, isAuthenticated, loginWithRedirect } = useAuth0<Auth0User>();
+ const { user, isAuthenticated, loginWithPopup } = useAuth0<Auth0User>();
 
   // Keep a local role state if you already use it for UI (your code references `role`)
   const [role, setRole] = useState<string | null>(null);
@@ -355,7 +354,11 @@ useEffect(() => {
                                 <Button
                                     type="button"
                                     className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:text-sm"
-                                    onClick={() => loginWithRedirect()}
+                                    onClick={() => {
+                                      void loginWithPopup({
+                                        authorizationParams: { screen_hint: "signup" },
+                                      }).catch(() => {});
+                                    }}
                                 >
                                     {t("registerAsUser")}
                                 </Button>
@@ -562,14 +565,9 @@ useEffect(() => {
                 setEndTime={setEndTime}
             />
 
-            {/* Service Provider Registration Dialog */}
-            <DialogComponent 
-                open={showRegistrationDialog} 
-                onClose={handleCloseRegistrationDialog}
-                title={t('serviceProviderRegistration')} /* Updated to use t() */
-            >
-                <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
-            </DialogComponent>
+            {showRegistrationDialog ? (
+              <ServiceProviderRegistration onBackToLogin={handleCloseRegistrationDialog} />
+            ) : null}
             <Chatbot open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
               {isAgentRegistrationOpen && (
   <AgentRegistrationForm 

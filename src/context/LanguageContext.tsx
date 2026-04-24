@@ -69,10 +69,40 @@ export const translations: Translations = {
     bn: "আমাদের সম্পর্কে"
   },
   copyright: {
-    en: "© 2025 ServEaso. All rights reserved.",
-    hi: "© 2025 ServEaso। सर्वाधिकार सुरक्षित।",
-    kn: "© 2025 ServEaso. ಎಲ್ಲಾ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ.",
-    bn: "© ২০২৫ ServEaso। সর্বস্বত্ব সংরক্ষিত।"
+    en: "© 2026 ServEaso. All rights reserved.",
+    hi: "© 2026 ServEaso। सर्वाधिकार सुरक्षित।",
+    kn: "© 2026 ServEaso. ಎಲ್ಲಾ ಹಕ್ಕುಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ.",
+    bn: "© ২০২৬ ServEaso। সর্বস্বত্ব সংরক্ষিত।"
+  },
+  footerSectionLegal: {
+    en: "Legal",
+    hi: "कानूनी",
+    kn: "ಕಾನೂನು",
+    bn: "আইনি"
+  },
+  footerSectionResources: {
+    en: "Resources",
+    hi: "संसाधन",
+    kn: "ಸಂಪನ್ಮೂಲಗಳು",
+    bn: "রিসোর্স"
+  },
+  footerSectionCompany: {
+    en: "Company",
+    hi: "कंपनी",
+    kn: "ಕಂಪನಿ",
+    bn: "কোম্পানি"
+  },
+  footerSectionExplore: {
+    en: "Explore",
+    hi: "अन्वेषण",
+    kn: "ಅನ್ವೇಷಿಸಿ",
+    bn: "অন্বেষণ"
+  },
+  footerFollowUs: {
+    en: "Follow us",
+    hi: "हमें फॉलो करें",
+    kn: "ನಮ್ಮನ್ನು ಅನುಸರಿಸಿ",
+    bn: "আমাদের অনুসরণ করুন"
   },
   language: {
     en: "Language",

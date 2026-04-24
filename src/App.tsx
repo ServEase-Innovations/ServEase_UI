@@ -480,7 +480,7 @@ function App() {
   }
 
   return (
-    <LanguageProvider> {/* Add LanguageProvider here to wrap the entire app */}
+    <LanguageProvider>
       <div className="bg-gray-50 text-gray-800">
         {/* Deep linking loading overlay */}
         {processingDeepLink && (
@@ -545,7 +545,7 @@ function App() {
           />
         )}
       </div>
-    </LanguageProvider> // Close LanguageProvider
+    </LanguageProvider>
   );
 }
 

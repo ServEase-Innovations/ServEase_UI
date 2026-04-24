@@ -33,7 +33,6 @@ import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { debounce } from "src/utils/debounce";
 import { useFieldValidation } from "./useFieldValidation";
 
@@ -1857,56 +1856,126 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   return (
     <>
-      <Dialog fullWidth maxWidth="sm" open={true}>
-        <DialogHeader
-          style={{
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        open
+        onClose={() => onBackToLogin(true)}
+        scroll="paper"
+        slotProps={{
+          backdrop: {
+            sx: {
+              backdropFilter: "blur(10px)",
+              backgroundColor: "rgba(15, 23, 42, 0.55)",
+            },
+          },
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            maxHeight: "min(92vh, 880px)",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
+            border: "1px solid rgba(255,255,255,0.12)",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            px: { xs: 2, sm: 3 },
+            py: 2,
+            background: "linear-gradient(90deg, #020617 0%, #0b2a5c 45%, #0c4a6e 100%)",
+            color: "#fff",
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
           }}
         >
-          <Typography
-            variant="h5"
-            gutterBottom
-            sx={{ textAlign: 'center', paddingTop: 2 }}
-          >
-            {t("serviceProviderRegistration")}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              component="h2"
+              sx={{
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.25,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {t("serviceProviderRegistration")}
+            </Typography>
+          </Box>
           <IconButton
             aria-label="close"
             onClick={() => onBackToLogin(true)}
+            edge="end"
             sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              color: '#fff',
+              color: "rgba(255,255,255,0.9)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              bgcolor: "rgba(255,255,255,0.08)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.16)" },
             }}
           >
             <CloseIcon />
           </IconButton>
-        </DialogHeader>
+        </Box>
 
-        <Box sx={{ padding: 2 }}>
-          <Stepper activeStep={activeStep} alternativeLabel>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: "auto",
+            px: { xs: 2, sm: 3 },
+            pt: 2.5,
+            pb: 2,
+            background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 28%)",
+          }}
+        >
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel
+            sx={{
+              mb: 2.5,
+              "& .MuiStepLabel-label": { fontSize: { xs: "0.7rem", sm: "0.8rem" }, fontWeight: 500 },
+              "& .MuiStepLabel-label.Mui-active": { color: "primary.main", fontWeight: 700 },
+              "& .MuiStepLabel-label.Mui-completed": { color: "text.secondary" },
+              "& .MuiStepConnector-line": { borderTopWidth: 2, borderColor: "divider" },
+              "& .MuiStepConnector-root.Mui-active .MuiStepConnector-line": { borderColor: "primary.main" },
+              "& .MuiStepConnector-root.Mui-completed .MuiStepConnector-line": { borderColor: "success.light" },
+            }}
+          >
             {steps.map((label, index) => (
               <Step key={index}>
                 <StepLabel>{label}</StepLabel>
               </Step>
             ))}
           </Stepper>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (activeStep === steps.length - 1) {
-              handleSubmit(e);
-            }
-          }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (activeStep === steps.length - 1) {
+                handleSubmit(e);
+              }
+            }}
+          >
             {renderStepContent(activeStep)}
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                marginTop: 2,
+                alignItems: "center",
+                gap: 2,
+                mt: 3,
+                pt: 2.5,
+                borderTop: "1px solid",
+                borderColor: "divider",
               }}
             >
               <Button
