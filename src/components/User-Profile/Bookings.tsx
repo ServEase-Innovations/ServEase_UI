@@ -1155,13 +1155,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     setIsRefreshing(true);
 
     await PaymentInstance.post(
-      `api/v2/engagements/${selectedBookingForLeave.id}/vacation`,
+      `api/v2/createEngagements/${selectedBookingForLeave.id}/vacation`,   
       {
-        customerid: customerId,                          // customer ID (as per spec)
+       customerid: customerId,                                           
         vacation_start_date: startDate,
         vacation_end_date: endDate,
         leave_type: "VACATION",
-        modified_by_id: selectedBookingForLeave.id,      // ✅ engagement ID
+        modified_by_id: customerId,                                        
         modified_by_role: "CUSTOMER"
       }
     );
