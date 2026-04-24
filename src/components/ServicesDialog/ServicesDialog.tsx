@@ -22,6 +22,7 @@ import { useDispatch } from 'react-redux';
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import { Button } from '../Button/button';
 import { DETAILS } from 'src/Constants/pagesConstants';
+import { publicAsset } from 'src/utils/publicAsset';
 
 interface ServiceOption {
   id: string;
@@ -86,7 +87,7 @@ const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
       id: 'home-cook',
       title: 'Home Cook',
       description: 'Verified cooks for hygienic, home-style meals',
-      icon: '../CookNew.png',
+      icon: publicAsset('CookNew.png'),
       iconColor: cleaningHelpColors.iconColor,
       bgColor: cleaningHelpColors.bgColor,
       accentColor: cleaningHelpColors.accentColor
@@ -95,7 +96,7 @@ const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
       id: 'cleaning-help',
       title: 'Cleaning Help',
       description: 'Trained maids for thorough home cleaning',
-      icon: '../MaidNew.png',
+      icon: publicAsset('MaidNew.png'),
       iconColor: cleaningHelpColors.iconColor,
       bgColor: cleaningHelpColors.bgColor,
       accentColor: cleaningHelpColors.accentColor
@@ -104,7 +105,7 @@ const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
       id: 'caregiver',
       title: 'Caregiver',
       description: 'Compassionate caregivers for children & elderly',
-      icon: '../NannyNew.png',
+      icon: publicAsset('NannyNew.png'),
       iconColor: cleaningHelpColors.iconColor,
       bgColor: cleaningHelpColors.bgColor,
       accentColor: cleaningHelpColors.accentColor

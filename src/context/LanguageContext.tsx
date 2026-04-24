@@ -3548,6 +3548,12 @@ selectBookingOption: {
   kn: "ನಿಮ್ಮ ಬುಕಿಂಗ್ ಆಯ್ಕೆಯನ್ನು ಆರಿಸಿ",
   bn: "আপনার বুকিং বিকল্প নির্বাচন করুন"
 },
+  subscriptionPeriodLabel: {
+    en: "Subscription period",
+    hi: "सदस्यता अवधि",
+    kn: "ಚಂದಾದಾರಿಕೆ ಅವಧಿ",
+    bn: "সাবস্ক্রিপশন সময়কাল"
+  },
 bookBy: {
   en: "Book by",
   hi: "द्वारा बुक करें",
