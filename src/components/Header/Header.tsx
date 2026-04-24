@@ -75,6 +75,7 @@ import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
 import { publicAsset } from "src/utils/publicAsset";
+import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
@@ -880,7 +881,9 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-50 overflow-visible border-b border-white/10 bg-gradient-to-r from-slate-950 via-[#0b2a5c] to-sky-950 pt-[env(safe-area-inset-top,0px)] shadow-[0_6px_24px_-6px_rgba(0,0,0,0.4)]">
+      <header
+        className={`fixed left-0 right-0 top-0 z-50 overflow-visible border-b border-white/10 pt-[env(safe-area-inset-top,0px)] ${CHROME_BAR_GRADIENT} ${CHROME_BAR_SHADOW}`}
+      >
         <div className="relative mx-auto flex h-11 max-w-[90rem] items-center justify-between gap-1.5 overflow-visible px-2 py-0 sm:h-12 sm:gap-2 sm:px-3 md:h-14 md:gap-3 md:px-5 lg:px-7">
         <div className="relative flex h-full shrink-0 items-center gap-1 sm:gap-1.5">
           {isMobile && (
