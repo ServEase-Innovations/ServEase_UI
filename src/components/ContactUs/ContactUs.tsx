@@ -2,6 +2,24 @@
 /* eslint-disable */
 import React from "react";
 import {
+  Box,
+  Button,
+  Checkbox,
+  Container,
+  Divider,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  Link,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import {
   FaLinkedin,
   FaFacebook,
   FaInstagram,
@@ -12,181 +30,384 @@ import {
   FaEnvelope,
 } from "react-icons/fa6";
 import { FaGooglePlay, FaAppStoreIos } from "react-icons/fa";
-import { IoArrowBackOutline } from "react-icons/io5";
 import { useLanguage } from "src/context/LanguageContext";
+import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 
 interface ContactUsProps {
   onBack?: () => void;
 }
 
 const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
-  // Use the language hook
   const { t } = useLanguage();
+  const theme = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(t('requestSubmitted')); // Updated to use t()
+    alert(t("requestSubmitted"));
   };
 
   const handleBack = () => {
-    onBack && onBack();
+    onBack?.();
   };
 
+  const benefits = [t("benefit1"), t("benefit2"), t("benefit3"), t("benefit4")];
+
+  const socialLinks = [
+    { href: "https://www.linkedin.com/in/serveaso-media-7b7719381/", icon: <FaLinkedin />, label: "LinkedIn" },
+    { href: "https://www.facebook.com/profile.php?id=61572701168852", icon: <FaFacebook />, label: "Facebook" },
+    { href: "https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn", icon: <FaInstagram />, label: "Instagram" },
+    { href: "https://www.youtube.com/@ServEaso", icon: <FaYoutube />, label: "YouTube" },
+    { href: "https://x.com/ServEaso", icon: <FaXTwitter />, label: "X" },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-6">
-      {/* Header */}
-      <h1 className="text-3xl font-bold mb-10 text-black">ServEaso</h1>
+    <Box
+      component="main"
+      sx={{
+        minHeight: "100%",
+        bgcolor: "grey.50",
+        pb: { xs: 4, md: 6 },
+      }}
+    >
+      <Box
+        className={`${CHROME_BAR_GRADIENT} ${CHROME_BAR_SHADOW}`}
+        sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        <Container maxWidth="lg" sx={{ py: 1.25 }}>
+          <Button
+            type="button"
+            onClick={handleBack}
+            startIcon={<ArrowBackIcon />}
+            sx={{
+              color: "rgba(255,255,255,0.95)",
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+            }}
+          >
+            {t("back")}
+          </Button>
+        </Container>
+      </Box>
 
-      {/* Paper-style wrapper */}
-      <div className="relative max-w-5xl w-full">
-        {/* Paper shadow (top-left) */}
-        <div className="absolute -top-3 -left-3 w-full h-full bg-gray-200 rounded-2xl" />
+      <Box
+        sx={{
+          position: "relative",
+          overflow: "hidden",
+          color: "common.white",
+          py: { xs: 4, md: 6 },
+          background: `linear-gradient(125deg, ${theme.palette.primary.dark} 0%, #0a3d5c 45%, ${theme.palette.primary.main} 78%, #0369a1 100%)`,
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 70% 55% at 100% 0%, rgba(255,255,255,0.12), transparent 50%), radial-gradient(ellipse 55% 45% at 0% 100%, rgba(14,165,233,0.22), transparent 48%)",
+            pointerEvents: "none",
+          },
+        }}
+      >
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+          <Typography
+            variant="overline"
+            sx={{ letterSpacing: "0.2em", fontWeight: 700, opacity: 0.9, display: "block", mb: 1 }}
+          >
+            ServEaso
+          </Typography>
+          <Typography
+            variant="h3"
+            component="h1"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.75rem", sm: "2.25rem", md: "2.75rem" },
+              lineHeight: 1.2,
+            }}
+          >
+            {t("getInTouch")}
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              mt: 2,
+              maxWidth: 640,
+              opacity: 0.94,
+              lineHeight: 1.7,
+              fontSize: { xs: "0.95rem", md: "1.05rem" },
+            }}
+          >
+            {t("contactDescription")}
+          </Typography>
+        </Container>
+      </Box>
 
-        {/* Main Card */}
-        <div className="relative bg-white rounded-2xl shadow-xl p-10 grid md:grid-cols-2 gap-10">
-          {/* LEFT SIDE */}
-          <div>
-            {/* Back Button */}
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-600 hover:text-blue transition"
-            >
-              <IoArrowBackOutline className="text-lg" />
-              {t('back')} {/* Updated to use t() */}
-            </button>
+      <Container maxWidth="lg" sx={{ mt: { xs: -2.5, md: -3.5 }, position: "relative", zIndex: 2 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2.5, sm: 3.5, md: 4 },
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 24px 48px -24px rgba(15, 23, 42, 0.18)",
+            bgcolor: "background.paper",
+          }}
+        >
+          <Grid container spacing={{ xs: 3, md: 5 }}>
+            <Grid item xs={12} md={7}>
+              <Box component="form" onSubmit={handleSubmit} noValidate>
+                <Stack spacing={2.25}>
+                  <TextField
+                    name="name"
+                    label={t("name")}
+                    placeholder={t("yourName")}
+                    required
+                    fullWidth
+                    variant="outlined"
+                    autoComplete="name"
+                  />
+                  <TextField
+                    name="email"
+                    type="email"
+                    label={t("email")}
+                    placeholder={t("enterEmail")}
+                    required
+                    fullWidth
+                    variant="outlined"
+                    autoComplete="email"
+                  />
+                  <TextField
+                    name="message"
+                    label={t("message")}
+                    placeholder={t("enterMessage")}
+                    required
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    variant="outlined"
+                  />
 
-            <h2 className="text-2xl font-bold text-gray-900">
-              {t('getInTouch')} {/* Updated to use t() */}
-            </h2>
-            <p className="text-gray-500 mt-2">
-              {t('contactDescription')} {/* Updated to use t() */}
-            </p>
+                  <FormControlLabel
+                    required
+                    control={<Checkbox color="primary" />}
+                    label={
+                      <Typography variant="body2" color="text.secondary" component="span">
+                        {t("iAgreeWith")}{" "}
+                        <Link
+                          href="#"
+                          onClick={(e) => e.preventDefault()}
+                          underline="hover"
+                          sx={{ fontWeight: 600 }}
+                        >
+                          {t("termsAndConditions")}
+                        </Link>
+                      </Typography>
+                    }
+                  />
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  {t('name')} {/* Updated to use t() */}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('yourName')} // Updated to use t()
-                  className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
-                  required
-                />
-              </div>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    sx={{
+                      mt: 1,
+                      py: 1.35,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%)",
+                      boxShadow: "0 8px 22px -6px rgba(14, 165, 233, 0.45)",
+                      "&:hover": {
+                        boxShadow: "0 12px 28px -6px rgba(14, 165, 233, 0.5)",
+                        background: "linear-gradient(135deg, #38bdf8 0%, #0ea5e9 50%, #0369a1 100%)",
+                      },
+                    }}
+                  >
+                    {t("sendRequest")}
+                  </Button>
+                </Stack>
+              </Box>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  {t('email')} {/* Updated to use t() */}
-                </label>
-                <input
-                  type="email"
-                  placeholder={t('enterEmail')} // Updated to use t()
-                  className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
-                  required
-                />
-              </div>
+              <Divider sx={{ my: 3 }} />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  {t('message')} {/* Updated to use t() */}
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder={t('enterMessage')} // Updated to use t()
-                  className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring focus:ring-indigo-300"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="terms" required />
-                <label htmlFor="terms" className="text-sm text-gray-600">
-                  {t('iAgreeWith')}{" "}
-                  <span className="text-indigo-600 underline">
-                    {t('termsAndConditions')} {/* Updated to use t() */}
-                  </span>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition"
-              >
-                {t('sendRequest')} {/* Updated to use t() */}
-              </button>
-            </form>
-
-            {/* Contact Info */}
-            <div className="mt-8">
-              <p className="text-gray-700 font-medium">
-                {t('contactVia')} {/* Updated to use t() */}
-              </p>
-              <div className="flex flex-col gap-2 mt-3 text-gray-600">
-                <p className="flex items-center gap-2">
-                  <FaPhone className="text-indigo-600" />
-                  <a href="tel:918792827744">+91-8792827744</a>
-                </p>
-                <p className="flex items-center gap-2">
-                  <FaEnvelope className="text-indigo-600" />
-                  <a href="mailto:support@serveaso.com">
+              <Typography variant="subtitle2" fontWeight={700} color="text.primary" gutterBottom>
+                {t("contactVia")}
+              </Typography>
+              <Stack spacing={1.5} sx={{ mt: 1 }}>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FaPhone size={18} />
+                  </Box>
+                  <Link href="tel:918792827744" underline="hover" fontWeight={600} color="text.primary">
+                    +91-8792827744
+                  </Link>
+                </Stack>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FaEnvelope size={18} />
+                  </Box>
+                  <Link href="mailto:support@serveaso.com" underline="hover" fontWeight={600} color="text.primary">
                     support@serveaso.com
-                  </a>
-                </p>
-                <p className="flex items-center gap-2">
-                  <FaWhatsapp className="text-green-500" />
-                  <a
+                  </Link>
+                </Stack>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: "success.main",
+                      color: "success.contrastText",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FaWhatsapp size={18} />
+                  </Box>
+                  <Link
                     href="https://wa.me/918792827744"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
+                    underline="hover"
+                    fontWeight={600}
+                    color="text.primary"
                   >
                     +91-8792827744
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
+                  </Link>
+                </Stack>
+              </Stack>
+            </Grid>
 
-          {/* RIGHT SIDE */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {t('withOurServices')} {/* Updated to use t() */}
-            </h3>
-            <ul className="space-y-2 text-gray-600">
-              <li>1. {t('benefit1')}</li> {/* Updated to use t() */}
-              <li>2. {t('benefit2')}</li> {/* Updated to use t() */}
-              <li>3. {t('benefit3')}</li> {/* Updated to use t() */}
-              <li>4. {t('benefit4')}</li> {/* Updated to use t() */}
-            </ul>
+            <Grid item xs={12} md={5}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: "grey.50",
+                  borderColor: "divider",
+                  height: "100%",
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                  {t("withOurServices")}
+                </Typography>
+                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                  {benefits.map((line, i) => (
+                    <Stack key={i} direction="row" spacing={1.25} alignItems="flex-start">
+                      <CheckCircleOutlineIcon color="primary" sx={{ fontSize: 22, mt: 0.1, flexShrink: 0 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.65 }}>
+                        {line}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Stack>
 
-            {/* Social Links */}
-            <div className="mt-8">
-              <h4 className="text-md font-semibold text-gray-700 mb-3">
-                {t('followUs')} {/* Updated to use t() */}
-              </h4>
-              <div className="flex gap-4 text-2xl text-gray-700">
-              <a href="https://www.linkedin.com/in/serveaso-media-7b7719381/" target="_blank" rel="noreferrer"><FaLinkedin /></a>
-              <a href="https://www.facebook.com/profile.php?id=61572701168852"  target="_blank" rel="noreferrer"><FaFacebook /></a>
-              <a href="https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn" target="_blank" rel="noreferrer"><FaInstagram /></a>
-              <a href="https://www.youtube.com/@ServEaso" target="_blank" rel="noreferrer"><FaYoutube /></a>
-              <a href="https://x.com/ServEaso" target="_blank" rel="noreferrer"><FaXTwitter /></a>
-            </div>
-          </div>
+                <Divider sx={{ my: 3 }} />
 
-            {/* App Stores */}
-            <div className="mt-8">
-              <h4 className="text-md font-semibold text-gray-700 mb-3">
-                {t('downloadApp')} {/* Updated to use t() */}
-              </h4>
-              <div className="flex gap-4 text-3xl text-gray-800">
-              <a href="https://play.google.com" target="_blank" rel="noreferrer"><FaGooglePlay /></a>
-              <a href="https://apps.apple.com" target="_blank" rel="noreferrer"><FaAppStoreIos /></a>
-            </div>
-          </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                  {t("followUs")}
+                </Typography>
+                <Stack direction="row" flexWrap="wrap" useFlexGap gap={1} sx={{ mt: 1.5 }}>
+                  {socialLinks.map(({ href, icon, label }) => (
+                    <IconButton
+                      key={label}
+                      component="a"
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        color: "text.secondary",
+                        "&:hover": {
+                          color: "primary.main",
+                          borderColor: "primary.light",
+                          bgcolor: "action.hover",
+                        },
+                      }}
+                    >
+                      {icon}
+                    </IconButton>
+                  ))}
+                </Stack>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                  {t("downloadApp")}
+                </Typography>
+                <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
+                  <IconButton
+                    component="a"
+                    href="https://play.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Google Play"
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                      fontSize: 28,
+                      color: "text.primary",
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                  >
+                    <FaGooglePlay />
+                  </IconButton>
+                  <IconButton
+                    component="a"
+                    href="https://apps.apple.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="App Store"
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                      fontSize: 28,
+                      color: "text.primary",
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                  >
+                    <FaAppStoreIos />
+                  </IconButton>
+                </Stack>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 
