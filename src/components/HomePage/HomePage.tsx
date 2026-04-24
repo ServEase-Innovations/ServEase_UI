@@ -232,7 +232,7 @@ const handleSave = () => {
     return outputArray.buffer;
 }
  // AUTH & INITIALIZATION
- const { user, isAuthenticated, loginWithRedirect } = useAuth0<Auth0User>();
+ const { user, isAuthenticated, loginWithPopup } = useAuth0<Auth0User>();
 
   // Keep a local role state if you already use it for UI (your code references `role`)
   const [role, setRole] = useState<string | null>(null);
@@ -355,7 +355,11 @@ useEffect(() => {
                                 <Button
                                     type="button"
                                     className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:text-sm"
-                                    onClick={() => loginWithRedirect()}
+                                    onClick={() => {
+                                      void loginWithPopup({
+                                        authorizationParams: { screen_hint: "signup" },
+                                      }).catch(() => {});
+                                    }}
                                 >
                                     {t("registerAsUser")}
                                 </Button>

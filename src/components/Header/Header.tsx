@@ -113,14 +113,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   }
 };
 
-  const {
-    loginWithRedirect,
-    logout,
-    user,
-    isAuthenticated,
-    isLoading,
-    getAccessTokenSilently,
-  } = useAuth0();
+  const { logout, user, isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup } = useAuth0();
 
   const { setAppUser } = useAppUser();
   const { appUser } = useAppUser();
@@ -1230,7 +1223,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             <button
               type="button"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
-              onClick={() => loginWithRedirect()}
+              onClick={() => {
+                void loginWithPopup({
+                  authorizationParams: { prompt: "login" },
+                }).catch(() => {});
+              }}
               aria-label="Sign in"
             >
               <User className="h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
