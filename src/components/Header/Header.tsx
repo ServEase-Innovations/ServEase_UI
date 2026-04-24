@@ -32,7 +32,24 @@ import {
   AGENT_DASHBOARD,
 } from "../../Constants/pagesConstants";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { Bell, ChevronDown, Globe, HousePlus, LocateFixed, MapPin, MapPinned, Menu, ShoppingCart, User, X } from "lucide-react";
+import {
+  Bell,
+  Briefcase,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Globe,
+  HousePlus,
+  LayoutDashboard,
+  LocateFixed,
+  LogOut,
+  MapPin,
+  MapPinned,
+  Menu,
+  ShoppingCart,
+  User,
+  X,
+} from "lucide-react";
 import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import MapComponent from "../MapComponent/MapComponent";
@@ -77,6 +94,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   // Use the language hook
   const { t, currentLanguage, setLanguage } = useLanguage();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   
  const handleClick = (e: any) => {
@@ -123,6 +141,9 @@ export const Header: React.FC<ChildComponentProps> = ({
   const closeMobileNav = () => setMobileNavOpen(false);
 
   const handleNotificationClick = () => {
+    setShowDropdown(false);
+    setIsLanguageMenuOpen(false);
+    setdropDownOpen(false);
     setShowNotifications(true);
   };
 
@@ -132,21 +153,21 @@ export const Header: React.FC<ChildComponentProps> = ({
 
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+    if (!dropDownOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const node = dropdownRef.current;
+      if (node && !node.contains(e.target as Node)) {
         setdropDownOpen(false);
       }
     };
-
-    if (dropDownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setdropDownOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [dropDownOpen]);
 
@@ -413,7 +434,12 @@ export const Header: React.FC<ChildComponentProps> = ({
     };
   }, [serviceDropdownOpen]);
 
-  const handleCartOpen = () => setCartOpen(true);
+  const handleCartOpen = () => {
+    setShowDropdown(false);
+    setIsLanguageMenuOpen(false);
+    setdropDownOpen(false);
+    setCartOpen(true);
+  };
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
   
@@ -777,6 +803,25 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
     };
   }, [showDropdown]);
 
+  useEffect(() => {
+    if (!isLanguageMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const node = languageMenuRef.current;
+      if (node && !node.contains(e.target as Node)) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsLanguageMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isLanguageMenuOpen]);
+
   function setDialogService(service: string) {
     setDialogServiceState(service);
   }
@@ -972,7 +1017,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               aria-expanded={showDropdown}
               aria-controls="header-location-menu"
               aria-busy={loadingLocations}
-              onClick={() => setShowDropdown((open) => !open)}
+              onClick={() => {
+                setIsLanguageMenuOpen(false);
+                setdropDownOpen(false);
+                setShowDropdown((open) => !open);
+              }}
               className={`flex min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
                 showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
               }`}
@@ -1089,38 +1138,77 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               )}
             </div>
 
-          <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-            className="flex h-8 items-center gap-1 rounded-md border border-white/25 bg-white/10 px-2 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-white/18 sm:h-9 sm:px-2.5 sm:text-xs md:px-3"
-            aria-expanded={isLanguageMenuOpen}
-          >
-            <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-            <span className="tabular-nums">{currentLanguage.toUpperCase()}</span>
-            <ChevronDown
-              className={`h-3 w-3 shrink-0 transition-transform sm:h-3.5 sm:w-3.5 ${
-                isLanguageMenuOpen ? "rotate-180" : ""
+          <div ref={languageMenuRef} className="relative">
+            <button
+              type="button"
+              id="header-language-trigger"
+              aria-haspopup="menu"
+              aria-expanded={isLanguageMenuOpen}
+              aria-controls="header-language-menu"
+              onClick={() => {
+                setShowDropdown(false);
+                setdropDownOpen(false);
+                setIsLanguageMenuOpen((open) => !open);
+              }}
+              className={`flex h-8 items-center gap-1.5 rounded-md border border-white/25 bg-white/10 px-1.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition sm:h-9 sm:gap-2 sm:px-2 md:px-2.5 ${
+                isLanguageMenuOpen ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
               }`}
-              aria-hidden
-            />
-          </button>
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/10 text-sky-200 sm:h-7 sm:w-7">
+                <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
+              </span>
+              <span className="text-[10px] font-bold tabular-nums tracking-wide sm:text-xs">
+                {currentLanguage.toUpperCase()}
+              </span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
+                  isLanguageMenuOpen ? "rotate-180" : ""
+                }`}
+                aria-hidden
+              />
+            </button>
 
             {isLanguageMenuOpen && (
-              <div className="absolute right-0 top-full z-[100] mt-2 min-w-[10.5rem] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-2xl ring-1 ring-black/5">
-                <div className="py-0.5">
-                  {languages.map((lang) => (
-                    <button
-                      type="button"
-                      key={lang}
-                      onClick={() => handleLanguageChange(lang)}
-                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                        currentLanguage === lang ? "bg-sky-50 font-medium text-sky-800" : "text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {t(lang)}
-                    </button>
-                  ))}
+              <div
+                id="header-language-menu"
+                role="menu"
+                aria-labelledby="header-language-trigger"
+                className="absolute right-0 top-full z-[100] mt-1.5 min-w-[min(calc(100vw-2rem),13.5rem)] max-w-[min(92vw,17rem)] overflow-hidden rounded-xl border border-slate-200/90 bg-white/95 py-0 text-slate-800 shadow-lg shadow-slate-900/15 ring-1 ring-slate-900/[0.04] backdrop-blur-md"
+              >
+                <div className="border-b border-slate-100 px-2 py-1">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t("language")}</p>
+                </div>
+                <div className="py-1">
+                  {languages.map((lang) => {
+                    const selected = currentLanguage === lang;
+                    return (
+                      <button
+                        key={lang}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => handleLanguageChange(lang)}
+                        className={`group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors focus-visible:outline-none ${
+                          selected
+                            ? "bg-sky-50/95 hover:bg-sky-50 focus-visible:bg-sky-50"
+                            : "hover:bg-slate-50 focus-visible:bg-slate-50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold uppercase tabular-nums shadow-sm ring-1 transition ${
+                            selected
+                              ? "bg-sky-600 text-white ring-sky-500/40"
+                              : "bg-slate-100 text-slate-600 ring-slate-200/80 group-hover:bg-slate-200/70 group-hover:text-slate-800"
+                          }`}
+                        >
+                          {lang}
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t(lang)}</span>
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+                          {selected ? <Check className="h-4 w-4 text-sky-600" strokeWidth={2.5} /> : null}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1145,79 +1233,125 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               <User className="h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
             </button>
           ) : (
-            <div className="relative text-left">
+            <div ref={dropdownRef} className="relative text-left">
               <button
                 type="button"
-                onClick={() => setdropDownOpen((prev) => !prev)}
-                className="flex h-8 max-w-[10rem] items-center gap-1.5 rounded-md border border-white/25 bg-white/10 py-0 pl-1 pr-2 text-white transition hover:bg-white/18 sm:h-9 sm:max-w-[12rem] md:gap-2 md:pl-1.5 md:pr-3"
+                id="header-profile-trigger"
+                aria-haspopup="menu"
                 aria-expanded={dropDownOpen}
+                aria-controls="header-profile-menu"
+                aria-label={t("account")}
+                onClick={() => {
+                  setShowDropdown(false);
+                  setIsLanguageMenuOpen(false);
+                  setdropDownOpen((prev) => !prev);
+                }}
+                className={`flex h-8 max-w-[10rem] items-center gap-1.5 rounded-md border border-white/25 bg-white/10 py-0 pl-1 pr-1.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition sm:h-9 sm:max-w-[12rem] md:gap-2 md:pl-1.5 md:pr-2.5 ${
+                  dropDownOpen ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
+                }`}
               >
-                <img
-                  src={appUser?.picture}
-                  alt=""
-                  className="h-7 w-7 shrink-0 rounded-full ring-2 ring-white/35 md:h-8 md:w-8"
-                />
-                <span className="hidden max-w-[6rem] truncate text-sm font-medium text-white/95 sm:inline md:max-w-[9rem]">
+                <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2 ring-white/35 md:h-8 md:w-8">
+                  <img src={appUser?.picture} alt="" className="h-full w-full rounded-full object-cover" />
+                </span>
+                <span className="hidden min-w-0 max-w-[6rem] flex-1 truncate text-left text-sm font-medium text-white/95 sm:inline md:max-w-[9rem]">
                   {user?.name}
                 </span>
-                <ChevronDown className={`hidden h-4 w-4 shrink-0 sm:block ${dropDownOpen ? "rotate-180" : ""}`} aria-hidden />
+                <ChevronDown
+                  className={`hidden h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:block sm:h-4 sm:w-4 ${
+                    dropDownOpen ? "rotate-180" : ""
+                  }`}
+                  aria-hidden
+                />
               </button>
 
               {dropDownOpen && (
                 <div
-                  ref={dropdownRef}
-                  className="absolute right-0 z-[100] mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-2xl ring-1 ring-black/5 md:w-56"
+                  id="header-profile-menu"
+                  role="menu"
+                  aria-labelledby="header-profile-trigger"
+                  className="absolute right-0 top-full z-[100] mt-1.5 min-w-[min(calc(100vw-2rem),14rem)] max-w-[min(92vw,18rem)] overflow-hidden rounded-xl border border-slate-200/90 bg-white/95 py-0 text-slate-800 shadow-lg shadow-slate-900/15 ring-1 ring-slate-900/[0.04] backdrop-blur-md md:min-w-[15rem]"
                 >
-                  <ul className="py-1 text-sm text-slate-800">
-                    <li
-                      className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                  <div className="border-b border-slate-100 px-2.5 py-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t("account")}</p>
+                    <p className="mt-1 truncate text-sm font-semibold leading-tight text-slate-900">{user?.name}</p>
+                    {user?.email ? (
+                      <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">{user.email}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
                       onClick={() => {
                         handleClick(PROFILE);
                         setdropDownOpen(false);
                       }}
                     >
-                      {t('profile')}
-                    </li>
-                    
-                    {/* Customer Menu Items */}
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-sky-100 to-slate-100 text-sky-700 shadow-sm ring-1 ring-sky-200/70 transition group-hover:from-sky-200/90 group-hover:to-sky-50">
+                        <User className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("profile")}</span>
+                    </button>
+
                     {appUser?.role === "CUSTOMER" && (
-                      <li
-                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
                         onClick={() => {
                           handleClick(BOOKINGS);
                           setdropDownOpen(false);
                         }}
                       >
-                        {t('myBookings')}
-                      </li>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-violet-100 to-slate-100 text-violet-700 shadow-sm ring-1 ring-violet-200/70 transition group-hover:from-violet-200/90 group-hover:to-violet-50">
+                          <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("myBookings")}</span>
+                      </button>
                     )}
 
                     {appUser?.role === "SERVICE_PROVIDER" && (
-                      <li
-                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
                         onClick={() => {
                           handleClick(DASHBOARD);
                           setdropDownOpen(false);
                         }}
                       >
-                        {t('dashboard')}
-                      </li>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-emerald-100 to-slate-100 text-emerald-700 shadow-sm ring-1 ring-emerald-200/70 transition group-hover:from-emerald-200/90 group-hover:to-emerald-50">
+                          <LayoutDashboard className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("dashboard")}</span>
+                      </button>
                     )}
 
                     {appUser?.role === "VENDOR" && (
-                      <li
-                        className="cursor-pointer px-4 py-2.5 transition-colors hover:bg-slate-50"
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-sky-50/90 focus-visible:bg-sky-50/90 focus-visible:outline-none"
                         onClick={() => {
                           handleClick(AGENT_DASHBOARD);
                           setdropDownOpen(false);
                         }}
                       >
-                        Agent Dashboard
-                      </li>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-amber-100 to-slate-100 text-amber-800 shadow-sm ring-1 ring-amber-200/70 transition group-hover:from-amber-200/90 group-hover:to-amber-50">
+                          <Briefcase className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">Agent Dashboard</span>
+                      </button>
                     )}
 
-                    <li
-                      className="cursor-pointer px-4 py-2.5 text-slate-700 transition-colors hover:bg-slate-50"
+                    <div className="mx-2 my-1 h-px bg-slate-200/90" role="separator" aria-hidden />
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-rose-50/90 focus-visible:bg-rose-50/90 focus-visible:outline-none"
                       onClick={() => {
                         logout({
                           logoutParams: { returnTo: window.location.origin },
@@ -1225,9 +1359,14 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                         setdropDownOpen(false);
                       }}
                     >
-                      {t('logout')}
-                    </li>
-                  </ul>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-rose-600 shadow-sm ring-1 ring-slate-200/80 transition group-hover:bg-rose-100/90 group-hover:text-rose-700">
+                        <LogOut className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-rose-700 group-hover:text-rose-800">
+                        {t("logout")}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
