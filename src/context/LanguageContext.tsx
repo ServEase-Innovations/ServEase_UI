@@ -1267,6 +1267,67 @@ export const translations: Translations = {
     bn: "পিছনে"
   },
 
+  detailsFilters: {
+    en: "Filters",
+    hi: "फ़िल्टर",
+    kn: "ಫಿಲ್ಟರ್‌ಗಳು",
+    bn: "ফিল্টার"
+  },
+  detailsOneProviderFound: {
+    en: "1 provider found",
+    hi: "1 प्रदाता मिला",
+    kn: "1 ಒದಗಿಸುವವರು ದೊರೆತಿದ್ದಾರೆ",
+    bn: "১ জন প্রদানকারী পাওয়া গেছে"
+  },
+  detailsManyProvidersFound: {
+    en: "{count} providers found",
+    hi: "{count} प्रदाता मिले",
+    kn: "{count} ಒದಗಿಸುವವರು ದೊರೆತಿದ್ದಾರೆ",
+    bn: "{count} জন প্রদানকারী পাওয়া গেছে"
+  },
+  detailsNoMatchTitle: {
+    en: "No providers match your filters",
+    hi: "आपके फ़िल्टर से कोई प्रदाता मेल नहीं खाता",
+    kn: "ನಿಮ್ಮ ಫಿಲ್ಟರ್‌ಗಳಿಗೆ ಹೊಂದಿಕೆಯಾಗುವ ಒದಗಿಸುವವರು ಇಲ್ಲ",
+    bn: "আপনার ফিল্টারের সাথে কোনো প্রদানকারী মিলছে না"
+  },
+  detailsNoMatchBody: {
+    en: "Try relaxing filters or clear them to see more results.",
+    hi: "अधिक परिणाम देखने के लिए फ़िल्टर ढीले करें या साफ़ करें।",
+    kn: "ಹೆಚ್ಚಿನ ಫಲಿತಾಂಶಗಳನ್ನು ನೋಡಲು ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಸಡಿಲಗೊಳಿಸಿ ಅಥವಾ ತೆರವುಗೊಳಿಸಿ.",
+    bn: "আরও ফলাফল দেখতে ফিল্টার শিথিল করুন বা মুছে ফেলুন।"
+  },
+  detailsNoAreaTitle: {
+    en: "No providers in this area yet",
+    hi: "इस क्षेत्र में अभी कोई प्रदाता नहीं",
+    kn: "ಈ ಪ್ರದೇಶದಲ್ಲಿ ಇನ್ನೂ ಯಾವುದೇ ಒದಗಿಸುವವರು ಇಲ್ಲ",
+    bn: "এই এলাকায় এখনও কোনো প্রদানকারী নেই"
+  },
+  detailsNoAreaBody: {
+    en: "Try a different location or check back soon as we expand coverage.",
+    hi: "कोई अन्य स्थान आज़माएँ या कवरेज बढ़ने पर जल्दी फिर देखें।",
+    kn: "ಬೇರೆ ಸ್ಥಳವನ್ನು ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ವಿಸ್ತರಣೆಯಾದಾಗ ಶೀಘ್ರದಲ್ಲೇ ಪರಿಶೀಲಿಸಿ.",
+    bn: "অন্য অবস্থান চেষ্টা করুন বা কভারেজ বাড়লে আবার দেখুন।"
+  },
+  detailsClearFilters: {
+    en: "Clear filters",
+    hi: "फ़िल्टर साफ़ करें",
+    kn: "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ",
+    bn: "ফিল্টার মুছুন"
+  },
+  detailsEndOfList: {
+    en: "You've reached the end of the list",
+    hi: "आप सूची के अंत तक पहुँच गए",
+    kn: "ನೀವು ಪಟ್ಟಿಯ ಅಂತ್ಯವನ್ನು ತಲುಪಿದ್ದೀರಿ",
+    bn: "আপনি তালিকার শেষে পৌঁছেছেন"
+  },
+  detailsNoResultsShort: {
+    en: "No providers to show",
+    hi: "दिखाने के लिए कोई प्रदाता नहीं",
+    kn: "ತೋರಿಸಲು ಯಾವುದೇ ಒದಗಿಸುವವರು ಇಲ್ಲ",
+    bn: "দেখানোর মতো কোনো প্রদানকারী নেই"
+  },
+
   getInTouch: {
     en: "Get in touch with us",
     hi: "हमसे संपर्क करें",
@@ -3450,6 +3511,12 @@ santhali: {
     hi: "उपलब्ध",
     kn: "ಲಭ್ಯವಿದೆ",
     bn: "উপলব্ধ"
+  },
+  notSpecified: {
+    en: "Not specified",
+    hi: "निर्दिष्ट नहीं",
+    kn: "ನಿರ್ದಿಷ್ಟಪಡಿಸಲಾಗಿಲ್ಲ",
+    bn: "নির্দিষ্ট করা হয়নি"
   },
   availabilityNotSpecified: {
     en: "Availability not specified",

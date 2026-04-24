@@ -67,38 +67,21 @@ interface ProviderDetailsProps extends ServiceProviderDTO  {
 }
 
 // Styled components
-const BadgeContainer = styled(Box)(({ theme }) => ({
-  position: 'absolute',
-top: -theme.spacing(2),
-  left: theme.spacing(2),
-  zIndex: 10,
-  display: 'flex',
-  gap: theme.spacing(1),
-  alignItems: 'center',
-    [theme.breakpoints.down('md')]: {
-    top: theme.spacing(1), // keep inside for tablet
-    left: theme.spacing(1.5),
-  },
-  [theme.breakpoints.down('sm')]: {
-    top: theme.spacing(1),
-    left: theme.spacing(1),
-    gap: theme.spacing(0.75),
-  },
-}));
-
 const BestMatchBadge = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(0.5),
-  backgroundColor: theme.palette.warning.main,
+  background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, ${theme.palette.warning.main} 100%)`,
   color: theme.palette.warning.contrastText,
-  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-  borderRadius: '4px',
-  boxShadow: theme.shadows[2],
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1.25)}`,
+  borderRadius: 999,
+  boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.45)',
   fontWeight: 700,
   fontSize: '0.7rem',
+  letterSpacing: '0.02em',
+  border: '1px solid rgba(255,255,255,0.25)',
   [theme.breakpoints.down('sm')]: {
-    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    padding: `${theme.spacing(0.35)} ${theme.spacing(1)}`,
     fontSize: '0.65rem',
   },
 }));
@@ -107,15 +90,17 @@ const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(0.5),
-  backgroundColor: theme.palette.info.main,
+  background: `linear-gradient(135deg, ${theme.palette.info.dark} 0%, ${theme.palette.info.main} 100%)`,
   color: theme.palette.info.contrastText,
-  padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-  borderRadius: '4px',
-  boxShadow: theme.shadows[2],
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1.25)}`,
+  borderRadius: 999,
+  boxShadow: '0 4px 12px -2px rgba(14, 165, 233, 0.35)',
   fontWeight: 700,
   fontSize: '0.7rem',
+  letterSpacing: '0.02em',
+  border: '1px solid rgba(255,255,255,0.2)',
   [theme.breakpoints.down('sm')]: {
-    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    padding: `${theme.spacing(0.35)} ${theme.spacing(1)}`,
     fontSize: '0.65rem',
   },
 }));
@@ -123,43 +108,38 @@ const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
 const ProviderCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== 'selected',
 })<{ selected?: boolean }>(({ theme, selected }) => ({
-  borderRadius: 16,
+  borderRadius: 20,
   overflow: 'visible',
-  transition: 'all 0.3s ease',
+  transition: 'box-shadow 0.25s ease, transform 0.25s ease, border-color 0.2s ease',
   border: '1px solid',
-  borderColor: selected ? theme.palette.primary.main : theme.palette.divider,
+  borderColor: selected ? theme.palette.primary.main : 'rgba(15, 23, 42, 0.08)',
   position: 'relative',
-  backgroundColor: selected ? `${theme.palette.primary.light}15` : theme.palette.background.paper,
+  background: selected
+    ? `linear-gradient(145deg, ${theme.palette.primary.light}18 0%, ${theme.palette.background.paper} 42%)`
+    : theme.palette.background.paper,
+  boxShadow: selected
+    ? `0 12px 32px -10px ${theme.palette.primary.main}55`
+    : '0 4px 20px -6px rgba(15, 23, 42, 0.1)',
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: theme.shadows[8],
-    borderColor: selected ? theme.palette.primary.main : theme.palette.primary.main,
+    transform: 'translateY(-3px)',
+    boxShadow: '0 16px 36px -10px rgba(15, 23, 42, 0.14)',
+    borderColor: selected ? theme.palette.primary.main : theme.palette.primary.light,
   },
-}));
-
-const MetricBox = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: theme.spacing(1.5),
-  borderRadius: 12,
-  backgroundColor: theme.palette.grey[50],
-  border: `1px solid ${theme.palette.grey[200]}`,
-  minWidth: 80,
 }));
 
 const AvailabilityChip = styled(Chip)(({ theme }) => ({
+  fontWeight: 700,
+  borderRadius: 999,
+  border: 'none',
   backgroundColor: theme.palette.success.light,
-  color: theme.palette.success.contrastText,
-  fontWeight: 600,
+  color: theme.palette.success.dark,
   '&.partial': {
     backgroundColor: theme.palette.warning.light,
-    color: theme.palette.warning.contrastText,
+    color: theme.palette.warning.dark,
   },
   '&.limited': {
     backgroundColor: theme.palette.error.light,
-    color: theme.palette.error.contrastText,
+    color: theme.palette.error.dark,
   },
 }));
 
@@ -372,13 +352,8 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     
     if (props.monthlyAvailability.fullyAvailable) {
       return t('fullyAvailable');
-    } else {
-      const exceptions = props.monthlyAvailability.exceptions?.length || 0;
-      if (exceptions > 0) {
-        return `${t('partiallyAvailable')} (${exceptions} ${t('exceptions')})`;
-      }
-      return t('partiallyAvailable');
     }
+    return t('partiallyAvailable');
   };
 
   const getAvailabilityChipClass = () => {
@@ -506,6 +481,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const allLanguages = getAllLanguages();
   const hasLanguages = allLanguages.length > 0;
+  const hasBadges = Boolean(props.bestMatch || props.previouslyBooked);
 
   return (
     <>
@@ -521,113 +497,106 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
           }
         }}
       >
-        {/* Badges Container - Consistent positioning across all devices */}
-        <BadgeContainer>
-          {/* Best Match Badge */}
-          {props.bestMatch && (
-            <BestMatchBadge>
-              <LocalFireDepartmentIcon fontSize="small" />
-              <span>{t('bestMatch')}</span>
-            </BestMatchBadge>
-          )}
-          
-          {/* Previously Booked Badge */}
-          {props.previouslyBooked && (
-            <PreviouslyBookedBadge>
-              <HistoryIcon fontSize="small" />
-              <span>{t('PreviouslyBooked')}</span>
-            </PreviouslyBookedBadge>
-          )}
-        </BadgeContainer>
-        
-        <CardContent sx={{ 
-          p: 3,
-          '@media (max-width: 900px)': {
-            p: 2.5,
-          },
-          '@media (max-width: 600px)': {
-            p: 2,
-          }
-        }}>
-          <Stack 
-            direction={isMobile ? "column" : "row"} 
-            spacing={isMobile ? 2 : 3} 
-            alignItems="flex-start"
-          >
-            <Box flex={1} sx={{
-              width: isMobile ? '100%' : 'auto'
-            }}>
-              <Stack 
-                direction={isMobile ? "column" : "row"} 
-                justifyContent="space-between" 
-                alignItems={isMobile ? "flex-start" : "flex-start"}
-                spacing={isMobile ? 2 : 0}
-              >
-                <Box sx={{
-                  width: isMobile ? '100%' : 'auto'
-                }}>
-                  <Stack 
-                    direction="row" 
-                    alignItems="center" 
-                    spacing={1} 
+        <CardContent
+          sx={{
+            p: { xs: 2, sm: 2.5, md: 3 },
+            '&:last-child': { pb: { xs: 2, sm: 2.5, md: 3 } },
+            background: theme.palette.background.paper,
+          }}
+        >
+          <Stack spacing={2.25}>
+            {hasBadges && (
+              <Stack direction="row" flexWrap="wrap" useFlexGap gap={1}>
+                {props.bestMatch && (
+                  <BestMatchBadge>
+                    <LocalFireDepartmentIcon sx={{ fontSize: 18 }} />
+                    <span>{t('bestMatch')}</span>
+                  </BestMatchBadge>
+                )}
+                {props.previouslyBooked && (
+                  <PreviouslyBookedBadge>
+                    <HistoryIcon sx={{ fontSize: 18 }} />
+                    <span>{t('PreviouslyBooked')}</span>
+                  </PreviouslyBookedBadge>
+                )}
+              </Stack>
+            )}
+
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={2}
+              alignItems={{ xs: 'stretch', md: 'flex-start' }}
+              justifyContent="space-between"
+            >
+              <Stack direction="row" spacing={2} alignItems="flex-start" flex={1} minWidth={0}>
+                <Avatar
+                  sx={{
+                    width: { xs: 52, md: 56 },
+                    height: { xs: 52, md: 56 },
+                    fontSize: '1.05rem',
+                    fontWeight: 700,
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 16px -4px rgba(14, 165, 233, 0.45)',
+                  }}
+                >
+                  {getInitials()}
+                </Avatar>
+                <Box flex={1} minWidth={0}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
                     flexWrap="wrap"
-                    sx={{
-                      '@media (max-width: 600px)': {
-                        mt: 2.5, // Added margin top to account for badges
-                      }
-                    }}
+                    columnGap={1.5}
+                    rowGap={0.75}
                   >
-                    <Typography variant="h6" fontWeight={600} sx={{
-                      '@media (max-width: 900px)': {
-                        fontSize: '1.1rem',
-                      },
-                      '@media (max-width: 600px)': {
-                        fontSize: '1rem',
-                      }
-                    }}>
+                    <Typography
+                      variant="h6"
+                      fontWeight={700}
+                      sx={{
+                        letterSpacing: '-0.02em',
+                        fontSize: { xs: '1.05rem', md: '1.2rem' },
+                      }}
+                    >
                       {props.firstName} {props.lastName}
                     </Typography>
-                    <Chip 
+                    <Chip
                       label={`${gender}, ${age}`}
                       size="small"
                       variant="outlined"
                       sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.7rem',
-                          height: 22,
-                        }
+                        borderRadius: 999,
+                        fontWeight: 600,
+                        borderColor: 'rgba(15, 23, 42, 0.12)',
+                        bgcolor: 'action.hover',
                       }}
                     />
                   </Stack>
-                  
-                  <Stack 
-                    direction={isMobile ? "column" : "row"} 
-                    spacing={isMobile ? 1 : 2} 
-                    mt={1} 
-                    alignItems={isMobile ? "flex-start" : "center"}
+
+                  <Stack
+                    direction="row"
+                    alignItems="center"
                     flexWrap="wrap"
+                    columnGap={1.5}
+                    rowGap={1}
+                    mt={1.25}
                   >
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <RestaurantIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <RestaurantIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
                         {props.diet}
                       </Typography>
                     </Stack>
-                    
-                    <Divider 
-                      orientation="vertical" 
-                      flexItem 
-                      sx={{
-                        display: isMobile ? 'none' : 'flex'
-                      }} 
-                    />
-                    
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <LanguageIcon fontSize="small" color="action" />
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'inline' } }}
+                    >
+                      ·
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap gap={0.5}>
+                      <LanguageIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                       {hasLanguages ? (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {allLanguages.map((language, index) => (
@@ -639,360 +608,261 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                               sx={{
                                 height: 24,
                                 fontSize: '0.75rem',
-                                '@media (max-width: 600px)': {
-                                  height: 20,
-                                  fontSize: '0.65rem',
-                                }
+                                borderRadius: 999,
+                                fontWeight: 500,
                               }}
                             />
                           ))}
                         </Box>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.8rem',
-                          }
-                        }}>
+                        <Typography variant="body2" color="text.secondary">
                           {t('notSpecified')}
                         </Typography>
                       )}
                     </Stack>
                   </Stack>
-              
-                  <Box mt={2} sx={{
-                    '@media (max-width: 600px)': {
-                      mt: 1.5,
-                    }
-                  }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
-                        {t('availability')}
-                      </Typography>
-                  
-                    </Stack>
-                    
-                    <Stack direction="row" spacing={2} alignItems="center" sx={{
-                      '@media (max-width: 900px)': {
-                        flexWrap: 'wrap',
-                        gap: 1,
-                      }
-                    }}>
-                      <AccessTimeIcon fontSize="small" color={getTimeIconColor()} />
-                      <Typography variant="body1" fontWeight={500} sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.9rem',
-                        }
-                      }}>
-                        {getAvailabilityMessage()}
-                      </Typography>
-                      <Chip 
-                        label={
-                          props.monthlyAvailability?.summary?.totalDays >= 30 
-                            ? t('monthly') 
-                            : t('shortTerm')
-                        } 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                        sx={{
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.7rem',
-                            height: 22,
-                          }
-                        }}
-                      />
-                      <AvailabilityChip
-                        label={getAvailabilityStatus()}
-                        size="small"
-                        className={getAvailabilityChipClass()}
-                        sx={{
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.65rem',
-                            height: 20,
-                          }
-                        }}
-                      />
-                    </Stack>
-                    
-                    {props.monthlyAvailability?.exceptions && props.monthlyAvailability.exceptions.length > 0 && (
-                      <Typography 
-                        variant="caption" 
-                        color="warning.main"
-                        sx={{ 
-                          display: 'block', 
-                          mt: 0.5,
-                          fontWeight: 500,
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.7rem',
-                          }
-                        }}
-                      >
-                        ⚠️ {props.monthlyAvailability.exceptions.length} {t('scheduleExceptionsCount')}
-                      </Typography>
-                    )}
-                    
-                    {props.monthlyAvailability?.fullyAvailable && (
-                      <Typography 
-                        variant="caption" 
-                        color="success.main"
-                        sx={{ 
-                          display: 'block', 
-                          mt: 0.5,
-                          fontWeight: 500,
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.7rem',
-                          }
-                        }}
-                      >
-                        ✓ {t('fullyAvailableAllMonth')}
-                      </Typography>
-                    )}
-                    
-                    {props.monthlyAvailability && !props.monthlyAvailability.fullyAvailable && 
-                     (!props.monthlyAvailability.exceptions || props.monthlyAvailability.exceptions.length === 0) && (
-                      <Typography 
-                        variant="caption" 
-                        color="warning.main"
-                        sx={{ 
-                          display: 'block', 
-                          mt: 0.5,
-                          fontWeight: 500,
-                          '@media (max-width: 600px)': {
-                            fontSize: '0.7rem',
-                          }
-                        }}
-                      >
-                        ⚠️ {t('partiallyAvailableMonth')}
-                      </Typography>
-                    )}
-                  </Box>
-                  
-                  {props.otherServices && (
-                    <Box mt={2} sx={{
-                      '@media (max-width: 600px)': {
-                        mt: 1.5,
-                      }
-                    }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
-                        {t('additionalServices')}
-                      </Typography>
-                      <Typography variant="body2" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.8rem',
-                        }
-                      }}>
-                        {props.otherServices}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-             
-                <Divider 
-                  orientation="vertical" 
-                  flexItem 
-                  sx={{ 
-                    mr: -50,
-                    display: isMobile ? 'none' : 'flex'
-                  }} 
-                />
-                
-                <Box mt={isMobile ? 2 : -0.5} sx={{
-                  width: isMobile ? '100%' : 'auto'
-                }}>
-                  <Stack
-                    direction="row"
-                    spacing={2}
-                    mt={isMobile ? 0 : 2}
-                    width="100%"
-                    justifyContent="space-between"
-                    sx={{
-                      '@media (max-width: 600px)': {
-                        spacing: 1,
-                        gap: 1,
-                      }
-                    }}
-                  >
-                    <MetricBox sx={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      minWidth: 'auto',
-                      padding: '10px 12px',
-                      mb: isMobile ? 0 : 0,
-                    }}>
-                      <Typography variant="h6" color="primary" fontWeight={600} sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '1rem',
-                        }
-                      }}>
-                        {props.distance_km || 0}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.7rem',
-                          marginLeft: 'auto',
-                        }
-                      }}>
-                        {t('kmAway')}
-                      </Typography>
-                    </MetricBox>
-
-                    <MetricBox sx={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      minWidth: 'auto',
-                      padding: '10px 12px',
-                      mb: isMobile ? 0 : 0,
-                    }}>
-                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{
-                        flex: 1,
-                      }}>
-                        <StarIcon fontSize="small" color="warning" />
-                        <Typography variant="h6" fontWeight={600} sx={{
-                          '@media (max-width: 600px)': {
-                            fontSize: '1rem',
-                          }
-                        }}>
-                          {formatRating()}
-                        </Typography>
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.7rem',
-                          marginLeft: 'auto',
-                        }
-                      }}>
-                        {getRatingValue() === 0 ? t('Ratings') : t('reviews')}
-                      </Typography>
-                    </MetricBox>
-
-                    <MetricBox sx={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      minWidth: 'auto',
-                      padding: '10px 12px',
-                      mb: isMobile ? 0 : 0,
-                    }}>
-                      <Typography variant="h6" color="success.main" fontWeight={600} sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '1rem',
-                        }
-                      }}>
-                        {props.experience || 0}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{
-                        '@media (max-width: 600px)': {
-                          fontSize: '0.7rem',
-                          marginLeft: 'auto',
-                        }
-                      }}>
-                        {t('yrsExperience')}
-                      </Typography>
-                    </MetricBox>
-                  </Stack>
                 </Box>
               </Stack>
-            </Box>
-            
-            <Divider 
-              orientation="vertical" 
-              flexItem 
-              sx={{
-                display: isMobile ? 'none' : 'flex'
-              }}
-            />
-            
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: isMobile ? 'row' : 'column', 
-              gap: isMobile ? 1 : 2, 
-              minWidth: isMobile ? '100%' : 140,
-              justifyContent: isMobile ? 'space-between' : 'flex-start',
-              alignItems: isMobile ? 'center' : 'stretch',
-              ...(isMobile && {
-                borderTop: '1px solid #e0e0e0',
-                pt: 2,
-                mt: 2,
-              })
-            }}>
-              {props?.housekeepingRoles?.length > 0 && (
-                props.housekeepingRoles.map((role, index) => (
-                  <Chip 
-                  label={role}
-                  color="primary"
-                  variant="filled"
-                  size="small"
-                  sx={{ 
-                    alignSelf: isMobile ? 'flex-start' : 'center',
-                    '@media (max-width: 600px)': {
-                      fontSize: '0.7rem',
-                      height: 22,
-                    }
-                  }}
-                />
-                ))
+
+              {props?.housekeepingRoles && props.housekeepingRoles.length > 0 && (
+                <Stack
+                  direction="row"
+                  flexWrap="wrap"
+                  useFlexGap
+                  gap={1}
+                  justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                  sx={{ flexShrink: 0, maxWidth: { md: 320 } }}
+                >
+                  {props.housekeepingRoles.map((role, index) => (
+                    <Chip
+                      key={`${role}-${index}`}
+                      label={role}
+                      color="primary"
+                      variant="filled"
+                      size="small"
+                      sx={{
+                        borderRadius: 999,
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                      }}
+                    />
+                  ))}
+                </Stack>
               )}
-              <Button 
-                variant="outlined" 
+            </Stack>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                overflow: 'hidden',
+                bgcolor: 'grey.50',
+              }}
+            >
+              <Box
+                sx={{
+                  py: 1.5,
+                  px: 1,
+                  textAlign: 'center',
+                  borderRight: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="h6" color="primary" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                  {props.distance_km ?? 0}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.35, display: 'block' }}>
+                  {t('kmAway')}
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  py: 1.5,
+                  px: 1,
+                  textAlign: 'center',
+                  borderRight: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                  <StarIcon sx={{ fontSize: 20, color: 'warning.main' }} />
+                  <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                    {formatRating()}
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.35, display: 'block' }}>
+                  {getRatingValue() === 0 ? t('Ratings') : t('reviews')}
+                </Typography>
+              </Box>
+              <Box sx={{ py: 1.5, px: 1, textAlign: 'center' }}>
+                <Typography variant="h6" color="success.main" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                  {props.experience ?? 0}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.35, display: 'block' }}>
+                  {t('yrsExperience')}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box
+              sx={{
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderLeftWidth: 4,
+                borderLeftColor: 'primary.main',
+                bgcolor: 'rgba(248, 250, 252, 0.92)',
+                p: { xs: 1.75, sm: 2 },
+              }}
+            >
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ fontWeight: 700, letterSpacing: '0.08em', display: 'block', mb: 1 }}
+              >
+                {t('availability')}
+              </Typography>
+              <Stack spacing={1.25}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1.25}
+                  alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  flexWrap="wrap"
+                  useFlexGap
+                  gap={1}
+                >
+                  <Stack direction="row" spacing={1} alignItems="flex-start" flex={1} minWidth={0}>
+                    <AccessTimeIcon fontSize="small" color={getTimeIconColor()} sx={{ mt: 0.2 }} />
+                    <Typography variant="body2" fontWeight={500} color="text.primary">
+                      {getAvailabilityMessage()}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" flexWrap="wrap" useFlexGap gap={1}>
+                    {props.monthlyAvailability && (
+                      <Chip
+                        label={
+                          props.monthlyAvailability.summary?.totalDays >= 30
+                            ? t('monthly')
+                            : t('shortTerm')
+                        }
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    )}
+                    <AvailabilityChip
+                      label={getAvailabilityStatus()}
+                      size="small"
+                      className={getAvailabilityChipClass()}
+                    />
+                  </Stack>
+                </Stack>
+
+                {props.monthlyAvailability?.exceptions &&
+                  props.monthlyAvailability.exceptions.length > 0 && (
+                    <Typography variant="caption" color="warning.main" sx={{ fontWeight: 500, display: 'block' }}>
+                      ⚠️ {props.monthlyAvailability.exceptions.length} {t('scheduleExceptionsCount')}
+                    </Typography>
+                  )}
+
+                {props.monthlyAvailability?.fullyAvailable && (
+                  <Typography variant="caption" color="success.main" sx={{ fontWeight: 500, display: 'block' }}>
+                    ✓ {t('fullyAvailableAllMonth')}
+                  </Typography>
+                )}
+
+                {props.monthlyAvailability &&
+                  !props.monthlyAvailability.fullyAvailable &&
+                  (!props.monthlyAvailability.exceptions ||
+                    props.monthlyAvailability.exceptions.length === 0) && (
+                    <Typography variant="caption" color="warning.main" sx={{ fontWeight: 500, display: 'block' }}>
+                      ⚠️ {t('partiallyAvailableMonth')}
+                    </Typography>
+                  )}
+              </Stack>
+            </Box>
+
+            {props.otherServices && (
+              <Box
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 2,
+                  bgcolor: 'action.hover',
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ letterSpacing: '0.06em' }}>
+                  {t('additionalServices')}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.75 }}>
+                  {props.otherServices}
+                </Typography>
+              </Box>
+            )}
+
+            <Divider sx={{ borderColor: 'rgba(15, 23, 42, 0.08)' }} />
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.25}
+              justifyContent="flex-end"
+              alignItems="stretch"
+            >
+              <Button
+                variant="outlined"
                 size="medium"
-                fullWidth={!isMobile}
+                fullWidth={isMobile}
                 startIcon={<InfoOutlinedIcon />}
                 onClick={handleViewDetails}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
-                  ...(isMobile && {
-                    minWidth: 'auto',
-                    flex: 1,
-                  }),
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderColor: 'rgba(14, 165, 233, 0.45)',
+                  color: 'primary.dark',
+                  bgcolor: 'rgba(255, 255, 255, 0.95)',
+                  minWidth: { sm: 168 },
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'rgba(240, 249, 255, 0.95)',
+                  },
                   '@media (max-width: 600px)': {
-                    fontSize: '0.85rem',
-                    px: 1,
-                    minHeight: 36,
-                  }
+                    minHeight: 42,
+                  },
                 }}
               >
                 {isMobile ? t('details') : t('viewDetails')}
               </Button>
-              
-              <Button 
-                variant="contained" 
+
+              <Button
+                variant="contained"
                 size="medium"
-                fullWidth={!isMobile}
+                fullWidth={isMobile}
                 onClick={handleLogin}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
-                  fontWeight: 600,
-                  boxShadow: 2,
-                  ...(isMobile && {
-                    minWidth: 'auto',
-                    flex: 1,
-                  }),
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  minWidth: { sm: 168 },
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%)',
+                  boxShadow: '0 8px 22px -6px rgba(14, 165, 233, 0.55)',
                   '@media (max-width: 600px)': {
-                    fontSize: '0.85rem',
-                    px: 1,
-                    minHeight: 36,
+                    minHeight: 42,
                   },
                   '&:hover': {
-                    boxShadow: 4,
-                  }
+                    boxShadow: '0 12px 28px -6px rgba(14, 165, 233, 0.55)',
+                    background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 50%, #0369a1 100%)',
+                  },
                 }}
               >
                 {isMobile ? t('book') : t('bookNow')}
               </Button>
-            </Box>
+            </Stack>
           </Stack>
         </CardContent>
       </ProviderCard>
