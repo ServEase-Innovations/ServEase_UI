@@ -924,6 +924,7 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
     }
   };
 
+  
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
