@@ -230,7 +230,64 @@ export const translations: Translations = {
     kn: "ಸ್ಥಳ ಹೊಂದಿಸಿ",
     bn: "অবস্থান সেট করুন"
   },
-  
+
+  pickLocationOnMap: {
+    en: "Drag the map or tap to place the pin, then save.",
+    hi: "नक्शा खींचें या पिन जोड़ने के लिए टैप करें, फिर सहेजें।",
+    kn: "ನಕ್ಶೆಯನ್ನು ಎಳೆದು ಅಥವಾ ಟ್ಯಾಪ್ ಮಾಡಿ ಪಿನ್‌ ಇರಿಸಿ, ನಂತರ ಉಳಿಸಿ.",
+    bn: "ম্যাপ টেনে বা পিনে ট্যাপ করে ঠিক করুন, তারপর সেভ করুন।"
+  },
+
+  saveLocationAs: {
+    en: "How should we label this place?",
+    hi: "हम इस जगह को क्या कहें?",
+    kn: "ಈ ಸ್ಥಳದ ಹೆಸರೇನು ಎಂದು ಉಳಿಸಬೇಕು?",
+    bn: "এই জায়গাটি কী নামে সংরক্ষণ করবেন?"
+  },
+
+  mapSearchPlaceholder: {
+    en: "Search for an address or place",
+    hi: "किसी पते या जगह को खोजें",
+    kn: "ವಿಳಾಣ ಅಥವಾ ಸ್ಥಳವನ್ನು ಹುಡುಕಿ",
+    bn: "ঠিকানা বা জায়গা খুঁজুন"
+  },
+  mapSelectedAddress: {
+    en: "Selected address",
+    hi: "चयनित पता",
+    kn: "ಆಯ್ಕೆಮಾಡಿದ ವಿಳಾಸ",
+    bn: "নির্বাচিত ঠিকানা"
+  },
+  mapAddressEmptyHint: {
+    en: "Search above or tap the map to pick a point.",
+    hi: "ऊपर खोजें या पिन सेट करने के लिए मानचित्र पर टैप करें।",
+    kn: "ಮೇಲೆ ಹುಡುಕಿ ಅಥವಾ ಮ್ಯಾಪ್‌ ಟ್ಯಾಪ್‌ ಮಾಡಿ ಪುಲ್ ಪಿನ್‌ ಇರಿಸಿ.",
+    bn: "খুঁজুন বা পিন ঠিক করতে ম্যাপে ট্যাপ করুন।"
+  },
+  mapGeocodeNotFound: {
+    en: "No address could be found for that spot. Try again.",
+    hi: "उस जगह के लिए पता नहीं मिला। फिर कोशिश करें।",
+    kn: "ಆ ಸ್ಥಳಕ್ಕೆ ವಿಳಾಸ ಸಿಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    bn: "ঐ স্থানে কোন ঠিকানা মিলল না। আবার চেষ্টা করুন।"
+  },
+  mapGeocodeError: {
+    en: "Couldn’t look up the address. Try again.",
+    hi: "पते की जानकारी नहीं मिली। पुनः प्रयास करें।",
+    kn: "ವಿಳಾಸ ಪಡೆದುಕೊಳ್ಳಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    bn: "ঠিকানা খুঁজে পাওয়া যায়নি। আবার চেষ্টা করুন।"
+  },
+  useMyCurrentLocation: {
+    en: "My location",
+    hi: "मेरी जगह",
+    kn: "ನನ್ನ ಸ್ಥಳ",
+    bn: "আমার অবস্থান"
+  },
+  mapClearSearch: {
+    en: "Clear search",
+    hi: "खोज साफ़ करें",
+    kn: "ಹುಡುಕಾಟ ಖಾಲಿ",
+    bn: "খুঁজা মুছুন"
+  },
+
   cancel: {
     en: "Cancel",
     hi: "रद्द करें",
@@ -4268,6 +4325,13 @@ userInformation: {
   hi: "उपयोगकर्ता जानकारी",
   kn: "ಬಳಕೆದಾರರ ಮಾಹಿತಿ",
   bn: "ব্যবহারকারীর তথ্য"
+},
+/** Use in account/profile; `contactInformation` is reserved for T&Cs (numbered sections). */
+profileContactInformation: {
+  en: "Contact information",
+  hi: "संपर्क जानकारी",
+  kn: "ಸಂಪರ್ಕ ಮಾಹಿತಿ",
+  bn: "যোগাযোগের তথ্য"
 },
 
 noEmailAvailable: {

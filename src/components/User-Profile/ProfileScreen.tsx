@@ -23,6 +23,8 @@ import VendorProfileSection from "./VendorProfileSection";
 
 import { useLanguage } from "src/context/LanguageContext";
 
+import { AlertCircle } from "lucide-react";
+
 
 
 const ProfileScreen = () => {
@@ -205,41 +207,45 @@ const ProfileScreen = () => {
 
     return (
 
-      <div className="w-full">
+      <div className="w-full min-h-[50vh] bg-slate-50/80">
 
         {/* Header Skeleton */}
 
-        <div className="relative mt-16 bg-gradient-to-b from-blue-100 to-white">
-
-          <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between h-auto md:h-32 max-w-6xl px-6 mx-auto py-8 gap-4 md:gap-0">
-
-            <div className="flex items-center gap-5">
-
-              <SkeletonLoader variant="circular" width={80} height={80} />
-
+        <div className="relative mt-16 overflow-hidden bg-gradient-to-br from-slate-800 via-sky-900 to-slate-900">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M32 0L64 32 32 64 0 32Z' fill='%23fff' fill-opacity='1'/%3E%3C/svg%3E")`,
+              backgroundSize: "12px 12px",
+            }}
+          />
+          <div className="relative z-10 flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 sm:py-10 md:h-auto md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <SkeletonLoader variant="circular" width={80} height={80} style={{ backgroundColor: "#475569" }} />
               <div>
-
-                <SkeletonLoader width={160} height={28} className="mb-2" />
-
-                <SkeletonLoader width={96} height={16} />
-
+                <SkeletonLoader
+                  width={200}
+                  height={28}
+                  className="mb-2"
+                  style={{ backgroundColor: "#64748b" }}
+                />
+                <SkeletonLoader width={120} height={16} style={{ backgroundColor: "#64748b" }} />
               </div>
-
             </div>
-
-            <SkeletonLoader width={128} height={40} />
-
+            <SkeletonLoader
+              width={140}
+              height={40}
+              className="!rounded-lg"
+              style={{ backgroundColor: "#64748b" }}
+            />
           </div>
-
         </div>
-
-
 
         {/* Content Skeleton */}
 
-        <div className="flex justify-center w-full py-6">
+        <div className="flex w-full justify-center px-4 py-6 sm:px-6">
 
-          <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+          <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/40 ring-1 ring-slate-900/5 sm:p-7">
 
             {/* Header with edit button skeleton */}
 
@@ -407,7 +413,7 @@ const ProfileScreen = () => {
 
   return (
 
-    <div className="w-full">
+    <div className="w-full min-h-screen bg-slate-50/80">
 
       {/* Mobile Dialog */}
 
@@ -437,15 +443,19 @@ const ProfileScreen = () => {
 
       {/* Header */}
 
-      <div className="relative mt-16 bg-gradient-to-b from-blue-100 to-white text-blue-900">
-
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between h-auto md:h-32 max-w-6xl px-6 mx-auto py-8 gap-4 md:gap-0">
-
-          
-
-          <div className="flex items-center gap-5">
-
-             <div className="p-[3px] rounded-full bg-blue-500">
+      <div className="relative mt-16 overflow-hidden bg-gradient-to-br from-sky-800 via-slate-800 to-slate-950 text-white">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.09]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M32 0L64 32 32 64 0 32Z' fill='%23fff' fill-opacity='1'/%3E%3C/svg%3E")`,
+            backgroundSize: "14px 14px",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent" />
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-6 px-4 py-9 sm:px-6 sm:py-10 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+            <div className="relative shrink-0">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-sky-400/30 to-violet-400/20 opacity-80 blur-sm" />
               <img
                 src={
                   appUser?.picture ||
@@ -453,76 +463,48 @@ const ProfileScreen = () => {
                   "https://via.placeholder.com/80"
                 }
                 alt={userName || t("user")}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white"
+                className="relative h-20 w-20 rounded-full border-2 border-white/20 object-cover shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24"
               />
             </div>
-
-            <div>
-
-              <h1 className="text-2xl md:text-3xl font-bold">
-
-                {t('hello')}, {userName || t('user')}
-
-              </h1>
-
-
-
-              <p className="text-sm text-gray-600 mt-1">
-
-                {getRoleDisplay()}
-
-                {userRole === "CUSTOMER" && hasMobileNumber === false && (
-
-                  <span className="ml-2 text-red-500 text-xs">
-
-                    ⚠️ {t('mobileNumberRequired')}
-
-                  </span>
-
-                )}
-
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-200/90 sm:text-xs">
+                {t("profile")}
               </p>
-
+              <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                {t("hello")}, {userName || t("user")}
+              </h1>
+              <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-slate-200/90">
+                <span className="inline-flex max-w-full items-center rounded-full bg-white/10 px-3 py-0.5 text-xs font-medium text-slate-100 ring-1 ring-white/10">
+                  {getRoleDisplay()}
+                </span>
+                {userRole === "CUSTOMER" && hasMobileNumber === false && (
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-200/95">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {t("mobileNumberRequired")}
+                  </span>
+                )}
+              </p>
             </div>
-
           </div>
 
+          <div className="flex flex-col gap-2 sm:items-end">
+            {userRole === "CUSTOMER" && hasMobileNumber === false && (
+              <button
+                type="button"
+                onClick={() => setMobileDialogOpen(true)}
+                className="w-full rounded-xl border border-amber-300/40 bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-100 shadow-sm backdrop-blur-sm transition hover:bg-amber-500/30 sm:w-auto"
+              >
+                {t("addMobileNumber")}
+              </button>
+            )}
 
-
-          {/* Add Mobile Button - Only for Customers */}
-
-          {userRole === "CUSTOMER" && hasMobileNumber === false && (
-
-            <button
-
-              onClick={() => setMobileDialogOpen(true)}
-
-              className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200"
-
-            >
-
-              {t('addMobileNumber')}
-
-            </button>
-
-          )}
-
-
-
-          {/* Vendor ID Display */}
-
-          {userRole === "VENDOR" && userId && (
-
-            <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
-
-              {t('vendorId')}: {userId}
-
-            </div>
-
-          )}
-
+            {userRole === "VENDOR" && userId && (
+              <div className="inline-flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-sky-100 shadow-inner backdrop-blur sm:w-auto">
+                {t("vendorId")}: {userId}
+              </div>
+            )}
+          </div>
         </div>
-
       </div>
 
 
@@ -547,11 +529,11 @@ const ProfileScreen = () => {
 
       {/* Footer */}
 
-      <div className="bg-gray-100 py-4 text-center text-gray-500 text-sm">
+      <footer className="border-t border-slate-200/90 bg-slate-50/90 py-5 text-center text-sm text-slate-500">
 
-        © 2025 MyApp. {t('allRightsReserved')}
+        © {new Date().getFullYear()} Serveaso. {t("allRightsReserved")}
 
-      </div>
+      </footer>
 
     </div>
 

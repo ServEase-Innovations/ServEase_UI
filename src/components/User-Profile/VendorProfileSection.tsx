@@ -81,8 +81,8 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/30 ring-1 ring-slate-900/5 sm:p-7">
           <SkeletonLoader width={200} height={28} className="mb-6" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -99,8 +99,8 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
 
   if (error || !vendorData) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-xl shadow-md p-8 text-center">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-8 text-center shadow-xl shadow-slate-200/20 ring-1 ring-slate-900/5">
           <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {t("vendorInfoUnavailable")}
@@ -114,18 +114,17 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
-      
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Company Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Contact Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-600" />
-              {t("contactInformation")}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/25 ring-1 ring-slate-900/5 sm:p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+              <Building2 className="h-5 w-5 text-sky-600" />
+              {t("profileContactInformation")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -153,9 +152,9 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
           </div>
 
           {/* Business Details */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-600" />
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/25 ring-1 ring-slate-900/5 sm:p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+              <Building2 className="h-5 w-5 text-sky-600" />
               {t("businessDetails")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -193,24 +192,24 @@ const VendorProfileSection: React.FC<VendorProfileSectionProps> = ({
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("quickActions")}</h3>
-            <div className="space-y-3">
-              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/25 ring-1 ring-slate-900/5 sm:p-6">
+            <h3 className="mb-4 text-lg font-bold tracking-tight text-slate-900">{t("quickActions")}</h3>
+            <div className="space-y-2.5">
+              <button type="button" className="w-full rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700">
                 {t("manageProviders")}
               </button>
-              <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+              <button type="button" className="w-full rounded-xl border-2 border-sky-200 bg-sky-50/50 px-4 py-2.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100/80">
                 {t("viewAnalytics")}
               </button>
-              <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              <button type="button" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                 {t("editProfile")}
               </button>
             </div>
           </div>
 
           {/* Status Summary */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("summary")}</h3>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-slate-200/25 ring-1 ring-slate-900/5 sm:p-6">
+            <h3 className="mb-4 text-lg font-bold tracking-tight text-slate-900">{t("summary")}</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">{t("accountStatus")}</span>

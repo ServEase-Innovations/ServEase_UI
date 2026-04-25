@@ -1,132 +1,131 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, useRef } from 'react';
-import { TextField } from '@mui/material'; // Material UI TextField for styling
+import React, { useEffect, useRef, useId } from "react";
+import { TextField, InputAdornment } from "@mui/material";
+import { Search, X } from "lucide-react";
+import { useLanguage } from "src/context/LanguageContext";
+
+const PAC_ZINDEX_STYLE_ID = "servase-google-places-pac-zindex";
 
 interface GooglePlacesAutocompleteProps {
-  onSelectPlace: (place: google.maps.places.PlaceResult, lat: number, lng: number) => void; // Callback when a place is selected
-  placeholder?: string; // Custom placeholder for the input
+  onSelectPlace: (place: google.maps.places.PlaceResult) => void;
+  placeholder: string;
 }
 
 const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
   onSelectPlace,
-  placeholder = "Search for a location",
+  placeholder,
 }) => {
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null); // Reference to the input element
-  const [address, setAddress] = useState<string>(''); // Store address text for display
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]); // Store suggestions
+  const { t } = useLanguage();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const onSelectRef = useRef(onSelectPlace);
+  onSelectRef.current = onSelectPlace;
+  const clearId = useId();
 
   useEffect(() => {
-    if (window.google && inputRef.current) {
-      // Initialize Google Places Autocomplete when input is rendered
-      const autoComplete = new window.google.maps.places.Autocomplete(inputRef.current);
-      setAutocomplete(autoComplete);
+    if (typeof document === "undefined") return;
+    if (!document.getElementById(PAC_ZINDEX_STYLE_ID)) {
+      const style = document.createElement("style");
+      style.id = PAC_ZINDEX_STYLE_ID;
+      style.textContent = `
+        .pac-container { z-index: 2000 !important; border-radius: 12px; margin-top: 4px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12) !important; }
+        .pac-item { font-size: 0.875rem; padding: 0.5rem 0.75rem !important; }
+        .pac-item:hover { background: #f8fafc !important; }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
 
-      // Add event listener to handle place selection
-      autoComplete.addListener('place_changed', () => {
-        const place = autoComplete.getPlace();
-        if (place.geometry) {
-          const lat = place.geometry.location?.lat() ?? 0;  // Fallback to 0 if lat is undefined
-          const lng = place.geometry.location?.lng() ?? 0;  // Fallback to 0 if lng is undefined
+  useEffect(() => {
+    let ac: google.maps.places.Autocomplete | null = null;
+    let poller: ReturnType<typeof setInterval> | undefined;
 
-          onSelectPlace(place, lat, lng); // Pass place, lat, and lng to parent component
-          setAddress(place.formatted_address || ''); // Optionally set address display
-          setSuggestions([]); // Clear suggestions after selection (close the dropdown)
+    const tryBind = () => {
+      if (!inputRef.current || !window.google?.maps?.places) return false;
+      if (ac) return true;
+      ac = new window.google.maps.places.Autocomplete(inputRef.current);
+      ac.addListener("place_changed", () => {
+        const place = ac!.getPlace();
+        if (place?.geometry) {
+          onSelectRef.current(place);
         }
       });
+      return true;
+    };
 
-      // Update suggestions as the user types
-      if (inputRef.current) {
-        inputRef.current.addEventListener('input', () => {
-          const predictionsService = new window.google.maps.places.AutocompleteService();
-          predictionsService.getPlacePredictions({ input: inputRef.current?.value ?? '' }, (predictions, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setSuggestions(predictions);
-            }
-          });
-        });
+    if (tryBind()) {
+      // ok
+    } else {
+      poller = setInterval(() => {
+        if (tryBind() && poller) {
+          clearInterval(poller);
+          poller = undefined;
+        }
+      }, 200);
+    }
+
+    return () => {
+      if (poller) clearInterval(poller);
+      if (ac) {
+        google.maps.event.clearInstanceListeners(ac);
       }
+      ac = null;
+    };
+  }, []);
+
+  const clearInput = () => {
+    if (inputRef.current) {
+      inputRef.current.value = "";
+      inputRef.current.focus();
     }
-  }, [onSelectPlace]);
-
-  // Handle input change
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setAddress(event.target.value); // Update address as the user types
-  };
-
-  // Render the suggestions inside the dialog box
-  const renderSuggestions = () => {
-    if (suggestions.length > 0) {
-      return (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%', // Position below the input field
-            left: 0,
-            right: 0,
-            zIndex: 1500, // Ensure it shows above other content inside the dialog
-            background: 'white',
-            border: '1px solid #ccc',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-            maxHeight: '200px', // Limit height of suggestions container
-            overflowY: 'auto', // Make suggestions scrollable
-            borderRadius: '4px', // Optional for rounded corners
-          }}
-        >
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={index}
-              style={{
-                padding: '10px',
-                cursor: 'pointer',
-                backgroundColor: '#fff',
-                transition: 'background-color 0.3s ease',
-              }}
-              onClick={() => {
-                // Use the geocode method to get the full place (with geometry)
-                const service = new google.maps.places.PlacesService(document.createElement('div'));
-                service.getDetails({ placeId: suggestion.place_id }, (place, status) => {
-                  if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
-                    const lat = place.geometry.location?.lat() ?? 0;  // Fallback to 0 if lat is undefined
-                    const lng = place.geometry.location?.lng() ?? 0;  // Fallback to 0 if lng is undefined
-
-                    onSelectPlace(place, lat, lng); // Pass place, lat, and lng to parent component
-                    setAddress(place.formatted_address || ''); // Optionally set address display
-                    setSuggestions([]); // Close the dropdown
-                  }
-                });
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'} // Hover effect
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'} // Reset on leave
-            >
-              {suggestion.description}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
   };
 
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Google Places Input */}
-      <TextField
-        inputRef={inputRef}
-        label={placeholder}
-        variant="outlined"
-        fullWidth
-        onChange={handleInputChange} // Handle input change
-        value={address} // Bind input to address state
-        style={{
-          zIndex: 1000, // Ensure input stays on top
-          position: 'relative',
-        }}
-      />
-
-      {/* Render the suggestions inside the dialog */}
-      {renderSuggestions()}
-    </div>
+    <TextField
+      size="small"
+      fullWidth
+      placeholder={placeholder}
+      name={`map-autocomplete-${clearId}`}
+      id={`map-search-${clearId}`}
+      inputRef={inputRef}
+      autoComplete="off"
+      inputProps={{ "aria-label": placeholder }}
+      InputProps={{
+        className: "!bg-white !rounded-2xl !pl-0.5",
+        startAdornment: (
+          <InputAdornment position="start" className="!ml-1">
+            <Search className="h-4 w-4 text-slate-400" aria-hidden />
+          </InputAdornment>
+        ),
+        endAdornment: (
+          <InputAdornment position="end" className="!mr-0.5">
+            <button
+              type="button"
+              onClick={clearInput}
+              className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              title={t("mapClearSearch")}
+              aria-label={t("mapClearSearch")}
+              tabIndex={-1}
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </InputAdornment>
+        ),
+      }}
+      sx={{
+        "& .MuiOutlinedInput-root": {
+          borderRadius: 2.5,
+          pl: 0.5,
+          pr: 0.5,
+          backgroundColor: "#fff",
+        },
+        "& .MuiOutlinedInput-notchedOutline": {
+          borderColor: "rgba(15, 23, 42, 0.12)",
+        },
+        "& .Mui-focused .MuiOutlinedInput-notchedOutline": {
+          borderColor: "rgb(2, 132, 199)",
+          boxShadow: "0 0 0 1px rgba(2, 132, 199, 0.25)",
+        },
+      }}
+    />
   );
 };
 

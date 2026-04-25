@@ -694,10 +694,10 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
   if (isLoading) {
     return (
-      <div className="flex justify-center w-full py-6">
-        <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+      <div className="flex w-full justify-center px-4 py-6 sm:px-6">
+        <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/30 ring-1 ring-slate-900/5 sm:p-7">
           {/* Header Skeleton */}
-          <div className="flex justify-between items-center border-b pb-3 mb-6">
+          <div className="mb-6 flex justify-between items-center border-b border-slate-200/90 pb-3">
             <div>
               <SkeletonLoader width={180} height={24} className="mb-2" />
               <div className="flex items-center mt-1 space-x-2">
@@ -863,12 +863,12 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   }
 
   return (
-    <div className="flex justify-center w-full py-6">
-      <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+    <div className="flex w-full justify-center px-4 py-6 sm:px-6">
+      <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/30 ring-1 ring-slate-900/5 sm:p-7">
         {/* Header */}
-        <div className="flex justify-between items-center border-b pb-3 mb-6">
+        <div className="mb-6 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">{t("serviceProvider")} {t("profile")}</h2>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">{t("serviceProvider")} {t("profile")}</h2>
             <div className="flex items-center mt-1 space-x-2">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 providerData?.isactive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -888,13 +888,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
           </div>
           {!isEditing && (
             <button
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
+              type="button"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 sm:w-auto"
               onClick={() => {
                 setOriginalData({ ...userData });
                 setIsEditing(true);
               }}
             >
-              <Edit3 size={16} />
+              <Edit3 size={16} className="shrink-0" />
               {t("edit")} {t("profile")}
             </button>
           )}

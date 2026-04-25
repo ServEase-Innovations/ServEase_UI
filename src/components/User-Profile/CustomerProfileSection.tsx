@@ -562,13 +562,20 @@ useEffect(() => {
     return true;
   };
 
+  const roField =
+    "w-full cursor-not-allowed rounded-xl border border-slate-200/80 bg-slate-50/90 px-3.5 py-2.5 text-sm text-slate-600";
+  const field =
+    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20";
+  const fieldView =
+    "w-full cursor-not-allowed rounded-xl border border-slate-200/80 bg-slate-50/90 px-3.5 py-2.5 text-sm text-slate-700";
+
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex justify-center w-full py-6">
-        <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
+      <div className="flex w-full justify-center px-4 py-6 sm:px-6">
+        <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/30 ring-1 ring-slate-900/5 sm:p-7">
           {/* Header with edit button skeleton */}
-          <div className="flex justify-between items-center border-b pb-3 mb-6">
+          <div className="mb-6 flex items-center justify-between border-b border-slate-200/90 pb-4">
             <SkeletonLoader width={120} height={24} />
             <SkeletonLoader width={80} height={36} />
           </div>
@@ -644,19 +651,20 @@ useEffect(() => {
   }
 
   return (
-    <div className="flex justify-center w-full py-6">
-      <div className="w-[85%] max-w-6xl bg-white rounded-lg shadow-lg p-6">
-        <div className="flex justify-between items-center border-b pb-3 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">{t('myAccount')}</h2>
+    <div className="flex w-full justify-center px-4 py-6 sm:px-6">
+      <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/30 ring-1 ring-slate-900/5 sm:p-7">
+        <div className="mb-6 flex flex-col gap-4 border-b border-slate-200/90 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">{t('myAccount')}</h2>
           {!isEditing && (
             <button
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md text-sm font-medium"
+              type="button"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 sm:w-auto"
               onClick={() => {
                 setOriginalData({ userData: { ...userData }, addresses: [...addresses] });
                 setIsEditing(true);
               }}
             >
-              <Edit3 size={16} />
+              <Edit3 size={16} className="shrink-0" />
               {t('edit')}
             </button>
           )}
@@ -664,89 +672,83 @@ useEffect(() => {
 
         {/* User Info with Email and ID */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">
             {t('userInformation')}
           </h3>
 
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
+          <div className="mb-5 flex flex-wrap gap-4 rounded-xl border border-slate-100/90 bg-slate-50/40 p-4 sm:p-5">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">
                 {t('email')}
               </label>
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                className={roField}
                 value={userEmail || t('noEmailAvailable')}
                 readOnly
-                style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">
                 {t('userId')}
               </label>
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
-                value={customerId || userId || "N/A"}
+                className={roField}
+                value={String(customerId || userId || "N/A")}
                 readOnly
-                style={{ backgroundColor: '#f9fafb', cursor: 'not-allowed' }}
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
+          <div className="mb-1 flex flex-wrap gap-4">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">
                 {t('firstName')}
               </label>
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className={isEditing ? field : fieldView}
                 value={userData.firstName}
                 onChange={(e) => setUserData(prev => ({ ...prev, firstName: e.target.value }))}
                 readOnly={!isEditing}
-                style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-semibold text-gray-600 mb-2">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-slate-600">
                 {t('lastName')}
               </label>
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className={isEditing ? field : fieldView}
                 value={userData.lastName}
                 onChange={(e) => setUserData(prev => ({ ...prev, lastName: e.target.value }))}
                 readOnly={!isEditing}
-                style={{ backgroundColor: isEditing ? 'white' : '#f9fafb' }}
               />
             </div>
           </div>
         </div>
 
-        <div className="h-px bg-gray-200 my-6" />
+        <div className="my-6 h-px bg-slate-200/90" />
         
         {/* Contact Info */}
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-          {t('contactInformation')}
+        <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">
+          {t("profileContactInformation")}
         </h3>
 
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
-              {t('contactNumber')}
-              <span className={`ml-1 ${hasMobileNumber ? 'text-green-500' : 'text-red-500'}`}>
-                {hasMobileNumber ? `✓ ${t('verified')}` : `⚠ ${t('required')}`}
+        <div className="mb-6 flex flex-wrap gap-4 rounded-xl border border-slate-100/90 bg-slate-50/40 p-4 sm:p-5">
+          <div className="min-w-[200px] flex-1">
+            <label className="mb-1.5 block text-sm font-medium text-slate-600">
+              {t('contactNumber')}{" "}
+              <span className={hasMobileNumber ? "font-medium text-emerald-600" : "font-medium text-amber-600"}>
+                {hasMobileNumber ? `· ${t('verified')}` : `· ${t('required')}`}
               </span>
             </label>
             <div className="relative">
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className={`${isEditing ? field : fieldView} ${
+                  contactValidation.error ? "!border-rose-500" : ""
+                }`}
                 value={userData.contactNumber}
                 onChange={handleContactNumberChange}
                 readOnly={!isEditing}
                 placeholder={t('enter10DigitNumber')}
-                style={{ 
-                  backgroundColor: isEditing ? "white" : "#f9fafb",
-                  borderColor: contactValidation.error ? "#ef4444" : "#d1d5db"
-                }}
                 maxLength={10}
               />
               {isEditing && (
@@ -765,21 +767,19 @@ useEffect(() => {
             )}
           </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-semibold text-gray-600 mb-2">
+          <div className="min-w-[200px] flex-1">
+            <label className="mb-1.5 block text-sm font-medium text-slate-600">
               {t('alternativeContactNumber')}
             </label>
             <div className="relative">
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className={`${isEditing ? field : fieldView} ${
+                  altContactValidation.error ? "!border-rose-500" : ""
+                }`}
                 value={userData.altContactNumber}
                 onChange={handleAltContactNumberChange}
                 readOnly={!isEditing}
                 placeholder={t('enter10DigitNumber')}
-                style={{ 
-                  backgroundColor: isEditing ? "white" : "#f9fafb",
-                  borderColor: altContactValidation.error ? "#ef4444" : "#d1d5db"
-                }}
                 maxLength={10}
               />
               {isEditing && (
@@ -795,25 +795,26 @@ useEffect(() => {
         </div>
 
         {/* Addresses */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <label className="block text-sm font-semibold text-gray-600">
+        <div className="mb-2 mt-4">
+          <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">
               {t('addresses')}
-            </label>
+            </h3>
             {isEditing && (
               <button
+                type="button"
                 onClick={() => setShowAddAddress(!showAddAddress)}
-                className="flex items-center text-blue-600 text-sm font-medium"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100/90 sm:w-auto"
               >
-                <Plus size={16} className="mr-1" />
+                <Plus size={16} className="shrink-0" />
                 {t('addNewAddress')}
               </button>
             )}
           </div>
 
           {showAddAddress && isEditing && (
-            <div className="border border-blue-200 rounded-lg p-4 mb-4 bg-blue-50">
-              <h4 className="font-medium text-gray-700 mb-3">{t('addNewAddress')}</h4>
+            <div className="mb-4 rounded-xl border border-sky-200/70 bg-sky-50/60 p-4 sm:p-5">
+              <h4 className="mb-3 text-sm font-semibold text-slate-800">{t('addNewAddress')}</h4>
               
               <div className="mb-3">
                 <label className="block text-sm font-medium text-gray-600 mb-2">{t('saveAs')}</label>
@@ -828,10 +829,10 @@ useEffect(() => {
                           type: typeValue, 
                           customType: typeValue === "Other" ? prev.customType : "" 
                         }))}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
+                        className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                           newAddress.type === typeValue 
-                            ? "bg-blue-100 text-blue-700 border border-blue-300" 
-                            : "bg-white text-gray-700 border border-gray-300"
+                            ? "border-sky-500 bg-sky-100 text-sky-900 shadow-sm" 
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                         }`}
                       >
                         {typeValue === "Home" && <FaHome size={14} />}
@@ -851,43 +852,43 @@ useEffect(() => {
                     placeholder={t('locationName')}
                     value={newAddress.customType}
                     onChange={(e) => setNewAddress(prev => ({ ...prev, customType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                   />
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   type="text"
                   placeholder={t('streetAddress')}
                   value={newAddress.street}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm md:col-span-2"
+                  className="md:col-span-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                 />
                 <input
                   type="text"
                   placeholder={t('city')}
                   value={newAddress.city}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                 />
                 <input
                   type="text"
                   placeholder={t('country')}
                   value={newAddress.country}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, country: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                 />
                 <input
                   type="text"
                   placeholder={t('postalCode')}
                   value={newAddress.postalCode}
                   onChange={(e) => setNewAddress(prev => ({ ...prev, postalCode: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                 />
               </div>
               
-              <div className="flex justify-end space-x-2 mt-3">
+              <div className="mt-4 flex flex-col-reverse justify-end gap-2 sm:flex-row sm:gap-3">
                 <Button onClick={() => setShowAddAddress(false)}>{t('cancel')}</Button>
                 <Button onClick={handleAddAddress}>{t('saveAddress')}</Button>
               </div>
@@ -895,25 +896,33 @@ useEffect(() => {
           )}
 
           {addresses.length === 0 ? (
-            <p className="text-gray-500 italic">{t('noAddressesSaved')}</p>
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center text-sm text-slate-500">
+              {t('noAddressesSaved')}
+            </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {addresses.map((address) => (
-                <div key={address.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <span className="font-medium text-gray-800">{address.type}</span>
-                    <div className="flex space-x-1">
+                <div
+                  key={address.id}
+                  className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition hover:border-slate-300/90 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-slate-800">{address.type}</span>
+                    <div className="flex items-center gap-0.5">
                       <button
+                        type="button"
                         onClick={() => toggleAddress(address.id)}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                        aria-expanded={expandedAddressIds.includes(address.id)}
                       >
                         {expandedAddressIds.includes(address.id) ? 
                           <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
                       {isEditing && addresses.length > 1 && (
                         <button
+                          type="button"
                           onClick={() => removeAddress(address.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="rounded-md p-1.5 text-rose-500 transition hover:bg-rose-50"
                         >
                           <X size={16} />
                         </button>
@@ -923,13 +932,13 @@ useEffect(() => {
 
                   {expandedAddressIds.includes(address.id) ? (
                     <>
-                      <p className="text-sm text-gray-600 mt-2">{address.street}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{address.street}</p>
+                      <p className="text-sm text-slate-500">
                         {address.city}, {address.country} {address.postalCode}
                       </p>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-600 mt-2 truncate">{address.street}</p>
+                    <p className="mt-2 truncate text-sm text-slate-600">{address.street}</p>
                   )}
                 </div>
               ))}
@@ -939,10 +948,16 @@ useEffect(() => {
 
         {/* Action Buttons */}
         {isEditing && (
-          <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
-            <div className="flex space-x-4">
-              <Button onClick={handleCancel} disabled={isSaving}>{t('cancel')}</Button>
-              <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
+          <div className="mt-8 border-t border-slate-200/90 pt-6">
+            <div className="flex flex-col-reverse justify-center gap-2 sm:flex-row sm:gap-3">
+              <Button onClick={handleCancel} disabled={isSaving} className="!min-w-0 !justify-center sm:!w-auto">
+                {t('cancel')}
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !isFormValid() || !hasChanges()}
+                className="!min-w-0 !justify-center !bg-sky-600 !text-white !border-sky-600 hover:!bg-sky-700 sm:!w-auto"
+              >
                 {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
               </Button>
             </div>

@@ -70,7 +70,6 @@ import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import NotificationsDialog from "../Notifications/NotificationsPage";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
@@ -1494,151 +1493,192 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       )}
 
       {/* Location Selection Dialog */}
-      <Dialog open={open} onClose={handleClose}>
-        <DialogHeader style={{
-          position: 'sticky',
-          top: 0,
-          backgroundColor: 'white',
-          zIndex: 1000,
-          padding: '16px 24px',
-          borderBottom: '1px solid #e0e0e0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <DialogTitle>{t('setLocation')}</DialogTitle>
-          <IconButton
-            aria-label="close"
-            onClick={handleClose}
-            className="!absolute right-4 !text-white"
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="md"
+        scroll="body"
+        slotProps={{
+          paper: {
+            className:
+              "relative overflow-hidden rounded-2xl sm:min-w-[min(100%,36rem)] w-[calc(100%-1.5rem)] max-w-lg shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
+          },
+          backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+        }}
+      >
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+            {t("setLocation")}
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
           >
-            <X className="w-6 h-6" />
-          </IconButton>
-        </DialogHeader>
-        
+            {t("setLocation")}
+          </DialogTitle>
+        </div>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+        >
+          <X className="h-5 w-5" />
+        </IconButton>
+
         <DialogContent
+          className="!p-0"
           sx={{
-            p: 0,
             display: "flex",
             flexDirection: "column",
-            width: "600px",
           }}
         >
-          <div style={{ height: "400px", width: "100%" }}>
-            <MapComponent
-              style={{ height: "100%", width: "100%" }}
-              onLocationSelect={updateLocationFromMap}
+          <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+            <MapPin
+              className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+              aria-hidden
             />
+            {t("pickLocationOnMap")}
+          </p>
+          <div
+            className="relative w-full min-h-[240px] h-[min(50vh,420px)] sm:min-h-[320px]"
+            style={{ isolation: "isolate" }}
+          >
+            <div className="h-full w-full overflow-hidden">
+              <MapComponent
+                style={{ height: "100%", width: "100%" }}
+                onLocationSelect={updateLocationFromMap}
+              />
+            </div>
           </div>
         </DialogContent>
 
-        <DialogActions sx={{ padding: "10px" }}>
-          <Button color="primary" onClick={handleClose} className={undefined}>
-            {t('cancel')}
+        <DialogActions
+          className="!m-0 flex flex-col-reverse justify-end gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!gap-3 sm:!p-4"
+        >
+          <Button
+            type="button"
+            onClick={handleClose}
+            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
+          >
+            {t("cancel")}
           </Button>
-          <Button color="primary" onClick={handleSave} className={undefined}>
-            {t('save')}
+          <Button
+            type="button"
+            onClick={handleSave}
+            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 sm:!w-auto"
+          >
+            {t("save")}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Save Location Dialog */}
-      <Dialog open={OpenSaveOptionForSave} onClose={handleClose}>
-        <DialogHeader style={{
-          position: 'sticky',
-          top: 0,
-          backgroundColor: 'white',
-          zIndex: 1000,
-          padding: '16px 24px',
-          borderBottom: '1px solid #e0e0e0',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <DialogTitle>{t('saveAs')}</DialogTitle>
-          <IconButton
-            aria-label="close"
-            onClick={handleClose}
-            className="!absolute right-4 !text-white"
+      {/* Save Location As — quick labels */}
+      <Dialog
+        open={OpenSaveOptionForSave}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{
+          paper: {
+            className:
+              "relative w-[calc(100%-1.5rem)] max-w-md overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 sm:min-w-0 m-0 sm:mx-4",
+          },
+          backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+        }}
+      >
+        <div className="border-b border-white/10 bg-gradient-to-r from-emerald-700/95 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-200/90 sm:text-xs">
+            {t("saveAs")}
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
           >
-            <X className="w-6 h-6" />
-          </IconButton>
-        </DialogHeader>
-        
-        <DialogContent>
-          <div>
-            <div>{t('saveAs')} :</div>
-            <Button
-              startIcon={<FaHome />}
-              className={undefined}
-              style={{
-                backgroundColor: selectedSaveOption === 'Home' ? '#bbdefb' : 'transparent',
-                border: selectedSaveOption === 'Home' ? '2px solid #1976d2' : 'none',
-                marginRight: '8px'
-              }}
-              onClick={() => {
-                handleUserPreference("Home");
-              }}
-              disabled={isSaving}
-            >
-              {t('home')}
-            </Button>
-            <Button
-              startIcon={<HiBuildingOffice />}
-              className={undefined}
-              style={{
-                backgroundColor: selectedSaveOption === 'Office' ? '#bbdefb' : 'transparent',
-                border: selectedSaveOption === 'Office' ? '2px solid #1976d2' : 'none',
-                marginRight: '8px'
-              }}
-              onClick={() => {
-                handleUserPreference("Office");
-              }}
-              disabled={isSaving}
-            >
-              {t('office')}
-            </Button>
-            <Button
-              startIcon={<FaLocationArrow />}
-              className={undefined}
-              style={{
-                backgroundColor: selectedSaveOption === 'Others' ? '#bbdefb' : 'transparent',
-                border: selectedSaveOption === 'Others' ? '2px solid #1976d2' : 'none'
-              }}
-              onClick={() => {
-                handleUserPreference();
-              }}
-              disabled={isSaving}
-            >
-              {t('others')}
-            </Button>
+            {t("saveLocationAs")}
+          </DialogTitle>
+        </div>
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+        >
+          <X className="h-5 w-5" />
+        </IconButton>
+
+        <DialogContent className="!pt-4 sm:!pt-5">
+          <p className="mb-3 text-sm text-slate-600 sm:mb-4 sm:text-base">{t("saveAs")}</p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            {(
+              [
+                { key: "Home" as const, icon: FaHome, label: t("home") },
+                { key: "Office" as const, icon: HiBuildingOffice, label: t("office") },
+                { key: "Others" as const, icon: FaLocationArrow, label: t("others") },
+              ] as const
+            ).map(({ key, icon: Icon, label }) => {
+              const active = selectedSaveOption === key;
+              return (
+                <button
+                  type="button"
+                  key={key}
+                  onClick={() => (key === "Others" ? handleUserPreference() : handleUserPreference(key))}
+                  disabled={isSaving}
+                  className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3.5 text-sm font-semibold transition sm:flex-col sm:py-4 ${
+                    active
+                      ? "border-sky-500 bg-sky-50 text-sky-900 shadow-sm ring-2 ring-sky-200/60"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                  } ${isSaving ? "pointer-events-none opacity-60" : ""}`}
+                >
+                  <span className={active ? "text-sky-600" : "text-slate-500"}>
+                    <Icon
+                      className="mx-auto block h-5 w-5"
+                      aria-hidden
+                    />
+                  </span>
+                  <span>{label}</span>
+                </button>
+              );
+            })}
           </div>
           {showInput && (
             <TextField
-              id="standard-basic"
-              label={t('enterLocationName')}
-              variant="standard"
+              id="location-custom-name"
+              label={t("enterLocationName")}
+              variant="outlined"
               fullWidth
+              size="small"
+              className="mt-4"
               value={locationAs}
               onChange={(e) => setLocationAs(e.target.value)}
               disabled={isSaving}
+              inputProps={{ "aria-label": t("enterLocationName") }}
             />
           )}
         </DialogContent>
 
-        <DialogActions sx={{ padding: "10px" }}>
-          <Button 
-            color="primary" 
-            onClick={handleClose} 
-            className={undefined}
+        <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
+          <Button
+            type="button"
+            onClick={handleClose}
             disabled={isSaving}
+            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
           >
-            {t('cancel')}
+            {t("cancel")}
           </Button>
           <Button
-            color="primary"
+            type="button"
             onClick={locationHandleSave}
-            className={undefined}
             disabled={isSaving || !locationAs}
-            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : undefined}
+            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 disabled:!opacity-50 sm:!w-auto"
           >
-            {isSaving ? t('saving') : t('save')}
+            {isSaving ? (
+              <span className="inline-flex items-center gap-2">
+                <CircularProgress size={18} className="!text-white" />
+                {t("saving")}
+              </span>
+            ) : (
+              t("save")
+            )}
           </Button>
         </DialogActions>
       </Dialog>
