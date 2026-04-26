@@ -3,20 +3,14 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
-  FormControlLabel,
   IconButton,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Snackbar,
   Stack,
   Tab,
@@ -51,6 +45,7 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import paymentInstance from "src/services/paymentInstance";
 import providerInstance from "src/services/providerInstance";
+import { EngagementEditDialog, type EngagementFormInitial } from "./EngagementEditDialog";
 
 type ProviderDetails = Record<string, unknown>;
 
@@ -73,6 +68,23 @@ type EngRow = {
   active?: boolean;
   bucket: string;
 };
+
+function engRowToFormInitial(row: EngRow, dialogProviderId: number): EngagementFormInitial {
+  const pid = row.serviceproviderid ?? 0;
+  return {
+    engagement_id: row.engagement_id,
+    start_date: (row.startDate || row.start_date || "").toString().slice(0, 10),
+    end_date: (row.endDate || row.end_date || "").toString().slice(0, 10),
+    start_time: (row.startTime || "").toString() || "09:00",
+    task_status: (row.task_status as string) || "NOT_STARTED",
+    service_type: (row.service_type as string) || "",
+    booking_type: (row.booking_type as string) || "",
+    base_amount: row.base_amount != null ? String(row.base_amount) : "",
+    active: row.active !== false,
+    serviceproviderid: String(pid || dialogProviderId),
+    contextProviderId: pid,
+  };
+}
 
 type CalRow = {
   id: number;
@@ -297,20 +309,6 @@ export function ServiceProviderAdminDialog(props: {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<EngRow | null>(null);
-  const [form, setForm] = useState({
-    start_date: "",
-    end_date: "",
-    start_time: "",
-    task_status: "",
-    service_type: "",
-    booking_type: "",
-    base_amount: "",
-    active: true,
-    serviceproviderid: "" as string,
-    admin_name: "",
-    admin_id: "",
-  });
-  const [savingEng, setSavingEng] = useState(false);
 
   const loadProvider = useCallback(async () => {
     const r = await providerInstance.get<{
@@ -418,19 +416,6 @@ export function ServiceProviderAdminDialog(props: {
 
   const openEdit = (row: EngRow) => {
     setEditing(row);
-    setForm({
-      start_date: (row.startDate || row.start_date || "").toString().slice(0, 10),
-      end_date: (row.endDate || row.end_date || "").toString().slice(0, 10),
-      start_time: (row.startTime || "").toString() || "09:00",
-      task_status: (row.task_status as string) || "NOT_STARTED",
-      service_type: (row.service_type as string) || "",
-      booking_type: (row.booking_type as string) || "",
-      base_amount: row.base_amount != null ? String(row.base_amount) : "",
-      active: row.active !== false,
-      serviceproviderid: String(row.serviceproviderid || serviceproviderid),
-      admin_name: "",
-      admin_id: "",
-    });
     setEditOpen(true);
   };
 
@@ -469,51 +454,6 @@ export function ServiceProviderAdminDialog(props: {
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       setSnack({ type: "error", message: err?.response?.data?.error || "Could not remove" });
-    }
-  };
-
-  const saveEngagement = async () => {
-    if (!editing?.engagement_id) return;
-    setSavingEng(true);
-    try {
-      const body: Record<string, unknown> = {
-        modified_by_role: "ADMIN",
-      };
-      if (form.admin_id.trim() !== "" && /^\d+$/.test(form.admin_id.trim())) {
-        body.modified_by_id = Number(form.admin_id.trim());
-      }
-      if (form.admin_name.trim() !== "") {
-        body.modified_by_name = form.admin_name.trim();
-        body.source = "ADMIN_PORTAL";
-      }
-      if (form.start_date) body.start_date = form.start_date;
-      if (form.end_date) body.end_date = form.end_date;
-      if (form.start_time) body.start_time = form.start_time;
-      if (form.task_status) body.task_status = form.task_status;
-      if (form.service_type) body.service_type = form.service_type;
-      if (form.booking_type) body.booking_type = form.booking_type;
-      if (form.base_amount !== "") body.base_amount = Number(form.base_amount);
-      body.active = form.active;
-      if (form.serviceproviderid.trim() !== "" && /^\d+$/.test(form.serviceproviderid.trim())) {
-        const pid = Number(form.serviceproviderid.trim());
-        if (pid !== serviceproviderid) {
-          body.serviceproviderid = pid;
-        }
-      }
-      await paymentInstance.put(`/api/engagements/${editing.engagement_id}`, body);
-      setSnack({ type: "success", message: "Engagement updated" });
-      setEditOpen(false);
-      await loadEngagements();
-      await loadCalendar();
-      await loadModLog();
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string; detail?: string } } };
-      setSnack({
-        type: "error",
-        message: err?.response?.data?.error || err?.response?.data?.detail || "Update failed",
-      });
-    } finally {
-      setSavingEng(false);
     }
   };
 
@@ -1086,204 +1026,20 @@ export function ServiceProviderAdminDialog(props: {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <EngagementEditDialog
         open={editOpen}
-        onClose={() => setEditOpen(false)}
-        maxWidth="md"
-        fullWidth
-        scroll="paper"
-        slotProps={{
-          paper: {
-            elevation: 16,
-            sx: (th) => ({
-              borderRadius: 2.5,
-              border: `1px solid ${alpha(String(th.palette.divider), 0.9)}`,
-            }),
-          },
+        onClose={() => {
+          setEditOpen(false);
+          setEditing(null);
         }}
-      >
-        <DialogTitle
-          component="div"
-          sx={(th) => ({
-            px: 2.5,
-            py: 2,
-            borderBottom: 1,
-            borderColor: "divider",
-            background: `linear-gradient(135deg, ${alpha("#7c3aed", 0.08)} 0%, #fff 55%)`,
-          })}
-        >
-          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} flexWrap="wrap" useFlexGap>
-            <Stack>
-              <Typography component="h3" fontWeight={800} variant="h6" letterSpacing="-0.02em">
-                Update engagement
-              </Typography>
-              {editing?.engagement_id && (
-                <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
-                  <Chip size="small" label={`#${editing.engagement_id}`} color="secondary" />
-                  <Typography variant="body2" color="text.secondary">
-                    Adjust schedule, type, and assignment. Only changed values are required.
-                  </Typography>
-                </Stack>
-              )}
-            </Stack>
-            <Button
-              size="small"
-              startIcon={<X className="h-4 w-4" />}
-              onClick={() => setEditOpen(false)}
-              color="inherit"
-              sx={{ textTransform: "none" }}
-            >
-              Dismiss
-            </Button>
-          </Stack>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, bgcolor: (th) => alpha(th.palette.text.primary, 0.01) }}>
-          <Stack spacing={0}>
-            <Box sx={{ p: 2.5, pb: 0 }}>
-              <Alert severity="info" variant="filled" icon={false} sx={{ borderRadius: 2, py: 0.5 }}>
-                <Typography variant="body2" fontWeight={500}>
-                  Wallet, overlap, and vacation business rules on the server still apply. Be deliberate about what you
-                  change.
-                </Typography>
-              </Alert>
-            </Box>
-            <Box sx={{ px: 2.5, py: 2, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              <TextField
-                label="Start date"
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                size="small"
-                fullWidth
-                sx={{ gridColumn: { sm: "span 1" }, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <TextField
-                label="End date"
-                type="date"
-                value={form.end_date}
-                onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                size="small"
-                fullWidth
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <TextField
-                label="Start time (IST)"
-                value={form.start_time}
-                onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
-                size="small"
-                fullWidth
-                placeholder="HH:mm"
-                sx={{ gridColumn: { xs: "1", sm: "span 2" }, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <FormControl fullWidth size="small" sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}>
-                <InputLabel id="ts">Task status</InputLabel>
-                <Select
-                  labelId="ts"
-                  value={form.task_status}
-                  label="Task status"
-                  onChange={(e) => setForm((f) => ({ ...f, task_status: e.target.value }))}
-                >
-                  {["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "HOLD"].map((x) => (
-                    <MenuItem key={x} value={x}>
-                      {x}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Service type"
-                value={form.service_type}
-                onChange={(e) => setForm((f) => ({ ...f, service_type: e.target.value }))}
-                size="small"
-                fullWidth
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <TextField
-                label="Booking type"
-                value={form.booking_type}
-                onChange={(e) => setForm((f) => ({ ...f, booking_type: e.target.value }))}
-                size="small"
-                fullWidth
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <TextField
-                label="Base amount"
-                value={form.base_amount}
-                onChange={(e) => setForm((f) => ({ ...f, base_amount: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-              <TextField
-                label="Reassign to provider id"
-                value={form.serviceproviderid}
-                onChange={(e) => setForm((f) => ({ ...f, serviceproviderid: e.target.value }))}
-                size="small"
-                fullWidth
-                helperText="Set another id only if you are reassigning. Overlap is validated on the server."
-                sx={{ gridColumn: { sm: "span 2" }, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-              />
-            </Box>
-            <Paper variant="outlined" sx={{ mx: 2.5, p: 2, borderRadius: 2, bgcolor: (th) => alpha(th.palette.text.primary, 0.02) }}>
-              <Typography fontWeight={700} variant="subtitle2" gutterBottom>
-                Audit
-              </Typography>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                flexWrap="wrap"
-                useFlexGap
-                gap={2}
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={form.active}
-                      onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-                      size="small"
-                    />
-                  }
-                  label="Engagement active"
-                />
-                <TextField
-                  label="Admin name (optional)"
-                  value={form.admin_name}
-                  onChange={(e) => setForm((f) => ({ ...f, admin_name: e.target.value }))}
-                  size="small"
-                  sx={{ flex: 1, minWidth: 180, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-                />
-                <TextField
-                  label="Admin user id"
-                  value={form.admin_id}
-                  onChange={(e) => setForm((f) => ({ ...f, admin_id: e.target.value }))}
-                  size="small"
-                  type="number"
-                  sx={{ width: 160, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
-                />
-              </Stack>
-            </Paper>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 2.5, py: 2, gap: 1, borderTop: 1, borderColor: "divider" }}>
-          <Button
-            onClick={() => setEditOpen(false)}
-            color="inherit"
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 1.5, px: 2 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={() => void saveEngagement()}
-            variant="contained"
-            disabled={savingEng}
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1.5, px: 2.5, minWidth: 120, boxShadow: "none" }}
-          >
-            {savingEng ? "Saving…" : "Save changes"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        initial={editing ? engRowToFormInitial(editing, serviceproviderid) : null}
+        onSaved={async () => {
+          setSnack({ type: "success", message: "Engagement updated" });
+          await loadEngagements();
+          await loadCalendar(month);
+          await loadModLog();
+        }}
+      />
 
       <Snackbar
         open={!!snack}

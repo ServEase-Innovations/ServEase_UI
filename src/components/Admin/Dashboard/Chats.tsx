@@ -1,7 +1,24 @@
-/* eslint-disable */
-import React, { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
+import { Button } from "../../Common/button";
+import { Input } from "../../Common/input";
+import { cn } from "../../utils";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Info,
+  Loader2,
+  MessageSquare,
+  PanelRightClose,
+  PanelRightOpen,
+  RefreshCw,
+  Search,
+  Send,
+  User,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 
 type UserType = {
   _id: string;
@@ -28,267 +45,541 @@ type ChatType = {
   users: UserType[];
 };
 
-const ENDPOINT = "https://chat-b3wl.onrender.com";
-const ADMIN_ID = "698ace8b8ea84c91bdc93678";
+type ChatBuildEnv = {
+  VITE_CHAT_API_URL?: string;
+  VITE_CHAT_ADMIN_USER_ID?: string;
+};
 
-const Chat: React.FC = () => {
+/**
+ * CRA injects `REACT_APP_*` at build time. Vite uses `VITE_*` on `import.meta.env` (if defined).
+ * Never assume `import.meta.env` exists — in Create React App it is undefined and crashes.
+ */
+function chatEnv() {
+  const p = process.env as {
+    REACT_APP_CHAT_API_URL?: string;
+    REACT_APP_CHAT_ADMIN_USER_ID?: string;
+  };
+  const vite =
+    typeof import.meta !== "undefined" && (import.meta as { env?: ChatBuildEnv }).env
+      ? (import.meta as { env?: ChatBuildEnv }).env
+      : undefined;
+
+  const url =
+    p.REACT_APP_CHAT_API_URL || vite?.VITE_CHAT_API_URL || "https://chat-b3wl.onrender.com";
+  const admin =
+    p.REACT_APP_CHAT_ADMIN_USER_ID || vite?.VITE_CHAT_ADMIN_USER_ID || "698ace8b8ea84c91bdc93678";
+
+  return {
+    endpoint: String(url).replace(/\/$/, ""),
+    adminId: String(admin),
+  };
+}
+
+function initials(name: string) {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return "?";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return `${p[0][0] ?? ""}${p[1][0] ?? ""}`.toUpperCase() || "?";
+}
+
+function formatMsgTime(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function otherUser(chat: ChatType, adminId: string) {
+  return chat.users.find((u) => u._id !== adminId) || null;
+}
+
+const Chats = () => {
+  const { endpoint, adminId } = chatEnv();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<ChatType[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatType | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [input, setInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [chatsLoading, setChatsLoading] = useState(true);
+  const [chatsError, setChatsError] = useState<string | null>(null);
+  const [threadError, setThreadError] = useState<string | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  /** On narrow screens, switch between list and open thread. */
+  const [mobile, setMobile] = useState<"list" | "thread">("list");
 
   const socketRef = useRef<Socket | null>(null);
   const selectedChatRef = useRef<ChatType | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  /* ---------------- SOCKET CONNECT ---------------- */
+  const filteredChats = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return chats;
+    return chats.filter((c) => {
+      const u = otherUser(c, adminId);
+      const blob = [u?.name, u?.email, u?.phone, u?._id].map((v) => (v ? String(v).toLowerCase() : "")).join(" ");
+      return blob.includes(q);
+    });
+  }, [chats, search, adminId]);
+
+  const fetchChats = useCallback(async () => {
+    setChatsLoading(true);
+    setChatsError(null);
+    try {
+      const { data } = await axios.get<ChatType[]>(`${endpoint}/api/chat?currentUserId=${adminId}`);
+      setChats(Array.isArray(data) ? data : []);
+    } catch (e) {
+      const err = e as { message?: string };
+      setChatsError(err?.message || "Could not load conversations. Check the chat service URL and network.");
+      setChats([]);
+    } finally {
+      setChatsLoading(false);
+    }
+  }, [endpoint, adminId]);
+
   useEffect(() => {
-    socketRef.current = io(ENDPOINT, {
-      transports: ["websocket"],
-    });
+    void fetchChats();
+  }, [fetchChats]);
 
-    socketRef.current.on("connect", () => {
-      console.log("✅ Admin socket connected");
-    });
+  useEffect(() => {
+    const socket = io(endpoint, { transports: ["websocket"] });
+    socketRef.current = socket;
 
-    socketRef.current.on("message recieved", (newMessage: Message) => {
+    const onConnect = () => {
+      setSocketConnected(true);
+      if (selectedChatRef.current) socket.emit("join chat", selectedChatRef.current._id);
+    };
+    const onDisconnect = () => setSocketConnected(false);
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    socket.on("message recieved", (newMessage: Message) => {
       const activeChat = selectedChatRef.current;
       if (!activeChat) return;
-
-      if (newMessage.chat._id === activeChat._id) {
+      if (newMessage.chat?._id === activeChat._id) {
         setMessages((prev) => {
-          const exists = prev.some((m) => m._id === newMessage._id);
-          return exists ? prev : [...prev, newMessage];
+          if (newMessage._id && prev.some((m) => m._id === newMessage._id)) return prev;
+          return [...prev, newMessage];
         });
       }
     });
 
     return () => {
-      socketRef.current?.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.disconnect();
     };
-  }, []);
+  }, [endpoint]);
 
-  /* ---------------- FETCH ALL CHATS ---------------- */
-  const fetchChats = async () => {
-    try {
-      const { data } = await axios.get(
-        `${ENDPOINT}/api/chat?currentUserId=${ADMIN_ID}`
-      );
-      setChats(data);
-    } catch (err) {
-      console.error("Failed to load chats", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchChats();
-  }, []);
-
-  /* ---------------- FETCH MESSAGES ---------------- */
-  const fetchMessages = async (chat: ChatType) => {
-    try {
+  const openThread = useCallback(
+    async (chat: ChatType) => {
+      setSendError(null);
+      setThreadError(null);
+      setShowDetails(false);
+      setMessagesLoading(true);
       setSelectedChat(chat);
       selectedChatRef.current = chat;
 
-      // Get customer (exclude admin)
-      const customer = chat.users.find((u) => u._id !== ADMIN_ID) || null;
+      const customer = otherUser(chat, adminId);
       setSelectedUser(customer);
 
-      const { data } = await axios.get(
-        `${ENDPOINT}/api/message/${chat._id}`
-      );
+      try {
+        const { data } = await axios.get<Message[]>(`${endpoint}/api/message/${chat._id}`);
+        setMessages(Array.isArray(data) ? data : []);
+        socketRef.current?.emit("join chat", chat._id);
+        setMobile("thread");
+        requestAnimationFrame(() => inputRef.current?.focus());
+      } catch (e) {
+        const err = e as { message?: string };
+        setThreadError(err?.message || "Failed to load messages for this chat.");
+        setMessages([]);
+      } finally {
+        setMessagesLoading(false);
+      }
+    },
+    [endpoint, adminId]
+  );
 
-      setMessages(data);
-
-      socketRef.current?.emit("join chat", chat._id);
-    } catch (err) {
-      console.error("Failed to fetch messages", err);
-    }
-  };
-
-  /* ---------------- SEND MESSAGE ---------------- */
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || !selectedChat) return;
-
+    setSendLoading(true);
+    setSendError(null);
     try {
-      const { data } = await axios.post(
-        `${ENDPOINT}/api/message`,
-        {
-          content: input,
-          chatId: selectedChat._id,
-          senderId: ADMIN_ID,
-        }
-      );
-
+      const { data } = await axios.post<Message>(`${endpoint}/api/message`, {
+        content: input.trim(),
+        chatId: selectedChat._id,
+        senderId: adminId,
+      });
       socketRef.current?.emit("new message", data);
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => {
+        if (data._id && prev.some((m) => m._id === data._id)) return prev;
+        return [...prev, data];
+      });
       setInput("");
-    } catch (err) {
-      console.error("Send failed", err);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    } catch (e) {
+      const err = e as { message?: string };
+      setSendError(err?.message || "Message could not be sent.");
+    } finally {
+      setSendLoading(false);
     }
-  };
+  }, [input, selectedChat, endpoint, adminId]);
 
-  /* ---------------- AUTO SCROLL ---------------- */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const isAdmin = (m: Message) => m.sender._id === adminId;
+
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-
-      {/* LEFT PANEL */}
-      <div
-        style={{
-          width: "300px",
-          borderRight: "1px solid #ddd",
-          overflowY: "auto",
-          background: "#fafafa",
-        }}
-      >
-        {chats.map((chat) => {
-          const customer = chat.users.find((u) => u._id !== ADMIN_ID);
-
-          return (
-            <div
-              key={chat._id}
-              onClick={() => fetchMessages(chat)}
-              style={{
-                padding: "15px",
-                cursor: "pointer",
-                borderBottom: "1px solid #eee",
-                background:
-                  selectedChat?._id === chat._id ? "#f0f0f0" : "white",
-              }}
-            >
-              <strong>{customer?.name || "Unknown User"}</strong>
-            </div>
-          );
-        })}
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Inbox</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Chats</h1>
+        <p className="mt-1 max-w-2xl text-sm text-slate-600">
+          Customer threads from the chat service. Replies are sent as the configured admin user. Real-time delivery depends on
+          a live connection (see status below).
+        </p>
       </div>
 
-      {/* RIGHT PANEL */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      {chatsError && !selectedChat && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+          <span className="font-semibold">Error. </span>
+          {chatsError}
+        </div>
+      )}
 
-        {selectedChat ? (
-          <>
-            {/* HEADER */}
-            <div
-              style={{
-                padding: "15px",
-                borderBottom: "1px solid #ddd",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                background: "#fff",
-              }}
-            >
-              <strong>{selectedUser?.name}</strong>
-
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                style={{
-                  padding: "6px 12px",
-                  background: "#1976d2",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {showDetails ? "Hide Details" : "View Details"}
-              </button>
+      <div
+        className={cn(
+          "flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm",
+          "h-[min(70vh,720px)] min-h-[420px] max-h-[calc(100dvh-10rem)] md:max-h-[calc(100dvh-11rem)]"
+        )}
+      >
+        <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+          {/* Conversation list */}
+          <aside
+            className={cn(
+              "flex min-h-0 w-full flex-col border-slate-200/80 bg-slate-50/80 md:w-[min(100%,20rem)] md:shrink-0 md:border-r",
+              mobile === "thread" && "hidden md:flex"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 p-3">
+              <p className="text-sm font-semibold text-slate-800">Conversations</p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600">
+                {chats.length}
+              </span>
             </div>
-
-            {/* BODY */}
-            <div style={{ flex: 1, display: "flex" }}>
-
-              {/* CHAT AREA */}
-              <div style={{ flex: 1, padding: "15px", overflowY: "auto" }}>
-                {messages.map((m) => (
-                  <div
-                    key={m._id}
-                    style={{
-                      marginBottom: "10px",
-                      textAlign:
-                        m.sender._id === ADMIN_ID ? "right" : "left",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "inline-block",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        background:
-                          m.sender._id === ADMIN_ID
-                            ? "#1976d2"
-                            : "#eee",
-                        color:
-                          m.sender._id === ADMIN_ID
-                            ? "white"
-                            : "black",
-                      }}
-                    >
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
+            <div className="p-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name, email, phone…"
+                  className="h-9 border-slate-200 pl-9 text-sm"
+                  aria-label="Filter conversations"
+                />
               </div>
-
-              {/* DETAILS PANEL */}
-              {showDetails && selectedUser && (
-                <div
-                  style={{
-                    width: "250px",
-                    borderLeft: "1px solid #ddd",
-                    padding: "15px",
-                    background: "#fafafa",
-                  }}
-                >
-                  <h4>User Details</h4>
-                  <p><strong>Name:</strong> {selectedUser.name}</p>
-                  <p><strong>Email:</strong> {selectedUser.email || "N/A"}</p>
-                  <p><strong>Phone:</strong> {selectedUser.phone || "N/A"}</p>
-                  <p><strong>User ID:</strong> {selectedUser._id}</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2 pt-0">
+              {chatsLoading ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-500">
+                  <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                  <p className="text-sm">Loading conversations…</p>
                 </div>
+              ) : filteredChats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center text-slate-500">
+                  <MessageSquare className="h-10 w-10 text-slate-300" />
+                  <p className="text-sm font-medium text-slate-600">{chats.length === 0 ? "No chats yet" : "No matches"}</p>
+                  <p className="text-xs text-slate-500">
+                    {chats.length === 0 ? "When customers message support, they appear here." : "Try a different search."}
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-1" role="listbox" aria-label="Conversations">
+                  {filteredChats.map((chat) => {
+                    const u = otherUser(chat, adminId);
+                    const active = selectedChat?._id === chat._id;
+                    return (
+                      <li key={chat._id}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => void openThread(chat)}
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left text-sm transition-colors",
+                            active
+                              ? "bg-sky-100/90 text-slate-900 ring-1 ring-sky-300/50"
+                              : "text-slate-800 hover:bg-white hover:ring-1 hover:ring-slate-200/80"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                              active ? "bg-sky-600 text-white" : "bg-slate-200/90 text-slate-700"
+                            )}
+                          >
+                            {u?.name ? initials(u.name) : "?"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium">{u?.name || "Unknown user"}</span>
+                            {u?.email && <span className="block truncate text-xs text-slate-500">{u.email}</span>}
+                          </span>
+                          <ChevronRight
+                            className={cn("h-4 w-4 shrink-0 text-slate-400 md:hidden", active && "text-sky-600")}
+                            aria-hidden
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
-
-            {/* INPUT */}
-            <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>
-              <input
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  border: "none",
-                  outline: "none",
-                }}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              />
-              <button
-                style={{
-                  padding: "12px 20px",
-                  background: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                }}
-                onClick={sendMessage}
+            <div className="shrink-0 border-t border-slate-200/80 p-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 w-full border-slate-200"
+                onClick={() => void fetchChats()}
+                disabled={chatsLoading}
               >
-                Send
-              </button>
+                {chatsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                <span>Refresh</span>
+              </Button>
             </div>
-          </>
-        ) : (
-          <div style={{ padding: "20px" }}>
-            Select a chat to start messaging
-          </div>
-        )}
+          </aside>
+
+          {/* Thread + composer */}
+          <section
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col bg-white",
+              mobile === "list" && selectedChat && "hidden md:flex",
+              !selectedChat && "hidden md:flex"
+            )}
+          >
+            {selectedChat ? (
+              <>
+                <header className="flex shrink-0 items-center gap-2 border-b border-slate-200/80 px-3 py-2.5 sm:px-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 text-slate-600 md:hidden"
+                    onClick={() => setMobile("list")}
+                    aria-label="Back to list"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700"
+                    aria-hidden
+                  >
+                    {selectedUser?.name ? initials(selectedUser.name) : "?"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{selectedUser?.name || "Conversation"}</p>
+                    {selectedUser?.email && <p className="truncate text-xs text-slate-500">{selectedUser.email}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                        socketConnected ? "bg-emerald-500/10 text-emerald-800" : "bg-amber-500/10 text-amber-800"
+                      )}
+                      title={socketConnected ? "Socket connected" : "Reconnecting or offline"}
+                    >
+                      {socketConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                      {socketConnected ? "Live" : "Offline"}
+                    </span>
+                    {selectedUser && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1 border-slate-200"
+                        onClick={() => setShowDetails((s) => !s)}
+                        aria-pressed={showDetails}
+                      >
+                        {showDetails ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                        <span className="hidden sm:inline">{showDetails ? "Hide" : "Details"}</span>
+                      </Button>
+                    )}
+                  </div>
+                </header>
+
+                {threadError && (
+                  <div
+                    className="mx-3 mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                    role="status"
+                  >
+                    {threadError}
+                  </div>
+                )}
+
+                <div className="flex min-h-0 min-w-0 flex-1">
+                  <div
+                    className="min-h-0 min-w-0 flex-1 overflow-y-auto scroll-smooth bg-slate-50/40 p-3 sm:p-4"
+                    role="log"
+                    aria-live="polite"
+                    aria-relevant="additions"
+                  >
+                    {messagesLoading ? (
+                      <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-slate-500">
+                        <Loader2 className="h-7 w-7 animate-spin" />
+                        <p className="text-sm">Loading messages…</p>
+                      </div>
+                    ) : (
+                      <>
+                        {messages.map((m, i) => {
+                          const mine = isAdmin(m);
+                          const t = formatMsgTime(m.createdAt);
+                          return (
+                            <div
+                              key={m._id || `m-${i}-${m.createdAt || ""}`}
+                              className={cn("mb-3 flex w-full", mine ? "justify-end" : "justify-start")}
+                            >
+                              <div
+                                className={cn("max-w-[min(100%,24rem)] rounded-2xl px-3.5 py-2 shadow-sm", {
+                                  "bg-sky-600 text-white": mine,
+                                  "border border-slate-200/90 bg-white text-slate-900": !mine,
+                                })}
+                              >
+                                {!mine && (
+                                  <p className="mb-0.5 text-xs font-medium text-sky-700/90">{m.sender.name}</p>
+                                )}
+                                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{m.content}</p>
+                                {t && (
+                                  <p
+                                    className={cn("mt-1.5 text-[10px] tabular-nums", mine ? "text-sky-100/90" : "text-slate-500")}
+                                  >
+                                    {t}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={messagesEndRef} />
+                        {messages.length === 0 && !messagesLoading && (
+                          <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center text-slate-500">
+                            <p className="text-sm">No messages in this thread yet.</p>
+                            <p className="mt-1 text-xs">Say hello below when you’re ready.</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {showDetails && selectedUser && (
+                    <aside
+                      className="hidden w-[min(100%,16rem)] shrink-0 border-l border-slate-200/80 bg-slate-50/90 p-4 sm:block"
+                      aria-label="Customer details"
+                    >
+                      <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        <Info className="h-3.5 w-3.5" />
+                        Customer
+                      </h2>
+                      <dl className="space-y-3 text-sm text-slate-800">
+                        <div>
+                          <dt className="text-xs text-slate-500">Name</dt>
+                          <dd className="mt-0.5 font-medium">{selectedUser.name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">Email</dt>
+                          <dd className="mt-0.5 break-all">{selectedUser.email || "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">Phone</dt>
+                          <dd className="mt-0.5">{selectedUser.phone || "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">User ID</dt>
+                          <dd className="mt-0.5 break-all font-mono text-xs">{selectedUser._id}</dd>
+                        </div>
+                      </dl>
+                    </aside>
+                  )}
+                </div>
+
+                {showDetails && selectedUser && (
+                  <div className="shrink-0 border-t border-slate-200/80 bg-slate-50/90 p-4 sm:hidden" aria-label="Customer details">
+                    <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Customer</h2>
+                    <p className="text-sm text-slate-800">
+                      <User className="mb-0.5 inline h-3.5 w-3.5" /> {selectedUser.name}
+                    </p>
+                    <p className="text-xs text-slate-600">{selectedUser.email || "—"}</p>
+                  </div>
+                )}
+
+                <div className="shrink-0 border-t border-slate-200/80 bg-white p-2 sm:p-3">
+                  {sendError && (
+                    <p className="mb-2 rounded-md bg-rose-50 px-2 py-1.5 text-xs text-rose-800" role="alert">
+                      {sendError}
+                    </p>
+                  )}
+                  <div className="flex min-w-0 items-end gap-2">
+                    <Input
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                          e.preventDefault();
+                          void sendMessage();
+                        }
+                      }}
+                      placeholder="Type a message…"
+                      className="min-w-0 flex-1 border-slate-200"
+                      disabled={sendLoading}
+                      maxLength={8000}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => void sendMessage()}
+                      disabled={sendLoading || !input.trim() || !selectedChat}
+                      className="h-10 shrink-0 bg-sky-600 px-3 hover:bg-sky-700 sm:px-4"
+                      title="Send message"
+                    >
+                      {sendLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      <span className="ml-1 hidden min-[400px]:inline">Send</span>
+                    </Button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    {socketConnected ? "Enter to send." : "Socket offline—messages may not deliver in real time; refresh if needed."}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-slate-500">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80"
+                  aria-hidden
+                >
+                  <MessageSquare className="h-8 w-8 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Select a conversation</p>
+                  <p className="mt-1 text-xs text-slate-500">Choose someone from the list to read and reply. On mobile, tap a row to open the thread.</p>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Chat;
+export default Chats;
