@@ -14,7 +14,7 @@ import {
   Alert,
   Snackbar,
 } from "@mui/material";
-import React, { useState, useEffect, useReducer, useRef } from "react";
+import React, { useState, useEffect, useReducer, useRef, useCallback } from "react";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
@@ -146,7 +146,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     setShowNotifications(false);
   };
 
-  useEffect(() => {
+  const refreshInAppUnread = useCallback(async () => {
     if (!isAuthenticated || !appUser) {
       setInAppUnread(0);
       return;
@@ -163,20 +163,28 @@ export const Header: React.FC<ChildComponentProps> = ({
       recipientType === "provider"
         ? { recipientType: "provider" as const, recipientId: String(appUser.serviceProviderId) }
         : { recipientType: "customer" as const, recipientId: String(appUser.customerid) };
-    const load = async () => {
-      try {
-        const { data } = await PaymentInstance.get("/api/in-app-notifications/unread-count", { params });
-        if (data?.count != null) setInAppUnread(Number(data.count));
-      } catch {
-        /* non-blocking */
-      }
-    };
-    void load();
-    const t = setInterval(() => {
-      void load();
-    }, 120000);
-    return () => clearInterval(t);
+    try {
+      const { data } = await PaymentInstance.get("/api/in-app-notifications/unread-count", { params });
+      if (data?.count != null) setInAppUnread(Number(data.count));
+    } catch {
+      /* non-blocking */
+    }
   }, [isAuthenticated, appUser]);
+
+  useEffect(() => {
+    void refreshInAppUnread();
+    const t = setInterval(() => {
+      void refreshInAppUnread();
+    }, 30000);
+    const onRefresh = () => {
+      void refreshInAppUnread();
+    };
+    window.addEventListener("in-app-unread-refresh", onRefresh);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("in-app-unread-refresh", onRefresh);
+    };
+  }, [refreshInAppUnread]);
 
 
   useEffect(() => {

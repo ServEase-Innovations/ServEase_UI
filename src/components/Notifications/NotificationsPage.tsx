@@ -1,6 +1,7 @@
 /* eslint-disable */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -14,6 +15,7 @@ import {
   ListItem,
   ListItemText,
   Paper,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/material";
@@ -31,6 +33,8 @@ import {
 import PaymentInstance from "src/services/paymentInstance";
 import { urls } from "src/config/urls";
 import { useLanguage } from "src/context/LanguageContext";
+import { OndemandBookingRequestPanel } from "./BookingRequestToast";
+import { inAppToBookingRequestPayload } from "./inAppToBookingRequestPayload";
 
 export type InAppNotification = {
   id: string;
@@ -69,6 +73,13 @@ function timeAgo(iso: string | null | undefined): string {
     day: "numeric",
     year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
   });
+}
+
+function asMetaRecord(m: unknown): Record<string, unknown> | null {
+  if (m && typeof m === "object" && !Array.isArray(m)) {
+    return m as Record<string, unknown>;
+  }
+  return null;
 }
 
 function typeMeta(type: string): { label: string; Icon: React.ElementType; color: string } {
@@ -116,6 +127,14 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [detailFor, setDetailFor] = useState<InAppNotification | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [snack, setSnack] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
 
   const r = useMemo(
     () => recipientParams(appUser),
@@ -199,24 +218,92 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
     };
   }, [open, r, onUnreadCountChange]);
 
-  const markRead = async (n: InAppNotification) => {
-    if (!r || n.readAt) return;
-    try {
-      await PaymentInstance.patch(`/api/in-app-notifications/${n.id}/read`, null, {
-        params: { recipientType: r.recipientType, recipientId: r.recipientId },
-      });
-      setItems((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x))
-      );
-      setUnread((u) => {
-        const next = Math.max(0, u - 1);
-        onUnreadCountChange?.(next);
-        return next;
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const markRead = useCallback(
+    async (n: InAppNotification) => {
+      if (!r || n.readAt) return;
+      try {
+        await PaymentInstance.patch(`/api/in-app-notifications/${n.id}/read`, null, {
+          params: { recipientType: r.recipientType, recipientId: r.recipientId },
+        });
+        setItems((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x))
+        );
+        setUnread((u) => {
+          const next = Math.max(0, u - 1);
+          onUnreadCountChange?.(next);
+          return next;
+        });
+        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+      } catch (e) {
+        console.error(e);
+        setSnack({ open: true, message: "Could not update notification", severity: "error" });
+      }
+    },
+    [r, onUnreadCountChange]
+  );
+
+  const notInterested = useCallback(
+    async (n: InAppNotification) => {
+      if (!n.readAt) {
+        await markRead(n);
+      }
+      setDetailFor((d) => (d?.id === n.id ? null : d));
+    },
+    [markRead]
+  );
+
+  const handleDeclineInDetail = useCallback(
+    (engagementId: number) => {
+      const cur = detailFor;
+      if (!cur) return;
+      if (Number(cur.engagementId) !== Number(engagementId)) return;
+      void (async () => {
+        if (!cur.readAt) await markRead(cur);
+        setDetailError(null);
+        setDetailFor(null);
+      })();
+    },
+    [detailFor, markRead]
+  );
+
+  const acceptFromList = useCallback(
+    async (n: InAppNotification) => {
+      if (!r || r.recipientType !== "provider" || appUser?.serviceProviderId == null) {
+        setSnack({ open: true, message: "Sign in as a provider to accept", severity: "error" });
+        return;
+      }
+      const eid = n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
+      if (!Number.isFinite(eid) || eid < 1) {
+        setSnack({ open: true, message: "This notification has no engagement id", severity: "error" });
+        return;
+      }
+      setDetailError(null);
+      setAcceptingId(n.id);
+      try {
+        await PaymentInstance.post(
+          `/api/v2/engagements/${eid}/accept`,
+          { serviceproviderid: Number(appUser.serviceProviderId) }
+        );
+        setSnack({ open: true, message: "Booking accepted", severity: "success" });
+        setDetailError(null);
+        setDetailFor((d) => (d != null && String(d.id) === String(n.id) ? null : d));
+        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+        await fetchList();
+      } catch (e: any) {
+        const msg = String(
+          (e?.response?.data && (e.response.data.error as string)) ||
+            e?.message ||
+            "Could not accept"
+        );
+        setDetailError(msg);
+        setSnack({ open: true, message: msg, severity: "error" });
+        console.error("Accept from notifications failed", e);
+      } finally {
+        setAcceptingId(null);
+      }
+    },
+    [r, appUser, fetchList]
+  );
 
   const markAll = async () => {
     if (!r) return;
@@ -293,7 +380,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
     );
   }
 
+  const detailPayload = detailFor ? inAppToBookingRequestPayload(detailFor) : null;
+
   return (
+    <>
     <Dialog
       open={open}
       onClose={onClose}
@@ -302,6 +392,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
       scroll="body"
       aria-labelledby="notifications-title"
       slotProps={dialogSlotProps}
+      disableEnforceFocus
     >
       <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
@@ -379,6 +470,15 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
               const meta = typeMeta(n.type);
               const TypeIcon = meta.Icon;
               const tNew = newIds.has(String(n.id));
+              const metaRow = asMetaRecord(n.metadata);
+              const tUpper = (n.type || "").toUpperCase();
+              const isSpNewBooking =
+                r?.recipientType === "provider" &&
+                (tUpper === "NEW_BOOKING_OPPORTUNITY" || tUpper === "NEW_BOOKING_REQUEST");
+              const eid =
+                n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
+              const hasSpBooking = isSpNewBooking && Number.isFinite(eid) && eid > 0;
+              const canQuickAct = hasSpBooking && unreadItem;
               return (
                 <ListItem
                   key={n.id}
@@ -389,13 +489,22 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                 >
                   <Paper
                     variant="outlined"
-                    onClick={() => (unreadItem ? void markRead(n) : undefined)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && unreadItem) void markRead(n);
+                    onClick={() => {
+                      if (hasSpBooking) return;
+                      if (unreadItem) void markRead(n);
                     }}
-                    role={unreadItem ? "button" : "article"}
-                    tabIndex={unreadItem ? 0 : -1}
-                    aria-label={unreadItem ? `${n.title}, unread. Press to mark as read` : n.title}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !hasSpBooking && unreadItem) void markRead(n);
+                    }}
+                    role={unreadItem && !hasSpBooking ? "button" : "article"}
+                    tabIndex={unreadItem && !hasSpBooking ? 0 : -1}
+                    aria-label={
+                      hasSpBooking
+                        ? n.title
+                        : unreadItem
+                          ? `${n.title}, unread. Press to mark as read`
+                          : n.title
+                    }
                     elevation={0}
                     sx={{
                       m: 0.75,
@@ -410,9 +519,9 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         ? `0 0 0 1px ${alpha("#2563eb", 0.2)}`
                         : "none",
                       transition: "all 0.2s ease",
-                      cursor: unreadItem ? "pointer" : "default",
+                      cursor: unreadItem && !hasSpBooking ? "pointer" : "default",
                       borderRadius: 2,
-                      "&:hover": unreadItem
+                      "&:hover": !hasSpBooking && unreadItem
                         ? { bgcolor: (th) => alpha(th.palette.primary.main, 0.07) }
                         : { bgcolor: "action.hover" },
                       "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" },
@@ -467,6 +576,75 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                               <Typography variant="body2" color="text.secondary" lineHeight={1.45}>
                                 {n.body}
                               </Typography>
+                            )}
+                            {metaRow && (
+                              <Stack gap={0.25} sx={{ width: "100%" }}>
+                                {typeof metaRow.address === "string" && metaRow.address.length > 0 && (
+                                  <Typography variant="body2" color="text.secondary" lineHeight={1.4}>
+                                    <strong className="font-semibold text-slate-700">Location:</strong>{" "}
+                                    {metaRow.address}
+                                  </Typography>
+                                )}
+                                {metaRow.distance_km != null && (
+                                  <Typography variant="caption" color="text.disabled">
+                                    {typeof metaRow.distance_km === "number"
+                                      ? `~${metaRow.distance_km} km away`
+                                      : `Distance: ${String(metaRow.distance_km)}`}
+                                  </Typography>
+                                )}
+                                {metaRow.duration_minutes != null && (
+                                  <Typography variant="caption" color="text.disabled">
+                                    Duration: {String(metaRow.duration_minutes)} min
+                                  </Typography>
+                                )}
+                              </Stack>
+                            )}
+                            {hasSpBooking && (
+                              <Stack
+                                direction="row"
+                                flexWrap="wrap"
+                                gap={1}
+                                alignItems="center"
+                                sx={{ mt: 1, width: "100%" }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                              >
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    setDetailError(null);
+                                    setDetailFor(n);
+                                  }}
+                                >
+                                  View details
+                                </Button>
+                                {canQuickAct && (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      size="small"
+                                      variant="contained"
+                                      disabled={acceptingId === n.id}
+                                      className="!bg-sky-600 hover:!bg-sky-700"
+                                      onClick={() => void acceptFromList(n)}
+                                    >
+                                      {acceptingId === n.id ? "Accepting…" : "Accept"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="small"
+                                      variant="outlined"
+                                      color="inherit"
+                                      disabled={acceptingId === n.id}
+                                      onClick={() => void notInterested(n)}
+                                    >
+                                      Not interested
+                                    </Button>
+                                  </>
+                                )}
+                              </Stack>
                             )}
                             <Stack
                               direction="row"
@@ -531,5 +709,82 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         )}
       </DialogActions>
     </Dialog>
+
+    <Dialog
+      open={open && detailFor != null}
+      onClose={() => {
+        setDetailFor(null);
+        setDetailError(null);
+      }}
+      fullWidth
+      maxWidth="sm"
+      keepMounted={false}
+      sx={{ zIndex: 1400 }}
+      slotProps={{
+        paper: {
+          className: "relative w-[calc(100%-1.5rem)] max-w-md overflow-hidden rounded-2xl m-0 sm:mx-4",
+          elevation: 0,
+          sx: (theme) => ({
+            background: `linear-gradient(180deg, ${alpha(
+              theme.palette.primary.main,
+              0.06
+            )} 0%, ${theme.palette.background.paper} 32%)`,
+            boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
+            border: 1,
+            borderColor: "divider",
+          }),
+        },
+        backdrop: {
+          className: "bg-slate-900/50 backdrop-blur-sm",
+        },
+      }}
+    >
+      {detailFor && !detailPayload ? (
+        <DialogContent className="!p-4">
+          <Typography>
+            This booking’s details are not available in this list item. The engagement may be older, or
+            the server did not include schedule/distance. Engagement id:{" "}
+            <strong>#{String(detailFor.engagementId || "—")}</strong>
+          </Typography>
+          <Button type="button" onClick={() => { setDetailFor(null); setDetailError(null); }} className="!mt-2">
+            Close
+          </Button>
+        </DialogContent>
+      ) : null}
+      {detailFor && detailPayload ? (
+        <OndemandBookingRequestPanel
+          engagement={detailPayload}
+          onAccept={(_eid) => {
+            if (detailFor) void acceptFromList(detailFor);
+          }}
+          onReject={handleDeclineInDetail}
+          errorText={detailError}
+          actionBusy={
+            detailFor != null &&
+            acceptingId != null &&
+            String(acceptingId) === String(detailFor.id)
+          }
+          headerCaption={`Engagement #${detailPayload.engagement_id}`}
+        />
+      ) : null}
+    </Dialog>
+
+    <Snackbar
+      open={snack.open}
+      autoHideDuration={5000}
+      onClose={() => setSnack((s) => ({ ...s, open: false }))}
+      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      sx={{ zIndex: 2000 }}
+    >
+      <Alert
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        severity={snack.severity}
+        variant="filled"
+        className="!w-full"
+      >
+        {snack.message}
+      </Alert>
+    </Snackbar>
+    </>
   );
 }

@@ -284,11 +284,12 @@ function App() {
       };
 
       const res = await PaymentInstance.post(
-        `/api/engagements/${engagementId}/accept`,
+        `/api/v2/engagements/${engagementId}/accept`,
         payload
       );
 
       console.log("✅ Engagement accepted:", res.data);
+      window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
     } catch (err) {
       console.error("❌ Failed to accept engagement", err);
     }
@@ -390,6 +391,10 @@ function App() {
       newSocket.on("new-engagement", (data) => {
         console.log("📩 New engagement received:", data);
         setActiveToast(data);
+      });
+
+      newSocket.on("in_app_notification", () => {
+        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
       });
 
       newSocket.on("disconnect", () => {
