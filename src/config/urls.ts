@@ -14,6 +14,7 @@
  * | `REACT_APP_UTILS_WS_URL` (optional) | `urls.utilsWebsocket` | Raw **WebSocket** to utils (e.g. `NotificationClient`); if unset, derived from `urls.utils` (`http` → `ws`, `https` → `wss`) |
  * | `REACT_APP_REVIEWS_URL` | `urls.reviews` → `reviewsInstance` | **reviews** (no imports in UI yet; wire when needed) |
  * | `REACT_APP_COUPONS_URL` | `urls.coupons` | **coupons** (no axios file yet; reserved) |
+ * | `REACT_APP_CHAT_URL` | `urls.chat` → `Chatbot` (axios + Socket.IO) | **help / live support** widget |
  *
  * ## Not used by this file
  * - `REACT_APP_API_URL` — not read anywhere. A generic host (e.g. `https://servease-be-5x7f.onrender.com`) does **nothing** unless
@@ -72,5 +73,12 @@ export const urls = {
   /** **coupons** service — not wired to a shared axios client yet. */
   get coupons() {
     return process.env.REACT_APP_COUPONS_URL || "http://localhost:3002";
+  },
+  /**
+   * **chat** — ServEase support widget (`find-or-create` user, `/api/chat`, `/api/message`, Socket.IO).
+   * @see `src/components/Chat/Chatbot.tsx`
+   */
+  get chat() {
+    return process.env.REACT_APP_CHAT_URL || "https://chat-b3wl.onrender.com";
   },
 };

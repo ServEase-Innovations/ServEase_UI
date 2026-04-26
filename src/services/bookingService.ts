@@ -5,16 +5,16 @@ import store from "src/store/userStore";
 import PaymentInstance from "./paymentInstance";
 import dayjs from "dayjs";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
+/** Injected by https://checkout.razorpay.com/v1/checkout.js (do not augment `Window` — conflicts with other typings). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getRazorpayCtor(): any {
+  return (window as any).Razorpay;
 }
 
 // const API_BASE = "https://payments-j5id.onrender.com"; // backend base URL
 
 async function loadRazorpayScript(): Promise<boolean> {
-  if (window.Razorpay) return true;
+  if (getRazorpayCtor()) return true;
   return new Promise((resolve) => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -58,10 +58,14 @@ export const BookingService = {
   openRazorpay: async (razorpay_order_id: string, amountPaise: number, currency = "INR") => {
     const ok = await loadRazorpayScript();
     if (!ok) throw new Error("Failed to load Razorpay SDK");
+    const Razorpay = getRazorpayCtor();
+    if (typeof Razorpay !== "function") {
+      throw new Error("Razorpay not available on window");
+    }
 
     return new Promise<RazorpayPaymentResponse>((resolve, reject) => {
       console.log("Opening Razorpay with order id:", razorpay_order_id, "and amount (paise):", amountPaise);
-      const rzp = new window.Razorpay({
+      const rzp = new Razorpay({
         key: "rzp_test_SHU1MPGbiCzst9",
         amount: amountPaise,
         currency,
