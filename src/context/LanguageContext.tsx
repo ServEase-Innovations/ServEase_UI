@@ -4334,6 +4334,211 @@ profileContactInformation: {
   bn: "যোগাযোগের তথ্য"
 },
 
+  providerApplyLeave: {
+    en: "Apply for leave",
+    hi: "छुट्टी के लिए आवेदन करें",
+    kn: "ರಜೆಗೆ ಅನ್ವಯಿಸಿ",
+    bn: "ছুটির আবেদন করুন"
+  },
+  providerLeaveBlurb: {
+    en: "Request time off. Pending items can be cancelled until approved.",
+    hi: "छुट्टी माँगें। मंज़ूरी तक लंबित ऐप्स रद्द कर सकते हैं।",
+    kn: "ರಜೆ ವಿನಂತಿ. ಒಪ್ಪಿಗೆ ಬರುವವರೆಗೆ PENDING ಅನ್ನು ರದ್ದುಗೊಳಿಸಬಹುದು.",
+    bn: "ছুটির অনুরোধ। অনুমোদন পর্যন্ত মুলতুবি বাতিল করা যায়।"
+  },
+  providerLeaveFrom: {
+    en: "From",
+    hi: "से",
+    kn: "ಇಂದ",
+    bn: "থেকে"
+  },
+  providerLeaveTo: {
+    en: "To",
+    hi: "तक",
+    kn: "ವರೆಗೆ",
+    bn: "পর্যন্ত"
+  },
+  providerLeaveDateSectionTitle: {
+    en: "When are you away?",
+    hi: "आप कब अनुपस्थित होंगे?",
+    kn: "ನೀವು ಯಾವಾಗ ಲಭ್ಯರಾಗುವುದಿಲ್ಲ?",
+    bn: "আপনি কখন ছুটিতে?"
+  },
+  providerLeaveDateHint: {
+    en: "Open the calendar from each field below.",
+    hi: "नीचे प्रत्येक फ़ील्ड से कैलेंडर खोलें।",
+    kn: "ಒಂದೊಂದು ಕ್ಷೇತ್ರದಿಂದ ಕ್ಯಾಲೆಂಡರ್ ತೆರೆಯಿರಿ.",
+    bn: "নিচে প্রতিটি ফিল্ডে ক্যালেন্ডার খুলুন."
+  },
+  providerLeaveEndBeforeStart: {
+    en: "End date can’t be before the start",
+    hi: "समाप्ति तिथि, प्रारंभ तिथि से पहले नहीं हो सकती",
+    kn: "ಅಂತಿಮ ದಿನಾಂಕವು ಪ್ರಾರಂಭದ ಮೊದಲು ಇರಲು ಸಾಧ್ಯವಿಲ್ಲ",
+    bn: "সমাপ্তি তারিখ সূচনা তারিখের পূর্বে হবে না"
+  },
+  providerLeaveReason: {
+    en: "Reason (optional)",
+    hi: "कारण (वैकल्पिक)",
+    kn: "ಕಾರಣ (ಐಚ್ಛಿಕ)",
+    bn: "কারণ (ঐচ্ছিক)"
+  },
+  providerLeaveForEngagement: {
+    en: "Related engagement (optional)",
+    hi: "संबंधित ऑर्डर (वैकल्पिक)",
+    kn: "ಸಂಬಂಧಿತ ಎಂಗೇಜ್‌ಮೆಂಟ್ (ಐಚ್ಛಿಕ)",
+    bn: "সম্পর্কিত এনগagement (ঐচ্ছিক)"
+  },
+  optionalNone: {
+    en: "None",
+    hi: "कोई नहीं",
+    kn: "ಯಾವುದೂ ಇಲ್ಲ",
+    bn: "নেই"
+  },
+  submitLeave: {
+    en: "Submit request",
+    hi: "अनुरोध सबमिट करें",
+    kn: "ಅಭಿಮತ ಸಲ್ಲಿಸಿ",
+    bn: "অনুরোধ পাঠান"
+  },
+  providerLeaveList: {
+    en: "Your leave requests",
+    hi: "आपके छुट्टी अनुरोध",
+    kn: "ನಿಮ್ಮ ರಜೆ ವಿನಂತಿಗಳು",
+    bn: "আপনার ছুটির অনুরোধ"
+  },
+  providerNoLeaves: {
+    en: "No leave requests yet.",
+    hi: "अब तक कोई अनुरोध नहीं।",
+    kn: "ಇನ್ನೂ ಯಾವುದೇ ವಿನಂತಿಯಿಲ್ಲ.",
+    bn: "কোনো অনুরোধ এখনও নেই।"
+  },
+  providerCancelLeave: {
+    en: "Cancel request",
+    hi: "अनुरोध रद्द",
+    kn: "ವಿನಂತಿ ರದ್ದು",
+    bn: "অনুরোধ বাতিল"
+  },
+  providerLeaveCreated: {
+    en: "Leave request submitted.",
+    hi: "छुट्टी अनुरोध सबमिट।",
+    kn: "ರಜೆ ವಿನಂತಿ ಸಲ್ಲಿಸಲಾಗಿದೆ।",
+    bn: "ছুটির অনুরোধ পাঠানো হয়েছে।"
+  },
+  providerLeaveFetchFailed: {
+    en: "Could not load leave list.",
+    hi: "छुट्टी सूची लोड नहीं हो सकी।",
+    kn: "ರಜೆ ಪಟ್ಟಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ.",
+    bn: "তালিকা আনা যায়নি।"
+  },
+  providerSelectDates: {
+    en: "Please select valid dates.",
+    hi: "मान्य तिथि चुनें।",
+    kn: "ವೈಧವಾದ ದಿನಾಂಕಗಳನ್ನು ಆರಿಸಿ.",
+    bn: "বৈধ তারিখ বেছে নিন।"
+  },
+  providerLeaveCancelled: {
+    en: "Request cancelled.",
+    hi: "अनुरोध रद्द।",
+    kn: "ವಿನಂತಿ ರದ್ದು.",
+    bn: "অনুরোধ বাতিল।"
+  },
+  providerLeaveNotCancelled: {
+    en: "Could not cancel. Only pending requests can be removed.",
+    hi: "रद्द नहीं—केवल लंबित।",
+    kn: "ರದ್ದುಗೊಳಿಸಲಾಗದು—ಮುಂಗೊಡ್ಳ ಒಂದಷ್ಟು ಮಾತ್ರ.",
+    bn: "বাতিল করা যায়নি—শুধু pending।"
+  },
+  providerMarkUnavailable: {
+    en: "Mark days unavailable",
+    hi: "दिन अनुपलब्ध चिह्नित",
+    kn: "ದಿನಗಳು ಲಭ್ಯವಲ್ಲ ಎಂದು ಗುರುತಿಸಿ",
+    bn: "অনুপলব্ধ দিন চিহ্ন করুন"
+  },
+  providerUnavailBlurb: {
+    en: "Block full days so new visits are not added for those days. You cannot block a day that already has a visit.",
+    hi: "पूरा दिन ब्लॉक करें। पहले से यात्रा वाला दिन नहीं।",
+    kn: "ಇಡೀ ದಿನ ತಡೆಯಿರಿ. ಭೇಟಿ ಇರುವ ದಿನ ಲಾಕ್ ಮಾಡಲಾಗದು।",
+    bn: "সমগ্র দিন বন্ধ; বিজিট আছে সেই দিনে না।"
+  },
+  providerViewMonth: {
+    en: "Month to manage",
+    hi: "महीना",
+    kn: "ನಿರ್ವಹಿಸಲು ತಿಂಗಳು",
+    bn: "মাস (বাছাই)"
+  },
+  providerBlockedInMonth: {
+    en: "Blocks shown for",
+    hi: "महीने हेतु",
+    kn: "ತೋರಿಸುವುದು",
+    bn: "মাসে"
+  },
+  providerAddBlockRange: {
+    en: "Add blocked date range",
+    hi: "ब्लॉक की तिथि सीमा",
+    kn: "ತಡೆ ದಿನಾಂಕ ಶ್ರೇಣಿ",
+    bn: "অবরুদ্ধ তারিখ সীমা"
+  },
+  providerAddBlock: {
+    en: "Block dates",
+    hi: "तिथि ब्लॉक",
+    kn: "ದಿನಾಂಕ ತಡೆ",
+    bn: "তারিখ বন্ধ"
+  },
+  providerBlocksCreated: {
+    en: "Unavailable days added.",
+    hi: "दिन अनुपलब्ध।",
+    kn: "ಅನಲಭ್ಯ ದಿನಗಳು ಸೇರಿ.",
+    bn: "অনুপলব্ধ দিন।"
+  },
+  providerSkipBookingDays: {
+    en: "Saved with warnings: some days were skipped (already have a visit).",
+    hi: "कुछ दिन छोड़े (पहले दौरा)।",
+    kn: "ಕೆಲವು ದಿನಗಳು ಬಿಟ್ಟಿವು (ಭೇಟಿ ಇದೆ).",
+    bn: "কিছু দিন এড়ানো (ইতিমধ্যে বিজিট)।"
+  },
+  providerBlockRemoved: {
+    en: "Block removed.",
+    hi: "ब्लॉक हटा।",
+    kn: "ತೆಗೆ.",
+    bn: "সরানো।"
+  },
+  providerBlockFailed: {
+    en: "Could not update availability.",
+    hi: "उपलब्धता अपडेट नहीं।",
+    kn: "ಲಭ್ಯತೆ ಪರಿವರ್ತಿಸಲಾಗದು।",
+    bn: "আপডেট ব্যর্থ।"
+  },
+  providerNoBlocks: {
+    en: "No full-day blocks this month.",
+    hi: "इस महीने कोई पूरा-दिन ब्लॉक नहीं।",
+    kn: "ಈ ತಿಂಜಲದಲ್ಲಿ ಯಾವುದೇ ಬೆಲок್‌ ಇಲ್ಲ.",
+    bn: "মাসে কোনো পূর্ণ-দিন বন্ধ নেই।"
+  },
+  providerBlockedList: {
+    en: "Blocked full days",
+    hi: "पूर्ण-दिन ब्लॉक",
+    kn: "ತಡೆದ ದಿನಗಳು",
+    bn: "বন্ধ পূর্ণ দিন"
+  },
+  providerRemoveBlock: {
+    en: "Remove",
+    hi: "हटाएँ",
+    kn: "ತೆಗೆ",
+    bn: "সরান"
+  },
+  messageSuccess: {
+    en: "Success",
+    hi: "सफल",
+    kn: "ಯಶಸ್ಸು",
+    bn: "সফল"
+  },
+  messageError: {
+    en: "Error",
+    hi: "त्रुटि",
+    kn: "ದೋಷ",
+    bn: "ত্রুটি"
+  },
+
 noEmailAvailable: {
   en: "No email available",
   hi: "कोई ईमेल उपलब्ध नहीं",

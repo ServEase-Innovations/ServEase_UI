@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import moment from "moment";
 import { DashboardMetricCard } from "./DashboardMetricCard";
 import { PaymentHistory } from "./PaymentHistory";
 import { Button } from "../../components/Button";
@@ -37,6 +38,11 @@ import { OtpVerificationDialog } from "./OtpVerificationDialog";
 import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
 import TrackAddress from "./TrackAddress";
+import {
+  ProviderLeaveDialog,
+  ProviderUnavailabilityDialog,
+} from "./ProviderScheduleDialogs";
+import { useLanguage } from "src/context/LanguageContext";
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBWoIIAX-gE7fvfAkiquz70WFgDaL7YXSk';
@@ -323,41 +329,39 @@ export default function Dashboard() {
   // Add state for Track Address dialog
   const [trackAddressDialogOpen, setTrackAddressDialogOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const { t } = useLanguage();
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [unavailDialogOpen, setUnavailDialogOpen] = useState(false);
+  const [calendarRefresh, setCalendarRefresh] = useState(0);
 
   const metrics = [
     {
       title: "Total Earnings",
       value: `₹${payout?.summary?.total_earned?.toLocaleString("en-IN") || 0}`,
-      change: "+12.5%",
-      changeType: "positive" as const,
       icon: IndianRupee,
-      description: "This month"
+      description: "This month (credited to wallet)"
     },
     {
       title: "Security Deposit",
       value: `₹${payout?.summary?.security_deposit_amount?.toLocaleString("en-IN") || 0}`,
-      change: payout?.summary?.security_deposit_paid ? "Paid" : "Not Paid",
-      changeType: payout?.summary?.security_deposit_paid ? ("neutral" as const) : ("negative" as const),
+      change: payout?.summary?.security_deposit_paid ? "Paid" : "Not paid",
+      changeType: payout?.summary?.security_deposit_paid
+        ? ("neutral" as const)
+        : ("negative" as const),
       icon: Shield,
       description: "For active bookings"
     },
     {
-      title: "Withdrawal",
-      value: `₹${(
-        (payout?.summary?.total_earned || 0) - (payout?.summary?.available_to_withdraw || 0)
-      ).toLocaleString("en-IN")}`,
-      change: "-10%",
-      changeType: "negative" as const,
+      title: "Total Withdrawn",
+      value: `₹${(payout?.summary?.total_withdrawn ?? 0).toLocaleString("en-IN")}`,
       icon: CreditCard,
-      description: "Service charges"
+      description: "Already withdrawn or deducted"
     },
     {
-      title: "Actual Payout",
+      title: "Available to withdraw",
       value: `₹${payout?.summary?.available_to_withdraw?.toLocaleString("en-IN") || 0}`,
-      change: "+10.2%",
-      changeType: "positive" as const,
       icon: Wallet,
-      description: "After deductions"
+      description: "After service charges and TDS"
     }
   ];
 
@@ -426,14 +430,13 @@ export default function Dashboard() {
           `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
         );
         setPayout(payoutResponse.data);
-        
-        toast({
-          title: "Balance Updated",
-          description: "Your wallet balance has been updated.",
-          variant: "default",
-        });
       } catch (error) {
         console.error("Failed to refresh balance:", error);
+        toast({
+          title: "Could not refresh balance",
+          description: "Your withdrawal was submitted. Pull to refresh the page to see the latest amount.",
+          variant: "default",
+        });
       }
     }
   };
@@ -593,105 +596,160 @@ const handleTrackAddress = (address: string) => {
 
   const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
 
+  const unavailabilityMonth = useMemo(
+    () => moment().format("YYYY-MM"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [unavailDialogOpen]
+  );
+  const leaveEngagementOptions = useMemo(() => {
+    if (!bookings) return [] as { value: string; label: string }[];
+    const out: { value: string; label: string }[] = [];
+    const seen = new Set<string>();
+    const fromRow = (b: any) => {
+      const id = b?.engagement_id;
+      if (id == null) return;
+      const s = String(id);
+      if (seen.has(s)) return;
+      seen.add(s);
+      const name =
+        [b?.firstname, b?.lastname]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || (b?.customerid != null ? `Customer #${b.customerid}` : "—");
+      out.push({ value: s, label: `#${s} · ${name}` });
+    };
+    bookings.current?.forEach(fromRow);
+    bookings.upcoming?.forEach(fromRow);
+    return out;
+  }, [bookings]);
+
+  const bumpCalendar = () => setCalendarRefresh((c) => c + 1);
+
+  const userDisplayName = userName || auth0User?.name || "Guest";
+  const userEmail = appUser?.email || auth0User?.email;
+  const avatarUrl = (appUser?.picture as string) || (auth0User?.picture as string) || null;
+  const userInitials = userDisplayName
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "SP";
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Home className="h-8 w-8 text-primary" />
-                <span className="text-xl font-bold text-foreground">ServEase Provider</span>
+    <div className="min-h-screen bg-slate-50/80">
+      <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-200/30 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-3 sm:h-[4.25rem]">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-slate-800 text-white shadow-md ring-1 ring-slate-900/10">
+                <Home className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-slate-900 sm:text-base">Serveaso Provider</p>
+                <p className="truncate text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:text-xs">
+                  Service dashboard
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon">
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                aria-label="Notifications"
+              >
                 <Bell className="h-5 w-5" />
               </Button>
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">Maya Patel</p>
-                  <p className="text-sm text-muted-foreground">Cleaning Specialist</p>
+              <div className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden />
+              <div className="flex min-w-0 max-w-[10rem] items-center gap-2.5 sm:max-w-xs">
+                <div className="min-w-0 text-right sm:block">
+                  <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
+                    {userDisplayName}
+                  </p>
+                  {userEmail && (
+                    <p className="hidden truncate text-[11px] text-slate-500 sm:block sm:text-xs">
+                      {userEmail}
+                    </p>
+                  )}
                 </div>
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-primary-foreground font-semibold">MP</span>
-                </div>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-slate-200/80"
+                  />
+                ) : (
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-800 ring-2 ring-slate-200/60"
+                    aria-hidden
+                  >
+                    {userInitials}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div
-        className="mb-4 p-3 sm:p-4 shadow-sm flex items-center justify-between flex-wrap md:flex-nowrap"
-        style={{
-          background: "linear-gradient(rgb(177 213 232) 0%, rgb(255, 255, 255) 100%)",
-          color: "white",
-        }}
-      >
-        <div className="flex-1 text-center min-w-[180px]">
-          <div className="flex justify-center items-center gap-1 md:gap-2 mb-1">
-            <Home className="h-3.5 w-3.5 md:h-5 md:w-5 text-[#004aad]" />
-            <h1 className="font-bold leading-tight">
-              <span
-                className="block md:hidden"
-                style={{ fontSize: "1.2rem", color: "rgb(14, 48, 92)" }}
-              >
-                Welcome back, {userName || "Guest"}
-              </span>
-              <span
-                className="hidden md:block"
-                style={{ fontSize: "2.5rem", color: "rgb(14, 48, 92)" }}
-              >
-                Welcome back, {userName || "Guest"}
-              </span>
-            </h1>
-          </div>
-          <p className="opacity-90 text-[10px] sm:text-sm text-[#004aad]">
-            Here's what's happening with your services today.
+      <div className="border-b border-slate-200/60 bg-gradient-to-b from-sky-100/50 via-white to-slate-50/40">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-800/80 sm:text-xs">
+            Today
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Welcome back, {userDisplayName}
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-600 sm:max-w-2xl">
+            {`Here's what's happening with your services today. Bookings, payouts, and quick actions in one place.`}
           </p>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
           {metrics.map((metric, index) => (
             <DashboardMetricCard key={index} {...metric} />
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between py-3">
-                <CardTitle className="text-lg font-semibold">Recent Booking</CardTitle>
+            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-lg shadow-slate-200/40 ring-1 ring-slate-900/5">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-slate-100/90 bg-slate-50/50 py-3.5 sm:py-4">
+                <CardTitle className="text-base font-bold text-slate-900 sm:text-lg">Recent booking</CardTitle>
                 {!loading && latestBooking.length > 0 && (
-                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="bg-sky-100 text-[10px] font-semibold text-sky-800 ring-1 ring-sky-200/60 sm:text-xs"
+                  >
                     Latest
                   </Badge>
                 )}
               </CardHeader>
 
-              <CardContent className="pt-1">
+              <CardContent className="p-4 sm:p-5">
                 {loading ? (
-                  <div className="flex justify-center items-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <div className="flex min-h-[120px] items-center justify-center py-6">
+                    <Loader2 className="h-7 w-7 animate-spin text-sky-600" />
                   </div>
                 ) : error ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <p className="text-sm">Failed to load bookings. Please try again.</p>
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-slate-600">
+                    <p className="text-sm font-medium">Failed to load bookings. Please try again.</p>
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
-                      className="mt-2"
+                      className="mt-3 border-slate-300"
                       onClick={fetchData}
                     >
                       Retry
                     </Button>
                   </div>
                 ) : latestBooking.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <p className="text-sm">No upcoming bookings found.</p>
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/40 py-10 text-center">
+                    <p className="text-sm text-slate-500">No upcoming bookings found.</p>
                   </div>
                 ) : (
                   latestBooking.map((booking) => {
@@ -716,17 +774,19 @@ const handleTrackAddress = (address: string) => {
                     const showCompletedButton = isCompleted;
 
                     return (
-                      <div key={booking.id} className="border rounded-lg p-4 mb-3 shadow-sm bg-white">
-                        
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
+                      <div
+                        key={booking.id}
+                        className="mb-0 rounded-xl border border-slate-200/90 bg-slate-50/40 p-4 ring-1 ring-slate-900/5"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">
                               Booking ID: {booking.bookingId || "N/A"}
                             </p>
-                            <h2 className="text-base font-semibold">{booking.clientName}</h2>
-                            <p className="text-xs text-muted-foreground">{booking.service}</p>
+                            <h2 className="text-base font-semibold text-slate-900">{booking.clientName}</h2>
+                            <p className="text-xs text-slate-500">{booking.service}</p>
                           </div>
-                          <div className="flex gap-2 items-center">
+                          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                             {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
                             {getStatusBadge(booking.bookingData.task_status)}
                           </div>
@@ -883,77 +943,109 @@ const handleTrackAddress = (address: string) => {
             </Card>
           </div>
 
-          <div>
-            <Card className="border-0 shadow-sm mb-4">
-              <CardHeader className="py-3">
-                <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          <div className="space-y-4">
+            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
+              <CardHeader className="border-b border-slate-100/90 bg-slate-50/50 py-3.5">
+                <CardTitle className="text-base font-bold text-slate-900">Quick actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 p-3 sm:p-4">
                 <AllBookingsDialog
                   bookings={bookings}
                   serviceProviderId={serviceProviderId}
                   trigger={
-                    <Button className="w-full justify-start text-sm" variant="outline" size="sm">
-                      <Users className="h-3 w-3 mr-2" />
-                      View All Bookings
+                    <Button
+                      type="button"
+                      className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50/80"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-100 text-sky-800">
+                        <Users className="h-3.5 w-3.5" />
+                      </span>
+                      View all bookings
                     </Button>
                   }
                 />
-                <Button 
-                  className="w-full justify-start text-sm" 
+                <Button
+                  type="button"
+                  className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50/80"
                   variant="outline"
                   size="sm"
                   onClick={() => setWithdrawalDialogOpen(true)}
                 >
-                  <IndianRupee className="h-3 w-3 mr-2" />
-                  Request Withdrawal
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-100 text-violet-800">
+                    <IndianRupee className="h-3.5 w-3.5" />
+                  </span>
+                  Request withdrawal
                 </Button>
-                <Button 
-                  className="w-full justify-start text-sm" 
+                <Button
+                  type="button"
+                  className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50/80"
                   variant="outline"
                   size="sm"
                   onClick={() => setWithdrawalHistoryDialogOpen(true)}
                 >
-                  <Receipt className="h-3 w-3 mr-2" />
-                  Withdrawal History
-                </Button> 
-                <Button className="w-full justify-start text-sm" variant="outline" size="sm">
-                  <Calendar className="h-3 w-3 mr-2" />
-                  Apply Leave
-                </Button>
-                <Button className="w-full justify-start text-sm" variant="outline" size="sm">
-                  <Clock className="h-3 w-3 mr-2" />
-                  Update Availability
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-100 text-amber-900">
+                    <Receipt className="h-3.5 w-3.5" />
+                  </span>
+                  Withdrawal history
                 </Button>
                 <Button
-                  className="w-full justify-start text-sm"
+                  type="button"
+                  className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-slate-300 hover:bg-slate-50"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLeaveDialogOpen(true)}
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+                    <Calendar className="h-3.5 w-3.5" />
+                  </span>
+                  {t("providerApplyLeave")}
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-slate-300 hover:bg-slate-50"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setUnavailDialogOpen(true)}
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+                    <Clock className="h-3.5 w-3.5" />
+                  </span>
+                  {t("providerMarkUnavailable")}
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full justify-start gap-2 rounded-lg border-slate-200/90 text-sm text-slate-800 hover:border-amber-200 hover:bg-amber-50/80"
                   variant="outline"
                   size="sm"
                   onClick={() => setReviewsDialogOpen(true)}
                 >
-                  <Star className="h-3 w-3 mr-2" />
-                  View Reviews
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-100 text-amber-900">
+                    <Star className="h-3.5 w-3.5" />
+                  </span>
+                  View reviews
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="py-3">
-                <CardTitle className="text-lg font-semibold">Service Status</CardTitle>
+            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
+              <CardHeader className="border-b border-slate-100/90 bg-slate-50/50 py-3.5">
+                <CardTitle className="text-base font-bold text-slate-900">Service status</CardTitle>
               </CardHeader>
-              <CardContent className="pt-1">
+              <CardContent className="p-3 sm:p-4">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Profile Status</span>
-                    <Badge className="bg-success text-success-foreground text-xs">Active</Badge>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                    <span className="text-xs font-medium text-slate-600">Profile status</span>
+                    <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Active</Badge>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Verification</span>
-                    <Badge className="bg-success text-success-foreground text-xs">Verified</Badge>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                    <span className="text-xs font-medium text-slate-600">Verification</span>
+                    <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Verified</Badge>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Availability</span>
-                    <Badge className="bg-primary text-primary-foreground text-xs">Available</Badge>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                    <span className="text-xs font-medium text-slate-600">Availability</span>
+                    <Badge className="border-0 bg-sky-100 text-xs font-medium text-sky-900">Available</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -961,9 +1053,14 @@ const handleTrackAddress = (address: string) => {
           </div>
         </div>
 
-        <div>
+        <div className="mt-2">
           {serviceProviderId !== null && (
-            <ProviderCalendarBig providerId={serviceProviderId} />
+            <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-3 shadow-lg shadow-slate-200/30 ring-1 ring-slate-900/5">
+              <ProviderCalendarBig
+                providerId={serviceProviderId}
+                refreshToken={calendarRefresh}
+              />
+            </div>
           )}
         </div>
         
@@ -999,10 +1096,25 @@ const handleTrackAddress = (address: string) => {
           onWithdrawalSuccess={handleWithdrawalSuccess}
         />
 
+        <ProviderLeaveDialog
+          open={leaveDialogOpen}
+          onOpenChange={setLeaveDialogOpen}
+          serviceProviderId={serviceProviderId}
+          engagementOptions={leaveEngagementOptions}
+          onSuccess={bumpCalendar}
+        />
+        <ProviderUnavailabilityDialog
+          open={unavailDialogOpen}
+          onOpenChange={setUnavailDialogOpen}
+          serviceProviderId={serviceProviderId}
+          month={unavailabilityMonth}
+          onSuccess={bumpCalendar}
+        />
+
         {/* Track Address Dialog - Simplified */}
-       {trackAddressDialogOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+        {trackAddressDialogOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+    <div className="w-full max-h-[90vh] max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10">
       <TrackAddress 
         onClose={() => setTrackAddressDialogOpen(false)}
         googleMapsApiKey={GOOGLE_MAPS_API_KEY}

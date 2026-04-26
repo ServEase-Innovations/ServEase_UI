@@ -1,9 +1,16 @@
 /* eslint-disable */
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent } from "@mui/material";
+import React, { useState, useEffect, useMemo } from "react";
+import { Dialog, DialogContent } from "@mui/material";
 import { Button } from "../../components/Button";
 import { useToast } from "../hooks/use-toast";
-import { Loader2, Wallet, IndianRupee, X } from "lucide-react";
+import {
+  Loader2,
+  Wallet,
+  X,
+  Building2,
+  Info,
+  AlertCircle,
+} from "lucide-react";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { Label } from "../Common/label";
@@ -17,6 +24,38 @@ interface WithdrawalDialogProps {
   onWithdrawalSuccess?: () => void;
 }
 
+type WithdrawResponse = {
+  success?: boolean;
+  message?: string;
+  net_amount?: number;
+  remaining_balance?: number;
+  requested_amount?: number;
+  payout_id?: string;
+};
+
+function parseApiErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") {
+    return fallback;
+  }
+  const err = error as {
+    response?: { data?: { error?: string; message?: string } };
+    message?: string;
+  };
+  const d = err.response?.data;
+  if (d && typeof d === "object") {
+    if (typeof d.error === "string" && d.error) {
+      return d.error;
+    }
+    if (typeof d.message === "string" && d.message) {
+      return d.message;
+    }
+  }
+  if (typeof err.message === "string" && err.message && !err.message.startsWith("Request failed")) {
+    return err.message;
+  }
+  return fallback;
+}
+
 const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
   open,
   onOpenChange,
@@ -28,53 +67,79 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
   const [amount, setAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
       setAmount("");
     }
   }, [open]);
 
-  const numericAmount = parseFloat(amount) || 0;
-  const isValidAmount = numericAmount > 0 && numericAmount <= availableBalance;
-  const minWithdrawal = 500;
+  const numericAmount = useMemo(
+    () => (amount === "" ? 0 : Math.round((parseFloat(amount) || 0) * 100) / 100),
+    [amount]
+  );
+
+  const tdsAmount = useMemo(
+    () => Number((numericAmount * 0.01).toFixed(2)),
+    [numericAmount]
+  );
+  const netToBank = useMemo(
+    () => Number((numericAmount - tdsAmount).toFixed(2)),
+    [numericAmount, tdsAmount]
+  );
+
+  const hasBalance = availableBalance > 0;
+  const isValidAmount =
+    hasBalance && numericAmount > 0 && numericAmount <= availableBalance + 0.0001;
 
   const handleAmountChange = (value: string) => {
-    // Allow only numbers and decimal point
-    const regex = /^\d*\.?\d*$/;
-    if (regex.test(value)) {
-      setAmount(value);
+    const cleaned = value.replace(/[^\d.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) {
+      return;
     }
+    if (parts[1] && parts[1].length > 2) {
+      return;
+    }
+    setAmount(cleaned);
   };
 
   const handleMaxAmount = () => {
-    setAmount(availableBalance.toString());
+    setAmount((Math.floor(availableBalance * 100) / 100).toFixed(2));
   };
 
   const handleConfirmWithdrawal = async () => {
     if (!serviceProviderId) {
       toast({
-        title: "Error",
-        description: "Service provider ID is missing",
+        title: "Something went wrong",
+        description: "We could not identify your provider account. Please sign in again.",
         variant: "destructive",
       });
       return;
     }
 
     if (!isValidAmount) {
+      if (!hasBalance) {
+        toast({
+          title: "No available balance",
+          description: "There is no balance to withdraw at the moment.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
-        title: "Invalid Amount",
-        description: `Please enter a valid amount between ₹1 and ₹${availableBalance.toLocaleString("en-IN")}`,
+        title: "Check the amount",
+        description:
+          numericAmount > availableBalance
+            ? `The maximum you can request is ₹${availableBalance.toLocaleString("en-IN")}.`
+            : "Enter an amount above ₹0.",
         variant: "destructive",
       });
       return;
     }
 
-    // REMOVED: Minimum withdrawal validation check
-    
     setLoading(true);
     try {
-      const response = await PaymentInstance.post(
+      const response = await PaymentInstance.post<WithdrawResponse>(
         `/api/service-providers/${serviceProviderId}/withdraw`,
         {
           amount: numericAmount,
@@ -82,43 +147,32 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
         }
       );
 
-      if (response.status === 200 || response.status === 201) {
-        toast({
-          title: "Success!",
-          description: `Withdrawal request of ₹${numericAmount.toLocaleString("en-IN")} has been initiated successfully.`,
-          variant: "default",
-        });
-
-        // Call success callback if provided
-        if (onWithdrawalSuccess) {
-          onWithdrawalSuccess();
-        }
-
-        // Close dialog
-        handleClose();
-      } else {
-        throw new Error("Failed to process withdrawal");
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error("Unexpected response from server");
       }
-    } catch (error: any) {
-      let errorMessage = "Failed to process withdrawal request";
-      
-      if (error.response) {
-        if (error.response.status === 400) {
-          errorMessage = error.response.data?.message || "Invalid withdrawal request";
-        } else if (error.response.status === 402) {
-          errorMessage = "Insufficient balance for withdrawal";
-        } else if (error.response.status === 422) {
-          errorMessage = "Validation error. Please check the entered amount.";
-        } else if (error.response.status === 500) {
-          errorMessage = "Server error. Please try again later.";
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
+
+      const data = response.data;
+      const net =
+        typeof data.net_amount === "number" ? data.net_amount : netToBank;
+      const remaining =
+        typeof data.remaining_balance === "number"
+          ? data.remaining_balance
+          : availableBalance - numericAmount;
+
       toast({
-        title: "Withdrawal Failed",
-        description: errorMessage,
+        title: "Withdrawal requested",
+        description: `We recorded ₹${numericAmount.toLocaleString("en-IN")} (wallet balance ≈ ₹${remaining.toLocaleString("en-IN")}). About ₹${net.toLocaleString("en-IN")} should reach your bank after 1% TDS, typically in 2–3 working days.`,
+        variant: "default",
+      });
+
+      if (onWithdrawalSuccess) {
+        onWithdrawalSuccess();
+      }
+      handleClose();
+    } catch (error) {
+      toast({
+        title: "Could not submit request",
+        description: parseApiErrorMessage(error, "Please try again in a moment."),
         variant: "destructive",
       });
     } finally {
@@ -137,183 +191,189 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      scroll="body"
       PaperProps={{
-        style: {
-          borderRadius: '12px',
-          padding: 0,
-        }
+        sx: {
+          borderRadius: 2,
+          overflow: "hidden",
+        },
       }}
     >
-      <DialogHeader className="flex items-center justify-between">
-  <span className="flex items-center gap-2">
-    <Wallet className="h-5 w-5" />
-    Request Withdrawal
-  </span>
+      <DialogHeader className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 min-w-0 text-lg font-semibold">
+          <Wallet className="h-5 w-5 shrink-0" />
+          <span className="truncate">Request withdrawal</span>
+        </span>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="text-white/90 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded p-0.5"
+          aria-label="Close"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      </DialogHeader>
 
-  <button
-    onClick={handleClose}
-    className="text-white hover:text-gray-200 focus:outline-none"
-    aria-label="Close"
-  >
-    <X className="h-6 w-6" />
-  </button>
-</DialogHeader>
+      <DialogContent
+        className="p-0"
+        style={{ padding: 0, paddingBottom: 24, paddingTop: 0, paddingLeft: 0, paddingRight: 0 }}
+      >
+        <div className="px-5 pt-4 pb-2 space-y-1">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            We transfer the net amount (after 1% TDS) to your <strong>registered bank account</strong> within 2–3
+            business days.
+          </p>
+        </div>
 
-      <DialogContent style={{ padding: '24px' }}>
-        <div className="space-y-6">
-             <p className="text-sm text-muted-foreground mt-1">
-          Withdraw your available balance to your bank account
-        </p>
-          {/* Available Balance Card */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-           
-            <div className="flex justify-between items-center">
+        {!hasBalance && (
+          <div className="px-5 pb-2">
+            <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-blue-700 font-medium">Available Balance</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <IndianRupee className="h-6 w-6 text-blue-900" />
-                  <span className="text-2xl font-bold text-blue-900">
-                    {availableBalance.toLocaleString("en-IN")}
+                <p className="font-medium text-amber-950">No balance to withdraw</p>
+                <p className="text-sm mt-1 text-amber-800/90">
+                  Complete bookings to earn payouts. When money is available here, you can request a bank transfer.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="px-5 space-y-5 pb-1">
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/80 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Available</p>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-slate-500">₹</span>
+                  <span className="text-2xl font-bold tabular-nums text-slate-900">
+                    {hasBalance
+                      ? availableBalance.toLocaleString("en-IN", {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        })
+                      : "0"}
                   </span>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-blue-700 font-medium">Min. Withdrawal</p>
-                <div className="flex items-center gap-1 mt-1 justify-end">
-                  <IndianRupee className="h-4 w-4 text-blue-900" />
-                  <span className="text-base font-semibold text-blue-900">{minWithdrawal}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Amount Input Section - FIXED */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount" className="text-gray-700 font-medium text-sm">
-                Enter Amount (₹)
-              </Label>
-              
-              <div className="relative group">
-                {/* Currency Symbol */}
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <span className="text-xl text-gray-500 font-medium">₹</span>
-                </div>
-                
-                {/* Input Field */}
-                <input
-                  id="amount"
-                  type="text"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => handleAmountChange(e.target.value)}
-                  className="w-full h-14 pl-12 pr-28 text-2xl font-medium border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                           placeholder:text-gray-400 text-gray-900
-                           transition-all duration-200"
-                  style={{ 
-                    fontSize: '28px',
-                    lineHeight: '1.2',
-                  }}
-                />
-                
-                {/* Max Button */}
+              {hasBalance && (
                 <button
                   type="button"
                   onClick={handleMaxAmount}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 
-                           px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 
-                           hover:bg-blue-100 active:bg-blue-200 
-                           border border-blue-200 rounded-md
-                           transition-colors duration-150"
+                  className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
                 >
-                  Max
+                  Use max
                 </button>
-              </div>
+              )}
             </div>
-            
-            {/* Validation Messages - Updated to remove min withdrawal check */}
-            {amount && !isValidAmount && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 font-medium flex items-center gap-2">
-                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {numericAmount > availableBalance
-                    ? `Amount exceeds available balance (₹${availableBalance.toLocaleString("en-IN")})`
-                    : `Amount must be greater than 0`} {/* Updated message */}
-                </p>
-              </div>
-            )}
-            
-            {/* Summary Card */}
-            {isValidAmount && (
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
-                <p className="text-sm font-medium text-gray-700">Summary</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Withdrawal Amount</span>
-                    <span className="font-semibold text-gray-900">
-                      ₹{numericAmount.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Remaining Balance</span>
-                    <span className="font-semibold text-green-600">
-                      ₹{(availableBalance - numericAmount).toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <div className="h-px bg-gray-200"></div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Processing Time</span>
-                    <span className="font-medium text-gray-700">2-3 business days</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              <span>Minimum request ₹1 · Wallet is debited by the amount you request</span>
+            </div>
           </div>
 
-          {/* Payout Method Info */}
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-            <div className="flex items-start gap-3">
-              <div className="bg-white p-2 rounded-lg">
-                <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
+          <div className="space-y-2">
+            <Label htmlFor="sp-withdraw-amount" className="text-slate-800 text-sm font-medium">
+              How much to withdraw? (₹)
+            </Label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium" aria-hidden>
+                ₹
               </div>
-              <div>
-                <p className="font-medium text-blue-800">Bank Transfer</p>
-                <p className="text-sm text-blue-600 mt-1">
-                  Amount will be transferred to your registered bank account within 2-3 business days
-                </p>
-              </div>
+              <Input
+                id="sp-withdraw-amount"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                disabled={!hasBalance}
+                className="h-12 pl-9 pr-3 text-lg font-medium tabular-nums border-slate-300"
+              />
+            </div>
+          </div>
+
+          {amount && !isValidAmount && hasBalance && (
+            <div className="flex gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                {numericAmount > availableBalance
+                  ? `Amount is higher than your available ₹${availableBalance.toLocaleString("en-IN")}.`
+                  : "Enter a positive amount to continue."}
+              </p>
+            </div>
+          )}
+
+          {isValidAmount && hasBalance && (
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-800">Request summary</p>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-slate-500">Deducted from wallet</dt>
+                  <dd className="font-medium text-slate-900 tabular-nums">
+                    ₹{numericAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-slate-500">TDS (1%)</dt>
+                  <dd className="text-slate-800 tabular-nums">₹{tdsAmount.toLocaleString("en-IN")}</dd>
+                </div>
+                <div className="border-t border-slate-200 pt-2 flex justify-between gap-2">
+                  <dt className="text-slate-800 font-medium">Expected in bank (approx.)</dt>
+                  <dd className="font-semibold text-emerald-700 tabular-nums">
+                    ₹{netToBank.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2 text-slate-500 text-xs">
+                  <dt>Wallet after request</dt>
+                  <dd className="tabular-nums">
+                    ₹
+                    {Math.max(0, availableBalance - numericAmount).toLocaleString("en-IN", {
+                      maximumFractionDigits: 2,
+                    })}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
+          <div className="flex gap-3 rounded-xl border border-sky-200 bg-sky-50/60 p-4 text-slate-800">
+            <div className="mt-0.5 rounded-md bg-white p-2 text-sky-600 shadow-sm">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-900">Bank transfer</p>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                Payouts use your KYC-registered account. If details need updating, contact support before withdrawing.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons - Updated to remove min withdrawal disable condition */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+        <div className="flex items-center justify-end gap-2 px-5 pt-2 mt-2 border-t border-slate-200">
           <Button
+            type="button"
             variant="outline"
             onClick={handleClose}
             disabled={loading}
-            className="px-8 h-11 text-gray-700 border-gray-300 hover:bg-gray-50 rounded-lg"
+            className="px-5 h-10 rounded-lg border-slate-300"
           >
             Cancel
           </Button>
           <Button
+            type="button"
             onClick={handleConfirmWithdrawal}
-            disabled={!isValidAmount || loading}
-            className="px-8 h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg
-                     disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            disabled={!isValidAmount || loading || !hasBalance}
+            className="px-5 h-10 min-w-[120px] bg-[#0a2a66] hover:bg-[#0d3490] text-white rounded-lg disabled:bg-slate-200 disabled:text-slate-500"
           >
             {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Submitting…
+              </span>
             ) : (
-              "Withdraw"
+              "Submit request"
             )}
           </Button>
         </div>

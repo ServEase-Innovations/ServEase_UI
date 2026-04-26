@@ -23,34 +23,40 @@ export function DashboardMetricCard({
   const getChangeColor = () => {
     switch (changeType) {
       case "positive":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-100 text-emerald-800 border-emerald-200/80";
       case "negative":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-rose-100 text-rose-800 border-rose-200/80";
       default:
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-slate-100 text-slate-700 border-slate-200/80";
     }
   };
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white border border-blue-100">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-blue-700">{title}</p>
-            <div className="flex items-center gap-2">
-              <p className="text-3xl font-bold text-blue-900">{value}</p>
+    <Card className="group h-full border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 shadow-sm transition-all duration-200 hover:border-slate-300/80 hover:shadow-md">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1.5 sm:space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 sm:text-xs">
+              {title}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-2xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-3xl">
+                {value}
+              </p>
               {change && (
-                <Badge className={`text-xs px-2 py-1 ${getChangeColor()}`}>
+                <Badge
+                  className={`border text-[10px] font-medium sm:text-xs ${getChangeColor()}`}
+                >
                   {change}
                 </Badge>
               )}
             </div>
             {description && (
-              <p className="text-xs text-blue-600">{description}</p>
+              <p className="text-xs text-slate-500">{description}</p>
             )}
           </div>
-          <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg">
-            <Icon className="h-6 w-6 text-blue-700" />
+          <div className="shrink-0 rounded-xl bg-sky-100/90 p-2.5 text-sky-700 shadow-inner ring-1 ring-sky-200/50 transition group-hover:bg-sky-200/30">
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden />
           </div>
         </div>
       </CardContent>
