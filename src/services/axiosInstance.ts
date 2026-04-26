@@ -1,11 +1,9 @@
-// src/axiosInstance.ts
+// Duplicates `providerInstance` (same `urls.providers`). See `config/urls.ts` map; prefer one client.
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { urls } from 'src/config/urls';
 
 const axiosInstance = axios.create({
-  baseURL:process.env.REACT_APP_URL ,
-   //  'http://localhost:8080' ,
-   // 'http://43.205.212.94:8080',http://3.109.59.100:8080
-  //  // Change to your API's base URL
+  baseURL: urls.providers,
 });
 
 // Request Interceptor

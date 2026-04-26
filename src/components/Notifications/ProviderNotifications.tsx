@@ -6,6 +6,7 @@ import { Button } from "../Button/button";
 import { Bell, CheckCircle } from "lucide-react";
 import axios from "axios";
 import PaymentInstance from "src/services/paymentInstance";
+import { urls } from "src/config/urls";
 
 interface NotificationPayload {
   engagementId: number;
@@ -25,7 +26,7 @@ export default function ProviderNotifications({ providerId }: { providerId: numb
   useEffect(() => {
     if (!providerId) return;
 
-    const newSocket = io(process.env.REACT_APP_SOCKET_URL || "https://payments-j5id.onrender.com", {
+    const newSocket = io(urls.payments, {
       transports: ["websocket"],
       withCredentials: true,
     });

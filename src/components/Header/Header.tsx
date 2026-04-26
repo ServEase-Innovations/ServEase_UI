@@ -69,7 +69,8 @@ import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 import utilsInstance from "src/services/utilsInstance";
 import { useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
-import NotificationsDialog from "../Notifications/NotificationsPage";
+import PaymentInstance from "src/services/paymentInstance";
+import NotificationsPage from "../Notifications/NotificationsPage";
 import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
@@ -122,6 +123,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [inAppUnread, setInAppUnread] = useState(0);
 
   // Get available languages
   const languages: Language[] = ['en', 'hi', 'kn', 'bn'];
@@ -143,6 +145,38 @@ export const Header: React.FC<ChildComponentProps> = ({
   const handleCloseNotifications = () => {
     setShowNotifications(false);
   };
+
+  useEffect(() => {
+    if (!isAuthenticated || !appUser) {
+      setInAppUnread(0);
+      return;
+    }
+    const role = String(appUser.role || "").toUpperCase();
+    const recipientType: "customer" | "provider" | null =
+      role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null ? "provider" : null;
+    const isCustomer = appUser.customerid != null;
+    if (recipientType !== "provider" && !isCustomer) {
+      setInAppUnread(0);
+      return;
+    }
+    const params =
+      recipientType === "provider"
+        ? { recipientType: "provider" as const, recipientId: String(appUser.serviceProviderId) }
+        : { recipientType: "customer" as const, recipientId: String(appUser.customerid) };
+    const load = async () => {
+      try {
+        const { data } = await PaymentInstance.get("/api/in-app-notifications/unread-count", { params });
+        if (data?.count != null) setInAppUnread(Number(data.count));
+      } catch {
+        /* non-blocking */
+      }
+    };
+    void load();
+    const t = setInterval(() => {
+      void load();
+    }, 120000);
+    return () => clearInterval(t);
+  }, [isAuthenticated, appUser]);
 
 
   useEffect(() => {
@@ -1209,14 +1243,30 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             )}
           </div>
 
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
-            onClick={handleNotificationClick}
-            aria-label="Notifications"
+          <Badge
+            color="error"
+            badgeContent={inAppUnread}
+            overlap="circular"
+            invisible={!inAppUnread}
+            max={99}
+            sx={{
+              "& .MuiBadge-badge": {
+                fontSize: 10,
+                minWidth: 16,
+                height: 16,
+                padding: "0 4px",
+              },
+            }}
           >
-            <Bell className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
-          </button>
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
+              onClick={handleNotificationClick}
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
+            </button>
+          </Badge>
 
           {!isAuthenticated ? (
             <button
@@ -1738,9 +1788,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </Snackbar>
 
       {/* Notifications Dialog */}
-      <NotificationsDialog 
-        open={showNotifications} 
-        onClose={handleCloseNotifications} 
+      <NotificationsPage
+        open={showNotifications}
+        onClose={handleCloseNotifications}
+        appUser={appUser}
+        onUnreadCountChange={setInAppUnread}
       />
     </>
   );

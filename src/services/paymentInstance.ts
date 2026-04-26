@@ -1,10 +1,9 @@
 // src/PaymentInstance.ts
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { urls } from 'src/config/urls';
 
 const PaymentInstance = axios.create({
-  // baseURL: "https://payments-j5id.onrender.com", 
-  baseURL: process.env.REACT_APP_SOCKET_URL,
-  // Or your payment-specific base URL
+  baseURL: urls.payments,
   
   // You can add payment-specific default config here
   timeout: 30000, // Longer timeout for payment processing

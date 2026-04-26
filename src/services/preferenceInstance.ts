@@ -1,8 +1,8 @@
-
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { urls } from 'src/config/urls';
 
 const preferenceInstance = axios.create({
-  baseURL: 'https://preferences.onrender.com', // your specified base URL
+  baseURL: urls.preferences,
 });
 
 // Request Interceptor (same token logic as before)

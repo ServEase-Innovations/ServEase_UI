@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { urls } from 'src/config/urls';
 
 const SERVICE_PROVIDER_ID = '202'; // ✅ Replace dynamically if needed
 
@@ -22,7 +23,8 @@ const NotificationClient = () => {
   const [popupMessage, setPopupMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    ws.current = new WebSocket('wss://utils-ndt3.onrender.com/');
+    const wsBase = `${urls.utilsWebsocket.replace(/\/$/, '')}/`;
+    ws.current = new WebSocket(wsBase);
 
     // Send IDENTIFY only when ready
     if (ws.current) {

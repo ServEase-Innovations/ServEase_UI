@@ -1,15 +1,13 @@
-// src/reviewsAxiosInstance.ts
+/** `urls.reviews` (reviews service). No component imports this yet. */
 import axios, {
   AxiosResponse,
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { urls } from 'src/config/urls';
 
 const reviewsInstance = axios.create({
-  baseURL:
-    process.env.REACT_APP_REVIEWS_URL ||
-    'https://reviews-19oo.onrender.com',
-  // 'http://localhost:8080',
+  baseURL: urls.reviews,
 });
 
 // Request Interceptor

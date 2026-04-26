@@ -1,8 +1,9 @@
 // src/utilsInstance.ts
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { urls } from 'src/config/urls';
 
 const utilsInstance = axios.create({
-  baseURL: process.env.REACT_APP_UTLIS_URL,   // ✅ Use ENV variable here
+  baseURL: urls.utils,
 });
 
 utilsInstance.interceptors.request.use(

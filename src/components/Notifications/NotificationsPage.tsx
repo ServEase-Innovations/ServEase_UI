@@ -1,329 +1,535 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
-  DialogActions,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Stack,
+  Typography,
 } from "@mui/material";
-import { Card, CardContent, CardHeader, CardTitle } from "../Common/Card";
-import { Button } from "../Button/button";
-import { XCircle, CheckCircle, Bell, Trash2, Filter, X } from "lucide-react";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { alpha } from "@mui/material/styles";
+import { io, Socket } from "socket.io-client";
+import {
+  Bell,
+  X,
+  CheckCircle2,
+  Inbox,
+  PlayCircle,
+  PartyPopper,
+  Megaphone,
+} from "lucide-react";
+import PaymentInstance from "src/services/paymentInstance";
+import { urls } from "src/config/urls";
+import { useLanguage } from "src/context/LanguageContext";
 
-interface Engagement {
-  engagement_id: number;
-  service_type: string;
-  booking_type: string;
-  start_date: string;
-  end_date: string;
-  start_time: string;
-  end_time: string;
-  base_amount: number;
-  status: "pending" | "accepted" | "rejected" | "completed";
-  created_at: string;
+export type InAppNotification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  engagementId: string | null;
+  readAt: string | null;
+  createdAt: string;
+  metadata?: unknown;
+};
+
+const dialogSlotProps: {
+  paper: { className: string };
+  backdrop: { className: string };
+} = {
+  paper: {
+    className:
+      "relative w-[calc(100%-1.5rem)] max-w-lg overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
+  },
+  backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+};
+
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const sec = (Date.now() - d.getTime()) / 1000;
+  if (sec < 10) return "Just now";
+  if (sec < 60) return "Moments ago";
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  if (sec < 604800) return `${Math.floor(sec / 86400)}d ago`;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  });
 }
 
-interface NotificationItemProps {
-  engagement: Engagement;
-  onAccept: (engagementId: number) => void;
-  onReject: (engagementId: number) => void;
-  onDelete: (engagementId: number) => void;
+function typeMeta(type: string): { label: string; Icon: React.ElementType; color: string } {
+  const s = (type || "").toUpperCase();
+  if (s === "BOOKING_ACCEPTED" || s.includes("ACCEPT")) {
+    return { label: "Accepted", Icon: CheckCircle2, color: "#059669" };
+  }
+  if (s.includes("OPPORTUNITY") || s.includes("NEW_BOOKING") || s.includes("REQUEST")) {
+    return { label: "New booking", Icon: Megaphone, color: "#0ea5e9" };
+  }
+  if (s === "SERVICE_DAY_STARTED" || s.includes("STARTED")) {
+    return { label: "Service started", Icon: PlayCircle, color: "#d97706" };
+  }
+  if (s === "SERVICE_DAY_COMPLETED" || s.includes("COMPLETED")) {
+    return { label: "Service done", Icon: PartyPopper, color: "#7c3aed" };
+  }
+  return { label: "Update", Icon: Bell, color: "#64748b" };
 }
 
-interface NotificationsDialogProps {
+function recipientParams(
+  appUser: any
+): { recipientType: "customer" | "provider"; recipientId: string } | null {
+  if (!appUser) return null;
+  const role = String(appUser.role || "").toUpperCase();
+  if (role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null) {
+    return { recipientType: "provider", recipientId: String(appUser.serviceProviderId) };
+  }
+  if (appUser.customerid != null) {
+    return { recipientType: "customer", recipientId: String(appUser.customerid) };
+  }
+  return null;
+}
+
+type Props = {
   open: boolean;
   onClose: () => void;
-}
+  appUser: any;
+  onUnreadCountChange?: (n: number) => void;
+};
 
-function NotificationItem({
-  engagement,
-  onAccept,
-  onReject,
-  onDelete,
-}: NotificationItemProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "text-yellow-600 bg-yellow-50";
-      case "accepted": return "text-green-600 bg-green-50";
-      case "rejected": return "text-red-600 bg-red-50";
-      case "completed": return "text-blue-600 bg-blue-50";
-      default: return "text-gray-600 bg-gray-50";
+export default function NotificationsPage({ open, onClose, appUser, onUnreadCountChange }: Props) {
+  const { t } = useLanguage();
+  const [items, setItems] = useState<InAppNotification[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  const r = useMemo(
+    () => recipientParams(appUser),
+    [appUser?.role, appUser?.customerid, appUser?.serviceProviderId]
+  );
+
+  const fetchList = useCallback(async () => {
+    if (!r) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await PaymentInstance.get("/api/in-app-notifications", {
+        params: {
+          recipientType: r.recipientType,
+          recipientId: r.recipientId,
+          limit: 50,
+        },
+      });
+      const list = (data?.notifications || []) as InAppNotification[];
+      setItems(list);
+      setUnread(data?.unreadCount ?? 0);
+      onUnreadCountChange?.(data?.unreadCount ?? 0);
+    } catch (e: any) {
+      setError(e?.message || "Could not load notifications");
+    } finally {
+      setLoading(false);
+    }
+  }, [r, onUnreadCountChange]);
+
+  useEffect(() => {
+    if (!open || !r) return;
+    void fetchList();
+  }, [open, r, fetchList]);
+
+  useEffect(() => {
+    if (!open || !r) return;
+
+    const s: Socket = io(urls.payments, {
+      transports: ["websocket"],
+      withCredentials: true,
+    });
+
+    s.on("connect", () => {
+      if (r.recipientType === "provider") {
+        s.emit("join", { providerId: Number(r.recipientId) });
+      } else {
+        s.emit("join", { customerId: Number(r.recipientId) });
+      }
+    });
+
+    s.on("in_app_notification", (n: InAppNotification) => {
+      setItems((prev) => {
+        const merged = [n, ...prev].filter(
+          (x, i, a) => a.findIndex((y) => y.id === x.id) === i
+        );
+        return merged;
+      });
+      if (!n.readAt) {
+        setNewIds((s0) => new Set(s0).add(String(n.id)));
+        setUnread((u) => {
+          const next = u + 1;
+          onUnreadCountChange?.(next);
+          return next;
+        });
+        window.setTimeout(() => {
+          setNewIds((s0) => {
+            const c = new Set(s0);
+            c.delete(String(n.id));
+            return c;
+          });
+        }, 1800);
+      }
+    });
+
+    s.on("connect_error", (err) => {
+      console.warn("in-app socket:", err?.message);
+    });
+
+    return () => {
+      s.disconnect();
+    };
+  }, [open, r, onUnreadCountChange]);
+
+  const markRead = async (n: InAppNotification) => {
+    if (!r || n.readAt) return;
+    try {
+      await PaymentInstance.patch(`/api/in-app-notifications/${n.id}/read`, null, {
+        params: { recipientType: r.recipientType, recipientId: r.recipientId },
+      });
+      setItems((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x))
+      );
+      setUnread((u) => {
+        const next = Math.max(0, u - 1);
+        onUnreadCountChange?.(next);
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending": return "⏳";
-      case "accepted": return "✅";
-      case "rejected": return "❌";
-      case "completed": return "🎉";
-      default: return "🔔";
+  const markAll = async () => {
+    if (!r) return;
+    try {
+      await PaymentInstance.post("/api/in-app-notifications/read-all", {
+        recipientType: r.recipientType,
+        recipientId: r.recipientId,
+      });
+      setItems((prev) =>
+        prev.map((x) => ({ ...x, readAt: x.readAt || new Date().toISOString() }))
+      );
+      setUnread(0);
+      onUnreadCountChange?.(0);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  return (
-    <Card className="w-full mb-4 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{getStatusIcon(engagement.status)}</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(engagement.status)}`}>
-              {engagement.status.charAt(0).toUpperCase() + engagement.status.slice(1)}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(engagement.engagement_id)}
-            className="text-gray-400 hover:text-red-500"
+  if (!r) {
+    return (
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        maxWidth="sm"
+        scroll="body"
+        slotProps={dialogSlotProps}
+      >
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+            Notifications
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
+            id="notifications-guest-title"
           >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+            Stay updated
+          </DialogTitle>
         </div>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+        >
+          <X className="h-5 w-5" />
+        </IconButton>
 
-        <p className="text-gray-800 font-medium mb-2">
-          {engagement.booking_type} booking for{" "}
-          <span className="font-semibold text-primary">{engagement.service_type}</span>
-        </p>
-        
-        <div className="text-sm text-gray-600 space-y-1 mb-3">
-          <p>📅 {engagement.start_date} ({engagement.start_time} – {engagement.end_time})</p>
-          <p className="font-bold text-lg text-primary">₹{engagement.base_amount}</p>
-          <p className="text-xs text-gray-500">Received: {new Date(engagement.created_at).toLocaleString()}</p>
-        </div>
-
-        {engagement.status === "pending" && (
-          <div className="flex gap-2 mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 border-red-500 text-red-500 hover:bg-red-50 flex-1"
-              onClick={() => onReject(engagement.engagement_id)}
-            >
-              <XCircle className="w-4 h-4" /> Reject
-            </Button>
-            <Button
-              size="sm"
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 flex-1"
-              onClick={() => onAccept(engagement.engagement_id)}
-            >
-              <CheckCircle className="w-4 h-4" /> Accept
-            </Button>
+        <DialogContent className="!p-0">
+          <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+            <Inbox
+              className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+              aria-hidden
+            />
+            Sign in as a customer or service provider to see updates here.
+          </p>
+          <div className="px-4 py-6 sm:px-5">
+            <p className="text-center text-sm text-slate-600">
+              Booking and service events will show in this list after you sign in.
+            </p>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+        </DialogContent>
 
-export default function NotificationsDialog({ open, onClose }: NotificationsDialogProps) {
-  const [notifications, setNotifications] = useState<Engagement[]>([
-    {
-      engagement_id: 1,
-      service_type: "Home Cook",
-      booking_type: "Regular",
-      start_date: "2024-01-15",
-      end_date: "2024-01-15",
-      start_time: "10:00 AM",
-      end_time: "12:00 PM",
-      base_amount: 1200,
-      status: "pending",
-      created_at: "2024-01-14T10:30:00Z"
-    },
-    {
-      engagement_id: 2,
-      service_type: "Cleaning Help",
-      booking_type: "One-time",
-      start_date: "2024-01-16",
-      end_date: "2024-01-16",
-      start_time: "2:00 PM",
-      end_time: "4:00 PM",
-      base_amount: 800,
-      status: "accepted",
-      created_at: "2024-01-14T09:15:00Z"
-    },
-    {
-      engagement_id: 3,
-      service_type: "Caregiver",
-      booking_type: "Long-term",
-      start_date: "2024-01-17",
-      end_date: "2024-01-20",
-      start_time: "9:00 AM",
-      end_time: "5:00 PM",
-      base_amount: 3500,
-      status: "rejected",
-      created_at: "2024-01-13T14:20:00Z"
-    },
-    {
-      engagement_id: 4,
-      service_type: "Home Cook",
-      booking_type: "Short-term",
-      start_date: "2024-01-18",
-      end_date: "2024-01-18",
-      start_time: "6:00 PM",
-      end_time: "8:00 PM",
-      base_amount: 1500,
-      status: "completed",
-      created_at: "2024-01-12T16:45:00Z"
-    }
-  ]);
-
-  const [filter, setFilter] = useState<string>("all");
-
-  const handleAccept = (engagementId: number) => {
-    setNotifications(notifications.map(notif => 
-      notif.engagement_id === engagementId 
-        ? { ...notif, status: "accepted" as const }
-        : notif
-    ));
-    console.log(`Accepted engagement: ${engagementId}`);
-  };
-
-  const handleReject = (engagementId: number) => {
-    setNotifications(notifications.map(notif => 
-      notif.engagement_id === engagementId 
-        ? { ...notif, status: "rejected" as const }
-        : notif
-    ));
-    console.log(`Rejected engagement: ${engagementId}`);
-  };
-
-  const handleDelete = (engagementId: number) => {
-    setNotifications(notifications.filter(notif => notif.engagement_id !== engagementId));
-  };
-
-  const handleClearAll = () => {
-    setNotifications([]);
-  };
-
-  const filteredNotifications = notifications.filter(notif => 
-    filter === "all" ? true : notif.status === filter
-  );
-
-  const getNotificationCount = (status: string) => {
-    return notifications.filter(notif => notif.status === status).length;
-  };
+        <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
+          <Button
+            type="button"
+            onClick={onClose}
+            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
+          >
+            {t("cancel")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
-      maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '12px',
-          maxHeight: '90vh'
-        }
-      }}
+      maxWidth="md"
+      scroll="body"
+      aria-labelledby="notifications-title"
+      slotProps={dialogSlotProps}
     >
-      {/* Dialog Header */}
-      <DialogHeader className="flex justify-between items-center border-b border-gray-700 p-6 bg-[#0a2a66]">
-  <div className="flex items-center gap-3">
-    <div className="p-2 bg-white/20 rounded-lg">
-      <Bell className="w-6 h-6 text-white" />
-    </div>
-    <div>
-<h3 className="text-2xl font-bold text-white mt-3">Notifications</h3>
+      <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+          Activity
+        </p>
+        <DialogTitle
+          className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+          component="div"
+          id="notifications-title"
+        >
+          Notifications
+        </DialogTitle>
+      </div>
+      <IconButton
+        aria-label="close"
+        onClick={onClose}
+        className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+      >
+        <X className="h-5 w-5" />
+      </IconButton>
 
-      <p className="text-white/80">Manage your booking requests and updates</p>
-    </div>
-  </div>
+      <DialogContent className="!p-0">
+        <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+          <Bell
+            className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+            aria-hidden
+          />
+          {unread > 0
+            ? `${unread} unread — open an item to mark it read, or use Mark all as read.`
+            : "Stay on top of bookings, visits, and acceptances. New items appear in real time."}
+        </p>
 
-  <Button
-    variant="ghost"
-    size="icon"
-    onClick={onClose}
-    className="rounded-full hover:bg-white/20 text-white"
-  >
-    <X className="w-5 h-5 text-white" />
-  </Button>
-</DialogHeader>
+        <div
+          className="max-h-[min(50vh,420px)] min-h-[12rem] overflow-y-auto"
+          style={{ WebkitOverflowScrolling: "touch" as const }}
+        >
+          {loading && items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <CircularProgress size={36} thickness={4} />
+              <p className="text-sm text-slate-600">Loading your activity…</p>
+            </div>
+          ) : null}
 
+          {error ? (
+            <div className="px-4 py-6 text-center sm:px-5">
+              <p className="mb-3 text-sm text-red-600">{error}</p>
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                onClick={() => void fetchList()}
+                className="!border-sky-600 !text-sky-600 hover:!bg-sky-50"
+              >
+                Try again
+              </Button>
+            </div>
+          ) : null}
 
-      <DialogContent className="p-6">
-        {/* Stats and Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex gap-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{getNotificationCount("pending")}</div>
-                  <div className="text-sm text-gray-600">Pending</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{getNotificationCount("accepted")}</div>
-                  <div className="text-sm text-gray-600">Accepted</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-600">{notifications.length}</div>
-                  <div className="text-sm text-gray-600">Total</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
-                <select 
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="border rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {!loading && !error && items.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <span className="mb-1 inline-flex rounded-full bg-slate-100 p-3 text-slate-500">
+                <Inbox className="h-8 w-8" strokeWidth={1.5} />
+              </span>
+              <p className="text-sm font-semibold text-slate-800">Nothing new yet</p>
+              <p className="max-w-sm text-sm leading-relaxed text-slate-500">
+                When a booking is accepted, a visit starts, or a service is completed, you will see
+                it here.
+              </p>
+            </div>
+          ) : null}
+
+          <List component="ol" disablePadding sx={{ listStyle: "none" }} className="pb-2">
+            {items.map((n) => {
+              const unreadItem = !n.readAt;
+              const meta = typeMeta(n.type);
+              const TypeIcon = meta.Icon;
+              const tNew = newIds.has(String(n.id));
+              return (
+                <ListItem
+                  key={n.id}
+                  component="li"
+                  disableGutters
+                  sx={{ display: "block" }}
+                  className="px-2 pt-0 sm:px-3"
                 >
-                  <option value="all">All Notifications</option>
-                  <option value="pending">Pending</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Clear All Button */}
-        {notifications.length > 0 && (
-          <div className="flex justify-end mb-4">
-            <Button
-              variant="outline"
-              onClick={handleClearAll}
-              className="text-red-500 border-red-200 hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear All
-            </Button>
-          </div>
-        )}
-
-        {/* Notifications List */}
-        <div className="max-h-96 overflow-y-auto">
-          {filteredNotifications.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
-                <p className="text-gray-600">
-                  {notifications.length === 0 
-                    ? "You don't have any notifications yet." 
-                    : `No ${filter === "all" ? "" : filter + " "}notifications found.`
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div>
-              {filteredNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.engagement_id}
-                  engagement={notification}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          )}
+                  <Paper
+                    variant="outlined"
+                    onClick={() => (unreadItem ? void markRead(n) : undefined)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && unreadItem) void markRead(n);
+                    }}
+                    role={unreadItem ? "button" : "article"}
+                    tabIndex={unreadItem ? 0 : -1}
+                    aria-label={unreadItem ? `${n.title}, unread. Press to mark as read` : n.title}
+                    elevation={0}
+                    sx={{
+                      m: 0.75,
+                      mb: 0.5,
+                      p: 1.5,
+                      borderColor: (th) => (unreadItem ? alpha(th.palette.primary.main, 0.35) : th.palette.divider),
+                      borderWidth: 1.5,
+                      borderLeftWidth: unreadItem ? 4 : 1,
+                      borderLeftColor: unreadItem ? "primary.main" : "transparent",
+                      bgcolor: unreadItem ? "rgba(37, 99, 235, 0.04)" : "background.paper",
+                      boxShadow: tNew
+                        ? `0 0 0 1px ${alpha("#2563eb", 0.2)}`
+                        : "none",
+                      transition: "all 0.2s ease",
+                      cursor: unreadItem ? "pointer" : "default",
+                      borderRadius: 2,
+                      "&:hover": unreadItem
+                        ? { bgcolor: (th) => alpha(th.palette.primary.main, 0.07) }
+                        : { bgcolor: "action.hover" },
+                      "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" },
+                    }}
+                  >
+                    <Stack direction="row" alignItems="flex-start" gap={1.5}>
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: 1.5,
+                          flexShrink: 0,
+                          bgcolor: alpha(meta.color, 0.1),
+                          color: meta.color,
+                          display: "inline-flex",
+                        }}
+                      >
+                        <TypeIcon size={20} strokeWidth={2} />
+                      </Box>
+                      <ListItemText
+                        primaryTypographyProps={{ component: "div" }}
+                        secondaryTypographyProps={{ component: "div" }}
+                        primary={
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            flexWrap="wrap"
+                            gap={0.75}
+                            mb={0.25}
+                          >
+                            <Typography
+                              fontWeight={unreadItem ? 800 : 600}
+                              variant="body1"
+                              component="span"
+                              lineHeight={1.35}
+                              className="text-slate-900"
+                            >
+                              {n.title}
+                            </Typography>
+                            {unreadItem && (
+                              <Chip
+                                size="small"
+                                label="New"
+                                color="primary"
+                                sx={{ height: 20, fontSize: 10, fontWeight: 800 }}
+                              />
+                            )}
+                          </Stack>
+                        }
+                        secondary={
+                          <Stack component="div" alignItems="flex-start" gap={0.5} pt={0.5}>
+                            {n.body && (
+                              <Typography variant="body2" color="text.secondary" lineHeight={1.45}>
+                                {n.body}
+                              </Typography>
+                            )}
+                            <Stack
+                              direction="row"
+                              flexWrap="wrap"
+                              alignItems="center"
+                              justifyContent="space-between"
+                              width="100%"
+                              gap={0.5}
+                              sx={{ mt: 0.5 }}
+                            >
+                              <Stack direction="row" alignItems="center" gap={0.5}>
+                                <Typography variant="caption" color="text.disabled" fontWeight={500}>
+                                  {meta.label}
+                                </Typography>
+                                {n.engagementId && (
+                                  <>
+                                    <Typography variant="caption" color="text.disabled">·</Typography>
+                                    <Typography
+                                      component="code"
+                                      variant="caption"
+                                      color="text.secondary"
+                                      fontFamily="ui-monospace, monospace"
+                                      sx={{ bgcolor: "action.hover", px: 0.5, borderRadius: 0.5 }}
+                                    >
+                                      #{n.engagementId}
+                                    </Typography>
+                                  </>
+                                )}
+                              </Stack>
+                              <Typography variant="caption" color="text.disabled" fontWeight={500}>
+                                {timeAgo(n.createdAt)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        }
+                      />
+                    </Stack>
+                  </Paper>
+                </ListItem>
+              );
+            })}
+          </List>
         </div>
       </DialogContent>
+
+      <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
+        <Button
+          type="button"
+          onClick={onClose}
+          className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
+        >
+          {t("cancel")}
+        </Button>
+        {unread > 0 && (
+          <Button
+            type="button"
+            onClick={markAll}
+            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 sm:!w-auto"
+          >
+            Mark all as read
+          </Button>
+        )}
+      </DialogActions>
     </Dialog>
   );
 }

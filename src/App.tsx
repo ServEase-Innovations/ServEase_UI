@@ -20,9 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { add } from "./features/pricing/pricingSlice";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
-import NotificationButton from "./components/NotificationButton";
 import HomePage from "./components/HomePage/HomePage";
-import NotificationClient from "./components/NotificationClient/NotificationClient";
 import Dashboard from "./components/ServiceProvider/Dashboard";
 import ProfileScreen from "./components/User-Profile/ProfileScreen";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -38,15 +36,14 @@ import ChatbotButton from "./components/Chat/ChatbotButton";
 import { useAppUser } from "./context/AppUserContext";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import TnC from "./TermsAndConditions/TnC";
-import axiosInstance from "./services/axiosInstance";
 import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
 import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import { useCustomerMobileCheck } from "./components/hooks/useCustomerMobileCheck";
 import { setHasMobileNumber } from "./features/customer/customerSlice";
 import { ClipLoader } from 'react-spinners';
 import { LanguageProvider } from "./context/LanguageContext";
-import ProviderNotifications from "./components/Notifications/ProviderNotifications";
 import AgentDashboard from "./components/Agent/AgentDashboard";
+import { urls } from "./config/urls";
 
 // Import the LanguageProvider
 
@@ -380,10 +377,7 @@ function App() {
     if (appUser?.role?.toUpperCase() === "SERVICE_PROVIDER") {
       console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
 
-      const socketUrl =
-        process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
-
-      const newSocket = io(socketUrl, {
+      const newSocket = io(urls.payments, {
         transports: ["websocket"],
         withCredentials: true,
       });
