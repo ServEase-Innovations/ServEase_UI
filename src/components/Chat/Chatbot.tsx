@@ -3,7 +3,6 @@ import {
   X,
   Send,
   ArrowLeft,
-  MessageCircle,
   Phone,
   Mail,
   Loader2,

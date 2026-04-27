@@ -615,7 +615,7 @@ const Chats = () => {
                 <p className="text-xs text-slate-500">No users match. They may need to open the app and start support once to appear.</p>
               )}
               {userSearchResults.length > 0 && (
-                <ul className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-slate-200/80 bg-white p-1" role="list">
+                <ul className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-slate-200/80 bg-white p-1">
                   {userSearchResults.map((u) => (
                     <li key={u._id}>
                       <button
@@ -659,11 +659,7 @@ const Chats = () => {
                   No customers have a live session. When they open the app, they can appear here (green dot in the list, too).
                 </p>
               ) : (
-                <ul
-                  className="max-h-[min(8.5rem,32vh)] space-y-0.5 overflow-y-auto pr-0.5"
-                  role="list"
-                  aria-label="Customers currently online"
-                >
+                <ul className="max-h-[min(8.5rem,32vh)] space-y-0.5 overflow-y-auto pr-0.5" aria-label="Customers currently online">
                   {onlineNow.withChat.map(({ u, chat }) => (
                     <li key={u._id}>
                       <button
