@@ -1,6 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
+# Use npm + package-lock.json for CI (e.g. Render). Do not commit yarn.lock; it triggers yarn --frozen-lockfile and breaks when out of sync with package.json.
+yarn.lock
 /node_modules
 /.pnp
 .pnp.js

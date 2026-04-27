@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "homepage": ".",
   "private": true,
+  "packageManager": "npm@10.8.2",
   "dependencies": {
     "@angular/material": "^19.0.1",
     "@auth0/auth0-react": "^2.3.0",
@@ -91,6 +92,7 @@
     "start:qa": "env-cmd -f .env.qa craco start",
     "start:prod": "env-cmd -f .env.prod craco start",
     "build": "craco build",
+    "build:ci": "npm ci && npm run build",
     "build:dev": "env-cmd -f .env.dev craco build",
     "build:qa": "env-cmd -f .env.qa craco build",
     "build:prod": "env-cmd -f .env.prod craco build",

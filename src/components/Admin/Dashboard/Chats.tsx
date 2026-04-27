@@ -46,7 +46,28 @@ type Message = {
 type ChatType = {
   _id: string;
   users: UserType[];
+  /** Chat doc; updated when new messages arrive (used for order). */
+  updatedAt?: string;
+  latestMessage?: { _id?: string; createdAt?: string; content?: string };
 };
+
+/** Newest first — matches server inbox sort. */
+function chatRecencyMs(c: ChatType): number {
+  const lm = c.latestMessage;
+  if (lm?.createdAt) {
+    const t = new Date(lm.createdAt).getTime();
+    if (!Number.isNaN(t)) {
+      return t;
+    }
+  }
+  if (c.updatedAt) {
+    const t = new Date(c.updatedAt).getTime();
+    if (!Number.isNaN(t)) {
+      return t;
+    }
+  }
+  return 0;
+}
 
 type ChatBuildEnv = {
   VITE_CHAT_API_URL?: string;
@@ -98,14 +119,26 @@ function otherUser(chat: ChatType, adminId: string) {
 
 /** Socket payloads may use populated chat, raw ObjectId, or the BE-added `_emitChatId`. */
 function messageChatId(
-  m: (Message & { _emitChatId?: string; chat?: string | { _id?: string } | null } | null) | undefined
+  m: (Message & { _emitChatId?: string; chat?: string | { _id?: string; $oid?: string } | null } | null) | undefined
 ): string | null {
   if (m?._emitChatId) return String(m._emitChatId);
   const c = m?.chat;
   if (c == null) return null;
   if (typeof c === "string") return c;
-  if (typeof c === "object" && c !== null && "_id" in c && (c as { _id?: unknown })._id != null) {
-    return String((c as { _id: string })._id);
+  if (typeof c === "object" && c !== null) {
+    const id = (c as { _id?: unknown; $oid?: string })._id;
+    if (id != null) {
+      if (typeof id === "string") {
+        return id;
+      }
+      if (typeof (id as { toString?: () => string }).toString === "function") {
+        return String(id);
+      }
+    }
+    const o = (c as { $oid?: string }).$oid;
+    if (o) {
+      return String(o);
+    }
   }
   return null;
 }
@@ -138,20 +171,62 @@ const Chats = () => {
   const [mobile, setMobile] = useState<"list" | "thread">("list");
 
   const socketRef = useRef<Socket | null>(null);
+  const chatsRef = useRef<ChatType[]>([]);
   const selectedChatRef = useRef<ChatType | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fetchChatsRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
 
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  /** Server should return newest first; re-sort in case of stale order or after silent refresh. */
+  const chatsByRecency = useMemo(
+    () => [...chats].sort((a, b) => chatRecencyMs(b) - chatRecencyMs(a)),
+    [chats]
+  );
+
   const filteredChats = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return chats;
-    return chats.filter((c) => {
+    if (!q) {
+      return chatsByRecency;
+    }
+    return chatsByRecency.filter((c) => {
       const u = otherUser(c, adminId);
       const blob = [u?.name, u?.email, u?.phone, u?._id].map((v) => (v ? String(v).toLowerCase() : "")).join(" ");
       return blob.includes(q);
     });
-  }, [chats, search, adminId]);
+  }, [chatsByRecency, search, adminId]);
+
+  /**
+   * Who is online: match socket presence ids to directory rows we know (existing chats)
+   * plus any extra Mongo ids the server reports without a local conversation.
+   */
+  const onlineNow = useMemo(() => {
+    const byId = new Map<string, { u: UserType; chat: ChatType }>();
+    for (const chat of chatsByRecency) {
+      const u = otherUser(chat, adminId);
+      if (u?._id && onlineSet.has(String(u._id))) {
+        if (!byId.has(String(u._id))) {
+          byId.set(String(u._id), { u, chat });
+        }
+      }
+    }
+    const withChat = Array.from(byId.values()).sort((a, b) =>
+      a.u.name.localeCompare(b.u.name, undefined, { sensitivity: "base" })
+    );
+    const known = new Set(byId.keys());
+    const otherOnlyIds: string[] = [];
+    for (const id of Array.from(onlineSet)) {
+      const s = String(id);
+      if (!known.has(s)) {
+        otherOnlyIds.push(s);
+      }
+    }
+    otherOnlyIds.sort();
+    return { withChat, otherOnlyIds, total: onlineSet.size };
+  }, [chatsByRecency, onlineSet, adminId]);
 
   const fetchChats = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -211,6 +286,25 @@ const Chats = () => {
     return () => clearInterval(t);
   }, [loadOnlineIds]);
 
+  /** Re-fetch when returning to the tab, and on an interval, so the list order stays “latest” without a full app reload. */
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        void fetchChatsRef.current({ silent: true });
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void fetchChatsRef.current({ silent: true });
+      }
+    }, 45_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      clearInterval(poll);
+    };
+  }, []);
+
   useEffect(() => {
     const q = userQuery.trim();
     if (q.length < 2) {
@@ -243,18 +337,39 @@ const Chats = () => {
     const socket = io(endpoint, { ...defaultChatSocketOptions });
     socketRef.current = socket;
 
+    const rejoinAllChatRooms = (s: Socket) => {
+      for (const c of chatsRef.current) {
+        if (c?._id) {
+          s.emit("join chat", String(c._id));
+        }
+      }
+    };
+
     const onConnect = () => {
       setSocketConnected(true);
       socket.emit("setup", { userId: String(adminId), role: "admin" });
-      if (selectedChatRef.current) socket.emit("join chat", String(selectedChatRef.current._id));
+      rejoinAllChatRooms(socket);
       void loadOnlineIdsRef.current();
     };
+
+    const onReconnect = () => {
+      socket.emit("setup", { userId: String(adminId), role: "admin" });
+      rejoinAllChatRooms(socket);
+      void loadOnlineIdsRef.current();
+    };
+
     const onDisconnect = () => setSocketConnected(false);
 
     const onMessage = (newMessage: Message & { _emitChatId?: string }) => {
       const activeChat = selectedChatRef.current;
       const cid = messageChatId(newMessage);
-      if (cid == null) return;
+      if (cid == null) {
+        if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.warn("[Chats] message recieved: could not resolve chat id", newMessage);
+        }
+        return;
+      }
       if (!activeChat) {
         void fetchChatsRef.current({ silent: true });
         return;
@@ -280,6 +395,22 @@ const Chats = () => {
       );
     };
 
+    const refetchOpenThread = (chatId: string) => {
+      if (!selectedChatRef.current?._id || String(selectedChatRef.current._id) !== String(chatId)) {
+        return;
+      }
+      void (async () => {
+        try {
+          const { data } = await axios.get<Message[]>(`${endpoint}/api/message/${String(chatId)}`);
+          if (Array.isArray(data)) {
+            setMessages(data);
+          }
+        } catch {
+          /* non-fatal */
+        }
+      })();
+    };
+
     const onAdminActivity = (a: {
       chatId?: string;
       preview?: string;
@@ -291,6 +422,7 @@ const Chats = () => {
         return;
       }
       void fetchChatsRef.current({ silent: true });
+      refetchOpenThread(String(a.chatId));
       if (a.fromCustomer) {
         const id = String(a.chatId);
         const cur = selectedChatRef.current?._id;
@@ -305,6 +437,7 @@ const Chats = () => {
     };
 
     socket.on("connect", onConnect);
+    socket.on("reconnect", onReconnect);
     socket.on("disconnect", onDisconnect);
     socket.on("message recieved", onMessage);
     socket.on("presence:update", onPresence);
@@ -312,6 +445,7 @@ const Chats = () => {
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("reconnect", onReconnect);
       socket.off("disconnect", onDisconnect);
       socket.off("message recieved", onMessage);
       socket.off("presence:update", onPresence);
@@ -415,8 +549,8 @@ const Chats = () => {
         <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Inbox</p>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Chats</h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-600">
-          Customer threads from the chat service. Replies are sent as the configured admin user. Real-time delivery depends on
-          a live connection (see status below).
+          Customer threads from the chat service. The &quot;Online now&quot; section lists customers with a live app session, with names when you
+          already have a thread. Replies are sent as the configured admin user; your socket status appears in the thread header.
         </p>
       </div>
 
@@ -502,6 +636,63 @@ const Chats = () => {
                           )}
                         </span>
                       </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="space-y-1.5 border-b border-slate-200/80 p-2">
+              <p className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+                <span className="flex items-center gap-1.5" title="Users with the main app (or support chat) open and a live socket to the chat service">
+                  <Wifi className="h-3.5 w-3.5 text-emerald-600" />
+                  Online now
+                </span>
+                <span
+                  className="inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-slate-200/90 px-1.5 py-0.5 text-[10px] font-mono text-slate-600 tabular-nums"
+                  aria-label={`${onlineNow.total} online`}
+                >
+                  {onlineNow.total}
+                </span>
+              </p>
+              {onlineNow.total === 0 ? (
+                <p className="text-xs leading-snug text-slate-500">
+                  No customers have a live session. When they open the app, they can appear here (green dot in the list, too).
+                </p>
+              ) : (
+                <ul
+                  className="max-h-[min(8.5rem,32vh)] space-y-0.5 overflow-y-auto pr-0.5"
+                  role="list"
+                  aria-label="Customers currently online"
+                >
+                  {onlineNow.withChat.map(({ u, chat }) => (
+                    <li key={u._id}>
+                      <button
+                        type="button"
+                        className="flex w-full min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm text-slate-800 transition-colors hover:bg-white"
+                        onClick={() => void openThread(chat)}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+                          title="Online"
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="font-medium">{u.name}</span>
+                          {u.email ? <span className="block truncate text-[11px] text-slate-500">{u.email}</span> : null}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {onlineNow.otherOnlyIds.map((id) => (
+                    <li
+                      key={id}
+                      className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs text-slate-500"
+                      title="Socket online for this user id, but not in this conversation list yet. Use Find a customer to open a thread if they are in the directory."
+                    >
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden />
+                      <span className="min-w-0 break-all font-mono text-[11px] leading-snug text-slate-600">
+                        {id.length > 10 ? `…${id.slice(-8)}` : id}
+                      </span>
                     </li>
                   ))}
                 </ul>
