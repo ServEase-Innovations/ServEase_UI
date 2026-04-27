@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import "./App.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Header } from "./components/Header/Header";
@@ -33,6 +33,7 @@ import PaymentInstance from "./services/paymentInstance";
 import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
+import ChatGlobalSocket from "./components/Chat/ChatGlobalSocket";
 import { useAppUser } from "./context/AppUserContext";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import TnC from "./TermsAndConditions/TnC";
@@ -59,6 +60,8 @@ function App() {
   const [activeToast, setActiveToast] = useState<any>(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [chatSupportPreview, setChatSupportPreview] = useState<string | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   
@@ -91,6 +94,14 @@ function App() {
 
   const { setAppUser } = useAppUser();
   const { appUser } = useAppUser();
+
+  const onChatUnreadDelta = useCallback((d: number) => {
+    setChatUnread((n) => Math.max(0, n + d));
+  }, []);
+  const onChatResetUnread = useCallback(() => {
+    setChatUnread(0);
+    setChatSupportPreview(null);
+  }, []);
 
   // ============= MODIFIED DEEP LINKING WITH AUTH0 =============
 
@@ -516,14 +527,25 @@ function App() {
 
         
 
-        <ChatbotButton 
-          open={chatbotOpen} 
-          onToggle={() => setChatbotOpen(!chatbotOpen)} 
+        <ChatGlobalSocket
+          chatbotOpen={chatbotOpen}
+          onUnreadDelta={onChatUnreadDelta}
+          onResetUnread={onChatResetUnread}
+          onSupportMessagePreview={setChatSupportPreview}
         />
-        
-        <Chatbot 
-          open={chatbotOpen} 
-          onClose={() => setChatbotOpen(false)} 
+
+        <ChatbotButton
+          open={chatbotOpen}
+          onToggle={() => setChatbotOpen(!chatbotOpen)}
+          unreadCount={chatUnread}
+          supportPreview={chatSupportPreview}
+          onDismissSupportPreview={() => setChatSupportPreview(null)}
+          onOpenFromSupportPreview={() => setChatbotOpen(true)}
+        />
+
+        <Chatbot
+          open={chatbotOpen}
+          onClose={() => setChatbotOpen(false)}
         />
         
         {shouldShowFooter() && (

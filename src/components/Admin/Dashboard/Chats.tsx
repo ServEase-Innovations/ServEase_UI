@@ -16,9 +16,12 @@ import {
   Search,
   Send,
   User,
+  UserPlus,
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { Snackbar, Alert } from "@mui/material";
+import { defaultChatSocketOptions } from "src/config/chatSocketOptions";
 
 type UserType = {
   _id: string;
@@ -93,6 +96,20 @@ function otherUser(chat: ChatType, adminId: string) {
   return chat.users.find((u) => u._id !== adminId) || null;
 }
 
+/** Socket payloads may use populated chat, raw ObjectId, or the BE-added `_emitChatId`. */
+function messageChatId(
+  m: (Message & { _emitChatId?: string; chat?: string | { _id?: string } | null } | null) | undefined
+): string | null {
+  if (m?._emitChatId) return String(m._emitChatId);
+  const c = m?.chat;
+  if (c == null) return null;
+  if (typeof c === "string") return c;
+  if (typeof c === "object" && c !== null && "_id" in c && (c as { _id?: unknown })._id != null) {
+    return String((c as { _id: string })._id);
+  }
+  return null;
+}
+
 const Chats = () => {
   const { endpoint, adminId } = chatEnv();
 
@@ -111,6 +128,11 @@ const Chats = () => {
   const [sendLoading, setSendLoading] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [onlineSet, setOnlineSet] = useState<Set<string>>(() => new Set());
+  const [userQuery, setUserQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<(UserType & { isOnline?: boolean })[]>([]);
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
+  const [adminNotify, setAdminNotify] = useState<string | null>(null);
 
   /** On narrow screens, switch between list and open thread. */
   const [mobile, setMobile] = useState<"list" | "thread">("list");
@@ -119,6 +141,7 @@ const Chats = () => {
   const selectedChatRef = useRef<ChatType | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const fetchChatsRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
 
   const filteredChats = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -130,55 +153,181 @@ const Chats = () => {
     });
   }, [chats, search, adminId]);
 
-  const fetchChats = useCallback(async () => {
-    setChatsLoading(true);
-    setChatsError(null);
+  const fetchChats = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) {
+        setChatsLoading(true);
+        setChatsError(null);
+      }
+      try {
+        const { data } = await axios.get<ChatType[]>(`${endpoint}/api/chat?currentUserId=${adminId}`);
+        setChats(Array.isArray(data) ? data : []);
+        if (!opts?.silent) setChatsError(null);
+      } catch (e) {
+        const err = e as { message?: string };
+        if (!opts?.silent) {
+          setChatsError(
+            err?.message || "Could not load conversations. Check the chat service URL and network."
+          );
+        }
+        if (!opts?.silent) setChats([]);
+      } finally {
+        if (!opts?.silent) setChatsLoading(false);
+      }
+    },
+    [endpoint, adminId]
+  );
+
+  useEffect(() => {
+    fetchChatsRef.current = fetchChats;
+  }, [fetchChats]);
+
+  const loadOnlineIds = useCallback(async () => {
     try {
-      const { data } = await axios.get<ChatType[]>(`${endpoint}/api/chat?currentUserId=${adminId}`);
-      setChats(Array.isArray(data) ? data : []);
+      const { data } = await axios.get<{ online: string[] }>(`${endpoint}/api/presence/online-ids?adminId=${encodeURIComponent(adminId)}`);
+      setOnlineSet(
+        new Set(
+          (data.online || [])
+            .map(String)
+            .filter((id) => id && id !== String(adminId))
+        )
+      );
     } catch (e) {
-      const err = e as { message?: string };
-      setChatsError(err?.message || "Could not load conversations. Check the chat service URL and network.");
-      setChats([]);
-    } finally {
-      setChatsLoading(false);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.warn("[Chats] online-ids failed (check ADMIN id matches chat service)", e);
+      }
     }
   }, [endpoint, adminId]);
+
+  const loadOnlineIdsRef = useRef(loadOnlineIds);
+  useEffect(() => {
+    loadOnlineIdsRef.current = loadOnlineIds;
+  }, [loadOnlineIds]);
+
+  useEffect(() => {
+    void loadOnlineIds();
+    const t = window.setInterval(() => void loadOnlineIds(), 30000);
+    return () => clearInterval(t);
+  }, [loadOnlineIds]);
+
+  useEffect(() => {
+    const q = userQuery.trim();
+    if (q.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      (async () => {
+        setUserSearchLoading(true);
+        try {
+          const { data } = await axios.get<(UserType & { isOnline?: boolean })[]>(
+            `${endpoint}/api/user/admin-search?${new URLSearchParams({ adminId, search: q })}`
+          );
+          setUserSearchResults(Array.isArray(data) ? data : []);
+        } catch {
+          setUserSearchResults([]);
+        } finally {
+          setUserSearchLoading(false);
+        }
+      })();
+    }, 400);
+    return () => clearTimeout(t);
+  }, [userQuery, endpoint, adminId]);
 
   useEffect(() => {
     void fetchChats();
   }, [fetchChats]);
 
   useEffect(() => {
-    const socket = io(endpoint, { transports: ["websocket"] });
+    const socket = io(endpoint, { ...defaultChatSocketOptions });
     socketRef.current = socket;
 
     const onConnect = () => {
       setSocketConnected(true);
-      if (selectedChatRef.current) socket.emit("join chat", selectedChatRef.current._id);
+      socket.emit("setup", { userId: String(adminId), role: "admin" });
+      if (selectedChatRef.current) socket.emit("join chat", String(selectedChatRef.current._id));
+      void loadOnlineIdsRef.current();
     };
     const onDisconnect = () => setSocketConnected(false);
 
+    const onMessage = (newMessage: Message & { _emitChatId?: string }) => {
+      const activeChat = selectedChatRef.current;
+      const cid = messageChatId(newMessage);
+      if (cid == null) return;
+      if (!activeChat) {
+        void fetchChatsRef.current({ silent: true });
+        return;
+      }
+      if (String(cid) !== String(activeChat._id)) {
+        void fetchChatsRef.current({ silent: true });
+        return;
+      }
+      setMessages((prev) => {
+        if (newMessage._id && prev.some((m) => m._id === newMessage._id)) return prev;
+        return [...prev, newMessage];
+      });
+    };
+
+    const onPresence = (p: { online?: string[] }) => {
+      const a = String(adminId);
+      setOnlineSet(
+        new Set(
+          (p?.online || [])
+            .map(String)
+            .filter((id) => id && id !== a)
+        )
+      );
+    };
+
+    const onAdminActivity = (a: {
+      chatId?: string;
+      preview?: string;
+      fromName?: string;
+      fromCustomer?: boolean;
+    }) => {
+      if (!a?.chatId) {
+        void fetchChatsRef.current({ silent: true });
+        return;
+      }
+      void fetchChatsRef.current({ silent: true });
+      if (a.fromCustomer) {
+        const id = String(a.chatId);
+        const cur = selectedChatRef.current?._id;
+        if (!cur || id !== String(cur)) {
+          setAdminNotify(
+            `${a.fromName || "Customer"}: ${(a.preview || "New message").slice(0, 120)}${
+              (a.preview || "").length > 120 ? "…" : ""
+            }`
+          );
+        }
+      }
+    };
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
-
-    socket.on("message recieved", (newMessage: Message) => {
-      const activeChat = selectedChatRef.current;
-      if (!activeChat) return;
-      if (newMessage.chat?._id === activeChat._id) {
-        setMessages((prev) => {
-          if (newMessage._id && prev.some((m) => m._id === newMessage._id)) return prev;
-          return [...prev, newMessage];
-        });
-      }
-    });
+    socket.on("message recieved", onMessage);
+    socket.on("presence:update", onPresence);
+    socket.on("admin chat activity", onAdminActivity);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("message recieved", onMessage);
+      socket.off("presence:update", onPresence);
+      socket.off("admin chat activity", onAdminActivity);
       socket.disconnect();
     };
-  }, [endpoint]);
+  }, [endpoint, adminId]);
+
+  /** Join all conversation rooms so the admin gets `message recieved` for every thread, not just the one open. */
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s?.connected || !socketConnected) return;
+    for (const c of chats) {
+      if (c?._id) s.emit("join chat", String(c._id));
+    }
+  }, [chats, socketConnected]);
 
   const openThread = useCallback(
     async (chat: ChatType) => {
@@ -209,6 +358,27 @@ const Chats = () => {
     [endpoint, adminId]
   );
 
+  const startChatWithUser = useCallback(
+    async (u: UserType & { isOnline?: boolean }) => {
+      setUserQuery("");
+      setUserSearchResults([]);
+      setChatsError(null);
+      try {
+        const { data } = await axios.post<ChatType>(`${endpoint}/api/chat`, { userId: u._id, currentUserId: adminId });
+        if (data?._id) {
+          await fetchChats();
+          await openThread(data);
+        }
+      } catch (e) {
+        const err = e as { response?: { data?: { message?: string } }; message?: string };
+        setChatsError(
+          err?.response?.data?.message || err?.message || "Could not start a chat with that user."
+        );
+      }
+    },
+    [endpoint, adminId, fetchChats, openThread]
+  );
+
   const sendMessage = useCallback(async () => {
     if (!input.trim() || !selectedChat) return;
     setSendLoading(true);
@@ -219,7 +389,6 @@ const Chats = () => {
         chatId: selectedChat._id,
         senderId: adminId,
       });
-      socketRef.current?.emit("new message", data);
       setMessages((prev) => {
         if (data._id && prev.some((m) => m._id === data._id)) return prev;
         return [...prev, data];
@@ -284,11 +453,59 @@ const Chats = () => {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name, email, phone…"
+                  placeholder="Filter this list (name, email)…"
                   className="h-9 border-slate-200 pl-9 text-sm"
                   aria-label="Filter conversations"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5 border-b border-slate-200/80 p-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                <UserPlus className="h-3.5 w-3.5" />
+                Find a customer
+              </p>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={userQuery}
+                  onChange={(e) => setUserQuery(e.target.value)}
+                  placeholder="Name or email (min. 2 characters)…"
+                  className="h-9 border-slate-200 pl-9 text-sm"
+                  aria-label="Search all customers in chat directory"
+                />
+              </div>
+              {userSearchLoading && (
+                <p className="text-xs text-slate-500">Searching…</p>
+              )}
+              {!userSearchLoading && userQuery.trim().length >= 2 && userSearchResults.length === 0 && (
+                <p className="text-xs text-slate-500">No users match. They may need to open the app and start support once to appear.</p>
+              )}
+              {userSearchResults.length > 0 && (
+                <ul className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-slate-200/80 bg-white p-1" role="list">
+                  {userSearchResults.map((u) => (
+                    <li key={u._id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100"
+                        onClick={() => void startChatWithUser(u)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-slate-900">{u.name}</span>
+                          <span className="block truncate text-xs text-slate-500">{u.email || u._id}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-500">
+                          {(u.isOnline ?? onlineSet.has(String(u._id))) && (
+                            <span className="inline-flex items-center gap-0.5 font-medium text-emerald-600">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="Online" />
+                              online
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2 pt-0">
               {chatsLoading ? (
@@ -332,7 +549,16 @@ const Chats = () => {
                             {u?.name ? initials(u.name) : "?"}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-medium">{u?.name || "Unknown user"}</span>
+                            <span className="flex items-center gap-1.5 truncate">
+                              <span className="truncate font-medium">{u?.name || "Unknown user"}</span>
+                              {u?._id && onlineSet.has(String(u._id)) && (
+                                <span
+                                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+                                  title="Customer online in app"
+                                  aria-label="Online"
+                                />
+                              )}
+                            </span>
                             {u?.email && <span className="block truncate text-xs text-slate-500">{u.email}</span>}
                           </span>
                           <ChevronRight
@@ -389,7 +615,15 @@ const Chats = () => {
                     {selectedUser?.name ? initials(selectedUser.name) : "?"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">{selectedUser?.name || "Conversation"}</p>
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                      <span className="truncate">{selectedUser?.name || "Conversation"}</span>
+                      {selectedUser?._id && onlineSet.has(String(selectedUser._id)) && (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          online
+                        </span>
+                      )}
+                    </p>
                     {selectedUser?.email && <p className="truncate text-xs text-slate-500">{selectedUser.email}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
@@ -578,6 +812,17 @@ const Chats = () => {
           </section>
         </div>
       </div>
+
+      <Snackbar
+        open={!!adminNotify}
+        onClose={() => setAdminNotify(null)}
+        autoHideDuration={10_000}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={() => setAdminNotify(null)} severity="info" variant="filled" sx={{ maxWidth: 520 }}>
+          {adminNotify}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

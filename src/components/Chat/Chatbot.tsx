@@ -15,8 +15,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "../../context/AppUserContext";
 import axios from "axios";
-import { io, type Socket } from "socket.io-client";
 import { urls } from "src/config/urls";
+import { CHAT_INCOMING_MESSAGE_EVENT } from "src/config/chatSocketOptions";
 
 const CHAT_ENDPOINT = urls.chat;
 const ADMIN_ID = process.env.REACT_APP_CHAT_ADMIN_ID || "698ace8b8ea84c91bdc93678";
@@ -93,7 +93,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   const [selectedChat, setSelectedChat] = useState<{ _id: string } | null>(null);
   const [mongoUser, setMongoUser] = useState<{ _id: string } | null>(null);
 
-  const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const accordionRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -105,6 +104,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
     window.addEventListener("resize", w);
     return () => window.removeEventListener("resize", w);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isLive = Boolean(open && isLiveChat);
+    window.dispatchEvent(new CustomEvent("se:support-live", { detail: { isLive } }));
+  }, [open, isLiveChat]);
 
   const allFaqs = useMemo(
     () => (appUser?.role === "CUSTOMER" ? [...generalFaqData, ...customerFaqData] : generalFaqData),
@@ -125,43 +130,51 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
     }
   }, [showAccordion]);
 
-  /* —— Socket: only for live support, and only when panel is open —— */
+  /**
+   * New support messages: come from the shared socket in `ChatGlobalSocket` via
+   * `CHAT_INCOMING_MESSAGE_EVENT` (a second `io()` client reuses the same connection and
+   * can lose `message recieved` when the global effect calls `removeAllListeners`).
+   */
   useEffect(() => {
     if (!open || !isLiveChat || !selectedChat?._id) {
-      socketRef.current?.disconnect();
-      socketRef.current = null;
       return;
     }
-
-    const socket: Socket = io(CHAT_ENDPOINT, { transports: ["websocket"] });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      socket.emit("join chat", selectedChat._id);
-    });
-
-    socket.on("message recieved", (newMessage: { content?: string; sender?: { _id?: string } }) => {
-      const c = newMessage?.content;
-      if (c == null || !String(c).trim()) return;
+    const chatId = String(selectedChat._id);
+    const onIncoming = (e: Event) => {
+      const raw = (e as CustomEvent<{ message?: Record<string, unknown> }>).detail?.message;
+      if (!raw) {
+        return;
+      }
+      const m = raw as { _id?: string; _emitChatId?: string; content?: unknown; chat?: { _id?: string } | string; sender?: { _id?: string } };
+      const inChat =
+        (m._emitChatId && String(m._emitChatId) === chatId) ||
+        (typeof m.chat === "string" && String(m.chat) === chatId) ||
+        (m.chat && typeof m.chat === "object" && (m.chat as { _id?: string })._id && String((m.chat as { _id: string })._id) === chatId);
+      if (!inChat) {
+        return;
+      }
+      const c = m?.content;
+      if (c == null || !String(c).trim()) {
+        return;
+      }
       const text = String(c);
       const fromSelf =
-        newMessage.sender?._id != null &&
+        m.sender?._id != null &&
         mongoUser?._id != null &&
-        String(newMessage.sender._id) === String(mongoUser._id);
-      setMessages((prev) => [
-        ...prev,
-        { _id: genId(), content: text, sender: fromSelf ? "user" : "admin", at: Date.now() },
-      ]);
-    });
-
-    return () => {
-      socket.off("message recieved");
-      socket.off("connect");
-      socket.disconnect();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
+        String(m.sender._id) === String(mongoUser._id);
+      setMessages((prev) => {
+        const id = m._id ? String(m._id) : null;
+        if (id && prev.some((p) => p._id === id)) {
+          return prev;
+        }
+        return [
+          ...prev,
+          { _id: id || genId(), content: text, sender: fromSelf ? "user" : "admin", at: Date.now() },
+        ];
+      });
     };
+    window.addEventListener(CHAT_INCOMING_MESSAGE_EVENT, onIncoming);
+    return () => window.removeEventListener(CHAT_INCOMING_MESSAGE_EVENT, onIncoming);
   }, [open, isLiveChat, selectedChat?._id, mongoUser?._id]);
 
   const handleQuestionClick = (faq: { question: string; answer: string }) => {
@@ -206,6 +219,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
       setIsLiveChat(true);
       setShowViewAllBtn(false);
       setShowAccordion(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("se:chat-rooms-refresh"));
+      }
     } catch (e: unknown) {
       console.error(e);
       const msg = axios.isAxiosError(e) && e.response?.data?.message ? String(e.response.data.message) : "Could not start live support. Please try again or use email/phone below.";
@@ -243,12 +259,13 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
         chatId: selectedChat._id,
         senderId: mongoUser._id,
       });
-      socketRef.current?.emit("new message", data);
       const outText = data?.content != null && String(data.content).trim() !== "" ? String(data.content) : text;
-      setMessages((prev) => [
-        ...prev,
-        { _id: data?._id || genId(), content: outText, sender: "user", at: Date.now() },
-      ]);
+      if (data?._id) {
+        const id = data._id;
+        setMessages((prev) => (prev.some((m) => m._id === id) ? prev : [...prev, { _id: id, content: outText, sender: "user" as const, at: Date.now() }]));
+      } else {
+        setMessages((prev) => [...prev, { _id: genId(), content: outText, sender: "user", at: Date.now() }]);
+      }
       setInputText("");
     } catch (e) {
       console.error(e);
@@ -260,8 +277,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
 
   const handleBack = (e: React.MouseEvent) => {
     e.stopPropagation();
-    socketRef.current?.disconnect();
-    socketRef.current = null;
     setIsLiveChat(false);
     setSelectedChat(null);
     setMongoUser(null);
