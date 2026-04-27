@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "homepage": ".",
   "private": true,
-  "packageManager": "npm@10.8.2",
   "dependencies": {
     "@angular/material": "^19.0.1",
     "@auth0/auth0-react": "^2.3.0",
