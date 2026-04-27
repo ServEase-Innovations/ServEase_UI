@@ -860,38 +860,64 @@ const Payments = () => {
         fullWidth
         scroll="paper"
         aria-labelledby="payment-detail-title"
-        PaperProps={{
-          className: "rounded-2xl border border-slate-200/80 shadow-xl",
-          elevation: 0,
+        slotProps={{
+          paper: {
+            elevation: 0,
+            className: cn(
+              "overflow-hidden rounded-2xl !border !border-slate-200 !bg-white shadow-2xl",
+              "ring-1 ring-slate-900/5"
+            ),
+            sx: { backgroundImage: "none" },
+          },
+          backdrop: {
+            className: "bg-slate-950/50 supports-[backdrop-filter]:backdrop-blur-sm",
+          },
         }}
+        transitionDuration={220}
       >
         <DialogTitle
           id="payment-detail-title"
-          className="flex items-start justify-between gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 pr-2 sm:px-5"
+          className="!m-0 flex !min-h-0 items-start !gap-0 !py-0"
         >
-          <div>
-            <p className="text-base font-semibold text-slate-900 sm:text-lg">Payment details</p>
-            <p className="mt-0.5 text-xs text-slate-500">Razorpay, engagement, and customer context</p>
-          </div>
-          <IconButton
-            onClick={() => setDetailOpen(false)}
-            size="small"
-            aria-label="Close payment details"
-            className="text-slate-500 hover:bg-slate-200/60 hover:text-slate-800"
+          <div
+            className="flex w-full items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3.5 pr-1 sm:px-5 sm:py-4"
           >
-            <X className="h-5 w-5" />
-          </IconButton>
+            <div className="flex min-w-0 items-start gap-3">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-800 shadow-sm ring-1 ring-sky-200/50"
+                aria-hidden
+              >
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">Payment details</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                  Razorpay, engagement, and customer context
+                </p>
+              </div>
+            </div>
+            <IconButton
+              onClick={() => setDetailOpen(false)}
+              size="small"
+              aria-label="Close payment details"
+              className="shrink-0 text-slate-500 hover:bg-slate-200/70 hover:text-slate-900"
+            >
+              <X className="h-5 w-5" />
+            </IconButton>
+          </div>
         </DialogTitle>
-        <DialogContent className="px-4 py-4 sm:px-5 sm:py-5">
+        <DialogContent className="!border-t-0 !bg-white !px-4 !py-4 !sm:px-5 !sm:py-5">
           {detailLoading && (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500">
-              <Loader2 className="h-9 w-9 animate-spin text-sky-500" />
-              <p className="text-sm">Loading details…</p>
+              <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-sm">
+                <Loader2 className="mx-auto h-9 w-9 animate-spin text-sky-600" />
+                <p className="mt-3 text-center text-sm font-medium">Loading details…</p>
+              </div>
             </div>
           )}
           {!detailLoading && detail && (detail as { error?: string }).error && (
             <div
-              className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800"
+              className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50/95 px-3 py-2.5 text-sm text-rose-800"
               role="alert"
             >
               <AlertCircle className="h-5 w-5 shrink-0" />
@@ -900,8 +926,18 @@ const Payments = () => {
           )}
           {!detailLoading && detail && !(detail as { error?: string }).error && <PaymentDetailView data={detail} />}
         </DialogContent>
-        <DialogActions className="border-t border-slate-200/80 bg-slate-50/50 px-4 py-2.5 sm:px-5">
-          <Button type="button" variant="outline" size="sm" onClick={() => setDetailOpen(false)} className="min-w-[5rem]">
+        <DialogActions className="!justify-between !border-t !border-slate-200/80 !bg-white !px-4 !py-3 !sm:px-5 !sm:py-3.5">
+          <p className="text-xs text-slate-500">
+            <IndianRupee className="mb-0.5 mr-0.5 inline h-3.5 w-3.5 text-slate-400" aria-hidden />
+            Amounts in <span className="font-medium text-slate-600">INR</span> unless otherwise noted
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setDetailOpen(false)}
+            className="shrink-0 min-w-[5.5rem] border-slate-200/90 shadow-sm"
+          >
             Close
           </Button>
         </DialogActions>
