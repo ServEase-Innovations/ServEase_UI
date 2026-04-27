@@ -4153,7 +4153,7 @@ companyEmail: {
   bn: "ইমেল - support@serveasinnovation.com অথবা support@serveaso.com"
 },
 importantConsiderations: {
-  en: "Text",
+  en: "Important Considerations:",
   hi: "महत्वपूर्ण विचार:",
   kn: "ಪ್ರಮುಖ ಪರಿಗಣನೆಗಳು:",
   bn: "গুরুত্বপূর্ণ বিবেচনা:"
