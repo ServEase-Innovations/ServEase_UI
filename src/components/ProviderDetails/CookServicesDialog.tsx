@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,6 +20,8 @@ import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
+import Auth0SignInDialog from '../Auth/Auth0SignInDialog';
+import { openAuth0PopupWindow } from 'src/utils/openAuth0PopupWindow';
 
 interface CookServicesDialogProps {
   open: boolean;
@@ -46,7 +48,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [packages, setPackages] = useState<PackagesState>({});
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { user, loginWithRedirect, isAuthenticated , loginWithPopup} = useAuth0();
+  const { user, isAuthenticated, loginWithPopup } = useAuth0();
+  const auth0PopupRef = useRef<Window | null>(null);
   const { appUser } = useAppUser();  
   const providerFullName = `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
   const { getBookingType, getFilteredPricing } = usePricingFilterService();
@@ -56,13 +59,66 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+  const [auth0SignInOpen, setAuth0SignInOpen] = useState(false);
 
   // FIX: Reset loading state when dialog closes
   useEffect(() => {
     if (!open) {
       setLoading(false);
+      setAuth0SignInOpen(false);
+      if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+        try {
+          auth0PopupRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      auth0PopupRef.current = null;
     }
   }, [open]);
+
+  const handleLoginToContinue = () => {
+    const popup = openAuth0PopupWindow();
+    if (!popup) {
+      setSnackbarMessage(t("auth0SignInNote"));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+    auth0PopupRef.current = popup;
+    setAuth0SignInOpen(true);
+    void loginWithPopup(
+      { authorizationParams: { prompt: "login" } },
+      { popup }
+    )
+      .then(() => {
+        setAuth0SignInOpen(false);
+        auth0PopupRef.current = null;
+      })
+      .catch(() => {
+        setAuth0SignInOpen(false);
+        if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+          try {
+            auth0PopupRef.current.close();
+          } catch {
+            // ignore
+          }
+        }
+        auth0PopupRef.current = null;
+      });
+  };
+
+  const handleAuth0DialogClose = () => {
+    if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+      try {
+        auth0PopupRef.current.close();
+      } catch {
+        // ignore
+      }
+    }
+    auth0PopupRef.current = null;
+    setAuth0SignInOpen(false);
+  };
 
   const calculatePriceForPersons = (basePrice: number, persons: number): number => {
     if (persons <= 3) return basePrice;
@@ -481,11 +537,10 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <LoginButton onClick={() => {
-                void loginWithPopup({
-                  authorizationParams: { prompt: "login" },
-                }).catch(() => {});
-              }}>
+                    <LoginButton
+                      type="button"
+                      onClick={handleLoginToContinue}
+                    >
                       {t("loginToContinue")}
                     </LoginButton>
                   </>
@@ -503,6 +558,8 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
+
+      <Auth0SignInDialog open={auth0SignInOpen} onClose={handleAuth0DialogClose} />
 
       <CartDialog
         open={cartDialogOpen}

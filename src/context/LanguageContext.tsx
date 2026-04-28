@@ -3121,6 +3121,34 @@ santhali: {
     bn: "চেকআউটে যেতে আপনাকে লগইন করতে হবে"
   },
 
+  signIn: {
+    en: "SIGN IN",
+    hi: "साइन इन करें",
+    kn: "ಸೈನ್ ಇನ್",
+    bn: "সাইন ইন"
+  },
+
+  auth0SignInNote: {
+    en: "A secure sign-in window will open. If nothing appears, allow popups for this site in your browser.",
+    hi: "एक सुरक्षित साइन-इन विंडो खुलेगी। अगर कुछ न दिखे, तो अपने ब्राउज़र में इस साइट के लिए पॉपअप की अनुमति दें।",
+    kn: "ಸುರಕ್ಷಿತ ಸೈನ್-ಇನ್ ಕಿಟಕಿ ತೆರೆದುಕೊಳ್ಳುತ್ತದೆ. ಏನೂ ಕಾಣದಿದ್ದರೆ, ಈ ಸೈಟ್‌ಗೆ ನಿಮ್ಮ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಪಾಪ್-ಅಪ್‌ಗಳನ್ನು ಅನುಮತಿಸಿ.",
+    bn: "একটি নিরাপদ সাইন-ইন উইন্ডো খুলবে। যদি কিছু না দেখা যায়, ব্রাউজারে এই সাইটের জন্য পপআপ অনুমতি দিন।"
+  },
+
+  auth0SigningInTitle: {
+    en: "Sign in to continue",
+    hi: "जारी रखने के लिए साइन इन करें",
+    kn: "ಮುಂದುವರಿಸಲು ಸೈನ್ ಇನ್ ಮಾಡಿ",
+    bn: "চালিয়ে যেতে সাইন ইন করুন"
+  },
+
+  auth0CompleteInPopupWindow: {
+    en: "Finish signing in the secure pop-up window. This dialog will close when you are done.",
+    hi: "सुरक्षित पॉप-अप विंडो में साइन-इन पूरा करें। होने पर यह बंद हो जाएगा।",
+    kn: "ಸುರಕ್ಷಿತ ಪಾಪ್-ಅಪ್ ಕಿಟಕಿಯಲ್ಲಿ ಸೈನ್-ಇನ್ ಪೂರ್ಣಗೊಳಿಸಿ. ಮುಗಿದ ಮೇಲೆ ಇದು ಮುಚ್ಚುತ್ತದೆ.",
+    bn: "নিরাপদ পপ-আপ উইন্ডোতে সাইন-ইন শেষ করুন। হলে এটি বন্ধ হবে।"
+  },
+
   minutesPreparation: {
     en: "{minutes} mins preparation",
     hi: "{minutes} मिनट तैयारी",

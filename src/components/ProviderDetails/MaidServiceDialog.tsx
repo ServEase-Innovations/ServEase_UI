@@ -1,11 +1,10 @@
 /* eslint-disable */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { BookingDetails } from '../../types/engagementRequest';
 import { BOOKINGS } from '../../Constants/pagesConstants';
-import { Dialog, DialogContent, Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
-import Login from '../Login/Login';
+import { Tooltip, IconButton, CircularProgress, Snackbar, Alert } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import axiosInstance from '../../services/axiosInstance';
@@ -72,6 +71,8 @@ import { BookingPayload, BookingService } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
+import Auth0SignInDialog from '../Auth/Auth0SignInDialog';
+import { openAuth0PopupWindow } from 'src/utils/openAuth0PopupWindow';
 
 interface MaidServiceDialogProps {
   open: boolean;
@@ -144,10 +145,23 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   const maidCartItems = allCartItems.filter(isMaidCartItem);
   const [loading, setLoading] = useState(false);
 
+  const [auth0SignInOpen, setAuth0SignInOpen] = useState(false);
+
+  const auth0PopupRef = useRef<Window | null>(null);
+
   // FIX: Add useEffect to reset loading when dialog closes
   useEffect(() => {
     if (!open) {
       setLoading(false);
+      setAuth0SignInOpen(false);
+      if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+        try {
+          auth0PopupRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      auth0PopupRef.current = null;
     }
   }, [open]);
 
@@ -194,8 +208,6 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
     clothesDrying: maidCartItems.some(item => item.serviceType === 'addon' && item.name === 'clothesDrying')
   });
   
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
   const dispatch = useDispatch();
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
@@ -233,7 +245,50 @@ const { appUser } = useAppUser();
     return asArray(pricing);
   }, [filtered, pricing]);
 
-  const { user, loginWithRedirect, isAuthenticated , loginWithPopup } = useAuth0();
+  const { user, isAuthenticated, loginWithPopup } = useAuth0();
+
+  const handleLoginToContinue = () => {
+    const popup = openAuth0PopupWindow();
+    if (!popup) {
+      setSnackbarMessage(t("auth0SignInNote"));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+    auth0PopupRef.current = popup;
+    setAuth0SignInOpen(true);
+    void loginWithPopup(
+      { authorizationParams: { prompt: "login" } },
+      { popup }
+    )
+      .then(() => {
+        setAuth0SignInOpen(false);
+        auth0PopupRef.current = null;
+      })
+      .catch(() => {
+        setAuth0SignInOpen(false);
+        if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+          try {
+            auth0PopupRef.current.close();
+          } catch {
+            // ignore
+          }
+        }
+        auth0PopupRef.current = null;
+      });
+  };
+
+  const handleAuth0DialogClose = () => {
+    if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+      try {
+        auth0PopupRef.current.close();
+      } catch {
+        // ignore
+      }
+    }
+    auth0PopupRef.current = null;
+    setAuth0SignInOpen(false);
+  };
 
   const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
     if (!bookingPreference) return 'MONTHLY';
@@ -1069,11 +1124,10 @@ const { appUser } = useAppUser();
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <LoginButton onClick={() => {
-                void loginWithPopup({
-                  authorizationParams: { prompt: "login" },
-                }).catch(() => {});
-              }}>
+                    <LoginButton
+                      type="button"
+                      onClick={handleLoginToContinue}
+                    >
                       {t("loginToContinue")}
                     </LoginButton>
                   </>
@@ -1092,6 +1146,8 @@ const { appUser } = useAppUser();
           </DialogContainer>
         </StyledDialogContent>
       </StyledDialog>
+
+      <Auth0SignInDialog open={auth0SignInOpen} onClose={handleAuth0DialogClose} />
 
       <CartDialog
         open={cartDialogOpen}

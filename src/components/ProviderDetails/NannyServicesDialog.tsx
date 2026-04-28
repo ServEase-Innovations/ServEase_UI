@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress, Dialog, DialogContent, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
@@ -62,6 +62,8 @@ import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { BOOKINGS } from '../../Constants/pagesConstants';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
+import Auth0SignInDialog from '../Auth/Auth0SignInDialog';
+import { openAuth0PopupWindow } from 'src/utils/openAuth0PopupWindow';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -140,10 +142,12 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "warning" | "info">("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+  const [auth0SignInOpen, setAuth0SignInOpen] = useState(false);
+  const auth0PopupRef = useRef<Window | null>(null);
 const { appUser } = useAppUser(); 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const { isAuthenticated, user, loginWithRedirect , loginWithPopup } = useAuth0();
+  const { isAuthenticated, user, loginWithPopup } = useAuth0();
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
@@ -155,8 +159,60 @@ const { appUser } = useAppUser();
   useEffect(() => {
     if (!open) {
       setLoading(false);
+      setAuth0SignInOpen(false);
+      if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+        try {
+          auth0PopupRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+      auth0PopupRef.current = null;
     }
   }, [open]);
+
+  const handleLoginToContinue = () => {
+    const popup = openAuth0PopupWindow();
+    if (!popup) {
+      setSnackbarMessage(t("auth0SignInNote"));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+    auth0PopupRef.current = popup;
+    setAuth0SignInOpen(true);
+    void loginWithPopup(
+      { authorizationParams: { prompt: "login" } },
+      { popup }
+    )
+      .then(() => {
+        setAuth0SignInOpen(false);
+        auth0PopupRef.current = null;
+      })
+      .catch(() => {
+        setAuth0SignInOpen(false);
+        if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+          try {
+            auth0PopupRef.current.close();
+          } catch {
+            // ignore
+          }
+        }
+        auth0PopupRef.current = null;
+      });
+  };
+
+  const handleAuth0DialogClose = () => {
+    if (auth0PopupRef.current && !auth0PopupRef.current.closed) {
+      try {
+        auth0PopupRef.current.close();
+      } catch {
+        // ignore
+      }
+    }
+    auth0PopupRef.current = null;
+    setAuth0SignInOpen(false);
+  };
 
   const toggleCart = useCallback((key: string, pkg: NannyPackage) => {
     // Detect package type from key
@@ -725,11 +781,10 @@ const { appUser } = useAppUser();
                       <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <LoginButton onClick={() => {
-                void loginWithPopup({
-                  authorizationParams: { prompt: "login" },
-                }).catch(() => {});
-              }}>
+                  <LoginButton
+                    type="button"
+                    onClick={handleLoginToContinue}
+                  >
                     {t("loginToContinue")}
                   </LoginButton>
                 </>
@@ -745,6 +800,8 @@ const { appUser } = useAppUser();
           </FooterContainer>
         </StyledDialogContent>
       </StyledDialog>
+
+      <Auth0SignInDialog open={auth0SignInOpen} onClose={handleAuth0DialogClose} />
       
       {/* CartDialog */}
       <CartDialog
