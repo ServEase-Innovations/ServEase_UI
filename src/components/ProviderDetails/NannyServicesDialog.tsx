@@ -143,7 +143,7 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
 const { appUser } = useAppUser(); 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const { isAuthenticated, user, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, user, loginWithRedirect , loginWithPopup } = useAuth0();
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
@@ -725,7 +725,11 @@ const { appUser } = useAppUser();
                       <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <LoginButton onClick={() => loginWithRedirect()}>
+                  <LoginButton onClick={() => {
+                void loginWithPopup({
+                  authorizationParams: { prompt: "login" },
+                }).catch(() => {});
+              }}>
                     {t("loginToContinue")}
                   </LoginButton>
                 </>

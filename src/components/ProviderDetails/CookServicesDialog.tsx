@@ -46,7 +46,7 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
   const [packages, setPackages] = useState<PackagesState>({});
   const [cartDialogOpen, setCartDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { user, loginWithRedirect, isAuthenticated } = useAuth0();
+  const { user, loginWithRedirect, isAuthenticated , loginWithPopup} = useAuth0();
   const { appUser } = useAppUser();  
   const providerFullName = `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
   const { getBookingType, getFilteredPricing } = usePricingFilterService();
@@ -481,7 +481,11 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <LoginButton onClick={() => loginWithRedirect()}>
+                    <LoginButton onClick={() => {
+                void loginWithPopup({
+                  authorizationParams: { prompt: "login" },
+                }).catch(() => {});
+              }}>
                       {t("loginToContinue")}
                     </LoginButton>
                   </>

@@ -233,7 +233,7 @@ const { appUser } = useAppUser();
     return asArray(pricing);
   }, [filtered, pricing]);
 
-  const { user, loginWithRedirect, isAuthenticated } = useAuth0();
+  const { user, loginWithRedirect, isAuthenticated , loginWithPopup } = useAuth0();
 
   const getBookingTypeFromPreference = (bookingPreference: string | undefined): string => {
     if (!bookingPreference) return 'MONTHLY';
@@ -1069,7 +1069,11 @@ const { appUser } = useAppUser();
                         <InfoOutlinedIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <LoginButton onClick={() => loginWithRedirect()}>
+                    <LoginButton onClick={() => {
+                void loginWithPopup({
+                  authorizationParams: { prompt: "login" },
+                }).catch(() => {});
+              }}>
                       {t("loginToContinue")}
                     </LoginButton>
                   </>
