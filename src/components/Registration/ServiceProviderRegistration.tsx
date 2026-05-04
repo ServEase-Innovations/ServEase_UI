@@ -472,6 +472,41 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   };
 
   // Update selected time slots summary
+  const normalizeSlots = (slots: number[][]): number[][] => {
+    if (!slots.length) return [];
+
+    // Normalize invalid ranges and sort by start time
+    const sanitized = slots
+      .filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end > start)
+      .map(([start, end]) => [Number(start), Number(end)] as number[])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+    if (!sanitized.length) return [];
+
+    // Remove exact duplicates, then merge only overlapping ranges (not adjacent)
+    const unique: number[][] = [];
+    sanitized.forEach(([start, end]) => {
+      const last = unique[unique.length - 1];
+      if (!last || last[0] !== start || last[1] !== end) {
+        unique.push([start, end]);
+      }
+    });
+
+    const merged: number[][] = [unique[0]];
+    for (let i = 1; i < unique.length; i++) {
+      const [start, end] = unique[i];
+      const last = merged[merged.length - 1];
+
+      if (start < last[1]) {
+        last[1] = Math.max(last[1], end);
+      } else {
+        merged.push([start, end]);
+      }
+    }
+
+    return merged;
+  };
+
   const updateSelectedTimeSlots = useCallback(() => {
     if (isFullTime) {
       setSelectedTimeSlots(t("fullDay"));
@@ -479,11 +514,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       return;
     }
 
-    const morningSlotStrings = morningSlots.map(([start, end]) =>
-      `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
-    );
+    const normalizedSlots = normalizeSlots([...morningSlots, ...eveningSlots]);
 
-    const eveningSlotStrings = eveningSlots.map(([start, end]) =>
+    const normalizedSlotStrings = normalizedSlots.map(([start, end]) =>
       `${formatTimeForStorage(start)}-${formatTimeForStorage(end)}`
     );
 
@@ -491,17 +524,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     let storageSlots: string[] = [];
 
     // Format for display (with AM/PM)
-    morningSlots.forEach(([start, end]) => {
-      displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
-    });
-
-    eveningSlots.forEach(([start, end]) => {
+    normalizedSlots.forEach(([start, end]) => {
       displaySlots.push(`${formatDisplayTime(start)} - ${formatDisplayTime(end)}`);
     });
 
     // Format for storage (24-hour format)
-    morningSlotStrings.forEach(slot => storageSlots.push(slot));
-    eveningSlotStrings.forEach(slot => storageSlots.push(slot));
+    normalizedSlotStrings.forEach(slot => storageSlots.push(slot));
 
     if (displaySlots.length > 0) {
       setSelectedTimeSlots(displaySlots.join(', '));
