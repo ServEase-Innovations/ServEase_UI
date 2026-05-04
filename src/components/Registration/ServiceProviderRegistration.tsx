@@ -25,9 +25,11 @@ import {
   Close as CloseIcon,
   LocationOn as LocationOnIcon,
   MyLocation as MyLocationIcon,
+  Map as MapIcon,
   CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
 import axios from "axios";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 import { Button } from "../Button/button";
@@ -41,6 +43,7 @@ import BasicInformation from "./BasicInformation";
 import ServiceDetails from "./ServiceDetails";
 import KYCVerification from "./KYCVerification";
 import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails";
+import MapComponent from "../MapComponent/MapComponent";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 
@@ -208,8 +211,18 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSameAddress, setIsSameAddress] = useState(false);
   const [isDobValid, setIsDobValid] = useState(true);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [pendingMapSelection, setPendingMapSelection] = useState<{
+    lat: number;
+    lng: number;
+    locationData: any;
+  } | null>(null);
 
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const { isLoaded: isMapLoaded, loadError: mapLoadError } = useJsApiLoader({
+    googleMapsApiKey: keys.api_key || "",
+    libraries: ["places"],
+  });
 
   // New state variables for multi-slot time selection
   const [morningSlots, setMorningSlots] = useState<number[][]>([[6, 12]]);
@@ -1625,6 +1638,101 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
+  const applySelectedLocation = (latitude: number, longitude: number, locationData: any) => {
+    const address = locationData?.formatted_address || "";
+    const components = locationData?.address_components || [];
+    let apartment = "";
+    let street = "";
+    let city = "";
+    let pincode = "";
+    let state = "";
+    let country = "";
+
+    components.forEach((component: any) => {
+      if (component.types.includes("street_number")) {
+        apartment = component.long_name;
+      } else if (component.types.includes("route")) {
+        street = component.long_name;
+      } else if (component.types.includes("locality") || component.types.includes("sublocality")) {
+        city = component.long_name;
+      } else if (component.types.includes("administrative_area_level_1")) {
+        state = component.long_name;
+      } else if (component.types.includes("country")) {
+        country = component.long_name;
+      } else if (component.types.includes("postal_code")) {
+        pincode = component.long_name;
+      }
+    });
+
+    if (!city) {
+      const cityComponent = components.find((comp: any) =>
+        comp.types.includes("locality") ||
+        comp.types.includes("sublocality") ||
+        comp.types.includes("administrative_area_level_2")
+      );
+      if (cityComponent) city = cityComponent.long_name;
+    }
+
+    const newAddress = {
+      apartment: apartment || t("notSpecified"),
+      street: street || t("notSpecified"),
+      city: city || t("notSpecified"),
+      state: state || t("notSpecified"),
+      country: country || t("notSpecified"),
+      pincode: pincode || "",
+    };
+
+    setCurrentLocation({
+      latitude,
+      longitude,
+      address,
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      permanentAddress: newAddress,
+      correspondenceAddress: newAddress,
+      latitude,
+      longitude,
+      currentLocation: address,
+      locality: city || "",
+      street: street || "",
+      pincode: pincode || "",
+      buildingName: apartment || "",
+    }));
+
+    setIsSameAddress(true);
+  };
+
+  const handleMapLocationSelect = (data: { address: any; lat: number; lng: number }) => {
+    const locationData = Array.isArray(data.address) ? data.address[0] : data.address;
+    setPendingMapSelection({
+      lat: data.lat,
+      lng: data.lng,
+      locationData,
+    });
+  };
+
+  const handleSaveMapSelection = () => {
+    if (!pendingMapSelection) {
+      setSnackbarMessage("Please select a location from map first");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    applySelectedLocation(
+      pendingMapSelection.lat,
+      pendingMapSelection.lng,
+      pendingMapSelection.locationData
+    );
+    setMapPickerOpen(false);
+    setPendingMapSelection(null);
+    setSnackbarMessage("Location saved to address fields");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+  };
+
   const handledietChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     setFormData((prevData) => ({ ...prevData, diet: value }));
@@ -1752,6 +1860,24 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                     >
                       {t("fetchMyLocation")}
                     </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => {
+                        setPendingMapSelection(null);
+                        setMapPickerOpen(true);
+                      }}
+                      startIcon={<MapIcon />}
+                      sx={{
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                        textTransform: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Select from map
+                    </Button>
 
                     {(formData.latitude !== 0 || formData.longitude !== 0) && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1768,6 +1894,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                     >
                       <Typography variant="body2">
                         <strong>{t("addressDetected")}</strong> {formData.currentLocation || t("fetchingAddress")}
+                      </Typography>
+                      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                        lat: {formData.latitude.toFixed(6)} | lng: {formData.longitude.toFixed(6)}
                       </Typography>
                     </Alert>
                   )}
@@ -2061,6 +2190,68 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
               {snackbarMessage}
             </Alert>
           </Snackbar>
+        </Box>
+      </Dialog>
+      <Dialog
+        open={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Select location from map
+          </Typography>
+          <IconButton onClick={() => setMapPickerOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Box sx={{ p: 2 }}>
+          {mapLoadError ? (
+            <Alert severity="error">Failed to load map. Please check API key.</Alert>
+          ) : !isMapLoaded ? (
+            <Box sx={{ py: 6, display: "flex", justifyContent: "center" }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box sx={{ height: 420, borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
+              <MapComponent
+                style={{ width: "100%", height: "100%" }}
+                onLocationSelect={handleMapLocationSelect}
+              />
+            </Box>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            Click on the map to choose the exact service address, then press Save location.
+          </Typography>
+          {pendingMapSelection && (
+            <Alert severity="info" sx={{ mt: 1.5 }}>
+              Selected: {pendingMapSelection.lat.toFixed(6)}, {pendingMapSelection.lng.toFixed(6)}
+            </Alert>
+          )}
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
+            <Button variant="outlined" color="primary" onClick={() => setMapPickerOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveMapSelection}
+              disabled={!pendingMapSelection}
+            >
+              Save location
+            </Button>
+          </Box>
         </Box>
       </Dialog>
     </>
