@@ -62,6 +62,7 @@ import { add } from "../../features/geoLocation/geoLocationSlice";
 import { ClipLoader } from "react-spinners";
 import AboutUs from "../AboutUs/AboutUs";
 import BookingDialog from "../BookingDialog/BookingDialog";
+import Login from "../Login/Login";
 import { Dayjs } from "dayjs";
 import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
 import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
@@ -818,6 +819,8 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
 
   const [showDropdown, setShowDropdown] = useState(false);
   const locationMenuRef = useRef<HTMLDivElement>(null);
+  const [authChoiceOpen, setAuthChoiceOpen] = useState(false);
+  const [phoneLoginDialogOpen, setPhoneLoginDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!showDropdown) return;
@@ -1281,9 +1284,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               type="button"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
               onClick={() => {
-                void loginWithPopup({
-                  authorizationParams: { prompt: "login" },
-                }).catch(() => {});
+                setAuthChoiceOpen(true);
               }}
               aria-label="Sign in"
             >
@@ -1802,6 +1803,99 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         appUser={appUser}
         onUnreadCountChange={setInAppUnread}
       />
+
+      <Dialog
+        open={authChoiceOpen}
+        onClose={() => setAuthChoiceOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Choose Login Method</DialogTitle>
+        <DialogContent>
+          <p className="text-sm text-slate-600">
+            Continue with your preferred sign-in option.
+          </p>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            type="button"
+            onClick={() => {
+              setAuthChoiceOpen(false);
+              setPhoneLoginDialogOpen(true);
+            }}
+            className="!border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700"
+          >
+            Login with phone
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setAuthChoiceOpen(false);
+              void loginWithPopup({
+                authorizationParams: { prompt: "login" },
+              }).catch(() => {});
+            }}
+            className="!border-slate-300 !text-slate-700 hover:!bg-slate-100"
+          >
+            Login with email
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={phoneLoginDialogOpen}
+        onClose={() => setPhoneLoginDialogOpen(false)}
+        fullWidth
+        maxWidth="md"
+        scroll="body"
+        slotProps={{
+          paper: {
+            className:
+              "relative overflow-hidden rounded-2xl sm:min-w-[min(100%,36rem)] w-[calc(100%-1.5rem)] max-w-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
+          },
+          backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+        }}
+      >
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+            Authentication
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
+          >
+            Login with phone
+          </DialogTitle>
+        </div>
+        <IconButton
+          aria-label="close"
+          onClick={() => setPhoneLoginDialogOpen(false)}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+        >
+          <X className="h-5 w-5" />
+        </IconButton>
+        <DialogContent className="!p-2 sm:!p-3">
+          <div className="px-2 pb-1 pt-1 sm:px-3">
+            <button
+              type="button"
+              className="text-sm font-medium text-sky-600 transition hover:text-sky-700"
+              onClick={() => {
+                setPhoneLoginDialogOpen(false);
+                setAuthChoiceOpen(true);
+              }}
+            >
+              ← Back to login options
+            </button>
+          </div>
+          <Login
+            embedded
+            sendDataToParent={(data: string) => {
+              setPhoneLoginDialogOpen(false);
+              sendDataToParent(data);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

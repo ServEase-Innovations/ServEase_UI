@@ -6,17 +6,15 @@ import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import IconButton from "@mui/material/IconButton";
 import ForgotPassword from "./ForgotPassword";
 import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
-import { PROFILE } from "../../Constants/pagesConstants";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
   bookingPage?: (data: string | undefined) => void;
+  embedded?: boolean;
 }
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
@@ -29,42 +27,31 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 export const Login: React.FC<ChildComponentProps> = ({
   sendDataToParent,
   bookingPage,
+  embedded = false,
 }) => {
   const [isRegistration, setIsRegistration] = useState(false);
   const [isServiceRegistration, setServiceRegistration] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isAgentRegistration, setAgentRegistration] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
   );
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useDispatch();
-
-  const handleSignUpClick = () => {
-    setIsRegistration(true);
-  };
 
   const handleBackToLogin = () => {
     setIsRegistration(false);
     setIsForgotPassword(false);
     setServiceRegistration(false);
     setAgentRegistration(false); // Reset agent registration state
-  };
-
-  const handleSignUpClickServiceProvider = () => {
-    setServiceRegistration(true);
-  };
-  const handleSignUpClickAgent = () => {
-    setAgentRegistration(true);
-  };
-
-  const handleForgotPasswordClick = () => {
-    setIsForgotPassword(true);
   };
 
   const handleSnackbarClose = (
@@ -75,79 +62,113 @@ export const Login: React.FC<ChildComponentProps> = ({
     setOpenSnackbar(false);
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
-      handleLogin(event);
+      if (otpSent) {
+        handleVerifyOtp(event);
+      } else {
+        handleSendOtp(event);
+      }
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const sanitizedMobile = mobile.replace(/\D/g, "");
+    if (!/^\d{10}$/.test(sanitizedMobile)) {
+      setSnackbarMessage("Please enter a valid 10-digit mobile number.");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
 
     try {
-      const response = await axiosInstance.post("/api/user/login", {
-        username: email,
-        password: password,
+      setSendingOtp(true);
+      const response = await axiosInstance.post("/api/auth/otp/send", {
+        mobile: sanitizedMobile,
       });
-
-      console.log("Response Data:", response.data);
-
-      if (response.status === 200 && response.data) {
-        const { message, role, customerDetails } = response.data;
-        const firstName = customerDetails?.firstName || "Unknown";
-
-        dispatch(add(response.data));
-
-        // Show success snackbar
-        setSnackbarMessage(message || "Login successful!");
-        setSnackbarSeverity("success");
-        setOpenSnackbar(true);
-
-        // Handle redirection after login
-        setTimeout(() => {
-          if (role === "SERVICE_PROVIDER") {
-            if (sendDataToParent) {
-              sendDataToParent(PROFILE);
-            } else if (bookingPage) {
-              bookingPage(role);
-            }
-          } else {
-            if (sendDataToParent) {
-              sendDataToParent("");
-            } else if (bookingPage) {
-              bookingPage(role);
-            }
-          }
-        }, 1000);
-      } else {
-        throw new Error(
-          response.data?.message ||
-            "Login failed. Please check your credentials."
-        );
-      }
-    } catch (error: any) {
-      console.error("Login error:", error);
+      setOtpSent(true);
+      setResendIn(30);
       setSnackbarMessage(
-        error.response?.data?.message || "An error occurred during login."
+        response?.data?.data?.devOtp
+          ? `OTP sent. Dev OTP: ${response.data.data.devOtp}`
+          : "OTP sent successfully."
+      );
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+    } catch (error: any) {
+      console.error("Send OTP error:", error);
+      setSnackbarMessage(
+        error.response?.data?.message || "Failed to send OTP."
       );
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
+    } finally {
+      setSendingOtp(false);
     }
   };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.trim()) {
+      setSnackbarMessage("Please enter OTP.");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    try {
+      setVerifyingOtp(true);
+      const response = await axiosInstance.post("/api/auth/otp/verify", {
+        mobile: mobile.replace(/\D/g, ""),
+        otp: otp.trim(),
+      });
+
+      const payload = response?.data?.data;
+      if (!payload?.customer) {
+        throw new Error("Invalid response from OTP login.");
+      }
+
+      localStorage.setItem("token", payload.token);
+      dispatch(add(payload));
+      setSnackbarMessage("Login successful!");
+      setSnackbarSeverity("success");
+      setOpenSnackbar(true);
+
+      setTimeout(() => {
+        if (sendDataToParent) {
+          sendDataToParent("");
+        } else if (bookingPage) {
+          bookingPage("CUSTOMER");
+        }
+      }, 700);
+    } catch (error: any) {
+      console.error("Verify OTP error:", error);
+      setSnackbarMessage(
+        error.response?.data?.message || "Invalid OTP. Please try again."
+      );
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (!otpSent || resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((prev) => prev - 1), 1000);
+    return () => clearTimeout(t);
+  }, [otpSent, resendIn]);
 
   if (isForgotPassword) {
     return <ForgotPassword onBackToLogin={handleBackToLogin} />;
   }
 
   return (
-    <div className="h-full flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-lg">
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0">
-          <div className="border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 ">
+    <div className={`h-full flex flex-col justify-center items-center ${embedded ? "p-1" : "p-4"}`}>
+      <div className={`w-full ${embedded ? "max-w-2xl" : "max-w-lg"}`}>
+        <div className={`${embedded ? "bg-transparent" : "bg-gradient-to-r from-blue-500 to-purple-500 rounded-[26px] m-0"}`}>
+          <div className={`${embedded ? "rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm" : "border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-8 md:p-6 sm:p-4 p-2 "}`}>
             {isRegistration ? (
               <Registration
                 onBackToLogin={handleBackToLogin}
@@ -160,94 +181,105 @@ export const Login: React.FC<ChildComponentProps> = ({
               />
             ) : (
               <>
-                <h1 className="font-bold dark:text-gray-400 text-4xl text-center cursor-default my-0">
-                  Log in
+                <h1 className={`font-bold text-center cursor-default my-0 ${embedded ? "text-2xl text-slate-900" : "dark:text-gray-400 text-4xl"}`}>
+                  Mobile OTP Login
                 </h1>
-                <form className="space-y-4" onSubmit={handleLogin}>
+                <p className={`mt-2 text-center ${embedded ? "text-sm text-slate-500" : "text-sm text-slate-500 dark:text-slate-300"}`}>
+                  Enter your mobile number to receive a one-time password.
+                </p>
+                <form className="space-y-4 mt-5" onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
                   <div>
                     <label
-                      htmlFor="email"
-                      className="mb-2 dark:text-gray-400 text-lg"
+                      htmlFor="mobile"
+                      className={`mb-2 block ${embedded ? "text-sm font-semibold text-slate-700" : "dark:text-gray-400 text-lg"}`}
                     >
-                      Email
+                      Mobile Number
                     </label>
                     <input
-                      id="email"
-                      className="border p-3 dark:bg-indigo-500 dark:text-gray-300 dark:border-gray-700 shadow-md placeholder:text-base focus:scale-105 ease-in-out duration-300 border-gray-300 rounded-lg w-full"
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <label
-                      htmlFor="password"
-                      className="mb-2 dark:text-gray-400 text-lg"
-                    >
-                      Password
-                    </label>
-                    <input
-                      id="password"
-                      className="border p-3 shadow-md dark:bg-indigo-500 dark:text-gray-300 dark:border-gray-700 placeholder:text-base focus:scale-105 ease-in-out duration-300 border-gray-300 rounded-lg w-full"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      value={password}
+                      id="mobile"
+                      className={`w-full rounded-xl border px-3 py-3 outline-none transition ${
+                        embedded
+                          ? "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                          : "dark:bg-indigo-500 dark:text-gray-300 dark:border-gray-700 shadow-md placeholder:text-base focus:scale-105 ease-in-out duration-300 border-gray-300"
+                      }`}
+                      type="tel"
+                      placeholder="Enter 10-digit mobile number"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                    <IconButton
-                      onClick={togglePasswordVisibility}
-                      edge="end"
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        right: "10px",
-                      }}
-                      disabled={!password} // Button is disabled if password field is empty
-                    >
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
                   </div>
+                  {otpSent && (
+                    <div className="relative">
+                      <label
+                        htmlFor="otp"
+                        className={`mb-2 block ${embedded ? "text-sm font-semibold text-slate-700" : "dark:text-gray-400 text-lg"}`}
+                      >
+                        OTP
+                      </label>
+                      <input
+                        id="otp"
+                        className={`w-full rounded-xl border px-3 py-3 outline-none transition ${
+                          embedded
+                            ? "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            : "shadow-md dark:bg-indigo-500 dark:text-gray-300 dark:border-gray-700 placeholder:text-base focus:scale-105 ease-in-out duration-300 border-gray-300"
+                        }`}
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Enter 6-digit OTP"
+                        value={otp}
+                        onKeyDown={handleKeyPress}
+                        onChange={(e) => setOtp(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
 
-                  <button
-                    className="group text-blue-400 transition-all duration-100 ease-in-out cursor-pointer"
-                    onClick={handleForgotPasswordClick}
-                  >
-                    <span className="bg-left-bottom bg-gradient-to-r text-sm from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
-                      Forget your password?
-                    </span>
-                  </button>
-                  <button
-                    className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-3 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-out"
-                    type="submit"
-                  >
-                    LOG IN
-                  </button>
+                  {!otpSent ? (
+                    <button
+                      className={`mt-3 w-full rounded-xl py-2.5 font-semibold text-white transition ${
+                        embedded
+                          ? "bg-sky-600 hover:bg-sky-700"
+                          : "bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg hover:scale-105 hover:from-purple-500 hover:to-blue-500 duration-300 ease-in-out"
+                      }`}
+                      type="submit"
+                      disabled={sendingOtp}
+                    >
+                      {sendingOtp ? "SENDING OTP..." : "SEND OTP"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className={`mt-3 w-full rounded-xl py-2.5 font-semibold text-white transition ${
+                          embedded
+                            ? "bg-sky-600 hover:bg-sky-700"
+                            : "bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg hover:scale-105 hover:from-purple-500 hover:to-blue-500 duration-300 ease-in-out"
+                        }`}
+                        type="submit"
+                        disabled={verifyingOtp}
+                      >
+                        {verifyingOtp ? "VERIFYING..." : "VERIFY OTP"}
+                      </button>
+                      <button
+                        type="button"
+                        className={`group text-sm transition-all duration-100 ease-in-out cursor-pointer ${
+                          embedded ? "text-sky-600 font-medium" : "text-blue-400"
+                        }`}
+                        onClick={(evt) => {
+                          if (resendIn > 0) return;
+                          handleSendOtp(evt as unknown as React.FormEvent);
+                        }}
+                        disabled={resendIn > 0 || sendingOtp}
+                      >
+                        <span className="bg-left-bottom bg-gradient-to-r text-sm from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
+                          {resendIn > 0 ? `Resend OTP in ${resendIn}s` : "Resend OTP"}
+                        </span>
+                      </button>
+                    </>
+                  )}
+
                 </form>
-                <div className="flex flex-col items-center justify-center text-sm mt-4">
-                  <h3 className="dark:text-gray-300">Don't have an account?</h3>
-                  <button
-                    onClick={handleSignUpClick}
-                    className="text-blue-400 ml-2 hover:underline"
-                  >
-                    Sign Up As User
-                  </button>
-                  <button
-                    onClick={handleSignUpClickServiceProvider}
-                    className="text-blue-400 ml-2 hover:underline"
-                  >
-                    Sign Up As Service Provider
-                  </button>
-                  <button
-                    onClick={handleSignUpClickAgent}
-                    className="text-blue-400 ml-2 hover:underline"
-                  >
-                    Sign Up As Agent
-                  </button>
-                </div>
               </>
             )}
           </div>
