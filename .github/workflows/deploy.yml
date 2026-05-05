@@ -25,6 +25,18 @@ jobs:
         run: npm ci
 
       - name: Build app
+        env:
+          REACT_APP_ENV: ${{ secrets.REACT_APP_ENV }}
+          REACT_APP_PAYMENTS_URL: ${{ secrets.REACT_APP_PAYMENTS_URL }}
+          REACT_APP_SOCKET_URL: ${{ secrets.REACT_APP_SOCKET_URL }}
+          REACT_APP_URL: ${{ secrets.REACT_APP_URL }}
+          REACT_APP_PROVIDER_URL: ${{ secrets.REACT_APP_PROVIDER_URL }}
+          REACT_APP_PREFERENCES_URL: ${{ secrets.REACT_APP_PREFERENCES_URL }}
+          REACT_APP_UTILS_URL: ${{ secrets.REACT_APP_UTILS_URL }}
+          REACT_APP_UTLIS_URL: ${{ secrets.REACT_APP_UTLIS_URL }}
+          REACT_APP_REVIEWS_URL: ${{ secrets.REACT_APP_REVIEWS_URL }}
+          REACT_APP_COUPONS_URL: ${{ secrets.REACT_APP_COUPONS_URL }}
+          REACT_APP_CHAT_URL: ${{ secrets.REACT_APP_CHAT_URL }}
         run: npm run build:prod
 
       - name: Configure AWS credentials
