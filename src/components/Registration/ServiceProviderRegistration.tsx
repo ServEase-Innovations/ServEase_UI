@@ -163,7 +163,7 @@ interface FormErrors {
   bankDetails?: BankDetailsErrors;
 }
 
-// Regex for validation
+// Regex for validation - kept for optional format checks (if user enters data)
 const nameRegex = /^[A-Za-z]+(?:[ ][A-Za-z]+)*$/;
 const emailIdRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Z|a-z]{2,}$/;
 const strongPasswordRegex =
@@ -304,6 +304,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [image, setImage] = useState<Blob | null>(null);
+
+  // NEW: State for KYC document upload
+  const [kycDocumentUrl, setKycDocumentUrl] = useState<string>("");
+  const [isKycUploading, setIsKycUploading] = useState(false);
 
   // NEW: Handler for bank details field changes
   const handleBankFieldChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -600,6 +604,52 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
+  // NEW: Function to upload KYC document
+  const handleKycDocumentUpload = async (file: File | null) => {
+    if (!file) {
+      setKycDocumentUrl("");
+      return;
+    }
+
+    setIsKycUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file); // The API expects 'file' field
+
+      const response = await axios.post(
+        "https://imageuploader-5njj.onrender.com/api/files/upload-file",
+        uploadFormData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        const url = response.data.fileUrl || response.data.url || response.data.imageUrl || "";
+        if (url) {
+          setKycDocumentUrl(url);
+          setSnackbarMessage(t("kycDocumentUploaded"));
+          setSnackbarSeverity("success");
+          setSnackbarOpen(true);
+        } else {
+          throw new Error("No URL returned");
+        }
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("KYC upload error:", error);
+      setSnackbarMessage(t("kycUploadFailed"));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      setKycDocumentUrl("");
+    } finally {
+      setIsKycUploading(false);
+    }
+  };
+
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -802,35 +852,16 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     resetValidation('alternate');
   };
 
-  // Helper function to check if step 0 is ready for next
+  // Helper function to check if step 0 is ready for next - **NOW ALWAYS TRUE**
   const isStep0ReadyForNext = () => {
-    // Check if required fields are filled
-    const requiredFieldsFilled = formData.firstName.trim() &&
-      formData.lastName.trim() &&
-      formData.gender &&
-      formData.emailId.trim() &&
-      formData.password.trim() &&
-      formData.confirmPassword.trim() &&
-      formData.mobileNo.trim() &&
-      formData.dob.trim();
-
-    // Check if there are any validation errors
-    const hasValidationErrors = validationResults.email.error ||
-      validationResults.mobile.error ||
-      !validationResults.email.isAvailable ||
-      !validationResults.mobile.isAvailable ||
-      !!errors.dob;
-
-    // Check if DOB is valid
-    const isDobFieldValid = isDobValid && !errors.dob;
-
-    return requiredFieldsFilled && !hasValidationErrors && isDobFieldValid;
+    // All fields are optional - always allow next
+    return true;
   };
 
-  // Validate age function
+  // Validate age function - kept for informational purposes only (not blocking)
   const validateAge = (dob: string): { isValid: boolean; message: string } => {
     if (!dob) {
-      return { isValid: false, message: t("dobRequired") };
+      return { isValid: true, message: "" }; // No error if empty
     }
 
     const birthDate = moment(dob, "YYYY-MM-DD");
@@ -846,8 +877,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
   const handleRealTimeValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const aadhaarPattern = /^[0-9]{12}$/;
-
+    
     // Clear error for this field when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
@@ -856,14 +886,12 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }));
     }
 
-    if (name === "firstName") {
+    // Optional: keep format validation only when user enters something, but never block submission
+    // (The errors are only shown for UX, not for blocking next/submit)
+    
+    if (name === "firstName" && value.trim()) {
       const trimmedValue = value.trim();
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          firstName: t("firstNameRequired"),
-        }));
-      } else if (!nameRegex.test(trimmedValue)) {
+      if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           firstName: t("firstNameAlphabetsOnly"),
@@ -881,14 +909,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "lastName") {
+    if (name === "lastName" && value.trim()) {
       const trimmedValue = value.trim();
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          lastName: t("lastNameRequired"),
-        }));
-      } else if (!nameRegex.test(trimmedValue)) {
+      if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           lastName: t("lastNameAlphabetsOnly"),
@@ -906,14 +929,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "password") {
+    if (name === "password" && value.trim()) {
       const trimmedValue = value.trim();
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          password: t("passwordRequired"),
-        }));
-      } else if (trimmedValue.length < 8) {
+      if (trimmedValue.length < 8) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           password: t("passwordMinLength"),
@@ -946,14 +964,9 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "confirmPassword") {
+    if (name === "confirmPassword" && value.trim()) {
       const trimmedValue = value.trim();
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          confirmPassword: t("confirmPasswordRequired"),
-        }));
-      } else if (trimmedValue !== formData.password) {
+      if (trimmedValue !== formData.password) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           confirmPassword: t("passwordsDoNotMatch"),
@@ -966,17 +979,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       }
     }
 
-    if (name === "emailId") {
+    if (name === "emailId" && value.trim()) {
       const trimmedValue = value.trim();
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          emailId: t("emailRequired"),
-        }));
-        resetValidation('email');
-      } else if (!emailPattern.test(trimmedValue)) {
+      if (!emailPattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           emailId: t("emailInvalid"),
@@ -989,19 +996,15 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         }));
         debouncedEmailValidation(trimmedValue);
       }
+    } else if (name === "emailId" && !value.trim()) {
+      resetValidation('email');
     }
 
-    if (name === "mobileNo") {
+    if (name === "mobileNo" && value.trim()) {
       const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
 
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          mobileNo: t("mobileRequired"),
-        }));
-        resetValidation('mobile');
-      } else if (!mobilePattern.test(trimmedValue)) {
+      if (!mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           mobileNo: t("mobileInvalid"),
@@ -1014,13 +1017,15 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         }));
         debouncedMobileValidation(trimmedValue);
       }
+    } else if (name === "mobileNo" && !value.trim()) {
+      resetValidation('mobile');
     }
 
-    if (name === "AlternateNumber" && value) {
+    if (name === "AlternateNumber" && value.trim()) {
       const trimmedValue = value.trim();
       const mobilePattern = /^[0-9]{10}$/;
 
-      if (trimmedValue && !mobilePattern.test(trimmedValue)) {
+      if (!mobilePattern.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AlternateNumber: t("alternateInvalid"),
@@ -1032,61 +1037,55 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           AlternateNumber: t("alternateDifferent"),
         }));
         resetValidation('alternate');
-      } else if (trimmedValue) {
+      } else {
         setErrors((prevErrors) => ({
           ...prevErrors,
           AlternateNumber: "",
         }));
         debouncedAlternateValidation(trimmedValue);
-      } else {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          AlternateNumber: "",
-        }));
-        resetValidation('alternate');
       }
+    } else if (name === "AlternateNumber" && !value.trim()) {
+      resetValidation('alternate');
     }
 
-    if (name === "kycNumber") {
+    if (name === "kycNumber" && value.trim()) {
       const trimmedValue = value.trim();
       setFormData(prev => ({ ...prev, kycNumber: trimmedValue }));
 
       // Validate based on kycType
-      if (trimmedValue) {
-        let isValid = true;
-        let errorMessage = "";
+      let isValid = true;
+      let errorMessage = "";
 
-        switch (formData.kycType) {
-          case "AADHAR":
-            isValid = /^[0-9]{12}$/.test(trimmedValue);
-            errorMessage = t("aadhaarInvalid");
-            break;
-          case "PAN":
-            isValid = panRegex.test(trimmedValue);
-            errorMessage = t("panInvalid");
-            break;
-          case "DRIVING_LICENSE":
-            isValid = trimmedValue.length >= 8;
-            errorMessage = t("drivingLicenseInvalid");
-            break;
-          case "VOTER_ID":
-            isValid = voterIdRegex.test(trimmedValue);
-            errorMessage = t("voterIdInvalid");
-            break;
-          case "PASSPORT":
-            isValid = passportRegex.test(trimmedValue);
-            errorMessage = t("passportInvalid");
-            break;
-        }
-
-        if (!isValid) {
-          setErrors(prev => ({ ...prev, kycNumber: errorMessage }));
-        } else {
-          setErrors(prev => ({ ...prev, kycNumber: "" }));
-        }
-      } else {
-        setErrors(prev => ({ ...prev, kycNumber: t("kycNumberRequired").replace("{documentName}", getKycLabel(formData.kycType)) }));
+      switch (formData.kycType) {
+        case "AADHAR":
+          isValid = /^[0-9]{12}$/.test(trimmedValue);
+          errorMessage = t("aadhaarInvalid");
+          break;
+        case "PAN":
+          isValid = panRegex.test(trimmedValue);
+          errorMessage = t("panInvalid");
+          break;
+        case "DRIVING_LICENSE":
+          isValid = trimmedValue.length >= 8;
+          errorMessage = t("drivingLicenseInvalid");
+          break;
+        case "VOTER_ID":
+          isValid = voterIdRegex.test(trimmedValue);
+          errorMessage = t("voterIdInvalid");
+          break;
+        case "PASSPORT":
+          isValid = passportRegex.test(trimmedValue);
+          errorMessage = t("passportInvalid");
+          break;
       }
+
+      if (!isValid) {
+        setErrors(prev => ({ ...prev, kycNumber: errorMessage }));
+      } else {
+        setErrors(prev => ({ ...prev, kycNumber: "" }));
+      }
+    } else if (name === "kycNumber" && !value.trim()) {
+      setErrors(prev => ({ ...prev, kycNumber: "" }));
     }
 
     if (name === "pincode") {
@@ -1098,12 +1097,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         [name]: trimmedValue,
       }));
 
-      if (!trimmedValue) {
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          pincode: t("pincodeRequired"),
-        }));
-      } else if (trimmedValue.length !== 6) {
+      if (trimmedValue && trimmedValue.length !== 6) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           pincode: t("pincodeInvalid"),
@@ -1135,11 +1129,11 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       [name]: value,
     }));
 
-    // Validate DOB
+    // Validate DOB (optional, just for UX)
     const { isValid, message } = validateAge(value);
     setIsDobValid(isValid);
 
-    if (!isValid) {
+    if (!isValid && value.trim()) {
       setErrors((prevErrors) => ({
         ...prevErrors,
         dob: message,
@@ -1175,223 +1169,16 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     setErrors(prev => ({ ...prev, nannyCareType: "" }));
   };
 
+  // ============================================================
+  // VALIDATION IS NOW DISABLED FOR ALL STEPS
+  // ============================================================
   const validateStep = (step: number): boolean => {
-    let tempErrors: FormErrors = {};
-
-    if (step === 0) {
-      if (!formData.firstName.trim()) {
-        tempErrors.firstName = t("firstNameRequired");
-      } else if (!nameRegex.test(formData.firstName.trim())) {
-        tempErrors.firstName = t("firstNameAlphabetsOnly");
-      } else if (formData.firstName.length > MAX_NAME_LENGTH) {
-        tempErrors.firstName = t("firstNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString());
-      }
-
-      if (!formData.lastName.trim()) {
-        tempErrors.lastName = t("lastNameRequired");
-      } else if (!nameRegex.test(formData.lastName.trim())) {
-        tempErrors.lastName = t("lastNameAlphabetsOnly");
-      } else if (formData.lastName.length > MAX_NAME_LENGTH) {
-        tempErrors.lastName = t("lastNameMaxLength").replace("{MAX_NAME_LENGTH}", MAX_NAME_LENGTH.toString());
-      }
-
-      if (!formData.gender) {
-        tempErrors.gender = t("genderRequired");
-      }
-
-      if (!formData.emailId.trim()) {
-        tempErrors.emailId = t("emailRequired");
-      } else if (!emailIdRegex.test(formData.emailId.trim())) {
-        tempErrors.emailId = t("emailInvalid");
-      } else if (validationResults.email.error) {
-        tempErrors.emailId = validationResults.email.error;
-      } else if (!validationResults.email.isAvailable) {
-        tempErrors.emailId = t("emailNotAvailable");
-      }
-
-      if (!formData.password.trim()) {
-        tempErrors.password = t("passwordRequired");
-      } else if (!strongPasswordRegex.test(formData.password.trim())) {
-        tempErrors.password = t("passwordComplexity");
-      }
-
-      if (!formData.confirmPassword.trim()) {
-        tempErrors.confirmPassword = t("confirmPasswordRequired");
-      } else if (formData.password.trim() !== formData.confirmPassword.trim()) {
-        tempErrors.confirmPassword = t("passwordsDoNotMatch");
-      }
-
-      if (!formData.mobileNo.trim()) {
-        tempErrors.mobileNo = t("mobileRequired");
-      } else if (!phoneRegex.test(formData.mobileNo.trim())) {
-        tempErrors.mobileNo = t("mobileInvalid");
-      } else if (validationResults.mobile.error) {
-        tempErrors.mobileNo = validationResults.mobile.error;
-      } else if (!validationResults.mobile.isAvailable) {
-        tempErrors.mobileNo = t("mobileNotAvailable");
-      }
-
-      // Validate alternate number if provided
-      if (formData.AlternateNumber.trim()) {
-        if (!phoneRegex.test(formData.AlternateNumber.trim())) {
-          tempErrors.AlternateNumber = t("alternateInvalid");
-        } else if (formData.AlternateNumber.trim() === formData.mobileNo.trim()) {
-          tempErrors.AlternateNumber = t("alternateDifferent");
-        } else if (!validationResults.alternate.isAvailable) {
-          tempErrors.AlternateNumber = t("alternateNotAvailable");
-        }
-      }
-
-      // Validate DOB
-      if (!formData.dob.trim()) {
-        tempErrors.dob = t("dobRequired");
-      } else {
-        const { isValid, message } = validateAge(formData.dob);
-        if (!isValid) {
-          tempErrors.dob = message;
-        }
-      }
-    }
-
-    if (step === 1) {
-      const permanentErrors: any = {};
-      if (!formData.permanentAddress.apartment?.trim()) {
-        permanentErrors.apartment = t("apartmentRequired");
-      }
-      if (!formData.permanentAddress.street?.trim()) {
-        permanentErrors.street = t("streetRequired");
-      }
-      if (!formData.permanentAddress.city?.trim()) {
-        permanentErrors.city = t("cityRequired");
-      }
-      if (!formData.permanentAddress.state?.trim()) {
-        permanentErrors.state = t("stateRequired");
-      }
-      if (!formData.permanentAddress.country?.trim()) {
-        permanentErrors.country = t("countryRequired");
-      }
-      if (!formData.permanentAddress.pincode?.trim()) {
-        permanentErrors.pincode = t("pincodeRequired");
-      } else if (formData.permanentAddress.pincode.length !== 6) {
-        permanentErrors.pincode = t("pincodeInvalid");
-      }
-
-      if (Object.keys(permanentErrors).length > 0) {
-        tempErrors.permanentAddress = permanentErrors;
-      }
-
-      // Only validate correspondence address if not same as permanent
-      if (!isSameAddress) {
-        const correspondenceErrors: any = {};
-        if (!formData.correspondenceAddress.apartment?.trim()) {
-          correspondenceErrors.apartment = t("apartmentRequired");
-        }
-        if (!formData.correspondenceAddress.street?.trim()) {
-          correspondenceErrors.street = t("streetRequired");
-        }
-        if (!formData.correspondenceAddress.city?.trim()) {
-          correspondenceErrors.city = t("cityRequired");
-        }
-        if (!formData.correspondenceAddress.state?.trim()) {
-          correspondenceErrors.state = t("stateRequired");
-        }
-        if (!formData.correspondenceAddress.country?.trim()) {
-          correspondenceErrors.country = t("countryRequired");
-        }
-        if (!formData.correspondenceAddress.pincode?.trim()) {
-          correspondenceErrors.pincode = t("pincodeRequired");
-        } else if (formData.correspondenceAddress.pincode.length !== 6) {
-          correspondenceErrors.pincode = t("pincodeInvalid");
-        }
-
-        if (Object.keys(correspondenceErrors).length > 0) {
-          tempErrors.correspondenceAddress = correspondenceErrors;
-        }
-      }
-    }
-
-    if (step === 2) {
-      if (formData.housekeepingRole.length === 0) {
-        tempErrors.housekeepingRole = t("serviceTypeRequired");
-      }
-      if (formData.housekeepingRole.includes("COOK") && !formData.cookingSpeciality) {
-        tempErrors.cookingSpeciality = t("cookingSpecialityRequired");
-      }
-      if (formData.housekeepingRole.includes("NANNY") && !formData.nannyCareType) {
-        tempErrors.nannyCareType = t("nannyCareTypeRequired");
-      }
-      if (!formData.diet) {
-        tempErrors.diet = t("dietRequired");
-      }
-      if (!formData.experience) {
-        tempErrors.experience = t("experienceRequired");
-      }
-    }
-
-    // ============================================================
-    // STEP 3 (KYC) IS NOW OPTIONAL – ALWAYS VALID
-    // ============================================================
-    if (step === 3) {
-      // No validation – KYC is optional
-      return true;
-    }
-
-    // NEW: Bank details step – optional, always valid
-    if (step === 4) {
-      // No required fields, always valid
-      return true;
-    }
-
-    if (step === 5) { // Confirmation step (was step 4 before)
-      if (!formData.keyFacts) {
-        tempErrors.keyFacts = t("keyFactsRequired");
-      }
-      if (!formData.terms) {
-        tempErrors.terms = t("termsRequired");
-      }
-      if (!formData.privacy) {
-        tempErrors.privacy = t("privacyRequired");
-      }
-    }
-
-    // Only set errors if there are any
-    if (Object.keys(tempErrors).length > 0) {
-      setErrors(tempErrors);
-      return false;
-    }
-
+    // All steps are always valid - no required fields
     return true;
   };
 
   const handleNext = () => {
-    // For step 0, check if validations are complete before proceeding
-    if (activeStep === 0) {
-      if (validationResults.email.loading || validationResults.mobile.loading) {
-        setSnackbarMessage(t("pleaseWaitForValidation"));
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-        return;
-      }
-
-      // Validate the current step
-      if (!validateStep(activeStep)) {
-        return;
-      }
-
-      // Additional check for validation results
-      if (!isStep0ReadyForNext()) {
-        setSnackbarMessage(t("pleaseFixValidationErrors"));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-        return;
-      }
-    } else {
-      // For other steps, just validate
-      if (!validateStep(activeStep)) {
-        return;
-      }
-    }
-
+    // No validation needed - just proceed
     setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
     if (activeStep === steps.length - 1) {
       setSnackbarMessage(t("registrationSuccessful"));
@@ -1412,118 +1199,123 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
     if (activeStep !== steps.length - 1) return;
 
-    if (validateStep(activeStep)) {
-      setIsSubmitting(true);
-      try {
-        let profilePicUrl = "";
+    setIsSubmitting(true);
+    try {
+      let profilePicUrl = "";
 
-        if (image) {
-          const formData1 = new FormData();
-          formData1.append("image", image);
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
 
-          const imageResponse = await axiosInstance.post(
-            "http://65.2.153.173:3000/upload",
-            formData1,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
-          );
-
-          if (imageResponse.status === 200) {
-            profilePicUrl = imageResponse.data.imageUrl;
-          }
-        }
-
-        const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
-
-        // Prepare bank details object (only include non-empty fields)
-        const bankDetailsPayload = Object.fromEntries(
-          Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
-        );
-
-        const payload = {
-          firstName: formData.firstName,
-          middleName: formData.middleName,
-          lastName: formData.lastName,
-          mobileNo: parseInt(formData.mobileNo) || 0,
-          alternateNo: parseInt(formData.AlternateNumber) || 0,
-          emailId: formData.emailId,
-          gender: formData.gender,
-          buildingName: formData.buildingName,
-          locality: formData.locality,
-          latitude: currentLocation?.latitude || formData.latitude,
-          longitude: currentLocation?.longitude || formData.longitude,
-          street: formData.street,
-          pincode: parseInt(formData.pincode) || 0,
-          currentLocation: formData.currentLocation,
-          nearbyLocation: formData.nearbyLocation,
-          location: formData.currentLocation,
-          housekeepingRoles: formData.housekeepingRole,
-          serviceTypes: formData.housekeepingRole,
-          diet: formData.diet,
-          languages: selectedLanguages,
-          ...(formData.housekeepingRole.includes("COOK") && {
-            cookingSpeciality: formData.cookingSpeciality
-          }),
-          ...(formData.housekeepingRole.includes("NANNY") && {
-            nannyCareType: formData.nannyCareType
-          }),
-          timeslot: formData.timeslot,
-          expectedSalary: 0,
-          experience: parseInt(formData.experience) || 0,
-          username: formData.emailId,
-          password: formData.password,
-          agentReferralId: formData.agentReferralId,
-          privacy: formData.privacy,
-          keyFacts: formData.keyFacts,
-          permanentAddress: {
-            field1: formData.permanentAddress.apartment,
-            field2: formData.permanentAddress.street,
-            ctarea: formData.permanentAddress.city,
-            pinno: formData.permanentAddress.pincode,
-            state: formData.permanentAddress.state,
-            country: formData.permanentAddress.country
-          },
-          correspondenceAddress: {
-            field1: formData.correspondenceAddress.apartment,
-            field2: formData.correspondenceAddress.street,
-            ctarea: formData.correspondenceAddress.city,
-            pinno: formData.correspondenceAddress.pincode,
-            state: formData.correspondenceAddress.state,
-            country: formData.correspondenceAddress.country
-          },
-          active: true,
-          kycType: formData.kycType,
-          kycNumber: formData.kycNumber,
-          dob: formData.dob,
-          bankName: formData.bankDetails.bankName?.trim() || null,
-          ifscCode: formData.bankDetails.ifscCode?.trim() || null,
-          accountHolderName: formData.bankDetails.accountHolderName?.trim() || null,
-          accountNumber: formData.bankDetails.accountNumber?.trim() || null,
-          accountType: formData.bankDetails.accountType?.trim() || null,
-          upiId: formData.bankDetails.upiId?.trim() || null,
-        };
-
-        const response = await providerInstance.post(
-          "/api/service-providers/serviceprovider/add",
-          payload,
+        const imageResponse = await axios.post(
+          "https://imageuploader-5njj.onrender.com/api/images/upload",
+          formData1,
           {
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "multipart/form-data",
             },
           }
         );
 
-        setSnackbarOpen(true);
-        setSnackbarSeverity("success");
-        setSnackbarMessage(t("serviceProviderAdded"));
+        if (imageResponse.status === 200) {
+          profilePicUrl = imageResponse.data.imageUrl || imageResponse.data.url || "";
+        }
+      }
 
+      const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
+
+      // Prepare bank details object (only include non-empty fields)
+      const bankDetailsPayload = Object.fromEntries(
+        Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
+      );
+
+      // Helper to convert empty strings to null
+      const toNull = (value: any) => (value === "" ? null : value);
+
+      const payload = {
+        firstName: toNull(formData.firstName),
+        middleName: toNull(formData.middleName),
+        lastName: toNull(formData.lastName),
+        mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
+        alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
+        emailId: toNull(formData.emailId),
+        gender: toNull(formData.gender),
+        buildingName: toNull(formData.buildingName),
+        locality: toNull(formData.locality),
+        latitude: currentLocation?.latitude || formData.latitude || null,
+        longitude: currentLocation?.longitude || formData.longitude || null,
+        street: toNull(formData.street),
+        pincode: formData.pincode ? parseInt(formData.pincode) : null,
+        currentLocation: toNull(formData.currentLocation),
+        nearbyLocation: toNull(formData.nearbyLocation),
+        location: toNull(formData.currentLocation),
+        housekeepingRoles: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+        serviceTypes: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+        diet: toNull(formData.diet),
+        languages: selectedLanguages.length ? selectedLanguages : null,
+        ...(formData.housekeepingRole.includes("COOK") && formData.cookingSpeciality && {
+          cookingSpeciality: formData.cookingSpeciality
+        }),
+        ...(formData.housekeepingRole.includes("NANNY") && formData.nannyCareType && {
+          nannyCareType: formData.nannyCareType
+        }),
+        timeslot: toNull(formData.timeslot),
+        expectedSalary: 0,
+        experience: formData.experience ? parseInt(formData.experience) : null,
+        username: toNull(formData.emailId),
+        password: toNull(formData.password),
+        agentReferralId: toNull(formData.agentReferralId),
+        privacy: formData.privacy || false,
+        keyFacts: formData.keyFacts || false,
+        permanentAddress: {
+          field1: toNull(formData.permanentAddress.apartment),
+          field2: toNull(formData.permanentAddress.street),
+          ctarea: toNull(formData.permanentAddress.city),
+          pinno: toNull(formData.permanentAddress.pincode),
+          state: toNull(formData.permanentAddress.state),
+          country: toNull(formData.permanentAddress.country)
+        },
+        correspondenceAddress: {
+          field1: toNull(formData.correspondenceAddress.apartment),
+          field2: toNull(formData.correspondenceAddress.street),
+          ctarea: toNull(formData.correspondenceAddress.city),
+          pinno: toNull(formData.correspondenceAddress.pincode),
+          state: toNull(formData.correspondenceAddress.state),
+          country: toNull(formData.correspondenceAddress.country)
+        },
+        active: true,
+        kycType: toNull(formData.kycType),
+        kycNumber: toNull(formData.kycNumber),
+        kycDocumentUrl: kycDocumentUrl || null,
+        dob: toNull(formData.dob),
+        bankName: toNull(formData.bankDetails.bankName),
+        ifscCode: toNull(formData.bankDetails.ifscCode),
+        accountHolderName: toNull(formData.bankDetails.accountHolderName),
+        accountNumber: toNull(formData.bankDetails.accountNumber),
+        accountType: toNull(formData.bankDetails.accountType),
+        upiId: toNull(formData.bankDetails.upiId),
+      };
+
+      const response = await providerInstance.post(
+        "/api/service-providers/serviceprovider/add",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setSnackbarOpen(true);
+      setSnackbarSeverity("success");
+      setSnackbarMessage(t("serviceProviderAdded"));
+
+      // Only create Auth0 user if email and password are provided
+      if (formData.emailId && formData.password) {
         const authPayload = {
           email: formData.emailId,
           password: formData.password,
-          name: `${formData.firstName} ${formData.lastName}`,
+          name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
         };
 
         axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
@@ -1532,23 +1324,18 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           }).catch((authError) => {
             console.error("Error creating AuthO user:", authError);
           });
-
-        setTimeout(() => {
-          setIsSubmitting(false);
-          onBackToLogin(true);
-        }, 3000);
-      } catch (error) {
-        setIsSubmitting(false);
-        setSnackbarOpen(true);
-        setSnackbarSeverity("error");
-        setSnackbarMessage(t("failedToAddServiceProvider"));
-        console.error("Error submitting form:", error);
       }
-    } else {
+
+      setTimeout(() => {
+        setIsSubmitting(false);
+        onBackToLogin(true);
+      }, 3000);
+    } catch (error) {
       setIsSubmitting(false);
       setSnackbarOpen(true);
-      setSnackbarSeverity("warning");
-      setSnackbarMessage(t("fillRequiredFields"));
+      setSnackbarSeverity("error");
+      setSnackbarMessage(t("failedToAddServiceProvider"));
+      console.error("Error submitting form:", error);
     }
   };
 
@@ -1975,8 +1762,10 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
             errors={errors}
             onFieldChange={handleRealTimeValidation}
             onFieldFocus={handleFieldFocus}
-            onDocumentUpload={(file) => setFormData(prev => ({ ...prev, documentImage: file }))}
+            onDocumentUpload={handleKycDocumentUpload}
             onKycTypeChange={handleKycTypeChange}
+            isUploading={isKycUploading}
+            uploadedUrl={kycDocumentUrl}
           />
         );
 
@@ -2145,60 +1934,31 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 {t("back")}
               </Button>
               {activeStep === steps.length - 1 ? (
-                <Tooltip
-                  title={!(formData.terms && formData.privacy && formData.keyFacts)
-                    ? t("checkTermsToEnableSubmit")
-                    : ""
-                  }
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={isSubmitting}
                 >
-                  <span>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      disabled={!(formData.terms && formData.privacy && formData.keyFacts) || isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <CircularProgress size={24} sx={{ color: 'white' }} />
-                      ) : (
-                        t("submit")
-                      )}
-                    </Button>
-                  </span>
-                </Tooltip>
+                  {isSubmitting ? (
+                    <CircularProgress size={24} sx={{ color: 'white' }} />
+                  ) : (
+                    t("submit")
+                  )}
+                </Button>
               ) : (
-                <Tooltip
-                  title={
-                    activeStep === 0 && !isStep0ReadyForNext()
-                      ? validationResults.email.loading || validationResults.mobile.loading
-                        ? t("validatingEmailMobile")
-                        : !isStep0ValidationsComplete() || !isDobValid
-                          ? t("fixValidationErrors")
-                          : t("completeAllRequiredFields")
-                      : activeStep === 2 && formData.housekeepingRole.length === 0
-                        ? t("pleaseSelectServiceType")
-                      : ""
-                  }
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNext();
+                  }}
+                  endIcon={<ArrowForward />}
+                  disabled={isSubmitting}
                 >
-                  <span>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleNext();
-                      }}
-                      endIcon={<ArrowForward />}
-                      disabled={
-                        isSubmitting ||
-                        (activeStep === 0 && !isStep0ReadyForNext()) ||
-                        (activeStep === 2 && formData.housekeepingRole.length === 0)
-                      }
-                    >
-                      {t("next")}
-                    </Button>
-                  </span>
-                </Tooltip>
+                  {t("next")}
+                </Button>
               )}
             </Box>
           </form>

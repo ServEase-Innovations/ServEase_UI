@@ -23,7 +23,6 @@ import moment from "moment";
 import ProfileImageUpload from "./ProfileImageUpload";
 import { useLanguage } from "src/context/LanguageContext";
 
-
 interface BasicInformationProps {
   formData: any;
   errors: any;
@@ -59,7 +58,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
   onClearMobile,
   onClearAlternate,
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
   const MAX_NAME_LENGTH = 30;
 
   return (
@@ -67,13 +66,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       <Grid item xs={12}>
         <ProfileImageUpload onImageSelect={onImageSelect} />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("firstNamePlaceholder")}
           name="firstName"
           fullWidth
-          required
           value={formData.firstName}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("firstName")}
@@ -82,7 +80,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           inputProps={{ maxLength: MAX_NAME_LENGTH }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("middleNamePlaceholder")}
@@ -92,13 +90,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           onChange={onFieldChange}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("lastNamePlaceholder")}
           name="lastName"
           fullWidth
-          required
           value={formData.lastName}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("lastName")}
@@ -107,52 +104,68 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           inputProps={{ maxLength: MAX_NAME_LENGTH }}
         />
       </Grid>
-      
+
       <Grid item xs={12} sm={6}>
         <TextField
           label={t("dobLabel")}
           name="dob"
           type="date"
           fullWidth
-          required
           value={formData.dob}
           onChange={onDobChange}
           error={!!errors.dob}
           helperText={errors.dob || t("dobHelperText")}
           InputLabelProps={{ shrink: true }}
           inputProps={{
-            max: moment().subtract(18, 'years').format('YYYY-MM-DD')
+            max: moment().subtract(18, "years").format("YYYY-MM-DD"),
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <FormControl component="fieldset" error={!!errors.gender}>
           <FormLabel component="legend">{t("genderLabel")}</FormLabel>
-          <RadioGroup row name="gender" value={formData.gender} onChange={onFieldChange}>
-            <FormControlLabel value="MALE" control={<Radio />} label={t("male")} />
-            <FormControlLabel value="FEMALE" control={<Radio />} label={t("female")} />
-            <FormControlLabel value="OTHER" control={<Radio />} label={t("other")} />
+          <RadioGroup
+            row
+            name="gender"
+            value={formData.gender}
+            onChange={onFieldChange}
+          >
+            <FormControlLabel
+              value="MALE"
+              control={<Radio />}
+              label={t("male")}
+            />
+            <FormControlLabel
+              value="FEMALE"
+              control={<Radio />}
+              label={t("female")}
+            />
+            <FormControlLabel
+              value="OTHER"
+              control={<Radio />}
+              label={t("other")}
+            />
           </RadioGroup>
           {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
         </FormControl>
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("emailPlaceholder")}
           name="emailId"
           fullWidth
-          required
           value={formData.emailId}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("emailId")}
           error={!!errors.emailId || validationResults.email.isAvailable === false}
           helperText={
             errors.emailId ||
-            (validationResults.email.loading ? t("checkingAvailability") :
-              validationResults.email.error ||
-              (validationResults.email.isAvailable ? t("emailAvailable") : ""))
+            (validationResults.email.loading
+              ? t("checkingAvailability")
+              : validationResults.email.error ||
+                (validationResults.email.isAvailable ? t("emailAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.email.loading ? (
@@ -173,14 +186,13 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("passwordPlaceholder")}
           type={showPassword ? "text" : "password"}
           name="password"
           fullWidth
-          required
           value={formData.password}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("password")}
@@ -197,14 +209,13 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("confirmPasswordPlaceholder")}
           type={showConfirmPassword ? "text" : "password"}
           name="confirmPassword"
           fullWidth
-          required
           value={formData.confirmPassword}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("confirmPassword")}
@@ -223,22 +234,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           placeholder={t("mobilePlaceholder")}
           name="mobileNo"
           fullWidth
-          required
           value={formData.mobileNo}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("mobileNo")}
           error={!!errors.mobileNo || validationResults.mobile.isAvailable === false}
           helperText={
             errors.mobileNo ||
-            (validationResults.mobile.loading ? t("checkingAvailability") :
-              validationResults.mobile.error ||
-              (validationResults.mobile.isAvailable ? t("mobileAvailable") : ""))
+            (validationResults.mobile.loading
+              ? t("checkingAvailability")
+              : validationResults.mobile.error ||
+                (validationResults.mobile.isAvailable ? t("mobileAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.mobile.loading ? (
@@ -270,9 +281,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           error={!!errors.AlternateNumber || validationResults.alternate.isAvailable === false}
           helperText={
             errors.AlternateNumber ||
-            (validationResults.alternate.loading ? t("checkingAvailability") :
-              validationResults.alternate.error ||
-              (validationResults.alternate.isAvailable ? t("alternateAvailable") : ""))
+            (validationResults.alternate.loading
+              ? t("checkingAvailability")
+              : validationResults.alternate.error ||
+                (validationResults.alternate.isAvailable ? t("alternateAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.alternate.loading ? (

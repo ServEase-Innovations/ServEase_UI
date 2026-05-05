@@ -1705,59 +1705,59 @@ export const translations: Translations = {
 
   // ============ ADDRESS COMPONENT TRANSLATIONS ============
   permanentAddress: {
-    en: "Permanent Address *",
-    hi: "स्थायी पता *",
-    kn: "ಶಾಶ್ವತ ವಿಳಾಸ *",
-    bn: "স্থায়ী ঠিকানা *"
+    en: "Permanent Address ",
+    hi: "स्थायी पता ",
+    kn: "ಶಾಶ್ವತ ವಿಳಾಸ ",
+    bn: "স্থায়ী ঠিকানা "
   },
 
   correspondenceAddress: {
-    en: "Correspondence Address *",
-    hi: "पत्राचार पता *",
-    kn: "ಪತ್ರ ವ್ಯವಹಾರದ ವಿಳಾಸ *",
-    bn: "পত্র correspondence ঠিকানা *"
+    en: "Correspondence Address ",
+    hi: "पत्राचार पता ",
+    kn: "ಪತ್ರ ವ್ಯವಹಾರದ ವಿಳಾಸ ",
+    bn: "পত্র correspondence ঠিকানা "
   },
 
   apartmentLabel: {
-    en: "Apartment/Flat Name or Number *",
-    hi: "अपार्टमेंट/फ्लैट का नाम या नंबर *",
-    kn: "ಅಪಾರ್ಟ್‌ಮೆಂಟ್/ಫ್ಲಾಟ್ ಹೆಸರು ಅಥವಾ ಸಂಖ್ಯೆ *",
-    bn: "অ্যাপার্টমেন্ট/ফ্ল্যাটের নাম বা নম্বর *"
+    en: "Apartment/Flat Name or Number ",
+    hi: "अपार्टमेंट/फ्लैट का नाम या नंबर ",
+    kn: "ಅಪಾರ್ಟ್‌ಮೆಂಟ್/ಫ್ಲಾಟ್ ಹೆಸರು ಅಥವಾ ಸಂಖ್ಯೆ ",
+    bn: "অ্যাপার্টমেন্ট/ফ্ল্যাটের নাম বা নম্বর "
   },
 
   streetLabel: {
-    en: "Street Name/Locality *",
-    hi: "गली का नाम/इलाका *",
-    kn: "ರಸ್ತೆ ಹೆಸರು/ಪ್ರದೇಶ *",
-    bn: "রাস্তার নাম/এলাকা *"
+    en: "Street Name/Locality ",
+    hi: "गली का नाम/इलाका ",
+    kn: "ರಸ್ತೆ ಹೆಸರು/ಪ್ರದೇಶ ",
+    bn: "রাস্তার নাম/এলাকা "
   },
 
   cityLabel: {
-    en: "City *",
-    hi: "शहर *",
-    kn: "ನಗರ *",
-    bn: "শহর *"
+    en: "City ",
+    hi: "शहर ",
+    kn: "ನಗರ ",
+    bn: "শহর "
   },
 
   countryLabel: {
-    en: "Country *",
-    hi: "देश *",
-    kn: "ದೇಶ *",
-    bn: "দেশ *"
+    en: "Country ",
+    hi: "देश ",
+    kn: "ದೇಶ ",
+    bn: "দেশ "
   },
 
   stateLabel: {
-    en: "State *",
-    hi: "राज्य *",
-    kn: "ರಾಜ್ಯ *",
-    bn: "রাজ্য *"
+    en: "State ",
+    hi: "राज्य ",
+    kn: "ರಾಜ್ಯ ",
+    bn: "রাজ্য "
   },
 
   pincodeLabel: {
-    en: "Pincode *",
-    hi: "पिनकोड *",
-    kn: "ಪಿನ್‌ಕೋಡ್ *",
-    bn: "পিনকোড *"
+    en: "Pincode ",
+    hi: "पिनकोड ",
+    kn: "ಪಿನ್‌ಕೋಡ್ ",
+    bn: "পিনকোড "
   },
 
   pincodeHelper: {
@@ -1826,10 +1826,10 @@ export const translations: Translations = {
 
   // ============ BASIC INFORMATION TRANSLATIONS ============
   firstNamePlaceholder: {
-    en: "First Name *",
-    hi: "पहला नाम *",
-    kn: "ಮೊದಲ ಹೆಸರು *",
-    bn: "প্রথম নাম *"
+    en: "First Name ",
+    hi: "पहला नाम ",
+    kn: "ಮೊದಲ ಹೆಸರು ",
+    bn: "প্রথম নাম "
   },
 
   middleNamePlaceholder: {
@@ -1840,17 +1840,17 @@ export const translations: Translations = {
   },
 
   lastNamePlaceholder: {
-    en: "Last Name *",
-    hi: "अंतिम नाम *",
-    kn: "ಕೊನೆಯ ಹೆಸರು *",
-    bn: "শেষ নাম *"
+    en: "Last Name ",
+    hi: "अंतिम नाम ",
+    kn: "ಕೊನೆಯ ಹೆಸರು ",
+    bn: "শেষ নাম "
   },
 
   dobLabel: {
-    en: "Date of Birth *",
-    hi: "जन्म तिथि *",
-    kn: "ಜನ್ಮ ದಿನಾಂಕ *",
-    bn: "জন্ম তারিখ *"
+    en: "Date of Birth ",
+    hi: "जन्म तिथि ",
+    kn: "ಜನ್ಮ ದಿನಾಂಕ ",
+    bn: "জন্ম তারিখ "
   },
 
   dobHelperText: {
@@ -1861,10 +1861,10 @@ export const translations: Translations = {
   },
 
   genderLabel: {
-    en: "Gender *",
-    hi: "लिंग *",
-    kn: "ಲಿಂಗ *",
-    bn: "লিঙ্গ *"
+    en: "Gender ",
+    hi: "लिंग ",
+    kn: "ಲಿಂಗ ",
+    bn: "লিঙ্গ "
   },
 
   male: {
@@ -1889,10 +1889,10 @@ export const translations: Translations = {
   },
 
   emailPlaceholder: {
-    en: "Email *",
-    hi: "ईमेल *",
-    kn: "ಇಮೇಲ್ *",
-    bn: "ইমেল *"
+    en: "Email ",
+    hi: "ईमेल ",
+    kn: "ಇಮೇಲ್ ",
+    bn: "ইমেল "
   },
 
   checkingAvailability: {
@@ -1910,24 +1910,24 @@ export const translations: Translations = {
   },
 
   passwordPlaceholder: {
-    en: "Password *",
-    hi: "पासवर्ड *",
-    kn: "ಪಾಸ್ವರ್ಡ್ *",
-    bn: "পাসওয়ার্ড *"
+    en: "Password ",
+    hi: "पासवर्ड ",
+    kn: "ಪಾಸ್ವರ್ಡ್ ",
+    bn: "পাসওয়ার্ড "
   },
 
   confirmPasswordPlaceholder: {
-    en: "Confirm Password *",
-    hi: "पासवर्ड की पुष्टि करें *",
-    kn: "ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ *",
-    bn: "পাসওয়ার্ড নিশ্চিত করুন *"
+    en: "Confirm Password ",
+    hi: "पासवर्ड की पुष्टि करें ",
+    kn: "ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ ",
+    bn: "পাসওয়ার্ড নিশ্চিত করুন "
   },
 
   mobilePlaceholder: {
-    en: "Mobile Number *",
-    hi: "मोबाइल नंबर *",
-    kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ *",
-    bn: "মোবাইল নম্বর *"
+    en: "Mobile Number ",
+    hi: "मोबाइल नंबर ",
+    kn: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ",
+    bn: "মোবাইল নম্বর "
   },
 
   mobileAvailable: {
@@ -1998,10 +1998,10 @@ export const translations: Translations = {
 
   // ============ KYC VERIFICATION TRANSLATIONS ============
   selectKycDocumentType: {
-    en: "Select KYC Document Type *",
-    hi: "केवाईसी दस्तावेज़ प्रकार चुनें *",
-    kn: "KYC ಡಾಕ್ಯುಮೆಂಟ್ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ *",
-    bn: "কেওয়াইসি ডকুমেন্টের ধরন নির্বাচন করুন *"
+    en: "Select KYC Document Type ",
+    hi: "केवईसी दस्तावेज़ प्रकार चुनें ",
+    kn: "KYC ಡಾಕ್ಯುಮೆಂಟ್ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ ",
+    bn: "কেওয়াইসি ডকুমেন্টের ধরন নির্বাচন করুন "
   },
 
   aadhaarCard: {
@@ -2019,10 +2019,10 @@ export const translations: Translations = {
   },
 
   aadhaarNumberPlaceholder: {
-    en: "Aadhaar Number *",
-    hi: "आधार नंबर *",
-    kn: "ಆಧಾರ್ ಸಂಖ್ಯೆ *",
-    bn: "আধার নম্বর *"
+    en: "Aadhaar Number ",
+    hi: "आधार नंबर ",
+    kn: "ಆಧಾರ್ ಸಂಖ್ಯೆ ",
+    bn: "আধার নম্বর "
   },
 
   aadhaarHelperText: {
@@ -2047,10 +2047,10 @@ export const translations: Translations = {
   },
 
   panNumberPlaceholder: {
-    en: "PAN Number *",
-    hi: "पैन नंबर *",
-    kn: "PAN ಸಂಖ್ಯೆ *",
-    bn: "প্যান নম্বর *"
+    en: "PAN Number ",
+    hi: "पैन नंबर ",
+    kn: "PAN ಸಂಖ್ಯೆ ",
+    bn: "প্যান নম্বর "
   },
 
   panHelperText: {
@@ -2068,10 +2068,10 @@ export const translations: Translations = {
   },
 
   drivingLicensePlaceholder: {
-    en: "Driving License Number *",
-    hi: "ड्राइविंग लाइसेंस नंबर *",
-    kn: "ಚಾಲನಾ ಪರವಾನಗಿ ಸಂಖ್ಯೆ *",
-    bn: "ড্রাইভিং লাইসেন্স নম্বর *"
+    en: "Driving License Number ",
+    hi: "ड्राइविंग लाइसेंस नंबर ",
+    kn: "ಚಾಲನಾ ಪರವಾನಗಿ ಸಂಖ್ಯೆ ",
+    bn: "ড্রাইভিং লাইসেন্স নম্বর "
   },
 
   drivingLicenseHelperText: {
@@ -2096,10 +2096,10 @@ export const translations: Translations = {
   },
 
   voterIdPlaceholder: {
-    en: "Voter ID Number *",
-    hi: "वोटर आईडी नंबर *",
-    kn: "ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ ಸಂಖ್ಯೆ *",
-    bn: "ভোটার আইডি নম্বর *"
+    en: "Voter ID Number ",
+    hi: "वोटर आईडी नंबर ",
+    kn: "ಮತದಾರರ ಗುರುತಿನ ಚೀಟಿ ಸಂಖ್ಯೆ ",
+    bn: "ভোটার আইডি নম্বর "
   },
 
   voterIdHelperText: {
@@ -2117,10 +2117,10 @@ export const translations: Translations = {
   },
 
   passportPlaceholder: {
-    en: "Passport Number *",
-    hi: "पासपोर्ट नंबर *",
-    kn: "ಪಾಸ್‌ಪೋರ್ಟ್ ಸಂಖ್ಯೆ *",
-    bn: "পাসপোর্ট নম্বর *"
+    en: "Passport Number ",
+    hi: "पासपोर्ट नंबर ",
+    kn: "ಪಾಸ್‌ಪೋರ್ಟ್ ಸಂಖ್ಯೆ ",
+    bn: "পাসপোর্ট নম্বর "
   },
 
   passportHelperText: {
@@ -2262,10 +2262,10 @@ export const translations: Translations = {
   },
 
   experience: {
-    en: "Experience *",
-    hi: "अनुभव *",
-    kn: "ಅನುಭವ *",
-    bn: "অভিজ্ঞতা *"
+    en: "Experience ",
+    hi: "अनुभव ",
+    kn: "ಅನುಭವ ",
+    bn: "অভিজ্ঞতা "
   },
 
   experienceHelperText: {

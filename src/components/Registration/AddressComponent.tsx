@@ -26,7 +26,6 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useLanguage } from 'src/context/LanguageContext';
- // Import the language context
 
 export interface AddressData {
   apartment: string;
@@ -154,7 +153,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
   isSameAddress,
   errors = {}
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
   
   const [showPincodeHelp, setShowPincodeHelp] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -184,7 +183,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
     };
 
     loadCountries();
-  }, [t]); // Add t to dependencies
+  }, [t]);
 
   // Load states for permanent address when country changes
   useEffect(() => {
@@ -253,7 +252,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
     const newAddress = { 
       ...permanentAddress, 
       country: selectedCountry,
-      state: '' // Clear state when country changes
+      state: ''
     };
     onAddressChange('permanent', newAddress);
   };
@@ -274,7 +273,7 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
     const newAddress = { 
       ...correspondenceAddress, 
       country: selectedCountry,
-      state: '' // Clear state when country changes
+      state: ''
     };
     onAddressChange('correspondence', newAddress);
   };
@@ -366,9 +365,9 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
               />
             </Grid>
             
-            {/* Country Select for Permanent Address */}
+            {/* Country Select for Permanent Address - required removed */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.permanent?.country} required>
+              <FormControl fullWidth error={!!errors.permanent?.country}>
                 <Autocomplete
                   value={getCountryValue(permanentAddress.country)}
                   onChange={(event, newValue) => {
@@ -408,9 +407,9 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
               </FormControl>
             </Grid>
             
-            {/* State Select for Permanent Address */}
+            {/* State Select for Permanent Address - required removed */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.permanent?.state} required>
+              <FormControl fullWidth error={!!errors.permanent?.state}>
                 <Autocomplete
                   value={getStateValue(permanentAddress.state, permanentStates)}
                   onChange={(event, newValue) => {
@@ -597,9 +596,9 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                 />
               </Grid>
               
-              {/* Country Select for Correspondence Address */}
+              {/* Country Select for Correspondence Address - required removed */}
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!errors.correspondence?.country} required>
+                <FormControl fullWidth error={!!errors.correspondence?.country}>
                   <Autocomplete
                     value={getCountryValue(correspondenceAddress.country)}
                     onChange={(event, newValue) => {
@@ -639,9 +638,9 @@ const AddressComponent: React.FC<AddressComponentProps> = ({
                 </FormControl>
               </Grid>
               
-              {/* State Select for Correspondence Address */}
+              {/* State Select for Correspondence Address - required removed */}
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!errors.correspondence?.state} required>
+                <FormControl fullWidth error={!!errors.correspondence?.state}>
                   <Autocomplete
                     value={getStateValue(correspondenceAddress.state, correspondenceStates)}
                     onChange={(event, newValue) => {

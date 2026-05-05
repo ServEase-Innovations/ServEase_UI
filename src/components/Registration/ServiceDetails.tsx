@@ -253,7 +253,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                 <FormControl
                   component="fieldset"
                   error={!!errors.housekeepingRole}
-                  required
+                  
                   fullWidth
                 >
                   <FormLabel
@@ -366,7 +366,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                   <FormControl
                     component="fieldset"
                     error={!!errors.cookingSpeciality}
-                    required
+                    
                     fullWidth
                   >
                     <FormLabel
@@ -472,7 +472,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                   <FormControl
                     component="fieldset"
                     error={!!errors.nannyCareType}
-                    required
+                    
                     fullWidth
                   >
                     <FormLabel
@@ -577,7 +577,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
                 <FormControl
                   component="fieldset"
                   error={!!errors.diet}
-                  required
+                
                   fullWidth
                 >
                   <FormLabel
@@ -775,7 +775,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           placeholder={t("experience")}
           name="experience"
           fullWidth
-          required
+          
           value={formData.experience}
           onChange={onExperienceChange}
           error={!!errors.experience}

@@ -25,6 +25,8 @@ interface KYCVerificationProps {
   onFieldFocus: (fieldName: string) => void;
   onDocumentUpload: (file: File | null) => void;
   onKycTypeChange: (kycType: string) => void;
+  isUploading?: boolean;
+  uploadedUrl?: string;
 }
 
 const KYCVerification: React.FC<KYCVerificationProps> = ({
@@ -34,6 +36,8 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
   onFieldFocus,
   onDocumentUpload,
   onKycTypeChange,
+  isUploading = false,
+  uploadedUrl = "",
 }) => {
   const { t } = useLanguage(); // Use the language context
 
@@ -95,7 +99,7 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
     <Grid container spacing={2.5}>
       {/* KYC Type Selection */}
       <Grid item xs={12}>
-        <FormControl component="fieldset" error={!!errors.kycType} required fullWidth>
+        <FormControl component="fieldset" error={!!errors.kycType} fullWidth>
           <FormLabel 
             component="legend" 
             sx={{ 
@@ -232,7 +236,6 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
           placeholder={currentOption.placeholder}
           name="kycNumber"
           fullWidth
-          required
           size="small"
           value={formData.kycNumber || ""}
           onChange={onFieldChange}
@@ -261,11 +264,17 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
         <CustomFileInput
           name="documentImage"
           accept="image/*,.pdf"
-          required
+          
           value={formData.documentImage}
           onChange={onDocumentUpload}
-          buttonText={t("uploadDocument").replace("{documentName}", currentOption.label)}
+          buttonText={isUploading ? t("uploading") : t("uploadDocument").replace("{documentName}", currentOption.label)}
+          disabled={isUploading}
         />
+        {uploadedUrl && (
+          <Typography variant="caption" color="success.main" sx={{ mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+            ✓ {t("documentUploaded")}
+          </Typography>
+        )}
       </Grid>
 
       {/* Helper Text based on KYC Type */}
