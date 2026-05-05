@@ -10,6 +10,8 @@ import ForgotPassword from "./ForgotPassword";
 import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
+import { PROFILE } from "../../Constants/pagesConstants";
+import { useAppUser } from "src/context/AppUserContext";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -46,6 +48,7 @@ export const Login: React.FC<ChildComponentProps> = ({
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const dispatch = useDispatch();
+  const { setAppUser } = useAppUser();
 
   const handleBackToLogin = () => {
     setIsRegistration(false);
@@ -125,21 +128,60 @@ export const Login: React.FC<ChildComponentProps> = ({
       });
 
       const payload = response?.data?.data;
-      if (!payload?.customer) {
+      const isCustomer = payload?.role === "CUSTOMER" && payload?.customer;
+      const isProvider =
+        payload?.role === "SERVICE_PROVIDER" && payload?.serviceProvider;
+      if (!isCustomer && !isProvider) {
         throw new Error("Invalid response from OTP login.");
       }
 
       localStorage.setItem("token", payload.token);
       dispatch(add(payload));
+      if (payload.role === "SERVICE_PROVIDER") {
+        setAppUser({
+          role: "SERVICE_PROVIDER",
+          serviceProviderId:
+            payload.serviceProviderId ??
+            payload.serviceProvider?.serviceproviderid ??
+            null,
+          name: [
+            payload.serviceProvider?.firstName,
+            payload.serviceProvider?.lastName,
+          ]
+            .filter(Boolean)
+            .join(" "),
+          email: payload.serviceProvider?.emailId ?? null,
+        });
+      } else {
+        setAppUser({
+          role: "CUSTOMER",
+          customerid: payload.customerId ?? payload.customer?.customerid ?? null,
+          name: [
+            payload.customer?.firstname,
+            payload.customer?.lastname,
+          ]
+            .filter(Boolean)
+            .join(" "),
+          email: payload.customer?.emailid ?? null,
+        });
+      }
       setSnackbarMessage("Login successful!");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
 
       setTimeout(() => {
-        if (sendDataToParent) {
-          sendDataToParent("");
-        } else if (bookingPage) {
-          bookingPage("CUSTOMER");
+        if (payload.role === "SERVICE_PROVIDER") {
+          if (sendDataToParent) {
+            sendDataToParent(PROFILE);
+          } else if (bookingPage) {
+            bookingPage("SERVICE_PROVIDER");
+          }
+        } else {
+          if (sendDataToParent) {
+            sendDataToParent("");
+          } else if (bookingPage) {
+            bookingPage("CUSTOMER");
+          }
         }
       }, 700);
     } catch (error: any) {

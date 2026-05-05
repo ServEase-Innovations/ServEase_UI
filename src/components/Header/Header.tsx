@@ -118,6 +118,9 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const { setAppUser } = useAppUser();
   const { appUser } = useAppUser();
+  const isUserAuthenticated = Boolean(isAuthenticated || (appUser?.role && localStorage.getItem("token")));
+  const displayName = user?.name || appUser?.name || "User";
+  const displayEmail = user?.email || appUser?.email || null;
 
   const cart = useSelector((state: any) => state.cart?.value);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -148,7 +151,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   };
 
   const refreshInAppUnread = useCallback(async () => {
-    if (!isAuthenticated || !appUser) {
+    if (!isUserAuthenticated || !appUser) {
       setInAppUnread(0);
       return;
     }
@@ -170,7 +173,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     } catch {
       /* non-blocking */
     }
-  }, [isAuthenticated, appUser]);
+  }, [isUserAuthenticated, appUser]);
 
   useEffect(() => {
     void refreshInAppUnread();
@@ -963,7 +966,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       {t('home')}
     </button>
 
-    {!(isAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
+    {!(isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
       <div className="relative" ref={serviceDropdownRef}>
         <button
           type="button"
@@ -997,7 +1000,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </div>
     )}
 
-    {isAuthenticated && appUser?.role === "CUSTOMER" && (
+    {isUserAuthenticated && appUser?.role === "CUSTOMER" && (
       <button
         type="button"
         onClick={() => handleClick(BOOKINGS)}
@@ -1007,7 +1010,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </button>
     )}
 
-    {isAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+    {isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
       <button
         type="button"
         onClick={() => handleClick(DASHBOARD)}
@@ -1017,7 +1020,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </button>
     )}
 
-    {isAuthenticated && appUser?.role === "VENDOR" && (
+    {isUserAuthenticated && appUser?.role === "VENDOR" && (
       <button
         type="button"
         onClick={() => handleClick(AGENT_DASHBOARD)}
@@ -1115,7 +1118,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       <span className="min-w-0 flex-1 text-xs font-semibold leading-tight text-slate-900">{t("detectLocation")}</span>
                     </button>
 
-                    {isAuthenticated && appUser?.role === "CUSTOMER" && (
+                    {isUserAuthenticated && appUser?.role === "CUSTOMER" && (
                       <button
                         type="button"
                         role="menuitem"
@@ -1279,7 +1282,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             </button>
           </Badge>
 
-          {!isAuthenticated ? (
+          {!isUserAuthenticated ? (
             <button
               type="button"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
@@ -1312,7 +1315,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   <img src={appUser?.picture} alt="" className="h-full w-full rounded-full object-cover" />
                 </span>
                 <span className="hidden min-w-0 max-w-[6rem] flex-1 truncate text-left text-sm font-medium text-white/95 sm:inline md:max-w-[9rem]">
-                  {user?.name}
+                  {displayName}
                 </span>
                 <ChevronDown
                   className={`hidden h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:block sm:h-4 sm:w-4 ${
@@ -1331,9 +1334,9 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 >
                   <div className="border-b border-slate-100 px-2.5 py-2">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t("account")}</p>
-                    <p className="mt-1 truncate text-sm font-semibold leading-tight text-slate-900">{user?.name}</p>
-                    {user?.email ? (
-                      <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">{user.email}</p>
+                    <p className="mt-1 truncate text-sm font-semibold leading-tight text-slate-900">{displayName}</p>
+                    {displayEmail ? (
+                      <p className="mt-0.5 truncate text-[11px] leading-tight text-slate-500">{displayEmail}</p>
                     ) : null}
                   </div>
 
@@ -1411,9 +1414,16 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       role="menuitem"
                       className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-rose-50/90 focus-visible:bg-rose-50/90 focus-visible:outline-none"
                       onClick={() => {
-                        logout({
-                          logoutParams: { returnTo: window.location.origin },
-                        });
+                        if (isAuthenticated) {
+                          logout({
+                            logoutParams: { returnTo: window.location.origin },
+                          });
+                        } else {
+                          localStorage.removeItem("token");
+                          setAppUser(null);
+                          dispatch(remove());
+                          sendDataToParent("");
+                        }
                         setdropDownOpen(false);
                       }}
                     >
@@ -1467,7 +1477,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               >
                 {t("home")}
               </button>
-              {!(isAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
+              {!(isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER") && (
                 <div className="mt-1 border-t border-slate-100 pt-2">
                   <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     {t("ourServices")}
@@ -1489,7 +1499,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   ))}
                 </div>
               )}
-              {isAuthenticated && appUser?.role === "CUSTOMER" && (
+              {isUserAuthenticated && appUser?.role === "CUSTOMER" && (
                 <button
                   type="button"
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
@@ -1501,7 +1511,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   {t("myBookings")}
                 </button>
               )}
-              {isAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+              {isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
                 <button
                   type="button"
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
@@ -1513,7 +1523,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   {t("dashboard")}
                 </button>
               )}
-              {isAuthenticated && appUser?.role === "VENDOR" && (
+              {isUserAuthenticated && appUser?.role === "VENDOR" && (
                 <button
                   type="button"
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
