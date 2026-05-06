@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   Divider,
   IconButton,
@@ -39,6 +40,7 @@ import {
   Pencil,
   Inbox,
   Shield,
+  Trash2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "ag-grid-community/styles/ag-grid.css";
@@ -289,8 +291,9 @@ export function ServiceProviderAdminDialog(props: {
   onClose: () => void;
   serviceproviderid: number;
   displayName: string;
+  onDeleted?: () => void;
 }) {
-  const { open, onClose, serviceproviderid, displayName } = props;
+  const { open, onClose, serviceproviderid, displayName, onDeleted } = props;
   const theme = useTheme();
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -309,6 +312,8 @@ export function ServiceProviderAdminDialog(props: {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<EngRow | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadProvider = useCallback(async () => {
     const r = await providerInstance.get<{
@@ -454,6 +459,30 @@ export function ServiceProviderAdminDialog(props: {
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       setSnack({ type: "error", message: err?.response?.data?.error || "Could not remove" });
+    }
+  };
+
+  const executeDeleteProvider = async () => {
+    setDeleteBusy(true);
+    try {
+      await providerInstance.delete(`/api/service-providers/serviceprovider/${serviceproviderid}`);
+      setConfirmDeleteOpen(false);
+      setSnack({ type: "success", message: "Service provider deleted" });
+      onClose();
+      onDeleted?.();
+    } catch (e) {
+      const err = e as {
+        response?: { data?: { message?: string; debugMessage?: string } };
+        message?: string;
+      };
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.debugMessage ||
+        err?.message ||
+        "Could not delete provider";
+      setSnack({ type: "error", message: msg });
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -646,6 +675,17 @@ export function ServiceProviderAdminDialog(props: {
               </Box>
             </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center" flexShrink={0}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={() => setConfirmDeleteOpen(true)}
+                disabled={loading || deleteBusy}
+                startIcon={<Trash2 size={16} />}
+                sx={{ textTransform: "none", fontWeight: 600 }}
+              >
+                Delete
+              </Button>
               <Button
                 size="small"
                 variant="contained"
@@ -1022,6 +1062,36 @@ export function ServiceProviderAdminDialog(props: {
         <DialogActions sx={{ px: 2.5, py: 1.75, bgcolor: (th) => alpha(th.palette.text.primary, 0.02) }}>
           <Button onClick={onClose} variant="outlined" color="inherit" sx={{ textTransform: "none", fontWeight: 600, borderRadius: 1.5 }}>
             Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => !deleteBusy && setConfirmDeleteOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete this service provider?</DialogTitle>
+        <DialogContent>
+          <DialogContentText component="div" sx={{ typography: "body2", mb: 0 }}>
+            <strong>{displayName}</strong> (ID {serviceproviderid}) will be removed permanently, including onboarding
+            addresses, recurring slots, availability rows, engagements, payouts/ledger entries linked in this database,
+            and related records. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setConfirmDeleteOpen(false)} disabled={deleteBusy} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleteBusy}
+            onClick={() => void executeDeleteProvider()}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            {deleteBusy ? "Deleting…" : "Delete permanently"}
           </Button>
         </DialogActions>
       </Dialog>

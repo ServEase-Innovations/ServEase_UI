@@ -320,6 +320,10 @@ const ServiceProviders = () => {
               .filter((x) => (x as string | null | undefined) != null && String(x).trim() !== "")
               .join(" ") || "Provider"
           }
+          onDeleted={() => {
+            void loadProviders();
+            setManaging(null);
+          }}
         />
       )}
     </div>
