@@ -1,216 +1,106 @@
 /* eslint-disable */
 import React, { useEffect, useState, useCallback } from "react";
-
 import { useAuth0 } from "@auth0/auth0-react";
-
 import { useAppUser } from "src/context/AppUserContext";
-
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
-
 import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
-
 import providerInstance from "src/services/providerInstance";
 
-
-
 // Import sections
-
 import CustomerProfileSection from "./CustomerProfileSection";
-
 import ServiceProviderProfileSection from "./ServiceProviderProfileSection";
-
 import VendorProfileSection from "./VendorProfileSection";
-
 import { useLanguage } from "src/context/LanguageContext";
-
 import { AlertCircle } from "lucide-react";
 
-
-
 const ProfileScreen = () => {
-
   const { t } = useLanguage();
-
-  const { user: auth0User, isAuthenticated } = useAuth0();
-
+  const { user: auth0User } = useAuth0(); // only used for picture fallback
   const { appUser } = useAppUser();
 
-
-
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
-
   const [userName, setUserName] = useState<string | null>(null);
-
   const [userEmail, setUserEmail] = useState<string | null>(null);
-
   const [userId, setUserId] = useState<number | null>(null);
-
   const [userRole, setUserRole] = useState<"CUSTOMER" | "SERVICE_PROVIDER" | "VENDOR">("CUSTOMER");
-
   const [isLoading, setIsLoading] = useState(true);
-
   const [dialogShownInSession, setDialogShownInSession] = useState(false);
-
   const [hasMobileNumber, setHasMobileNumber] = useState<boolean | null>(null);
 
-
-
-  // FIX 1: Wrap checkMobileNumber with useCallback
-
   const checkMobileNumber = useCallback(async (customerId: number) => {
-
     try {
-
       const response = await providerInstance.get(`/api/customer/${customerId}`);
-
       const mobileExists = !!response.data?.data?.mobileno;
-
       setHasMobileNumber(mobileExists);
 
-
-
       if (!mobileExists && !dialogShownInSession) {
-
         setTimeout(() => {
-
           setMobileDialogOpen(true);
-
           setDialogShownInSession(true);
-
         }, 1000);
-
       }
-
     } catch (error) {
-
       console.error("Failed to fetch customer data:", error);
-
     }
-
-  }, [dialogShownInSession]); // dialogShownInSession is now a dependency
-
-
+  }, [dialogShownInSession]);
 
   useEffect(() => {
-
     const initializeProfile = async () => {
-
       setIsLoading(true);
 
-
-
-      if (isAuthenticated && appUser) {
-
+      // ✅ Use appUser regardless of Auth0 authentication
+      if (appUser) {
         const name = appUser.name || null;
-
-        const email = appUser.email || auth0User?.email || null;
-
+        const email = appUser.email || null;
         const role = (appUser.role as "CUSTOMER" | "SERVICE_PROVIDER" | "VENDOR") || "CUSTOMER";
 
-
-
         setUserRole(role);
-
         setUserName(name);
-
         setUserEmail(email);
 
-
-
         let id = null;
-
         if (role === "SERVICE_PROVIDER") {
-
           id = appUser.serviceProviderId;
-
         } else if (role === "CUSTOMER") {
-
           id = appUser.customerid;
-
         } else if (role === "VENDOR") {
-
           id = appUser.vendorId;
-
         }
-
-
 
         const numericId = id ? Number(id) : null;
-
         setUserId(numericId);
 
-
-
         if (role === "CUSTOMER" && numericId) {
-
           await checkMobileNumber(numericId);
-
         } else if (role === "SERVICE_PROVIDER" || role === "VENDOR") {
-
           setHasMobileNumber(true);
-
         }
-
       }
 
-
-
       setIsLoading(false);
-
     };
 
-
-
     initializeProfile();
-
-    // FIX 2: Add checkMobileNumber to dependencies, remove dialogShownInSession
-
-  }, [isAuthenticated, appUser, auth0User?.email, checkMobileNumber]);
-
-
-
-  // FIX 3: Remove unused function getUserIdDisplay
-
-  // const getUserIdDisplay = () => { ... }; // DELETED - not used anywhere
-
-
+  }, [appUser, checkMobileNumber]);
 
   const getRoleDisplay = () => {
-
     switch (userRole) {
-
       case "CUSTOMER":
-
         return t('customer');
-
       case "SERVICE_PROVIDER":
-
         return t('serviceProvider');
-
       case "VENDOR":
-
         return t('vendor');
-
       default:
-
         return t('user');
-
     }
-
   };
 
-
-
   // Loading skeleton for the entire profile
-
   if (isLoading) {
-
     return (
-
       <div className="w-full min-h-[50vh] bg-slate-50/80">
-
         {/* Header Skeleton */}
-
         <div className="relative mt-16 overflow-hidden bg-gradient-to-br from-slate-800 via-sky-900 to-slate-900">
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -242,207 +132,98 @@ const ProfileScreen = () => {
         </div>
 
         {/* Content Skeleton */}
-
         <div className="flex w-full justify-center px-4 py-6 sm:px-6">
-
           <div className="w-full max-w-6xl rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-slate-200/40 ring-1 ring-slate-900/5 sm:p-7">
-
-            {/* Header with edit button skeleton */}
-
             <div className="flex justify-between items-center border-b pb-3 mb-6">
-
               <SkeletonLoader width={120} height={24} />
-
               <SkeletonLoader width={80} height={36} />
-
             </div>
-
-
-
-            {/* User Information Section Skeleton */}
-
             <div className="mb-6">
-
               <SkeletonLoader width={150} height={20} className="mb-4" />
-
               <div className="flex flex-wrap gap-4 mb-6">
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={60} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={60} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
               </div>
-
               <div className="flex flex-wrap gap-4 mb-6">
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={80} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={80} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
               </div>
-
             </div>
-
-
-
             <div className="h-px bg-gray-200 my-6" />
-
-
-
-            {/* Contact Information Section Skeleton */}
-
             <div className="mb-6">
-
               <SkeletonLoader width={150} height={20} className="mb-4" />
-
               <div className="flex flex-wrap gap-4 mb-6">
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={120} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
                 <div className="flex-1 min-w-[200px]">
-
                   <SkeletonLoader width={180} height={16} className="mb-2" />
-
                   <SkeletonLoader height={40} />
-
                 </div>
-
               </div>
-
             </div>
-
-
-
             <div className="h-px bg-gray-200 my-6" />
-
-
-
-            {/* Addresses Section Skeleton */}
-
             <div className="mb-6">
-
               <div className="flex justify-between items-center mb-4">
-
                 <SkeletonLoader width={80} height={20} />
-
                 <SkeletonLoader width={120} height={32} />
-
               </div>
-
               <div className="grid grid-cols-1 gap-4">
-
                 {[1, 2].map((item) => (
-
                   <div key={item} className="border border-gray-200 rounded-lg p-4">
-
                     <div className="flex justify-between items-start">
-
                       <SkeletonLoader width={80} height={20} />
-
                       <SkeletonLoader width={60} height={20} />
-
                     </div>
-
                     <div className="mt-2">
-
                       <SkeletonLoader height={20} className="mb-1" />
-
                       <SkeletonLoader width="80%" height={20} />
-
                     </div>
-
                   </div>
-
                 ))}
-
               </div>
-
             </div>
-
-
-
-            {/* Footer Skeleton */}
-
             <div className="bg-gray-100 py-4 text-center">
-
               <SkeletonLoader width={200} height={16} className="mx-auto" />
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     );
-
   }
 
-
+  // Determine profile picture: from appUser, Auth0, or default
+  const profilePicture = appUser?.picture || auth0User?.picture || "https://via.placeholder.com/80";
 
   return (
-
     <div className="w-full min-h-screen bg-slate-50/80">
-
       {/* Mobile Dialog */}
-
       {mobileDialogOpen && userId && userRole === "CUSTOMER" && (
-
         <MobileNumberDialog
-
           open={mobileDialogOpen}
-
           onClose={() => setMobileDialogOpen(false)}
-
           customerId={userId}
-
           onSuccess={() => {
-
             setHasMobileNumber(true);
-
             setMobileDialogOpen(false);
-
           }}
-
         />
-
       )}
 
-
-
       {/* Header */}
-
       <div className="relative mt-16 overflow-hidden bg-gradient-to-br from-sky-800 via-slate-800 to-slate-950 text-white">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.09]"
@@ -457,11 +238,7 @@ const ProfileScreen = () => {
             <div className="relative shrink-0">
               <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-sky-400/30 to-violet-400/20 opacity-80 blur-sm" />
               <img
-                src={
-                  appUser?.picture ||
-                  auth0User?.picture ||
-                  "https://via.placeholder.com/80"
-                }
+                src={profilePicture}
                 alt={userName || t("user")}
                 className="relative h-20 w-20 rounded-full border-2 border-white/20 object-cover shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24"
               />
@@ -507,40 +284,21 @@ const ProfileScreen = () => {
         </div>
       </div>
 
-
-
-      {/* Profile Section - Now includes Vendor */}
-
+      {/* Profile Section - Supports all three roles */}
       {userRole === "CUSTOMER" ? (
-
         <CustomerProfileSection userId={userId} userEmail={userEmail} />
-
       ) : userRole === "SERVICE_PROVIDER" ? (
-
         <ServiceProviderProfileSection userId={userId} userEmail={userEmail} />
-
       ) : userRole === "VENDOR" ? (
-
         <VendorProfileSection userId={userId} userEmail={userEmail} />
-
       ) : null}
 
-
-
       {/* Footer */}
-
       <footer className="border-t border-slate-200/90 bg-slate-50/90 py-5 text-center text-sm text-slate-500">
-
         © {new Date().getFullYear()} Serveaso. {t("allRightsReserved")}
-
       </footer>
-
     </div>
-
   );
-
 };
 
-
-
-export default ProfileScreen; 
+export default ProfileScreen;

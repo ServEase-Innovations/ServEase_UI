@@ -1,4 +1,3 @@
-// Login.tsx
 /* eslint-disable */
 import React, { useState } from "react";
 import Registration from "../Registration/Registration";
@@ -54,7 +53,7 @@ export const Login: React.FC<ChildComponentProps> = ({
     setIsRegistration(false);
     setIsForgotPassword(false);
     setServiceRegistration(false);
-    setAgentRegistration(false); // Reset agent registration state
+    setAgentRegistration(false);
   };
 
   const handleSnackbarClose = (
@@ -128,60 +127,96 @@ export const Login: React.FC<ChildComponentProps> = ({
       });
 
       const payload = response?.data?.data;
-      const isCustomer = payload?.role === "CUSTOMER" && payload?.customer;
-      const isProvider =
-        payload?.role === "SERVICE_PROVIDER" && payload?.serviceProvider;
-      if (!isCustomer && !isProvider) {
+      const role = payload?.role;
+      
+      // Basic validation: must have valid role and token
+      if (!role || !payload?.token) {
         throw new Error("Invalid response from OTP login.");
       }
 
+      // Store token and Redux data
       localStorage.setItem("token", payload.token);
       dispatch(add(payload));
-      if (payload.role === "SERVICE_PROVIDER") {
+
+      // Build AppUser object based on role
+      if (role === "SERVICE_PROVIDER") {
+        // ID can be string; convert to number for consistency with Header.tsx
+        const serviceProviderId = payload.serviceProviderId
+          ? Number(payload.serviceProviderId)
+          : null;
+        const providerData = payload.serviceProvider;
         setAppUser({
           role: "SERVICE_PROVIDER",
-          serviceProviderId:
-            payload.serviceProviderId ??
-            payload.serviceProvider?.serviceproviderid ??
-            null,
-          name: [
-            payload.serviceProvider?.firstName,
-            payload.serviceProvider?.lastName,
-          ]
-            .filter(Boolean)
-            .join(" "),
-          email: payload.serviceProvider?.emailId ?? null,
+          serviceProviderId: serviceProviderId,
+          name: providerData
+            ? [providerData.firstName, providerData.lastName].filter(Boolean).join(" ")
+            : "Service Provider",
+          email: providerData?.emailId ?? null,
         });
-      } else {
+      } 
+      else if (role === "VENDOR") {
+        // Assuming similar structure: vendorId (string) and vendor object
+        const vendorId = payload.vendorId ? Number(payload.vendorId) : null;
+        const vendorData = payload.vendor;
         setAppUser({
-          role: "CUSTOMER",
-          customerid: payload.customerId ?? payload.customer?.customerid ?? null,
-          name: [
-            payload.customer?.firstname,
-            payload.customer?.lastname,
-          ]
-            .filter(Boolean)
-            .join(" "),
-          email: payload.customer?.emailid ?? null,
+          role: "VENDOR",
+          vendorId: vendorId,
+          name: vendorData
+            ? [vendorData.firstName, vendorData.lastName].filter(Boolean).join(" ")
+            : "Vendor",
+          email: vendorData?.emailId ?? null,
         });
       }
+      else if (role === "CUSTOMER") {
+        // Assuming similar structure: customerId (string) and customer object
+        const customerId = payload.customerId ? Number(payload.customerId) : null;
+        const customerData = payload.customer;
+        setAppUser({
+          role: "CUSTOMER",
+          customerid: customerId,
+          name: customerData
+            ? [customerData.firstname, customerData.lastname].filter(Boolean).join(" ")
+            : "Customer",
+          email: customerData?.emailid ?? null,
+        });
+      }
+      else {
+        // Unknown role – still set minimal appUser to avoid crashing
+        setAppUser({
+          role: role,
+          name: "User",
+          email: null,
+        });
+      }
+
       setSnackbarMessage("Login successful!");
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
 
+      // Navigate based on role
       setTimeout(() => {
-        if (payload.role === "SERVICE_PROVIDER") {
+        if (role === "SERVICE_PROVIDER") {
           if (sendDataToParent) {
             sendDataToParent(PROFILE);
           } else if (bookingPage) {
             bookingPage("SERVICE_PROVIDER");
           }
-        } else {
+        } else if (role === "VENDOR") {
+          if (sendDataToParent) {
+            sendDataToParent("AGENT_DASHBOARD");
+          } else if (bookingPage) {
+            bookingPage("VENDOR");
+          }
+        } else if (role === "CUSTOMER") {
           if (sendDataToParent) {
             sendDataToParent("");
           } else if (bookingPage) {
             bookingPage("CUSTOMER");
           }
+        } else {
+          // Fallback
+          if (sendDataToParent) sendDataToParent("");
+          if (bookingPage) bookingPage("CUSTOMER");
         }
       }, 700);
     } catch (error: any) {
