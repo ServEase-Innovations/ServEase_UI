@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Grid,
   TextField,
@@ -14,7 +14,15 @@ import {
   Typography,
   Alert,
   Divider,
+  Chip,
+  Avatar,
+  IconButton,
 } from "@mui/material";
+import {
+  PictureAsPdf as PdfIcon,
+  InsertDriveFile as FileIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import CustomFileInput from "./CustomFileInput";
 import { useLanguage } from "src/context/LanguageContext";
 
@@ -23,10 +31,9 @@ interface KYCVerificationProps {
   errors: any;
   onFieldChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFieldFocus: (fieldName: string) => void;
-  onDocumentUpload: (file: File | null) => void;
+  onFileSelect: (file: File | null) => void; // renamed from onDocumentUpload
   onKycTypeChange: (kycType: string) => void;
-  isUploading?: boolean;
-  uploadedUrl?: string;
+  selectedFile?: File | null; // optional file for preview
 }
 
 const KYCVerification: React.FC<KYCVerificationProps> = ({
@@ -34,12 +41,27 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
   errors,
   onFieldChange,
   onFieldFocus,
-  onDocumentUpload,
+  onFileSelect,
   onKycTypeChange,
-  isUploading = false,
-  uploadedUrl = "",
+  selectedFile,
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
+
+  // Local preview URL
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+
+  // Generate preview URL when selectedFile changes
+  useEffect(() => {
+    if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setPreviewUrl("");
+    }
+  }, [selectedFile]);
 
   const kycOptions = [
     { 
@@ -95,11 +117,19 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
 
   const currentOption = getCurrentKycOption();
 
+  // Determine if the selected file is an image
+  const isImage = selectedFile?.type.startsWith("image/");
+
+  // Handler for removing the selected file
+  const handleRemoveFile = () => {
+    onFileSelect(null);
+  };
+
   return (
     <Grid container spacing={2.5}>
       {/* KYC Type Selection */}
       <Grid item xs={12}>
-        <FormControl component="fieldset" error={!!errors.kycType} fullWidth>
+        <FormControl component="fieldset" error={!!errors.kycType} required fullWidth>
           <FormLabel 
             component="legend" 
             sx={{ 
@@ -236,6 +266,7 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
           placeholder={currentOption.placeholder}
           name="kycNumber"
           fullWidth
+          required
           size="small"
           value={formData.kycNumber || ""}
           onChange={onFieldChange}
@@ -259,21 +290,49 @@ const KYCVerification: React.FC<KYCVerificationProps> = ({
         />
       </Grid>
 
-      {/* Document Upload Section */}
+      {/* Document Upload Section with Preview */}
       <Grid item xs={12}>
         <CustomFileInput
           name="documentImage"
           accept="image/*,.pdf"
-          
+          required
           value={formData.documentImage}
-          onChange={onDocumentUpload}
-          buttonText={isUploading ? t("uploading") : t("uploadDocument").replace("{documentName}", currentOption.label)}
-          disabled={isUploading}
+          onChange={onFileSelect} // now just selects file, no upload
+          buttonText={t("uploadDocument").replace("{documentName}", currentOption.label)}
         />
-        {uploadedUrl && (
-          <Typography variant="caption" color="success.main" sx={{ mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
-            ✓ {t("documentUploaded")}
-          </Typography>
+        
+        {/* Preview area */}
+        {selectedFile && (
+          <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: '#f5f5f5', position: 'relative' }}>
+            <IconButton
+              size="small"
+              onClick={handleRemoveFile}
+              sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'white' }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {isImage && previewUrl ? (
+                <Avatar
+                  src={previewUrl}
+                  variant="rounded"
+                  sx={{ width: 80, height: 80, objectFit: 'cover' }}
+                />
+              ) : (
+                <Avatar sx={{ bgcolor: '#ff9800', width: 56, height: 56 }}>
+                  <PdfIcon sx={{ fontSize: 32, color: 'white' }} />
+                </Avatar>
+              )}
+              <Box>
+                <Typography variant="body2" fontWeight={500}>
+                  {selectedFile.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {(selectedFile.size / 1024).toFixed(1)} KB
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         )}
       </Grid>
 

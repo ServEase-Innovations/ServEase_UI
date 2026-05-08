@@ -305,9 +305,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [image, setImage] = useState<Blob | null>(null);
 
-  // NEW: State for KYC document upload
-  const [kycDocumentUrl, setKycDocumentUrl] = useState<string>("");
-  const [isKycUploading, setIsKycUploading] = useState(false);
+const [kycDocumentFile, setKycDocumentFile] = useState<File | null>(null);
 
   // NEW: Handler for bank details field changes
   const handleBankFieldChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -604,52 +602,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
-  // NEW: Function to upload KYC document
-  const handleKycDocumentUpload = async (file: File | null) => {
-    if (!file) {
-      setKycDocumentUrl("");
-      return;
-    }
-
-    setIsKycUploading(true);
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", file); // The API expects 'file' field
-
-      const response = await axios.post(
-        "https://imageuploader-5njj.onrender.com/api/files/upload-file",
-        uploadFormData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        const url = response.data.fileUrl || response.data.url || response.data.imageUrl || "";
-        if (url) {
-          setKycDocumentUrl(url);
-          setSnackbarMessage(t("kycDocumentUploaded"));
-          setSnackbarSeverity("success");
-          setSnackbarOpen(true);
-        } else {
-          throw new Error("No URL returned");
-        }
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      console.error("KYC upload error:", error);
-      setSnackbarMessage(t("kycUploadFailed"));
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-      setKycDocumentUrl("");
-    } finally {
-      setIsKycUploading(false);
-    }
-  };
-
+const handleKycDocumentSelect = (file: File | null) => {
+  setKycDocumentFile(file);
+  if (file) {
+    setSnackbarMessage(t("kycDocumentSelected") || "Document selected");
+    setSnackbarSeverity("success");
+    setSnackbarOpen(true);
+  }
+};
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -1194,150 +1154,182 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+const handleSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
 
-    if (activeStep !== steps.length - 1) return;
+  if (activeStep !== steps.length - 1) return;
 
-    setIsSubmitting(true);
-    try {
-      let profilePicUrl = "";
+  setIsSubmitting(true);
+  try {
+    let profilePicUrl = "";
 
-      if (image) {
-        const formData1 = new FormData();
-        formData1.append("image", image);
+    // 1. Upload profile image if any
+    if (image) {
+      const formData1 = new FormData();
+      formData1.append("image", image);
 
-        const imageResponse = await axios.post(
-          "https://imageuploader-5njj.onrender.com/api/images/upload",
-          formData1,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        if (imageResponse.status === 200) {
-          profilePicUrl = imageResponse.data.imageUrl || imageResponse.data.url || "";
-        }
-      }
-
-      const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
-
-      // Prepare bank details object (only include non-empty fields)
-      const bankDetailsPayload = Object.fromEntries(
-        Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
-      );
-
-      // Helper to convert empty strings to null
-      const toNull = (value: any) => (value === "" ? null : value);
-
-      const payload = {
-        firstName: toNull(formData.firstName),
-        middleName: toNull(formData.middleName),
-        lastName: toNull(formData.lastName),
-        mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
-        alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
-        emailId: toNull(formData.emailId),
-        gender: toNull(formData.gender),
-        buildingName: toNull(formData.buildingName),
-        locality: toNull(formData.locality),
-        latitude: currentLocation?.latitude || formData.latitude || null,
-        longitude: currentLocation?.longitude || formData.longitude || null,
-        street: toNull(formData.street),
-        pincode: formData.pincode ? parseInt(formData.pincode) : null,
-        currentLocation: toNull(formData.currentLocation),
-        nearbyLocation: toNull(formData.nearbyLocation),
-        location: toNull(formData.currentLocation),
-        housekeepingRoles: formData.housekeepingRole.length ? formData.housekeepingRole : null,
-        serviceTypes: formData.housekeepingRole.length ? formData.housekeepingRole : null,
-        diet: toNull(formData.diet),
-        languages: selectedLanguages.length ? selectedLanguages : null,
-        ...(formData.housekeepingRole.includes("COOK") && formData.cookingSpeciality && {
-          cookingSpeciality: formData.cookingSpeciality
-        }),
-        ...(formData.housekeepingRole.includes("NANNY") && formData.nannyCareType && {
-          nannyCareType: formData.nannyCareType
-        }),
-        timeslot: toNull(formData.timeslot),
-        expectedSalary: 0,
-        experience: formData.experience ? parseInt(formData.experience) : null,
-        username: toNull(formData.emailId),
-        password: toNull(formData.password),
-        agentReferralId: toNull(formData.agentReferralId),
-        privacy: formData.privacy || false,
-        keyFacts: formData.keyFacts || false,
-        permanentAddress: {
-          field1: toNull(formData.permanentAddress.apartment),
-          field2: toNull(formData.permanentAddress.street),
-          ctarea: toNull(formData.permanentAddress.city),
-          pinno: toNull(formData.permanentAddress.pincode),
-          state: toNull(formData.permanentAddress.state),
-          country: toNull(formData.permanentAddress.country)
-        },
-        correspondenceAddress: {
-          field1: toNull(formData.correspondenceAddress.apartment),
-          field2: toNull(formData.correspondenceAddress.street),
-          ctarea: toNull(formData.correspondenceAddress.city),
-          pinno: toNull(formData.correspondenceAddress.pincode),
-          state: toNull(formData.correspondenceAddress.state),
-          country: toNull(formData.correspondenceAddress.country)
-        },
-        active: true,
-        kycType: toNull(formData.kycType),
-        kycNumber: toNull(formData.kycNumber),
-        kycDocumentUrl: kycDocumentUrl || null,
-        dob: toNull(formData.dob),
-        bankName: toNull(formData.bankDetails.bankName),
-        ifscCode: toNull(formData.bankDetails.ifscCode),
-        accountHolderName: toNull(formData.bankDetails.accountHolderName),
-        accountNumber: toNull(formData.bankDetails.accountNumber),
-        accountType: toNull(formData.bankDetails.accountType),
-        upiId: toNull(formData.bankDetails.upiId),
-      };
-
-      const response = await providerInstance.post(
-        "/api/service-providers/serviceprovider/add",
-        payload,
+      const imageResponse = await axios.post(
+        "https://imageuploader-5njj.onrender.com/api/images/upload",
+        formData1,
         {
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
-      setSnackbarOpen(true);
-      setSnackbarSeverity("success");
-      setSnackbarMessage(t("serviceProviderAdded"));
-
-      // Only create Auth0 user if email and password are provided
-      if (formData.emailId && formData.password) {
-        const authPayload = {
-          email: formData.emailId,
-          password: formData.password,
-          name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
-        };
-
-        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
-          .then((authResponse) => {
-            console.log("AuthO user created successfully:", authResponse.data);
-          }).catch((authError) => {
-            console.error("Error creating AuthO user:", authError);
-          });
+      if (imageResponse.status === 200) {
+        profilePicUrl = imageResponse.data.imageUrl || imageResponse.data.url || "";
       }
-
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onBackToLogin(true);
-      }, 3000);
-    } catch (error) {
-      setIsSubmitting(false);
-      setSnackbarOpen(true);
-      setSnackbarSeverity("error");
-      setSnackbarMessage(t("failedToAddServiceProvider"));
-      console.error("Error submitting form:", error);
     }
-  };
+
+    // 2. Upload KYC document if a file was selected
+    let uploadedKycUrl = "";
+    if (kycDocumentFile) {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", kycDocumentFile);
+
+      const uploadResponse = await axios.post(
+        "https://imageuploader-5njj.onrender.com/api/files/upload-file",
+        uploadFormData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Accept both 200 and 201 status codes
+      if (uploadResponse.status === 200 || uploadResponse.status === 201) {
+        const url = uploadResponse.data.file?.url || "";
+        if (url) {
+          uploadedKycUrl = url;
+        } else {
+          throw new Error("No URL returned from KYC upload");
+        }
+      } else {
+        throw new Error("KYC upload failed");
+      }
+    }
+
+    // 3. Prepare the registration payload
+    const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
+
+    // Prepare bank details object (only include non-empty fields)
+    const bankDetailsPayload = Object.fromEntries(
+      Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
+    );
+
+    // Helper to convert empty strings to null
+    const toNull = (value: any) => (value === "" ? null : value);
+
+    const payload = {
+      firstName: toNull(formData.firstName),
+      middleName: toNull(formData.middleName),
+      lastName: toNull(formData.lastName),
+      mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
+      alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
+      emailId: toNull(formData.emailId),
+      gender: toNull(formData.gender),
+      buildingName: toNull(formData.buildingName),
+      locality: toNull(formData.locality),
+      latitude: currentLocation?.latitude || formData.latitude || null,
+      longitude: currentLocation?.longitude || formData.longitude || null,
+      street: toNull(formData.street),
+      pincode: formData.pincode ? parseInt(formData.pincode) : null,
+      currentLocation: toNull(formData.currentLocation),
+      nearbyLocation: toNull(formData.nearbyLocation),
+      location: toNull(formData.currentLocation),
+      housekeepingRoles: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+      serviceTypes: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+      diet: toNull(formData.diet),
+      languages: selectedLanguages.length ? selectedLanguages : null,
+      ...(formData.housekeepingRole.includes("COOK") && formData.cookingSpeciality && {
+        cookingSpeciality: formData.cookingSpeciality
+      }),
+      ...(formData.housekeepingRole.includes("NANNY") && formData.nannyCareType && {
+        nannyCareType: formData.nannyCareType
+      }),
+      timeslot: toNull(formData.timeslot),
+      expectedSalary: 0,
+      experience: formData.experience ? parseInt(formData.experience) : null,
+      username: toNull(formData.emailId),
+      password: toNull(formData.password),
+      agentReferralId: toNull(formData.agentReferralId),
+      privacy: formData.privacy || false,
+      keyFacts: formData.keyFacts || false,
+      permanentAddress: {
+        field1: toNull(formData.permanentAddress.apartment),
+        field2: toNull(formData.permanentAddress.street),
+        ctarea: toNull(formData.permanentAddress.city),
+        pinno: toNull(formData.permanentAddress.pincode),
+        state: toNull(formData.permanentAddress.state),
+        country: toNull(formData.permanentAddress.country)
+      },
+      correspondenceAddress: {
+        field1: toNull(formData.correspondenceAddress.apartment),
+        field2: toNull(formData.correspondenceAddress.street),
+        ctarea: toNull(formData.correspondenceAddress.city),
+        pinno: toNull(formData.correspondenceAddress.pincode),
+        state: toNull(formData.correspondenceAddress.state),
+        country: toNull(formData.correspondenceAddress.country)
+      },
+      active: true,
+      kycType: toNull(formData.kycType),
+      kycNumber: toNull(formData.kycNumber),
+      kycDocumentUrl: uploadedKycUrl || null,   // Use the uploaded URL
+      dob: toNull(formData.dob),
+      bankName: toNull(formData.bankDetails.bankName),
+      ifscCode: toNull(formData.bankDetails.ifscCode),
+      accountHolderName: toNull(formData.bankDetails.accountHolderName),
+      accountNumber: toNull(formData.bankDetails.accountNumber),
+      accountType: toNull(formData.bankDetails.accountType),
+      upiId: toNull(formData.bankDetails.upiId),
+    };
+
+    // 4. Submit registration
+    const response = await providerInstance.post(
+      "/api/service-providers/serviceprovider/add",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    setSnackbarOpen(true);
+    setSnackbarSeverity("success");
+    setSnackbarMessage(t("serviceProviderAdded"));
+
+    // 5. Create Auth0 user if email and password provided
+    if (formData.emailId && formData.password) {
+      const authPayload = {
+        email: formData.emailId,
+        password: formData.password,
+        name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
+      };
+
+      axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+        .then((authResponse) => {
+          console.log("AuthO user created successfully:", authResponse.data);
+        }).catch((authError) => {
+          console.error("Error creating AuthO user:", authError);
+        });
+    }
+
+    setTimeout(() => {
+      setIsSubmitting(false);
+      onBackToLogin(true);
+    }, 3000);
+  } catch (error) {
+    setIsSubmitting(false);
+    setSnackbarOpen(true);
+    setSnackbarSeverity("error");
+    setSnackbarMessage(t("failedToAddServiceProvider"));
+    console.error("Error submitting form:", error);
+  }
+};
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
@@ -1757,16 +1749,15 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
 
       case 3:
         return (
-          <KYCVerification
-            formData={formData}
-            errors={errors}
-            onFieldChange={handleRealTimeValidation}
-            onFieldFocus={handleFieldFocus}
-            onDocumentUpload={handleKycDocumentUpload}
-            onKycTypeChange={handleKycTypeChange}
-            isUploading={isKycUploading}
-            uploadedUrl={kycDocumentUrl}
-          />
+           <KYCVerification
+      formData={formData}
+      errors={errors}
+      onFieldChange={handleRealTimeValidation}
+      onFieldFocus={handleFieldFocus}
+      onFileSelect={handleKycDocumentSelect}   // changed name
+      onKycTypeChange={handleKycTypeChange}
+      selectedFile={kycDocumentFile}           // pass file for preview
+    />
         );
 
       // NEW: Bank Details step
