@@ -32,6 +32,7 @@ type RangeValue = {
 type SingleProps = {
   mode?: "single";
   value?: Date;
+  maxDate?: Date;
   onChange: (date: Date) => void;
 };
 
@@ -85,6 +86,7 @@ const getTimesUpToNoon = (times: string[]): string[] => {
 export default function DribbbleDateTimePicker(props: Props) {
   const mode = props.mode ?? "single";
   const value = props.value;
+  const maxDate = props.mode === "single" ? props.maxDate : undefined;
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -198,6 +200,12 @@ export default function DribbbleDateTimePicker(props: Props) {
   const isDisabledInRangeMode = (day: number) => {
     const date = currentMonth.date(day);
     if (isPastDate(date)) return true;
+    
+    // For single mode (on-demand), disable dates beyond maxDate
+    if (mode === "single" && maxDate) {
+      if (date.isAfter(dayjs(maxDate), "day")) return true;
+    }
+    
     if (mode === "range" && rangeStart && !rangeEnd) {
       if (date.isAfter(rangeStart.add(MAX_RANGE_DAYS, "day"), "day")) return true;
     }
@@ -221,6 +229,12 @@ export default function DribbbleDateTimePicker(props: Props) {
     if (isDisabledInRangeMode(day)) return;
 
     if (mode === "single") {
+      // Check max date limit
+      if (maxDate && date.isAfter(dayjs(maxDate), "day")) {
+        setShowTimeHint(true);
+        setTimeout(() => setShowTimeHint(false), 3000);
+        return;
+      }
       setSelectedDate(date);
       setSelectedTime(null);
       return;
