@@ -15,6 +15,8 @@ import {
   Typography,
   IconButton,
   Stack,
+  Drawer,
+  SwipeableDrawer,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -72,8 +74,10 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 }) => {
   const { t } = useLanguage();
   const [lastSelectedDate, setLastSelectedDate] = useState<Dayjs | null>(null);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const today = dayjs();
   const maxDate21Days = today.add(21, "day");
   const maxDate90Days = today.add(89, "day");
@@ -202,17 +206,25 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           border: "1px solid",
           borderColor: "divider",
           bgcolor: "grey.50",
-          p: isMobile ? 2 : 2.5,
+          p: isMobile ? 1.5 : 2.5,
         }}
       >
         <Typography
-          variant="subtitle1"
+          variant={isMobile ? "subtitle2" : "subtitle1"}
           sx={{ fontWeight: 700, letterSpacing: "-0.01em", color: "text.primary", mb: 0.5 }}
         >
           {t("serviceDuration")}
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, lineHeight: 1.5 }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: "text.secondary", 
+            mb: 2, 
+            lineHeight: 1.5,
+            fontSize: isMobile ? "0.75rem" : "0.875rem"
+          }}
+        >
           {selectedOption === "Short term"
             ? "This duration applies to each day of service"
             : selectedOption === "Monthly"
@@ -230,18 +242,18 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             border: "1px solid",
             borderColor: "divider",
             bgcolor: "background.paper",
-            p: 1.5,
+            p: isMobile ? 1 : 1.5,
             boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
           }}
         >
           <Button
             variant="outlined"
-            size="small"
+            size={isMobile ? "small" : "medium"}
             onClick={handleDecreaseDuration}
             disabled={!canDecreaseDuration()}
             sx={{
-              minWidth: 44,
-              height: 44,
+              minWidth: isMobile ? 36 : 44,
+              height: isMobile ? 36 : 44,
               borderRadius: 2,
               fontSize: "1.25rem",
               fontWeight: 600,
@@ -252,7 +264,15 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           </Button>
 
           <Box sx={{ textAlign: "center", flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: "-0.02em", color: "primary.dark" }}>
+            <Typography 
+              variant={isMobile ? "h6" : "h5"} 
+              sx={{ 
+                fontWeight: 700, 
+                letterSpacing: "-0.02em", 
+                color: "primary.dark",
+                fontSize: isMobile ? "1.25rem" : "1.5rem"
+              }}
+            >
               {currentDuration} {t("hourUnit")}
               {currentDuration > 1 ? "s" : ""}
             </Typography>
@@ -270,12 +290,12 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
           <Button
             variant="outlined"
-            size="small"
+            size={isMobile ? "small" : "medium"}
             onClick={handleIncreaseDuration}
             disabled={!canIncreaseDuration()}
             sx={{
-              minWidth: 44,
-              height: 44,
+              minWidth: isMobile ? 36 : 44,
+              height: isMobile ? 36 : 44,
               borderRadius: 2,
               fontSize: "1.25rem",
               fontWeight: 600,
@@ -297,7 +317,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       <Box
         sx={{
           mt: 2,
-          p: isMobile ? 2 : 2.5,
+          p: isMobile ? 1.5 : 2.5,
           borderRadius: 2,
           border: "1px solid",
           borderColor: "divider",
@@ -306,12 +326,21 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           borderLeftColor: "primary.main",
         }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
+        <Typography 
+          variant={isMobile ? "subtitle2" : "subtitle1"} 
+          sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}
+        >
           {t("bookingDetails")}
         </Typography>
 
         <Stack spacing={1.25}>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: "text.secondary",
+              fontSize: isMobile ? "0.75rem" : "0.875rem"
+            }}
+          >
             <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
               {t("startDate")}:{" "}
             </Box>
@@ -319,7 +348,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           </Typography>
 
           {selectedOption === "Monthly" && endDate && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: "text.secondary",
+                fontSize: isMobile ? "0.75rem" : "0.875rem"
+              }}
+            >
               <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
                 {t("endDate")}:{" "}
               </Box>
@@ -328,7 +363,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           )}
 
           {selectedOption === "Short term" && endDate && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: "text.secondary",
+                fontSize: isMobile ? "0.75rem" : "0.875rem"
+              }}
+            >
               <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
                 {t("endDate")}:{" "}
               </Box>
@@ -336,7 +377,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             </Typography>
           )}
 
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: "text.secondary",
+              fontSize: isMobile ? "0.75rem" : "0.875rem"
+            }}
+          >
             <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
               {t("startTime")}:{" "}
             </Box>
@@ -344,7 +391,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           </Typography>
 
           {endTime && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: "text.secondary",
+                fontSize: isMobile ? "0.75rem" : "0.875rem"
+              }}
+            >
               <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
                 {t("endTime")}:{" "}
               </Box>
@@ -353,21 +406,45 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           )}
 
           {selectedOption === "Short term" && endDate && (
-            <Typography variant="body2" sx={{ mt: 0.5, color: "primary.dark", lineHeight: 1.55, fontSize: "0.8125rem" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mt: 0.5, 
+                color: "primary.dark", 
+                lineHeight: 1.55, 
+                fontSize: isMobile ? "0.7rem" : "0.8125rem"
+              }}
+            >
               Service will run from {dayjs(startDate).format("MMMM D")} to {dayjs(endDate).format("MMMM D, YYYY")}, daily
               from {startTime?.format("h:mm A")} to {endTime?.format("h:mm A")}
             </Typography>
           )}
 
           {selectedOption === "Monthly" && endDate && (
-            <Typography variant="body2" sx={{ mt: 0.5, color: "primary.dark", lineHeight: 1.55, fontSize: "0.8125rem" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mt: 0.5, 
+                color: "primary.dark", 
+                lineHeight: 1.55, 
+                fontSize: isMobile ? "0.7rem" : "0.8125rem"
+              }}
+            >
               Monthly subscription from {dayjs(startDate).format("MMMM D, YYYY")} to{" "}
               {dayjs(endDate).format("MMMM D, YYYY")}
             </Typography>
           )}
 
           {selectedOption === "Date" && (
-            <Typography variant="body2" sx={{ mt: 0.5, color: "primary.dark", lineHeight: 1.55, fontSize: "0.8125rem" }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mt: 0.5, 
+                color: "primary.dark", 
+                lineHeight: 1.55, 
+                fontSize: isMobile ? "0.7rem" : "0.8125rem"
+              }}
+            >
               {t("serviceStartMessage", {
                 date: startDate ? dayjs(startDate).format("MMMM D, YYYY") : "___",
                 time: startTime ? startTime.format("h:mm A") : "___",
@@ -401,9 +478,9 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
   const pickerShellSx = {
     width: "100%",
-    maxWidth: 380,
+    maxWidth: isMobile ? "100%" : 380,
     mx: "auto",
-    p: { xs: 1.5, sm: 2 },
+    p: { xs: 1, sm: 1.5, md: 2 },
     borderRadius: 2,
     border: "1px solid",
     borderColor: "divider",
@@ -411,29 +488,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
   };
 
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      scroll="body"
-      PaperProps={{
-        sx: {
-          width: "100%",
-          maxWidth: 540,
-          margin: "auto",
-          position: "relative",
-          borderRadius: "16px",
-          overflow: "hidden",
-          boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.22)",
-          [theme.breakpoints.down("sm")]: {
-            margin: "12px",
-            width: "calc(100% - 24px)",
-            maxWidth: "none",
-            borderRadius: "14px",
-          },
-        },
-      }}
-    >
+  const dialogContent = (
+    <>
       <Box sx={{ position: "relative", flexShrink: 0 }}>
         <IconButton
           aria-label={t("close")}
@@ -444,20 +500,30 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 2,
-            color: "common.white",
-            bgcolor: alpha("#fff", 0.12),
-            width: isMobile ? 36 : 40,
-            height: isMobile ? 36 : 40,
-            "&:hover": { bgcolor: alpha("#fff", 0.22) },
+            color: isMobile ? "text.primary" : "common.white",
+            bgcolor: isMobile ? alpha(theme.palette.grey[500], 0.1) : alpha("#fff", 0.12),
+            width: isMobile ? 32 : 40,
+            height: isMobile ? 32 : 40,
+            "&:hover": { bgcolor: isMobile ? alpha(theme.palette.grey[500], 0.2) : alpha("#fff", 0.22) },
           }}
         >
-          <CloseIcon sx={{ fontSize: isMobile ? 20 : 22 }} />
+          <CloseIcon sx={{ fontSize: isMobile ? 18 : 22 }} />
         </IconButton>
 
         <DialogHeader
-          className={`flex items-center !border-b-0 !px-5 ${isMobile ? "!py-3 !min-h-[3.25rem]" : "!py-4 !min-h-[3.75rem]"}`}
+          className={`flex items-center !border-b-0 ${isMobile ? "!px-4 !py-3 !min-h-[3rem]" : "!px-5 !py-4 !min-h-[3.75rem]"}`}
         >
-          <Typography component="h2" variant="h6" sx={{ fontWeight: 700, letterSpacing: "-0.02em", pr: 5, lineHeight: 1.25 }}>
+          <Typography 
+            component="h2" 
+            variant={isMobile ? "subtitle1" : "h6"} 
+            sx={{ 
+              fontWeight: 700, 
+              letterSpacing: "-0.02em", 
+              pr: isMobile ? 4 : 5, 
+              lineHeight: 1.25,
+              fontSize: isMobile ? "1.1rem" : "1.25rem"
+            }}
+          >
             {t("selectBookingOption")}
           </Typography>
         </DialogHeader>
@@ -465,14 +531,15 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
       <DialogContent
         sx={{
-          px: isMobile ? 2 : 3,
-          py: isMobile ? 2 : 2.5,
-          pt: isMobile ? 1.5 : 2,
+          px: isMobile ? 1.5 : 3,
+          py: isMobile ? 1.5 : 2.5,
+          pt: isMobile ? 1 : 2,
           maxHeight: { xs: "min(78vh, 560px)", sm: "min(72vh, 620px)" },
           overflowY: "auto",
-          bgcolor: "grey.50",
-          borderTop: "1px solid",
+          bgcolor: isMobile ? "background.paper" : "grey.50",
+          borderTop: isMobile ? "none" : "1px solid",
           borderColor: "divider",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         <FormControl component="fieldset" variant="standard" sx={{ mb: 2.5, width: "100%" }}>
@@ -498,7 +565,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
               display: "grid",
               gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
               alignItems: "stretch",
-              gap: 1.25,
+              gap: isMobile ? 1 : 1.25,
               width: "100%",
             }}
           >
@@ -524,8 +591,8 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                         display: "flex",
                         alignItems: "center",
                         minHeight: "2.75em",
-                        fontWeight: 700,
-                        fontSize: "0.9375rem",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "0.875rem" : "0.9375rem",
                         lineHeight: 1.3,
                         color: "text.primary",
                         textAlign: "left",
@@ -540,13 +607,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   sx={{
                     m: 0,
                     mx: 0,
-                    py: 1.5,
-                    px: 1.75,
+                    py: isMobile ? 1 : 1.5,
+                    px: isMobile ? 1.25 : 1.75,
                     display: "flex",
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "flex-start",
-                    gap: 1,
+                    gap: isMobile ? 0.75 : 1,
                     width: "100%",
                     maxWidth: "100%",
                     minHeight: { xs: "auto", sm: 56 },
@@ -557,7 +624,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                     borderColor: selected ? "primary.main" : "divider",
                     bgcolor: selected ? alpha(theme.palette.primary.main, 0.08) : "background.paper",
                     boxShadow: selected ? `0 0 0 1px ${alpha(theme.palette.primary.main, 0.25)}` : "0 1px 2px rgba(15, 23, 42, 0.05)",
-                    transition: "border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease",
+                    transition: "all 0.2s ease",
                     cursor: "pointer",
                     "& .MuiFormControlLabel-label": {
                       width: "100%",
@@ -612,7 +679,14 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   bgcolor: alpha(theme.palette.primary.main, 0.06),
                 }}
               >
-                <Typography variant="body2" sx={{ color: "primary.dark", lineHeight: 1.55, fontSize: "0.8125rem" }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: "primary.dark", 
+                    lineHeight: 1.55, 
+                    fontSize: isMobile ? "0.7rem" : "0.8125rem"
+                  }}
+                >
                   {t("relaxWeHandle")}
                 </Typography>
               </Box>
@@ -688,7 +762,14 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                     bgcolor: alpha(theme.palette.primary.main, 0.06),
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.dark", fontSize: "0.8125rem" }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      color: "primary.dark", 
+                      fontSize: isMobile ? "0.7rem" : "0.8125rem"
+                    }}
+                  >
                     {t("subscriptionPeriodLabel")}: {dayjs(startDate).format("MMMM D, YYYY")} –{" "}
                     {dayjs(endDate).format("MMMM D, YYYY")}
                   </Typography>
@@ -702,9 +783,9 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       <DialogActions
         sx={{
           px: isMobile ? 2 : 3,
-          py: isMobile ? 2 : 2.5,
-          pt: isMobile ? 1.5 : 2,
-          gap: 1.5,
+          py: isMobile ? 1.5 : 2.5,
+          pt: isMobile ? 1 : 2,
+          gap: isMobile ? 1 : 1.5,
           flexDirection: isMobile ? "column-reverse" : "row",
           justifyContent: "flex-end",
           bgcolor: "background.paper",
@@ -717,7 +798,13 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           variant="outlined"
           fullWidth={isMobile}
           size={isMobile ? "medium" : "large"}
-          sx={{ borderRadius: 2, minWidth: { sm: 120 }, textTransform: "none", fontWeight: 600 }}
+          sx={{ 
+            borderRadius: 2, 
+            minWidth: { sm: 120 }, 
+            textTransform: "none", 
+            fontWeight: 600,
+            py: isMobile ? 1 : 1.5
+          }}
         >
           {t("cancel")}
         </Button>
@@ -727,11 +814,74 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           disabled={isConfirmDisabled()}
           fullWidth={isMobile}
           size={isMobile ? "medium" : "large"}
-          sx={{ borderRadius: 2, minWidth: { sm: 140 }, textTransform: "none", fontWeight: 700, boxShadow: "none" }}
+          sx={{ 
+            borderRadius: 2, 
+            minWidth: { sm: 140 }, 
+            textTransform: "none", 
+            fontWeight: 700, 
+            boxShadow: "none",
+            py: isMobile ? 1 : 1.5
+          }}
         >
           {t("confirm")}
         </Button>
       </DialogActions>
+    </>
+  );
+
+  // For mobile, use a full-screen drawer for better UX
+  if (isMobile) {
+    return (
+      <SwipeableDrawer
+        anchor="bottom"
+        open={open}
+        onClose={onClose}
+        onOpen={() => {}}
+        disableSwipeToOpen={false}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            maxHeight: '90vh',
+            overflow: 'hidden',
+          },
+        }}
+      >
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {dialogContent}
+        </Box>
+      </SwipeableDrawer>
+    );
+  }
+
+  // For tablet and desktop, use the dialog
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      scroll="body"
+      PaperProps={{
+        sx: {
+          width: "100%",
+          maxWidth: isTablet ? 600 : 540,
+          margin: "auto",
+          position: "relative",
+          borderRadius: "16px",
+          overflow: "hidden",
+          boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.22)",
+          [theme.breakpoints.down("sm")]: {
+            margin: "12px",
+            width: "calc(100% - 24px)",
+            maxWidth: "none",
+            borderRadius: "14px",
+          },
+        },
+      }}
+    >
+      {dialogContent}
     </Dialog>
   );
 };
