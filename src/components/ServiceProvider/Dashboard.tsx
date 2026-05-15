@@ -23,7 +23,8 @@ import {
   Wallet,
   Receipt,
   Phone,
-  MapPin
+  MapPin,
+  Play,
 } from "lucide-react";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
@@ -166,6 +167,30 @@ interface CalendarEntry {
   updated_at: string;
 }
 
+/** One booked visit on the provider's calendar for today (IST), from GET .../today-bookings */
+export interface TodayBookingSlot {
+  availability_id: number;
+  engagement_id: number;
+  visit_date: string;
+  slot_start_epoch: number | null;
+  slot_end_epoch: number | null;
+  start_time_ist: string | null;
+  end_time_ist: string | null;
+  booking_type: string;
+  service_type: string;
+  task_status: string;
+  engagement_status: string;
+  address: string | null;
+  base_amount: number | null;
+  customer_firstname: string | null;
+  customer_lastname: string | null;
+  mobileno: string | null;
+  /** Present when a `service_days` row exists for this engagement + visit date (required to start/complete visit). */
+  service_day_id: number | null;
+  /** `service_days.status`: SCHEDULED | IN_PROGRESS | COMPLETED | … */
+  service_day_status: string | null;
+}
+
 // Mock data for payments
 const paymentHistory = [
   {
@@ -306,9 +331,172 @@ const formatBookingForCard = (booking: any) => {
   };
 };
 
+interface TodayVisitsCardProps {
+  loading: boolean;
+  todaySchedule: TodayBookingSlot[];
+  taskStatusUpdating: Record<string, boolean>;
+  onCallCustomer: (phone: string, name: string) => void;
+  onTrackAddress: (address: string) => void;
+  /** Resolves today’s service day when needed, then calls the start API */
+  onStartTodayVisit: (slot: TodayBookingSlot) => void | Promise<void>;
+  onStopTask: (bookingId: string, bookingData: any) => void;
+}
+
+function TodayVisitsCard({
+  loading,
+  todaySchedule,
+  taskStatusUpdating,
+  onCallCustomer,
+  onTrackAddress,
+  onStartTodayVisit,
+  onStopTask,
+}: TodayVisitsCardProps) {
+  return (
+    <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-slate-100/90 bg-gradient-to-r from-sky-50/90 to-white py-3.5 sm:py-4">
+        <div className="min-w-0">
+          <CardTitle className="text-base font-bold text-slate-900 sm:text-lg">
+            Today&apos;s visits
+          </CardTitle>
+          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+            Booked slots for today (India time), ordered by start time.
+          </p>
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/60">
+          <Clock className="h-5 w-5" aria-hidden />
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-5">
+        {loading ? (
+          <div className="flex min-h-[72px] items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-sky-600" />
+          </div>
+        ) : todaySchedule.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-sm text-slate-600">
+            No visits on your calendar for today.
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {todaySchedule.map((b) => {
+              const clientName =
+                [b.customer_firstname, b.customer_lastname].filter(Boolean).join(" ").trim() ||
+                "Customer";
+              const sd = String(b.service_day_status ?? "").toUpperCase();
+              const taskU = String(b.task_status ?? "").toUpperCase();
+              const recurring =
+                b.booking_type === "MONTHLY" || b.booking_type === "SHORT_TERM";
+              const showComplete =
+                b.service_day_id != null && sd === "IN_PROGRESS";
+              const showStart =
+                !showComplete &&
+                taskU !== "COMPLETED" &&
+                (sd === "SCHEDULED" ||
+                  (recurring && (b.service_day_id == null || sd === "")));
+              const timeRange =
+                b.start_time_ist && b.end_time_ist
+                  ? `${formatTimeToAMPM(b.start_time_ist)} – ${formatTimeToAMPM(b.end_time_ist)}`
+                  : b.start_time_ist
+                    ? formatTimeToAMPM(b.start_time_ist)
+                    : "Time TBD";
+              const amountLabel =
+                b.base_amount != null
+                  ? `₹${Number(b.base_amount).toLocaleString("en-IN", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}`
+                  : null;
+              return (
+                <li
+                  key={`${b.availability_id}-${b.engagement_id}`}
+                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-bold tabular-nums text-slate-900">{timeRange}</p>
+                    <p className="truncate text-sm font-semibold text-slate-800">{clientName}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      #{b.engagement_id} · {getServiceTitle(b.service_type || "")}
+                      {amountLabel ? ` · ${amountLabel}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                    {getBookingTypeBadge(b.booking_type)}
+                    {getStatusBadge(b.task_status)}
+                    {b.mobileno ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => onCallCustomer(b.mobileno!, clientName)}
+                      >
+                        <Phone className="mr-1 h-3.5 w-3.5" />
+                        Call
+                      </Button>
+                    ) : null}
+                    {b.address ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => onTrackAddress(b.address!)}
+                      >
+                        <MapPin className="mr-1 h-3.5 w-3.5" />
+                        Map
+                      </Button>
+                    ) : null}
+                    {showStart ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-slate-200 px-2 text-xs text-slate-800 hover:border-sky-200 hover:bg-sky-50/80"
+                        disabled={!!taskStatusUpdating[String(b.engagement_id)]}
+                        onClick={() => void onStartTodayVisit(b)}
+                      >
+                        {taskStatusUpdating[String(b.engagement_id)] ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <span className="inline-flex items-center">
+                            <Play className="mr-1 h-3.5 w-3.5" aria-hidden />
+                            Start task
+                          </span>
+                        )}
+                      </Button>
+                    ) : null}
+                    {showComplete ? (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 px-2 text-xs"
+                        onClick={() =>
+                          onStopTask(String(b.engagement_id), {
+                            today_service: {
+                              service_day_id: b.service_day_id,
+                              status: b.service_day_status,
+                            },
+                          })
+                        }
+                      >
+                        Complete task
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Dashboard() {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingHistoryResponse | null>(null);
+  const [todaySchedule, setTodaySchedule] = useState<TodayBookingSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user: auth0User, isAuthenticated } = useAuth0();
@@ -388,14 +576,19 @@ export default function Dashboard() {
       setLoading(true);
       const currentMonthYear = getCurrentMonthYear();
 
-      const payoutResponse: AxiosResponse<ProviderPayoutResponse> = await PaymentInstance.get(
-        `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
-      );
-      setPayout(payoutResponse.data);
+      const [payoutResponse, response, todayRes] = await Promise.all([
+        PaymentInstance.get(
+          `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+        ),
+        PaymentInstance.get(
+          `/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+        ),
+        PaymentInstance.get(
+          `/api/service-providers/${serviceProviderId}/today-bookings`
+        ).catch(() => ({ data: { bookings: [] as TodayBookingSlot[] } })),
+      ]);
 
-      const response = await PaymentInstance.get(
-        `/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
-      );
+      setPayout(payoutResponse.data);
 
       if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -403,9 +596,13 @@ export default function Dashboard() {
 
       const data: BookingHistoryResponse = response.data;
       setBookings(data);
+      const tr = todayRes as AxiosResponse<{ bookings?: TodayBookingSlot[] }>;
+      const slots = tr?.data?.bookings;
+      setTodaySchedule(Array.isArray(slots) ? slots : []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
+      setTodaySchedule([]);
       toast({
         title: "Error",
         description: "Failed to load data",
@@ -498,7 +695,7 @@ const handleTrackAddress = (address: string) => {
 
     try {
       await PaymentInstance.post(
-        `api/engagement-service/service-days/${serviceDayId}/start`,
+        `/api/engagement-service/service-days/${serviceDayId}/start`,
         {},
         { 
           headers: { 
@@ -520,7 +717,8 @@ const handleTrackAddress = (address: string) => {
       
       let errorMessage = "Failed to start service";
       if (axios.isAxiosError(err)) {
-        errorMessage = err.response?.data?.message || err.message || errorMessage;
+        const d = err.response?.data as { error?: string; message?: string } | undefined;
+        errorMessage = d?.error || d?.message || err.message || errorMessage;
       }
       
       toast({
@@ -531,6 +729,37 @@ const handleTrackAddress = (address: string) => {
     } finally {
       setTaskStatusUpdating(prev => ({ ...prev, [bookingId]: false }));
     }
+  };
+
+  const handleStartTodayVisit = async (b: TodayBookingSlot) => {
+    const bookingId = String(b.engagement_id);
+    let serviceDayId = b.service_day_id != null ? Number(b.service_day_id) : null;
+    if (serviceDayId == null || !Number.isFinite(serviceDayId)) {
+      try {
+        const { data } = await PaymentInstance.get(
+          `/api/engagement-service/engagements/${b.engagement_id}/service-days/today`
+        );
+        const row = data?.service_day as { service_day_id?: number | string } | undefined;
+        if (row?.service_day_id != null) {
+          const n = Number(row.service_day_id);
+          if (Number.isFinite(n) && n > 0) serviceDayId = n;
+        }
+      } catch {
+        /* 404: no row for server "today" */
+      }
+    }
+    if (serviceDayId == null) {
+      toast({
+        title: "Can't start this visit",
+        description:
+          "No service day was found for today. If the booking is new, wait a moment and refresh, or start from Recent booking.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await handleStartTask(bookingId, {
+      today_service: { service_day_id: serviceDayId },
+    });
   };
 
   const handleStopTask = async (bookingId: string, bookingData: any) => {
@@ -554,7 +783,7 @@ const handleTrackAddress = (address: string) => {
     setVerifyingOtp(true);
     try {
       await PaymentInstance.post(
-        `api/engagement-service/service-days/${serviceDayId}/complete`,
+        `/api/engagement-service/service-days/${serviceDayId}/complete`,
         { otp },
         { 
           headers: { 
@@ -576,7 +805,8 @@ const handleTrackAddress = (address: string) => {
     } catch (err) {
       let errorMessage = "Failed to complete service";
       if (axios.isAxiosError(err)) {
-        errorMessage = err.response?.data?.message || err.message || errorMessage;
+        const d = err.response?.data as { error?: string; message?: string } | undefined;
+        errorMessage = d?.error || d?.message || err.message || errorMessage;
       }
       
       toast({
@@ -712,6 +942,18 @@ const handleTrackAddress = (address: string) => {
           {metrics.map((metric, index) => (
             <DashboardMetricCard key={index} {...metric} />
           ))}
+        </div>
+
+        <div className="mb-6">
+          <TodayVisitsCard
+            loading={loading}
+            todaySchedule={todaySchedule}
+            taskStatusUpdating={taskStatusUpdating}
+            onCallCustomer={handleCallCustomer}
+            onTrackAddress={handleTrackAddress}
+            onStartTodayVisit={handleStartTodayVisit}
+            onStopTask={handleStopTask}
+          />
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">

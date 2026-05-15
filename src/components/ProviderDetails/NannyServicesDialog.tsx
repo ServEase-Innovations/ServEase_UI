@@ -57,7 +57,7 @@ import axios from 'axios';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import axiosInstance from '../../services/axiosInstance';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
-import { BookingPayload, BookingService } from 'src/services/bookingService';
+import { BookingPayload, BookingService, resolveServiceProviderIdForPayload } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { BOOKINGS } from '../../Constants/pagesConstants';
 import { useLanguage } from 'src/context/LanguageContext';
@@ -233,7 +233,7 @@ const { appUser } = useAppUser();
       age: pkg.age,
       price: pkg.calculatedPrice,
       description: pkg.description.join(", "),
-      providerId: providerDetails?.serviceproviderid || '',
+      providerId: String(resolveServiceProviderIdForPayload(providerDetails) ?? ''),
       providerName: providerFullName,
       activeTab: activeTab // Add current active tab
     };
@@ -387,7 +387,7 @@ const { appUser } = useAppUser();
           age: pkg.age,
           price: pkg.calculatedPrice,
           description: pkg.description.join(", "),
-          providerId: providerDetails?.serviceproviderid || '',
+          providerId: String(resolveServiceProviderIdForPayload(providerDetails) ?? ''),
           providerName: providerFullName,
           activeTab: activeTab
         }));
@@ -485,6 +485,14 @@ const { appUser } = useAppUser();
       return;
     }
 
+      const spId = resolveServiceProviderIdForPayload(providerDetails);
+      if (!spId) {
+        setSnackbarMessage("Missing provider. Please pick a provider again.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+        return;
+      }
+
       const responsibilities = selectedPackages.map(pkg => ({
         taskType: `${pkg.category} care - ${pkg.packageType} service`,
         age: pkg.age,
@@ -493,9 +501,7 @@ const { appUser } = useAppUser();
 
       const payload: BookingPayload = {
         customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderid
-          ? Number(providerDetails.serviceproviderid)
-          : 0,
+        serviceproviderid: spId,
         start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
         end_date: bookingType?.endDate || "",
         start_time: bookingType?.startTime || '',

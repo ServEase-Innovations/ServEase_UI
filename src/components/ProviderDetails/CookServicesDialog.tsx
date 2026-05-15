@@ -16,7 +16,7 @@ import { Button } from "../Button/button";
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { CartDialog } from '../AddToCart/CartDialog';
-import { BookingPayload, BookingService } from 'src/services/bookingService';
+import { BookingPayload, BookingService, resolveServiceProviderIdForPayload } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
@@ -308,11 +308,17 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
         persons: pkg.persons
       }));
 
+      const spId = resolveServiceProviderIdForPayload(providerDetails);
+      if (!spId) {
+        setSnackbarMessage("Missing provider. Please pick a provider again.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+        return;
+      }
+
       const payload: BookingPayload = {
         customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderid
-          ? Number(providerDetails.serviceproviderid)
-          : 0,
+        serviceproviderid: spId,
         start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
         end_date: bookingType?.endDate || "",
         responsibilities: { tasks: responsibilities },

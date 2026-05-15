@@ -2,21 +2,63 @@ import React, { useEffect, useMemo } from "react";
 import { Box, Button, Dialog, DialogContent, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Bell, CheckCircle, Clock, MapPin, XCircle, Sparkles } from "lucide-react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
-/** Payload from Socket.IO `new-engagement` (see payments `createEngagements.js`). */
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+/** Payload from Socket.IO `new-engagement` / `new-engagement-request` (payments service). */
 export interface NewBookingRequestPayload {
   engagement_id: number;
   service_type: string;
   booking_type?: string;
   start_date: string;
   end_date?: string;
-  start_time: string;
+  start_time?: string;
   end_time?: string;
   duration_minutes?: number;
   base_amount: number;
+  start_epoch?: number;
   address?: string | null;
   /** Straight-line distance (m) from this provider to the customer's service location. */
   distance_meters?: number;
+  /** Assigned MONTHLY/SHORT_TERM: customer checkout not finished yet */
+  payment_pending?: boolean;
+  /** Assigned MONTHLY/SHORT_TERM: payment captured */
+  payment_completed?: boolean;
+}
+
+/**
+ * Fills `start_time` / `end_time` from `start_epoch` when the server only sent epochs
+ * (e.g. `new-engagement-request` after Razorpay).
+ */
+export function normalizeSocketBookingForToast(
+  raw: Record<string, unknown>
+): NewBookingRequestPayload {
+  const out = { ...raw } as unknown as NewBookingRequestPayload;
+  const startEpoch =
+    out.start_epoch != null && Number.isFinite(Number(out.start_epoch))
+      ? Number(out.start_epoch)
+      : null;
+  if (
+    (!out.start_time || String(out.start_time).trim() === "") &&
+    startEpoch != null
+  ) {
+    const z = dayjs.unix(startEpoch).tz("Asia/Kolkata");
+    out.start_time = z.format("HH:mm");
+    if (out.duration_minutes != null && Number.isFinite(Number(out.duration_minutes))) {
+      out.end_time = z.add(Number(out.duration_minutes), "minute").format("HH:mm");
+    }
+  }
+  if (out.start_time == null || String(out.start_time).trim() === "") {
+    out.start_time = "—";
+  }
+  if (out.base_amount == null || out.base_amount === ("" as unknown)) {
+    out.base_amount = 0;
+  }
+  return out;
 }
 
 function formatDateLabel(iso: string) {
@@ -36,13 +78,14 @@ export function formatDistanceMetersLine(m?: number): string | null {
 }
 
 function timeRange(eng: NewBookingRequestPayload): string {
+  const st = eng.start_time ?? "—";
   if (eng.end_time) {
-    return `${eng.start_time} – ${eng.end_time}`;
+    return `${st} – ${eng.end_time}`;
   }
   if (eng.duration_minutes) {
-    return `${eng.start_time} · ${eng.duration_minutes} min slot`;
+    return `${st} · ${eng.duration_minutes} min slot`;
   }
-  return eng.start_time;
+  return st;
 }
 
 export type OndemandBookingRequestPanelProps = {
@@ -82,6 +125,22 @@ export function OndemandBookingRequestPanel({
     ? engagement.booking_type.replace(/_/g, " ")
     : "Booking";
 
+  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
+  const isInfoOnly =
+    engagement.payment_completed === true ||
+    (engagement.payment_pending === true && !isOnDemand);
+
+  const headerTitle = engagement.payment_completed
+    ? "Booking confirmed"
+    : engagement.payment_pending && !isOnDemand
+      ? "New booking"
+      : "New booking request";
+  const headerSubtitle = engagement.payment_completed
+    ? "This booking is on your calendar with the schedule below."
+    : engagement.payment_pending && !isOnDemand
+      ? "The customer is completing payment. You will get another update when it succeeds."
+      : "A customer nearby is requesting your service";
+
   return (
     <>
       <Box
@@ -103,7 +162,7 @@ export function OndemandBookingRequestPanel({
             className="text-center font-semibold"
             sx={{ fontSize: "1.1rem", letterSpacing: 0.2 }}
           >
-            New booking request
+            {headerTitle}
           </Typography>
           <Bell className="h-5 w-5 opacity-95" aria-hidden />
         </Stack>
@@ -113,7 +172,7 @@ export function OndemandBookingRequestPanel({
           </Typography>
         ) : null}
         <Typography variant="body2" sx={{ opacity: 0.9, textAlign: "center", mt: headerCaption ? 0.25 : 0.5, fontSize: 13 }}>
-          A customer nearby is requesting your service
+          {headerSubtitle}
         </Typography>
       </Box>
 
@@ -261,41 +320,59 @@ export function OndemandBookingRequestPanel({
       </DialogContent>
 
       <Box sx={{ px: 2.5, pb: 2.5, pt: 0.5 }}>
-        <Stack direction="row" gap={1.5} justifyContent="stretch" sx={{ "& .MuiButton-root": { flex: 1 } }}>
+        {isInfoOnly ? (
           <Button
             type="button"
             fullWidth
             size="large"
-            variant="outlined"
-            color="error"
+            variant="contained"
+            color="primary"
             disabled={actionBusy}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onReject(engagement.engagement_id);
             }}
-            startIcon={<XCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
           >
-            Decline
+            Dismiss
           </Button>
-          <Button
-            type="button"
-            fullWidth
-            size="large"
-            variant="contained"
-            color="success"
-            disabled={actionBusy}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAccept(engagement.engagement_id);
-            }}
-            startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
-            sx={{ boxShadow: 2 }}
-          >
-            Accept
-          </Button>
-        </Stack>
+        ) : (
+          <Stack direction="row" gap={1.5} justifyContent="stretch" sx={{ "& .MuiButton-root": { flex: 1 } }}>
+            <Button
+              type="button"
+              fullWidth
+              size="large"
+              variant="outlined"
+              color="error"
+              disabled={actionBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReject(engagement.engagement_id);
+              }}
+              startIcon={<XCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
+            >
+              Decline
+            </Button>
+            <Button
+              type="button"
+              fullWidth
+              size="large"
+              variant="contained"
+              color="success"
+              disabled={actionBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAccept(engagement.engagement_id);
+              }}
+              startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
+              sx={{ boxShadow: 2 }}
+            >
+              Accept
+            </Button>
+          </Stack>
+        )}
         {footerHelperText != null && footerHelperText.length > 0 && (
           <Typography variant="caption" color="text.disabled" textAlign="center" display="block" sx={{ mt: 1.5 }}>
             {footerHelperText}
@@ -319,10 +396,16 @@ export default function BookingRequestToast({
   onReject: onRejectFromParent,
   onClose,
 }: BookingRequestToastProps) {
+  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
+  const isInfoOnly =
+    engagement.payment_completed === true ||
+    (engagement.payment_pending === true && !isOnDemand);
+
   useEffect(() => {
+    if (isInfoOnly) return undefined;
     const timer = setTimeout(() => onClose(), 60_000);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, isInfoOnly]);
 
   return (
     <Dialog
@@ -361,7 +444,11 @@ export default function BookingRequestToast({
           onRejectFromParent(id);
           onClose();
         }}
-        footerHelperText="This request closes in 60 seconds if you take no action."
+        footerHelperText={
+          isInfoOnly
+            ? null
+            : "This request closes in 60 seconds if you take no action."
+        }
       />
     </Dialog>
   );

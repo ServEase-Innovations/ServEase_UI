@@ -67,7 +67,7 @@ import {
 import { useAuth0 } from "@auth0/auth0-react";
 import CloseIcon from '@mui/icons-material/Close';
 import { usePricingFilterService } from 'src/utils/PricingFilter';
-import { BookingPayload, BookingService } from 'src/services/bookingService';
+import { BookingPayload, BookingService, resolveServiceProviderIdForPayload } from 'src/services/bookingService';
 import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
@@ -800,11 +800,17 @@ const { appUser } = useAppUser();
         add_ons: addOns.map(item => ({ taskType: item.name }))
       };
 
+      const spId = resolveServiceProviderIdForPayload(providerDetails);
+      if (!spId) {
+        setSnackbarMessage("Missing provider. Please pick a provider again.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+        return;
+      }
+
       const payload: BookingPayload = {
         customerid: customerId,
-        serviceproviderid: providerDetails?.serviceproviderid
-          ? Number(providerDetails.serviceproviderid)
-          : 0,
+        serviceproviderid: spId,
         start_date: bookingType?.startDate || new Date().toISOString().split("T")[0],
         end_date: bookingType?.endDate || "",
         start_time: bookingType?.startTime || "",

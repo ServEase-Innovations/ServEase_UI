@@ -27,7 +27,9 @@ import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
 import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
-import BookingRequestToast from "./components/Notifications/BookingRequestToast";
+import BookingRequestToast, {
+  normalizeSocketBookingForToast,
+} from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
 import PaymentInstance from "./services/paymentInstance";
 import utilsInstance from "./services/utilsInstance";
@@ -399,10 +401,16 @@ function App() {
         newSocket.emit("join", { providerId: appUser.serviceProviderId });
       });
 
-      newSocket.on("new-engagement", (data) => {
-        console.log("📩 New engagement received:", data);
-        setActiveToast(data);
-      });
+      const showSpBookingToast = (data: unknown) => {
+        if (!data || typeof data !== "object") return;
+        console.log("📩 Booking socket payload:", data);
+        setActiveToast(
+          normalizeSocketBookingForToast(data as Record<string, unknown>)
+        );
+      };
+
+      newSocket.on("new-engagement", showSpBookingToast);
+      newSocket.on("new-engagement-request", showSpBookingToast);
 
       newSocket.on("in_app_notification", () => {
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));

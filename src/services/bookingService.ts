@@ -38,6 +38,23 @@ export interface BookingPayload {
   [key: string]: any;
 }
 
+/**
+ * Provider cards / API use `serviceProviderId` (camelCase); legacy code used `serviceproviderid`.
+ * Returns a positive integer PK or null — never 0 (booking layer treats 0 as "no provider").
+ */
+export function resolveServiceProviderIdForPayload(
+  details: {
+    serviceProviderId?: string | number | null;
+    serviceproviderid?: string | number | null;
+  } | null | undefined
+): number | null {
+  const raw = details?.serviceProviderId ?? details?.serviceproviderid;
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
 export interface RazorpayPaymentResponse {
   razorpay_payment_id: string;
   razorpay_order_id: string;
