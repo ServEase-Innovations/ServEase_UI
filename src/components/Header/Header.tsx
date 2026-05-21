@@ -68,7 +68,7 @@ import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
 import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
 import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 import utilsInstance from "src/services/utilsInstance";
-import { useAppUser } from "src/context/AppUserContext";
+import { clearStoredAuthSession, useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import PaymentInstance from "src/services/paymentInstance";
 import NotificationsPage from "../Notifications/NotificationsPage";
@@ -218,6 +218,7 @@ export const Header: React.FC<ChildComponentProps> = ({
 
       try {
         const token = await getAccessTokenSilently();
+        if (token) localStorage.setItem("token", token);
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
 
@@ -1415,11 +1416,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-rose-50/90 focus-visible:bg-rose-50/90 focus-visible:outline-none"
                       onClick={() => {
                         if (isAuthenticated) {
+                          clearStoredAuthSession();
+                          setAppUser(null);
                           logout({
                             logoutParams: { returnTo: window.location.origin },
                           });
                         } else {
-                          localStorage.removeItem("token");
+                          clearStoredAuthSession();
                           setAppUser(null);
                           dispatch(remove());
                           sendDataToParent("");

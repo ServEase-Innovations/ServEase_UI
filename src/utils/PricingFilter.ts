@@ -11,10 +11,9 @@ export const usePricingFilterService = () => {
   const getFilteredPricing = (serviceType: string) => {
     if (!pricing || !serviceType || !pricing[serviceType]) return [];
 
+    const pref = bookingType?.bookingPreference?.toLowerCase() ?? "";
     const matchBookingType =
-  bookingType?.bookingPreference?.toLowerCase() === "date"
-    ? "On Demand"
-    : "Regular";
+      pref === "date" || pref === "short term" ? "On Demand" : "Regular";
 
 
       // console.log("bookingType?.bookingPreference ", bookingType?.bookingPreference)

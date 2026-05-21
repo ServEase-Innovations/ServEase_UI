@@ -83,13 +83,25 @@ const customerSlice = createSlice({
       })
       .addCase(fetchCustomerDetails.fulfilled, (state, action) => {
         state.loading = false;
-        state.customerId = action.payload.customerid;
-        state.firstName = action.payload.firstname;
-        state.lastName = action.payload.lastname;
-        state.emailId = action.payload.emailid;
-        state.mobileNo = action.payload.mobileno;
-        state.alternateNo = action.payload.alternateno;
-        state.hasMobileNumber = !!action.payload.mobileno;
+        const p = action.payload || {};
+        const mobileRaw =
+          p.mobileNo ?? p.mobileno ?? p.mobile_no ?? null;
+        const altRaw =
+          p.alternateNo ?? p.alternateno ?? p.alternate_no ?? null;
+        const mobileStr =
+          mobileRaw != null && mobileRaw !== ""
+            ? String(mobileRaw).replace(/\D/g, "")
+            : "";
+        state.customerId = String(
+          p.customerId ?? p.customerid ?? ""
+        );
+        state.firstName = p.firstName ?? p.firstname ?? null;
+        state.lastName = p.lastName ?? p.lastname ?? null;
+        state.emailId = p.emailId ?? p.emailid ?? null;
+        state.mobileNo = mobileStr || null;
+        state.alternateNo =
+          altRaw != null && altRaw !== "" ? String(altRaw).replace(/\D/g, "") : null;
+        state.hasMobileNumber = mobileStr.length >= 10;
       })
       .addCase(fetchCustomerDetails.rejected, (state, action) => {
         state.loading = false;

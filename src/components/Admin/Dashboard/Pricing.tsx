@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MaidRateCardAdmin from "./MaidRateCardAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Common/Card";
 import { Button } from "../../Common/button";
 import { Input } from "../../Common/input";
@@ -164,7 +165,10 @@ const PriceCell = (p: ICellRendererParams<ServicePricing, number>) => {
   );
 };
 
+type PricingTab = "catalog" | "ratecard";
+
 const Pricing = () => {
+  const [activeTab, setActiveTab] = useState<PricingTab>("ratecard");
   const [rowData, setRowData] = useState<ServicePricing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,8 +198,8 @@ const Pricing = () => {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (activeTab === "catalog") void load();
+  }, [load, activeTab]);
 
   const stats = useMemo(() => {
     const total = rowData.length;
@@ -268,15 +272,36 @@ const Pricing = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Pricing</h1>
-          <p className="mt-0.5 max-w-2xl text-sm text-slate-600 sm:text-base">
-            Service rate card from the catalog (read-only). Use search and column filters to find rows; export the current
-            result as CSV.
-          </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Pricing</h1>
+        <p className="mt-0.5 max-w-2xl text-sm text-slate-600 sm:text-base">
+          Configure maid hourly / short-term / monthly rates, or browse the legacy package catalog (Mongo).
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={activeTab === "ratecard" ? "default" : "outline"}
+            onClick={() => setActiveTab("ratecard")}
+          >
+            Maid rate card
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={activeTab === "catalog" ? "default" : "outline"}
+            onClick={() => setActiveTab("catalog")}
+          >
+            Package catalog
+          </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+      </div>
+
+      {activeTab === "ratecard" ? (
+        <MaidRateCardAdmin />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"
@@ -293,8 +318,6 @@ const Pricing = () => {
             <span className="ml-1.5">Refresh</span>
           </Button>
         </div>
-      </div>
-
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -426,6 +449,8 @@ const Pricing = () => {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

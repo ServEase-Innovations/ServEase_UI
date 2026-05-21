@@ -705,7 +705,11 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                       value={{ startDate: startDate ? dayjs(startDate).toDate() : undefined, endDate: endDate ? dayjs(endDate).toDate() : undefined }}
                       onChange={({ startDate, endDate, time }) => {
                         const start = dayjs(startDate);
-                        const end = dayjs(endDate);
+                        let end = dayjs(endDate);
+                        if (end.diff(start, "day") > 14) {
+                          end = start.add(14, "day");
+                          alert("Short-term bookings are limited to 15 days.");
+                        }
                         const [t, meridian] = time.split(" ");
                         let hour = Number(t.split(":")[0]);
                         if (meridian === "PM" && hour !== 12) hour += 12;

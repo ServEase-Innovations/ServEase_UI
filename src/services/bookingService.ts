@@ -45,10 +45,14 @@ export interface BookingPayload {
 export function resolveServiceProviderIdForPayload(
   details: {
     serviceProviderId?: string | number | null;
+    serviceproviderId?: string | number | null;
     serviceproviderid?: string | number | null;
   } | null | undefined
 ): number | null {
-  const raw = details?.serviceProviderId ?? details?.serviceproviderid;
+  const raw =
+    details?.serviceProviderId ??
+    details?.serviceproviderId ??
+    details?.serviceproviderid;
   if (raw == null || raw === "") return null;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return null;

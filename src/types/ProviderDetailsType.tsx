@@ -34,7 +34,12 @@ export interface PreviousBookingDetails {
 }
 
 export interface ServiceProviderDTO {
-  serviceproviderid: string;
+  /** Legacy lowercase key */
+  serviceproviderid?: string | number;
+  /** Nearby-monthly API (preferred) */
+  serviceProviderId?: string | number;
+  /** Mixed casing used in some Redux payloads */
+  serviceproviderId?: string | number;
   firstName: string;
   lastName: string;
   gender: "MALE" | "FEMALE" | "OTHER";

@@ -12,6 +12,7 @@ import ServiceProviderProfileSection from "./ServiceProviderProfileSection";
 import VendorProfileSection from "./VendorProfileSection";
 import { useLanguage } from "src/context/LanguageContext";
 import { AlertCircle } from "lucide-react";
+import { customerHasMobile } from "src/utils/customerApiNormalize";
 
 const ProfileScreen = () => {
   const { t } = useLanguage();
@@ -30,7 +31,7 @@ const ProfileScreen = () => {
   const checkMobileNumber = useCallback(async (customerId: number) => {
     try {
       const response = await providerInstance.get(`/api/customer/${customerId}`);
-      const mobileExists = !!response.data?.data?.mobileno;
+      const mobileExists = customerHasMobile(response.data?.data);
       setHasMobileNumber(mobileExists);
 
       if (!mobileExists && !dialogShownInSession) {
