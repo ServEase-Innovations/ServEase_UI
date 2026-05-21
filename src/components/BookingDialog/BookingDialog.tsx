@@ -15,7 +15,6 @@ import {
   Typography,
   IconButton,
   Stack,
-  Drawer,
   SwipeableDrawer,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -74,7 +73,6 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 }) => {
   const { t } = useLanguage();
   const [lastSelectedDate, setLastSelectedDate] = useState<Dayjs | null>(null);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));

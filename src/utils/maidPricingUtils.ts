@@ -192,7 +192,7 @@ export function parseJobDescription(text?: string): string[] {
   if (!text) return [];
   return text
     .split("\n")
-    .map((line) => line.replace(/^[•\-]\s*/, "").trim())
+    .map((line) => line.replace(/^[•-]\s*/, "").trim())
     .filter(Boolean);
 }
 

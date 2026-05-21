@@ -6,7 +6,6 @@ import {
   parseQuoteTotal,
   type PricingQuoteResponse,
 } from "src/services/pricingService";
-import { computeDurationDays } from "src/utils/maidPricingUtils";
 
 export type ServiceBookingKind = "maid" | "cook";
 
