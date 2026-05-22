@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React from 'react';
-import { X, Calendar, Clock, MapPin, User, CreditCard, Tag, FileText, AlertCircle, CheckCircle, XCircle, Download, Printer } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, User, CreditCard, Tag, AlertCircle, CheckCircle, XCircle, Download, Printer } from 'lucide-react';
 import { Badge } from '../../components/Common/Badge/Badge';
 import { Separator } from '../../components/Common/Separator/Separator';
 import { getServiceTitle, getBookingTypeBadge, getStatusBadge } from '../Common/Booking/BookingUtils';
@@ -231,51 +231,6 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               </div>
             </div>
           )}
-
-          {/* Tasks & Responsibilities */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-900 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-500" />
-              Tasks & Responsibilities
-            </h3>
-            
-            <div className="space-y-3">
-              {/* Main Tasks */}
-              {booking.responsibilities?.tasks && booking.responsibilities.tasks.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Main Tasks</p>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.responsibilities.tasks.map((task: any, index: number) => {
-                      const taskDetails = Object.entries(task)
-                        .filter(([key]) => key !== 'taskType')
-                        .map(([key, value]) => `${value} ${key}`)
-                        .join(', ');
-                      
-                      return (
-                        <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          {task.taskType} {taskDetails && `- ${taskDetails}`}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Add-ons */}
-              {booking.responsibilities?.add_ons && booking.responsibilities.add_ons.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Add-ons</p>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.responsibilities.add_ons.map((addon: any, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        {addon.taskType}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Payment Details */}
           {booking.payment && (
