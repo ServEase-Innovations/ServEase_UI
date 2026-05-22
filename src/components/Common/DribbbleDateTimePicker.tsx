@@ -131,12 +131,13 @@ export default function DribbbleDateTimePicker(props: Props) {
       setSelectedTime(formatTimeSlot(d));
       return;
     }
-    if (mode === "range" && rangeValue) {
-      if (rangeValue.startDate) setRangeStart(dayjs(rangeValue.startDate));
-      if (rangeValue.endDate) setRangeEnd(dayjs(rangeValue.endDate));
+    if (mode === "range" && value && typeof value === "object" && "startDate" in value) {
+      const rv = value as RangeValue;
+      if (rv.startDate) setRangeStart(dayjs(rv.startDate));
+      if (rv.endDate) setRangeEnd(dayjs(rv.endDate));
       else setRangeEnd(null);
     }
-  }, [mode, value, rangeValue?.startDate, rangeValue?.endDate]);
+  }, [mode, value]);
 
   /* -------------------- Calendar Setup -------------------- */
 

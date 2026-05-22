@@ -387,7 +387,13 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     try {
       const response = await providerInstance.get(`/api/service-providers/serviceprovider/${userId}`);
       const data = response.data?.data ?? response.data;
-      setProviderData(data);
+      const isActive =
+        data.isactive === true || data.isActive === true
+          ? true
+          : data.isactive === false || data.isActive === false
+            ? false
+            : true;
+      setProviderData({ ...data, isactive: isActive });
 
       let languageKnown = data.languageKnown;
       if (Array.isArray(languageKnown)) {

@@ -60,7 +60,8 @@ interface ServiceProviderDetails {
   dob: string;
   currentLocation: string;
   rating: number;
-  isactive: boolean;
+  isactive?: boolean;
+  isActive?: boolean;
   enrolleddate: string;
 }
 
@@ -122,7 +123,12 @@ const AgentDashboard: React.FC = () => {
       providerName: `${provider.firstName} ${provider.lastName}`,
       type: formatProviderType(provider.housekeepingRole),
       dateRegistered: formatDateForDisplay(provider.enrolleddate),
-      status: provider.isactive ? 'Active' : 'Inactive',
+      status:
+        provider.isactive === true || provider.isActive === true
+          ? 'Active'
+          : provider.isactive === false || provider.isActive === false
+            ? 'Inactive'
+            : 'Active',
       action: 'View Profile',
       mobileNo: provider.mobileNo,
       emailId: provider.emailId,
