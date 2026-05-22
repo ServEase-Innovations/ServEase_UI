@@ -1518,9 +1518,15 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => window.history.back()}
+                  onClick={() => {
+                    if (typeof handleDataFromChild === "function") {
+                      handleDataFromChild("HOME", "section");
+                    } else {
+                      window.location.href = "/";
+                    }
+                  }}
                   className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 md:h-10 md:w-10"
-                  aria-label="Go back"
+                  aria-label="Back to home"
                 >
                   <ArrowLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
