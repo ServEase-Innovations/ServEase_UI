@@ -275,7 +275,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return "";
   };
 
-  const handleBookNow = () => {
+  const syncProviderIntoBookingStore = () => {
     let booking: Bookingtype;
 
     if (props.housekeepingRole !== "NANNY") {
@@ -283,14 +283,14 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         serviceproviderId: resolvedProviderId,
         eveningSelection: eveningSelectionTime,
         morningSelection: morningSelectionTime,
-        ...bookingType
+        ...bookingType,
       };
     } else {
       booking = {
         serviceproviderId: resolvedProviderId,
         timeRange: `${startTime} - ${endTime}`,
         duration: getHoursDifference(startTime, endTime),
-        ...bookingType
+        ...bookingType,
       };
     }
 
@@ -299,13 +299,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     } else {
       dispatch(add(booking));
     }
-
-    const providerDetails = {
-      ...props,
-      selectedMorningTime: morningSelection,
-      selectedEveningTime: eveningSelection
-    };
-    props.selectedProvider(providerDetails);
   };
 
   const getHoursDifference = (start: string, end: string) => {
@@ -316,10 +309,14 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return (endTotalMinutes - startTotalMinutes) / 60;
   };
 
-  const handleLogin = () => {
-    handleBookNow();
+  const handleBookNow = () => {
+    syncProviderIntoBookingStore();
     props.selectedProvider(providerDetailsData);
-    setOpen(true);
+
+    const role = String(props.housekeepingRole || "").toUpperCase();
+    if (role === "MAID" || role === "COOK") {
+      setOpen(true);
+    }
   };
 
   const handleClose = () => {
@@ -850,7 +847,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 variant="contained"
                 size="medium"
                 fullWidth={isMobile}
-                onClick={handleLogin}
+                onClick={handleBookNow}
                 sx={{
                   borderRadius: 2,
                   fontWeight: 700,

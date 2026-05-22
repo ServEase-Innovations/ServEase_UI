@@ -332,6 +332,14 @@ const isPaymentPendingBooking = (booking: Booking) =>
     booking.payment?.status === "PENDING" && booking.taskStatus !== "CANCELLED"
   );
 
+/** Aligns list badges/filters with today’s visit (service_days), not only task_status. */
+const effectiveTaskStatus = (booking: Booking): string => {
+  const visit = booking.today_service?.status?.toUpperCase();
+  if (visit === "IN_PROGRESS" || visit === "STARTED") return "IN_PROGRESS";
+  if (visit === "COMPLETED" || visit === "DONE") return "COMPLETED";
+  return booking.taskStatus;
+};
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [viewTab, setViewTab] = useState<BookingsViewTab>("upcoming");
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
@@ -618,7 +626,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     } catch (error: any) {
       console.error('Error generating OTP:', error);
       
-      const errorMessage = error.response?.data?.message || 'Failed to generate OTP. Please try again.';
+      const errData = error.response?.data;
+      const errorMessage =
+        errData?.error ||
+        errData?.message ||
+        'Failed to generate OTP. Please try again.';
       setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
@@ -1452,7 +1464,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
 
   const filteredByStatus = statusFilter === 'ALL' 
     ? upcomingBookings 
-    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
+    : upcomingBookings.filter(
+        (booking) => effectiveTaskStatus(booking) === statusFilter
+      );
   
   const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
   const filteredPendingPaymentBookings = filterBookings(
@@ -1489,10 +1503,10 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
 
   const statusTabs = [
     { value: 'ALL', label: 'All', count: upcomingBookings.length },
-    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
-    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
-    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
-    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
+    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'NOT_STARTED').length },
+    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'IN_PROGRESS').length },
+    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'COMPLETED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'CANCELLED').length },
   ];
 
   return (
@@ -1749,8 +1763,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </p>
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking.taskStatus)}
-                          {booking.taskStatus !== "CANCELLED" && (
+                          {getStatusBadge(effectiveTaskStatus(booking))}
+                          {effectiveTaskStatus(booking) !== "CANCELLED" && (
                             <>
                               {booking.modifications && booking.modifications.length > 0 && (
                                 <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
@@ -1962,8 +1976,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </p>
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking.taskStatus)}
-                          {booking.taskStatus !== "CANCELLED" && (
+                          {getStatusBadge(effectiveTaskStatus(booking))}
+                          {effectiveTaskStatus(booking) !== "CANCELLED" && (
                             <>
                               {booking.modifications && booking.modifications.length > 0 && (
                                 <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">

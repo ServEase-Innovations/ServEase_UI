@@ -413,8 +413,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     const plan = rateCard?.plan;
     if (!plan?.base_rate_min && !plan?.base_rate_max) return null;
     const c = (plan as { constraints_json?: Record<string, number> }).constraints_json;
-    if (bookingTypeCode === "SHORT_TERM" && c?.hourlyDiscMin && c?.hourlyDiscMax) {
-      return `${formatInr(c.hourlyDiscMin)} – ${formatInr(c.hourlyDiscMax)}/hr (7-day band)`;
+    if (bookingTypeCode === "SHORT_TERM" && (c?.sevenDayPkgMin ?? c?.hourlyBaseMin)) {
+      const pkg = `${formatInr(c.sevenDayPkgMin ?? c.hourlyBaseMin)} – ${formatInr(c.sevenDayPkgMax ?? c.hourlyBaseMax)}`;
+      return `${pkg} for 7 days (1h/day) · 25% off extra days after 7`;
     }
     const min = plan.base_rate_min ?? plan.base_rate_max ?? 0;
     const max = plan.base_rate_max ?? min;

@@ -385,12 +385,17 @@ function TodayVisitsCard({
               const taskU = String(b.task_status ?? "").toUpperCase();
               const recurring =
                 b.booking_type === "MONTHLY" || b.booking_type === "SHORT_TERM";
+              const isOnDemand =
+                String(b.booking_type || "").toUpperCase() === "ON_DEMAND";
               const showComplete =
                 b.service_day_id != null && sd === "IN_PROGRESS";
               const showStart =
                 !showComplete &&
                 taskU !== "COMPLETED" &&
+                taskU !== "IN_PROGRESS" &&
+                taskU !== "STARTED" &&
                 (sd === "SCHEDULED" ||
+                  (isOnDemand && (b.service_day_id == null || !sd)) ||
                   (recurring && (b.service_day_id == null || sd === "")));
               const timeRange =
                 b.start_time_ist && b.end_time_ist
@@ -1009,9 +1014,19 @@ const handleTrackAddress = (address: string) => {
                     const isNotStarted = todayServiceStatus === 'SCHEDULED' || 
                                          taskStatusOriginal === 'NOT_STARTED';
 
-                    const canStart = booking.bookingData?.today_service?.can_start === true;
-                    
-                    const showStartButton = isNotStarted && canStart;
+                    const ts = booking.bookingData?.today_service;
+                    const canStart = ts?.can_start === true;
+                    const isOnDemandBooking =
+                      String(
+                        booking.bookingData?.booking_type ||
+                          booking.bookingData?.bookingType ||
+                          ""
+                      ).toUpperCase() === "ON_DEMAND";
+                    const showStartButton =
+                      isNotStarted &&
+                      (canStart ||
+                        ts?.status === "SCHEDULED" ||
+                        (isOnDemandBooking && !ts?.service_day_id));
                     const showCompleteButton = isInProgress;
                     const showCompletedButton = isCompleted;
 
@@ -1161,7 +1176,17 @@ const handleTrackAddress = (address: string) => {
                                 variant="outline" 
                                 size="sm"
                                 className="h-7 text-xs px-2"
-                                onClick={() => handleStartTask(booking.id, booking.bookingData)}
+                                disabled={ts?.service_day_id != null && !canStart}
+                                onClick={() => {
+                                  if (ts?.service_day_id) {
+                                    void handleStartTask(booking.id, booking.bookingData);
+                                  } else {
+                                    void handleStartTodayVisit({
+                                      engagement_id: Number(booking.bookingId || booking.id),
+                                      booking_type: booking.bookingData?.booking_type,
+                                    } as TodayBookingSlot);
+                                  }
+                                }}
                               >
                                 Start Task
                               </Button>

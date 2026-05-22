@@ -260,7 +260,14 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (selectedProvider) {
       selectedProvider(provider);
     }
-    sendDataToParent(CONFIRMATION);
+    // MAID/COOK use in-card booking dialog (ServiceBookingFlow + Razorpay).
+    // Only legacy nanny package picker uses the full Confirmation screen.
+    const role = String(
+      provider?.housekeepingRole || bookingType?.housekeepingRole || ""
+    ).toUpperCase();
+    if (role === "NANNY") {
+      sendDataToParent(CONFIRMATION);
+    }
   };
 
   // Filter handlers

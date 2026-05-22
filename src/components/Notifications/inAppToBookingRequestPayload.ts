@@ -103,6 +103,8 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
     base_amount: Number.isFinite(base) ? base : 0,
     address: address ?? null,
     distance_meters: distM,
+    ...(Number.isFinite(startEpoch) ? { start_epoch: startEpoch } : {}),
+    ...(Number.isFinite(endEpoch) ? { end_epoch: endEpoch } : {}),
     ...(isAssignedConfirmed ? { payment_completed: true as const } : {}),
   };
 }
