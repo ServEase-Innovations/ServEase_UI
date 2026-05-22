@@ -13,6 +13,10 @@ const canvas = "#f1f5f9";
 const radius = "16px";
 const radiusSm = "12px";
 
+/** Shared gradient for maid/cook booking dialogs and legacy DialogHeader. */
+export const BOOKING_HEADER_GRADIENT =
+  "linear-gradient(135deg, #0c1e3d 0%, #0b5bd3 48%, #4f8ff7 100%)";
+
 export const MaidStyledDialog = styled(Dialog)`
   .MuiPaper-root {
     width: min(100vw - 16px, 440px);
@@ -68,7 +72,7 @@ export const MaidRoot = styled.div<{ $page?: boolean }>`
 
 export const MaidHeader = styled.header`
   flex-shrink: 0;
-  background: linear-gradient(135deg, #0c1e3d 0%, ${accent} 48%, #4f8ff7 100%);
+  background: ${BOOKING_HEADER_GRADIENT};
   color: #fff;
   padding: 20px 52px 20px 20px;
   position: relative;

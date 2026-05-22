@@ -6,6 +6,7 @@ import {
   parseQuoteTotal,
   type PricingQuoteResponse,
 } from "src/services/pricingService";
+import { BOOKING_HEADER_GRADIENT } from "./MaidServiceDialog.styles";
 
 export type ServiceBookingKind = "maid" | "cook";
 
@@ -15,7 +16,7 @@ export const SERVICE_BOOKING_CONFIG = {
     successServiceKey: "cleaningHelp",
     serviceType: "MAID" as const,
     cartType: "maid" as const,
-    headerGradient: "linear-gradient(135deg, #0c1e3d 0%, #0b5bd3 48%, #4f8ff7 100%)",
+    headerGradient: BOOKING_HEADER_GRADIENT,
     priceMetaReady: "Includes pricing for your selected schedule",
     fetchRateCard: fetchMaidRateCard,
     fetchQuote: fetchMaidQuote,
@@ -26,8 +27,7 @@ export const SERVICE_BOOKING_CONFIG = {
     successServiceKey: "homeCook",
     serviceType: "COOK" as const,
     cartType: "meal" as const,
-    headerGradient:
-      "linear-gradient(135deg, #3d1a06 0%, #e17055 48%, #fdcb6e 100%)",
+    headerGradient: BOOKING_HEADER_GRADIENT,
     priceMetaReady: "Cook pricing for your selected schedule",
     fetchRateCard: fetchCookRateCard,
     fetchQuote: fetchCookQuote,

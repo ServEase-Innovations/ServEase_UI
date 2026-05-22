@@ -4,6 +4,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import styled from '@emotion/styled';
 import CloseIcon from '@mui/icons-material/Close';
+import { BOOKING_HEADER_GRADIENT } from './MaidServiceDialog.styles';
 
 // Define the Dinner package color scheme
 const DINNER_COLOR = '#0984e3';
@@ -53,7 +54,7 @@ export const DialogHeader = styled.div`
   display: flex;
   align-items: center; /* vertically center content */
   border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(to right, #0a2a66, #328aff); 
+  background: ${BOOKING_HEADER_GRADIENT};
   color: white;
 
   h1 {
