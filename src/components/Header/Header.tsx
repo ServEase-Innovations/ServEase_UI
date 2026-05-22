@@ -926,7 +926,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         className={`fixed left-0 right-0 top-0 z-50 overflow-visible border-b border-white/10 pt-[env(safe-area-inset-top,0px)] ${CHROME_BAR_GRADIENT} ${CHROME_BAR_SHADOW}`}
       >
         <div className="relative mx-auto flex h-11 max-w-[90rem] items-center justify-between gap-1 overflow-visible px-2 py-0 sm:h-12 sm:gap-2 sm:px-3 md:h-14 md:gap-3 md:px-5 lg:px-7">
-        <div className="relative flex h-full min-w-0 max-w-[46%] shrink items-center gap-1 sm:max-w-none sm:gap-1.5">
+        <div className="relative flex h-full min-w-0 max-w-[34%] shrink-0 items-center gap-1 sm:max-w-none sm:gap-1.5">
           {isMobile && (
             <button
               type="button"
@@ -938,7 +938,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               <Menu className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
             </button>
           )}
-          <div className="relative h-full min-w-0 w-[7.5rem] max-w-full sm:min-w-[10.75rem] sm:w-[11.75rem] md:min-w-[13.5rem] md:w-[15rem] lg:min-w-[15.5rem] lg:w-[17.25rem] xl:min-w-[17.5rem] xl:w-[19.25rem]">
+          <div className="relative h-full min-w-0 w-[5.25rem] max-w-full sm:min-w-[10.75rem] sm:w-[11.75rem] md:min-w-[13.5rem] md:w-[15rem] lg:min-w-[15.5rem] lg:w-[17.25rem] xl:min-w-[17.5rem] xl:w-[19.25rem]">
             <button
               type="button"
               onClick={() => {
@@ -951,7 +951,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               <img
                 src={publicAsset("ServEaso_Logo.png")}
                 alt=""
-                className="h-16 w-auto max-w-[12rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
+                className="h-11 w-auto max-w-[5.25rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
               />
             </button>
           </div>
@@ -1052,10 +1052,10 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2 md:gap-3">
           <div
             ref={locationMenuRef}
-            className={`relative flex h-8 items-stretch rounded-md border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 ${
+            className={`relative flex h-8 min-w-0 items-stretch rounded-md border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 ${
               isMobile
-                ? "w-8 shrink-0"
-                : "min-w-0 max-w-[6.75rem] sm:max-w-[10rem] md:max-w-[13rem] lg:max-w-[16rem]"
+                ? "max-w-[min(46vw,11.5rem)] flex-1"
+                : "max-w-[6.75rem] sm:max-w-[10rem] md:max-w-[13rem] lg:max-w-[16rem]"
             }`}
           >
             <button
@@ -1070,34 +1070,31 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
                 setShowDropdown((open) => !open);
               }}
-              className={`flex min-w-0 flex-1 items-center gap-1 rounded-md py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
-                isMobile ? "justify-center px-0" : "px-1.5"
+              className={`flex min-w-0 flex-1 items-center gap-0.5 rounded-md py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
+                isMobile ? "px-1.5" : "px-1.5"
               } ${showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"}`}
               aria-label={location || t("location")}
+              title={location || t("location")}
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-200 sm:h-4 sm:w-4" aria-hidden />
-              {!isMobile && (
-                <>
-                  <span
-                    className={`min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs md:text-sm ${
-                      location ? "text-white" : "text-white/50"
-                    }`}
-                  >
-                    {location || t("location")}
-                  </span>
-                  {loadingLocations ? (
-                    <span className="inline-flex shrink-0" aria-hidden>
-                      <ClipLoader size={14} color="rgba(255,255,255,0.85)" />
-                    </span>
-                  ) : (
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
-                        showDropdown ? "rotate-180" : ""
-                      }`}
-                      aria-hidden
-                    />
-                  )}
-                </>
+              <span
+                className={`min-w-0 flex-1 truncate text-[10px] leading-tight sm:text-xs md:text-sm ${
+                  location ? "text-white" : "text-white/50"
+                }`}
+              >
+                {location || t("location")}
+              </span>
+              {loadingLocations ? (
+                <span className="inline-flex shrink-0" aria-hidden>
+                  <ClipLoader size={14} color="rgba(255,255,255,0.85)" />
+                </span>
+              ) : (
+                <ChevronDown
+                  className={`h-3 w-3 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
+                    showDropdown ? "rotate-180" : ""
+                  }`}
+                  aria-hidden
+                />
               )}
             </button>
               {showDropdown && (
@@ -1305,16 +1302,16 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               type="button"
               className={
                 isMobile
-                  ? "inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-sky-300/60 bg-sky-500 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  ? "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-sky-300/60 bg-sky-500 text-white shadow-sm transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                   : "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
               }
               onClick={() => {
                 setAuthChoiceOpen(true);
               }}
               aria-label={t("signIn")}
+              title={t("signIn")}
             >
               <User className="h-3.5 w-3.5 shrink-0 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
-              {isMobile ? <span className="leading-none">{t("signIn")}</span> : null}
             </button>
           ) : (
             <div ref={dropdownRef} className="relative text-left">
