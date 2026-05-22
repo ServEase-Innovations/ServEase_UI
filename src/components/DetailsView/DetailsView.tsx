@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import "./DetailsView.css";
 import { CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
@@ -51,6 +51,34 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
   console.log("Details:", bookingType);
+
+  // Fields that affect the nearby-providers API — exclude provider id / slot picks
+  // so Book Now (redux update) does not remount the list and close the booking dialog.
+  const providerSearchCriteria = useMemo(
+    () => ({
+      startDate: bookingType?.startDate,
+      endDate: bookingType?.endDate,
+      startTime: bookingType?.startTime,
+      endTime: bookingType?.endTime,
+      timeRange: bookingType?.timeRange,
+      housekeepingRole: bookingType?.housekeepingRole,
+      bookingPreference: bookingType?.bookingPreference,
+    }),
+    [
+      bookingType?.startDate,
+      bookingType?.endDate,
+      bookingType?.startTime,
+      bookingType?.endTime,
+      bookingType?.timeRange,
+      bookingType?.housekeepingRole,
+      bookingType?.bookingPreference,
+    ]
+  );
+
+  const providerSearchKey = useMemo(
+    () => JSON.stringify(providerSearchCriteria),
+    [providerSearchCriteria]
+  );
 
   const location = useSelector((state: any) => state?.geoLocation?.value);
 
@@ -130,8 +158,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       };
 
       const serviceDurationMinutes = calculateDurationInMinutes(
-        bookingType?.startTime,
-        bookingType?.endTime
+        providerSearchCriteria.startTime,
+        providerSearchCriteria.endTime
       );
 
       // Base payload
@@ -139,10 +167,12 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         lat: latitude.toString(),
         lng: longitude.toString(),
         radius: 10,
-        startDate: formatDateOnly(bookingType?.startDate) || "2025-04-01",
-        endDate: formatDateOnly(bookingType?.endDate) || "2025-04-30",
-        preferredStartTime: bookingType?.timeRange ? bookingType.timeRange.split('-')[0] : "16:37",
-        role: bookingType?.housekeepingRole || "COOK",
+        startDate: formatDateOnly(providerSearchCriteria.startDate) || "2025-04-01",
+        endDate: formatDateOnly(providerSearchCriteria.endDate) || "2025-04-30",
+        preferredStartTime: providerSearchCriteria.timeRange
+          ? providerSearchCriteria.timeRange.split("-")[0]
+          : "16:37",
+        role: providerSearchCriteria.housekeepingRole || "COOK",
         serviceDurationMinutes: serviceDurationMinutes
       };
 
@@ -238,14 +268,14 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       setHasFetchedOnce(false);
     }
     await fetchProviders(reset ? 1 : currentPage + 1, reset);
-  }, [location, bookingType, activeFilters, customerId, appUser]);
+  }, [location, providerSearchCriteria, activeFilters, customerId, appUser]);
 
-  // Trigger search when dependencies change
+  // Trigger search when search-relevant booking fields change (not on provider pick).
   useEffect(() => {
-    if (selectedProviderType !== undefined && location && bookingType) {
+    if (selectedProviderType !== undefined && location && providerSearchKey) {
       performSearch(true);
     }
-  }, [selectedProviderType, location, bookingType, activeFilters, performSearch]);
+  }, [selectedProviderType, location, providerSearchKey, activeFilters, performSearch]);
 
   const fetchMoreData = () => {
     if (isLoadingMore || !hasMore) return;
