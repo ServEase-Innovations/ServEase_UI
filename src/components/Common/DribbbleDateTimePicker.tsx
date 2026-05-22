@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import "./DribbbleDateTimePicker.css";
 
@@ -33,12 +33,16 @@ type SingleProps = {
   mode?: "single";
   value?: Date;
   maxDate?: Date;
+  /** Fired when the calendar date changes (time selection is cleared). */
+  onDateChange?: (date: Date) => void;
   onChange: (date: Date) => void;
 };
 
 type RangeProps = {
   mode: "range";
   value?: RangeValue;
+  /** Fired when start/end dates change (time selection is cleared). */
+  onDateChange?: (payload: { startDate: Date; endDate?: Date }) => void;
   onChange: (payload: {
     startDate: Date;
     endDate: Date;
@@ -111,6 +115,28 @@ export default function DribbbleDateTimePicker(props: Props) {
   const [rangeEnd, setRangeEnd] = useState<Dayjs | null>(
     rangeValue?.endDate ? dayjs(rangeValue.endDate) : null
   );
+
+  const formatTimeSlot = (d: Dayjs): string | null => {
+    const match = ALL_TIMES.find((slot) => {
+      const parsed = dayjs(slot, "h:mm A");
+      return parsed.hour() === d.hour() && parsed.minute() === d.minute();
+    });
+    return match ?? null;
+  };
+
+  useEffect(() => {
+    if (mode === "single" && value instanceof Date) {
+      const d = dayjs(value);
+      setSelectedDate(d);
+      setSelectedTime(formatTimeSlot(d));
+      return;
+    }
+    if (mode === "range" && rangeValue) {
+      if (rangeValue.startDate) setRangeStart(dayjs(rangeValue.startDate));
+      if (rangeValue.endDate) setRangeEnd(dayjs(rangeValue.endDate));
+      else setRangeEnd(null);
+    }
+  }, [mode, value, rangeValue?.startDate, rangeValue?.endDate]);
 
   /* -------------------- Calendar Setup -------------------- */
 
@@ -237,15 +263,18 @@ export default function DribbbleDateTimePicker(props: Props) {
       }
       setSelectedDate(date);
       setSelectedTime(null);
+      (props as SingleProps).onDateChange?.(date.toDate());
       return;
     }
 
     // RANGE MODE
+    const rangeProps = props as RangeProps;
     if (!rangeStart || rangeEnd) {
       setRangeStart(date);
       setRangeEnd(null);
       setSelectedTime(null);
-      setShowAllTimes(false); // reset time expansion when range changes
+      setShowAllTimes(false);
+      rangeProps.onDateChange?.({ startDate: date.toDate() });
       return;
     }
 
@@ -257,10 +286,19 @@ export default function DribbbleDateTimePicker(props: Props) {
       return;
     }
 
-    if (date.isBefore(rangeStart, "day")) setRangeStart(date);
-    else setRangeEnd(date);
+    if (date.isBefore(rangeStart, "day")) {
+      setRangeStart(date);
+      setRangeEnd(null);
+      rangeProps.onDateChange?.({ startDate: date.toDate() });
+    } else {
+      setRangeEnd(date);
+      rangeProps.onDateChange?.({
+        startDate: rangeStart.toDate(),
+        endDate: date.toDate(),
+      });
+    }
     setSelectedTime(null);
-    setShowAllTimes(false); // reset time expansion when range changes
+    setShowAllTimes(false);
   };
 
   const selectTime = (time: string) => {

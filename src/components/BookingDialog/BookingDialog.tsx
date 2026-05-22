@@ -141,20 +141,44 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     onOptionChange(val);
   };
 
+  /** Calendar date changed — time was cleared in the picker; parent must drop stale times. */
+  const handleDateOnlyChange = (date: Date) => {
+    const day = dayjs(date).startOf("day");
+    setStartDate(day.toISOString());
+    setStartTime(null);
+    setEndTime(null);
+    setLastSelectedDate(day);
+    if (selectedOption === "Date") setEndDate(null);
+    if (selectedOption === "Monthly") setEndDate(day.add(1, "month").toISOString());
+  };
+
+  const handleRangeDateOnlyChange = (payload: { startDate: Date; endDate?: Date }) => {
+    const start = dayjs(payload.startDate).startOf("day");
+    setStartDate(start.toISOString());
+    setStartTime(null);
+    setEndTime(null);
+    setLastSelectedDate(start);
+    if (payload.endDate) {
+      setEndDate(dayjs(payload.endDate).startOf("day").toISOString());
+    } else {
+      setEndDate(null);
+    }
+  };
+
   const isConfirmDisabled = () => {
     switch (selectedOption) {
       case "Date": 
-        if (!startDate || !startTime) return true;
+        if (!startDate || !startTime || !isBookingValid(startTime)) return true;
         // Check if selected date is beyond 21 days from today
         const selectedDate = dayjs(startDate);
         const maxAllowedDate = today.add(21, "day");
         if (selectedDate.isAfter(maxAllowedDate, "day")) return true;
         return false;
       case "Short term":
-        if (!startDate || !endDate || !startTime || !endTime) return true;
-        return dayjs(endDate).isBefore(dayjs(startDate));
+        if (!startDate || !endDate || !startTime || !endTime || !isBookingValid(startTime)) return true;
+        return dayjs(endDate).isBefore(dayjs(startDate), "day");
       case "Monthly": 
-        if (!startDate || !startTime) return true;
+        if (!startDate || !startTime || !isBookingValid(startTime)) return true;
         // Check 90-day limit for monthly
         const monthlySelectedDate = dayjs(startDate);
         const maxMonthlyDate = today.add(89, "day");
@@ -650,8 +674,9 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   <Box sx={pickerShellSx}>
                     <DribbbleDateTimePicker
                       mode="single"
-                      value={startDate ? dayjs(startDate).toDate() : undefined}
+                      value={startTime?.toDate()}
                       maxDate={maxDate21Days.toDate()}
+                      onDateChange={handleDateOnlyChange}
                       onChange={(selectedDateTime: Date) => {
                         const selected = dayjs(selectedDateTime);
                         const now = dayjs();
@@ -701,6 +726,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                     <DribbbleDateTimePicker
                       mode="range"
                       value={{ startDate: startDate ? dayjs(startDate).toDate() : undefined, endDate: endDate ? dayjs(endDate).toDate() : undefined }}
+                      onDateChange={handleRangeDateOnlyChange}
                       onChange={({ startDate, endDate, time }) => {
                         const start = dayjs(startDate);
                         let end = dayjs(endDate);
@@ -735,8 +761,9 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   <Box sx={pickerShellSx}>
                     <DribbbleDateTimePicker
                       mode="single"
-                      value={startDate ? dayjs(startDate).toDate() : undefined}
+                      value={startTime?.toDate()}
                       maxDate={maxDate90Days.toDate()}
+                      onDateChange={handleDateOnlyChange}
                       onChange={(selectedDateTime: Date) => {
                         const selected = dayjs(selectedDateTime);
                         const now = dayjs();

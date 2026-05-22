@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from "react";
+import { parseEngagementId } from "src/services/engagementService";
 import { Box, Button, Dialog, DialogContent, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Bell, CheckCircle, Clock, MapPin, XCircle, Sparkles } from "lucide-react";
@@ -24,10 +25,12 @@ export interface NewBookingRequestPayload {
   address?: string | null;
   /** Straight-line distance (m) from this provider to the customer's service location. */
   distance_meters?: number;
-  /** Assigned MONTHLY/SHORT_TERM: customer checkout not finished yet */
+  /** Customer has not finished checkout yet — do not show Accept */
   payment_pending?: boolean;
-  /** Assigned MONTHLY/SHORT_TERM: payment captured */
+  /** Assigned MONTHLY/SHORT_TERM: payment captured (informational toast) */
   payment_completed?: boolean;
+  /** ON_DEMAND: payment captured — provider may accept */
+  payment_ready?: boolean;
 }
 
 /**
@@ -38,6 +41,11 @@ export function normalizeSocketBookingForToast(
   raw: Record<string, unknown>
 ): NewBookingRequestPayload {
   const out = { ...raw } as unknown as NewBookingRequestPayload;
+  const eid =
+    parseEngagementId(raw.engagement_id) ??
+    parseEngagementId(raw.engagementId) ??
+    parseEngagementId(raw.id);
+  out.engagement_id = eid ?? (NaN as number);
   const startEpoch =
     out.start_epoch != null && Number.isFinite(Number(out.start_epoch))
       ? Number(out.start_epoch)
@@ -58,6 +66,9 @@ export function normalizeSocketBookingForToast(
   if (out.base_amount == null || out.base_amount === ("" as unknown)) {
     out.base_amount = 0;
   }
+  if (raw.payment_pending === true) out.payment_pending = true;
+  if (raw.payment_completed === true) out.payment_completed = true;
+  if (raw.payment_ready === true) out.payment_ready = true;
   return out;
 }
 
@@ -77,6 +88,14 @@ export function formatDistanceMetersLine(m?: number): string | null {
   return `About ${(m / 1000).toFixed(1)} km from you`;
 }
 
+/** Assigned bookings after payment are informational; on-demand before payment cannot be accepted yet. */
+export function isBookingToastInfoOnly(engagement: NewBookingRequestPayload): boolean {
+  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
+  if (engagement.payment_pending === true) return true;
+  if (!isOnDemand && engagement.payment_completed === true) return true;
+  return false;
+}
+
 function timeRange(eng: NewBookingRequestPayload): string {
   const st = eng.start_time ?? "—";
   if (eng.end_time) {
@@ -90,7 +109,7 @@ function timeRange(eng: NewBookingRequestPayload): string {
 
 export type OndemandBookingRequestPanelProps = {
   engagement: NewBookingRequestPayload;
-  onAccept: (engagementId: number) => void;
+  onAccept: (engagementId: number) => void | Promise<void>;
   onReject: (engagementId: number) => void;
   footerHelperText?: string | null;
   actionBusy?: boolean;
@@ -126,19 +145,24 @@ export function OndemandBookingRequestPanel({
     : "Booking";
 
   const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
-  const isInfoOnly =
-    engagement.payment_completed === true ||
-    (engagement.payment_pending === true && !isOnDemand);
+  const isInfoOnly = isBookingToastInfoOnly(engagement);
 
-  const headerTitle = engagement.payment_completed
-    ? "Booking confirmed"
-    : engagement.payment_pending && !isOnDemand
-      ? "New booking"
+  const resolvedEngagementId = parseEngagementId(engagement.engagement_id);
+  const canAccept = resolvedEngagementId != null && !isInfoOnly;
+
+  const headerTitle = engagement.payment_pending
+    ? isOnDemand
+      ? "Awaiting customer payment"
+      : "New booking"
+    : engagement.payment_completed && !isOnDemand
+      ? "Booking confirmed"
       : "New booking request";
-  const headerSubtitle = engagement.payment_completed
-    ? "This booking is on your calendar with the schedule below."
-    : engagement.payment_pending && !isOnDemand
-      ? "The customer is completing payment. You will get another update when it succeeds."
+  const headerSubtitle = engagement.payment_pending
+    ? isOnDemand
+      ? "You can accept this job after the customer completes payment. We will notify you again."
+      : "The customer is completing payment. You will get another update when it succeeds."
+    : engagement.payment_completed && !isOnDemand
+      ? "This booking is on your calendar with the schedule below."
       : "A customer nearby is requesting your service";
 
   return (
@@ -331,7 +355,7 @@ export function OndemandBookingRequestPanel({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onReject(engagement.engagement_id);
+              if (resolvedEngagementId != null) onReject(resolvedEngagementId);
             }}
           >
             Dismiss
@@ -344,11 +368,11 @@ export function OndemandBookingRequestPanel({
               size="large"
               variant="outlined"
               color="error"
-              disabled={actionBusy}
+              disabled={actionBusy || resolvedEngagementId == null}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onReject(engagement.engagement_id);
+                if (resolvedEngagementId != null) onReject(resolvedEngagementId);
               }}
               startIcon={<XCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
             >
@@ -360,11 +384,12 @@ export function OndemandBookingRequestPanel({
               size="large"
               variant="contained"
               color="success"
-              disabled={actionBusy}
-              onClick={(e) => {
+              disabled={actionBusy || !canAccept}
+              onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onAccept(engagement.engagement_id);
+                if (resolvedEngagementId == null) return;
+                await onAccept(resolvedEngagementId);
               }}
               startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
               sx={{ boxShadow: 2 }}
@@ -385,9 +410,11 @@ export function OndemandBookingRequestPanel({
 
 interface BookingRequestToastProps {
   engagement: NewBookingRequestPayload;
-  onAccept: (engagementId: number) => void;
+  onAccept: (engagementId: number) => void | Promise<void>;
   onReject: (engagementId: number) => void;
   onClose: () => void;
+  actionBusy?: boolean;
+  acceptError?: string | null;
 }
 
 export default function BookingRequestToast({
@@ -395,11 +422,10 @@ export default function BookingRequestToast({
   onAccept: onAcceptFromParent,
   onReject: onRejectFromParent,
   onClose,
+  actionBusy = false,
+  acceptError = null,
 }: BookingRequestToastProps) {
-  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
-  const isInfoOnly =
-    engagement.payment_completed === true ||
-    (engagement.payment_pending === true && !isOnDemand);
+  const isInfoOnly = isBookingToastInfoOnly(engagement);
 
   useEffect(() => {
     if (isInfoOnly) return undefined;
@@ -436,18 +462,25 @@ export default function BookingRequestToast({
     >
       <OndemandBookingRequestPanel
         engagement={engagement}
-        onAccept={(id) => {
-          onAcceptFromParent(id);
-          onClose();
+        onAccept={async (id) => {
+          try {
+            await onAcceptFromParent(id);
+          } catch {
+            /* Parent shows snackbar / acceptError */
+          }
         }}
         onReject={(id) => {
           onRejectFromParent(id);
           onClose();
         }}
+        actionBusy={actionBusy}
+        errorText={acceptError}
         footerHelperText={
           isInfoOnly
             ? null
-            : "This request closes in 60 seconds if you take no action."
+            : acceptError
+              ? "Fix the issue above or decline this request."
+              : "This request closes in 60 seconds if you take no action."
         }
       />
     </Dialog>

@@ -207,6 +207,33 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
   const durationHours =
     startTime && endTime ? Math.max(1, endTime.diff(startTime, "hour")) : 1;
 
+  const handleDateOnlyChange = (date: Date) => {
+    const day = dayjs(date).startOf("day");
+    const monthlyEnd = day.add(1, "month");
+    setStartDate(day);
+    setStartTime(null);
+    setEndTime(null);
+    setEndDate(preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate);
+    setValidationMsg(null);
+    persist(
+      day,
+      preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate,
+      null,
+      null
+    );
+  };
+
+  const handleRangeDateOnlyChange = (payload: { startDate: Date; endDate?: Date }) => {
+    const start = dayjs(payload.startDate).startOf("day");
+    const end = payload.endDate ? dayjs(payload.endDate).startOf("day") : null;
+    setStartDate(start);
+    setEndDate(end);
+    setStartTime(null);
+    setEndTime(null);
+    setValidationMsg(null);
+    persist(start, end, null, null);
+  };
+
   const applyStartDateTime = (selected: Dayjs) => {
     const now = dayjs();
     let adjusted = selected;
@@ -379,8 +406,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
             <MaidPickerShell>
               <DribbbleDateTimePicker
                 mode="single"
-                value={startTime?.toDate() ?? startDate?.toDate()}
+                value={startTime?.toDate()}
                 maxDate={maxDate21Days.toDate()}
+                onDateChange={handleDateOnlyChange}
                 onChange={(selectedDateTime: Date) => {
                   const selected = dayjs(selectedDateTime);
                   if (!validateSelection(selected)) return;
@@ -398,6 +426,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                   startDate: startDate?.toDate(),
                   endDate: endDate?.toDate(),
                 }}
+                onDateChange={handleRangeDateOnlyChange}
                 onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
                   const start = dayjs(rangeStart);
                   let end = dayjs(rangeEnd);
@@ -428,8 +457,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
             <MaidPickerShell>
               <DribbbleDateTimePicker
                 mode="single"
-                value={startTime?.toDate() ?? startDate?.toDate()}
+                value={startTime?.toDate()}
                 maxDate={maxDate90Days.toDate()}
+                onDateChange={handleDateOnlyChange}
                 onChange={(selectedDateTime: Date) => {
                   const selected = dayjs(selectedDateTime);
                   if (!validateSelection(selected)) return;

@@ -31,6 +31,11 @@ import {
   Megaphone,
 } from "lucide-react";
 import PaymentInstance from "src/services/paymentInstance";
+import {
+  acceptEngagement,
+  parseAcceptEngagementError,
+  parseEngagementId,
+} from "src/services/engagementService";
 import { urls } from "src/config/urls";
 import { useLanguage } from "src/context/LanguageContext";
 import { OndemandBookingRequestPanel } from "./BookingRequestToast";
@@ -190,7 +195,22 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
 
     s.on("in_app_notification", (n: InAppNotification) => {
       setItems((prev) => {
-        const merged = [n, ...prev].filter(
+        const tUpper = (n.type || "").toUpperCase();
+        const isNewBooking =
+          tUpper.includes("NEW_BOOKING") || tUpper.includes("OPPORTUNITY");
+        let base = prev;
+        if (isNewBooking && n.engagementId != null && n.engagementId !== "") {
+          base = prev.filter(
+            (x) =>
+              !(
+                String(x.engagementId) === String(n.engagementId) &&
+                !x.readAt &&
+                ((x.type || "").toUpperCase().includes("NEW_BOOKING") ||
+                  (x.type || "").toUpperCase().includes("OPPORTUNITY"))
+              )
+          );
+        }
+        const merged = [n, ...base].filter(
           (x, i, a) => a.findIndex((y) => y.id === x.id) === i
         );
         return merged;
@@ -214,6 +234,32 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
 
     s.on("connect_error", (err) => {
       console.warn("in-app socket:", err?.message);
+    });
+
+    s.on("booking-request-closed", (payload: { engagement_id?: unknown }) => {
+      const eid =
+        payload?.engagement_id != null ? String(payload.engagement_id) : "";
+      if (!eid) return;
+      setDetailFor((d) =>
+        d != null && String(d.engagementId) === eid ? null : d
+      );
+      setItems((prev) =>
+        prev.map((x) => {
+          const t = (x.type || "").toUpperCase();
+          const isNewBooking =
+            t.includes("NEW_BOOKING") || t.includes("OPPORTUNITY");
+          if (isNewBooking && String(x.engagementId) === eid && !x.readAt) {
+            return { ...x, readAt: new Date().toISOString() };
+          }
+          return x;
+        })
+      );
+      setUnread((u) => {
+        const next = Math.max(0, u - 1);
+        onUnreadCountChange?.(next);
+        return next;
+      });
+      window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
     });
 
     return () => {
@@ -296,29 +342,22 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         setSnack({ open: true, message: "Sign in as a provider to accept", severity: "error" });
         return;
       }
-      const eid = n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
-      if (!Number.isFinite(eid) || eid < 1) {
+      const eid = parseEngagementId(n.engagementId);
+      if (eid == null) {
         setSnack({ open: true, message: "This notification has no engagement id", severity: "error" });
         return;
       }
       setDetailError(null);
       setAcceptingId(n.id);
       try {
-        await PaymentInstance.post(
-          `/api/v2/engagements/${eid}/accept`,
-          { serviceproviderid: Number(appUser.serviceProviderId) }
-        );
-        setSnack({ open: true, message: "Booking accepted", severity: "success" });
+        const result = await acceptEngagement(eid, appUser);
+        setSnack({ open: true, message: result.message, severity: "success" });
         setDetailError(null);
         setDetailFor((d) => (d != null && String(d.id) === String(n.id) ? null : d));
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
         await fetchList();
-      } catch (e: any) {
-        const msg = String(
-          (e?.response?.data && (e.response.data.error as string)) ||
-            e?.message ||
-            "Could not accept"
-        );
+      } catch (e: unknown) {
+        const msg = parseAcceptEngagementError(e);
         setDetailError(msg);
         setSnack({ open: true, message: msg, severity: "error" });
         console.error("Accept from notifications failed", e);
@@ -501,12 +540,9 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                 (tUpper === "NEW_BOOKING_OPPORTUNITY" || tUpper === "NEW_BOOKING_REQUEST");
               const isSpAssignedConfirmed =
                 r?.recipientType === "provider" && tUpper === "ASSIGNED_BOOKING_CONFIRMED";
-              const eid =
-                n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
+              const eid = parseEngagementId(n.engagementId);
               const hasBookingDetailPanel =
-                (isSpOndemandNewBooking || isSpAssignedConfirmed) &&
-                Number.isFinite(eid) &&
-                eid > 0;
+                (isSpOndemandNewBooking || isSpAssignedConfirmed) && eid != null;
               const canQuickAct = isSpOndemandNewBooking && unreadItem && hasBookingDetailPanel;
               return (
                 <ListItem
