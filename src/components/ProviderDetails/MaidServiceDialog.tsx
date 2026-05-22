@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React from "react";
+import React, { useState } from "react";
 import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
 import { MaidStyledDialog, MaidStyledContent } from "./MaidServiceDialog.styles";
 import ServiceBookingFlow from "./ServiceBookingFlow";
@@ -17,24 +17,38 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
   handleClose,
   providerDetails,
   sendDataToParent,
-}) => (
-  <MaidStyledDialog
-    open={open}
-    onClose={handleClose}
-    fullWidth
-    aria-labelledby="maid-flow-title"
-  >
-    <MaidStyledContent>
-      <ServiceBookingFlow
-        serviceKind="maid"
-        active={open}
-        presentation="dialog"
-        onClose={handleClose}
-        providerDetails={providerDetails}
-        sendDataToParent={sendDataToParent}
-      />
-    </MaidStyledContent>
-  </MaidStyledDialog>
-);
+}) => {
+  const [successShowing, setSuccessShowing] = useState(false);
+
+  const handleDialogClose = (
+    _event: object,
+    reason: "backdropClick" | "escapeKeyDown"
+  ) => {
+    if (successShowing) return;
+    if (reason === "backdropClick") return;
+    handleClose();
+  };
+
+  return (
+    <MaidStyledDialog
+      open={open}
+      onClose={handleDialogClose}
+      fullWidth
+      aria-labelledby="maid-flow-title"
+    >
+      <MaidStyledContent>
+        <ServiceBookingFlow
+          serviceKind="maid"
+          active={open}
+          presentation="dialog"
+          onClose={handleClose}
+          providerDetails={providerDetails}
+          sendDataToParent={sendDataToParent}
+          onSuccessDialogChange={setSuccessShowing}
+        />
+      </MaidStyledContent>
+    </MaidStyledDialog>
+  );
+};
 
 export default MaidServiceDialog;

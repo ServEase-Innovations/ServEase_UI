@@ -63,6 +63,8 @@ export interface ServiceBookingFlowProps {
   onClose: () => void;
   providerDetails?: EnhancedProviderDetails;
   sendDataToParent?: (data: string) => void;
+  /** Lets parent booking modal stay open while success UI is shown. */
+  onSuccessDialogChange?: (open: boolean) => void;
 }
 
 const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
@@ -72,6 +74,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   onClose,
   providerDetails,
   sendDataToParent,
+  onSuccessDialogChange,
 }) => {
   const cfg = SERVICE_BOOKING_CONFIG[serviceKind];
   const isPage = presentation === "page";
@@ -109,6 +112,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   >("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+
+  useEffect(() => {
+    onSuccessDialogChange?.(successDialogOpen);
+  }, [successDialogOpen, onSuccessDialogChange]);
+
   const { appUser } = useAppUser();
   const { isAuthenticated, loginWithPopup } = useAuth0();
 
@@ -290,12 +298,15 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     setAuth0SignInOpen(false);
   };
 
-  const handleSuccessDialogClose = () => setSuccessDialogOpen(false);
+  const handleSuccessDialogClose = () => {
+    setSuccessDialogOpen(false);
+    onClose();
+  };
 
   const handleNavigateToBookings = () => {
     setSuccessDialogOpen(false);
-    sendDataToParent?.(BOOKINGS);
     onClose();
+    sendDataToParent?.(BOOKINGS);
   };
 
   const handleCheckout = async () => {
@@ -387,10 +398,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         totalAmount: checkoutTotal,
         bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
         persons: 1,
-        message: result?.verifyResult?.message || "Booking & Payment Successful ✅",
+        message:
+          result?.verifyResult?.message ||
+          "Your booking is confirmed. Payment was successful.",
       });
 
-      onClose();
       setSuccessDialogOpen(true);
     } catch (error: any) {
       let backendMessage = "Failed to initiate payment";
@@ -424,11 +436,23 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     return `${formatInr(min)} – ${formatInr(max)}${unit}`;
   }, [rateCard, bookingTypeCode]);
 
-  if (!active && presentation === "dialog") return null;
+  if (!active && presentation === "dialog" && !successDialogOpen) return null;
+
+  if (successDialogOpen && presentation === "dialog" && !active) {
+    return (
+      <BookingSuccessDialog
+        open={successDialogOpen}
+        onClose={handleSuccessDialogClose}
+        bookingDetails={bookingSuccessDetails}
+        message={bookingSuccessDetails?.message}
+        onNavigateToBookings={handleNavigateToBookings}
+      />
+    );
+  }
 
   return (
     <>
-      <MaidRoot $page={isPage}>
+      <MaidRoot $page={isPage} style={successDialogOpen ? { visibility: "hidden" as const } : undefined}>
         <MaidHeader style={{ background: cfg.headerGradient }}>
           {isPage ? (
             <MaidCloseBtn

@@ -526,9 +526,7 @@ const { appUser } = useAppUser();
         message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
       });
       
-      // Close ALL dialogs and open success dialog
       setCartDialogOpen(false);
-      handleClose();
       setSuccessDialogOpen(true);
 
     } catch (err: any) {
