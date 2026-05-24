@@ -494,10 +494,10 @@ export default function BookingRequestToast({
   const isInfoOnly = isBookingToastInfoOnly(engagement);
 
   useEffect(() => {
-    if (isInfoOnly) return undefined;
-    const timer = setTimeout(() => onClose(), 60_000);
+    if (isInfoOnly || actionBusy) return undefined;
+    const timer = setTimeout(() => onClose(), 20_000);
     return () => clearTimeout(timer);
-  }, [onClose, isInfoOnly]);
+  }, [onClose, isInfoOnly, actionBusy, engagement.engagement_id]);
 
   return (
     <Dialog
