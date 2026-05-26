@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import store from "src/store/userStore";
 import PaymentInstance from "./paymentInstance";
 import dayjs from "dayjs";
+import { resolveProviderId } from "src/utils/providerId";
 
 /** Injected by https://checkout.razorpay.com/v1/checkout.js (do not augment `Window` — conflicts with other typings). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,17 +45,15 @@ export interface BookingPayload {
  */
 export function resolveServiceProviderIdForPayload(
   details: {
+    id?: string | number | null;
     serviceProviderId?: string | number | null;
     serviceproviderId?: string | number | null;
     serviceproviderid?: string | number | null;
   } | null | undefined
 ): number | null {
-  const raw =
-    details?.serviceProviderId ??
-    details?.serviceproviderId ??
-    details?.serviceproviderid;
-  if (raw == null || raw === "") return null;
-  const n = Number(raw);
+  const resolved = resolveProviderId(details as Record<string, unknown>);
+  if (!resolved) return null;
+  const n = Number(resolved);
   if (!Number.isFinite(n) || n <= 0) return null;
   return n;
 }
@@ -240,6 +239,8 @@ export const BookingService = {
     let amountPaise: number;
     if (engagementData?.razorpayOrder?.amount) {
       amountPaise = Number(engagementData.razorpayOrder.amount);
+    } else if (engagementData?.total_amount != null) {
+      amountPaise = Math.round(Number(engagementData.total_amount) * 100);
     } else if (engagementData?.payment?.total_amount) {
       amountPaise = Math.round(Number(engagementData.payment.total_amount) * 100);
     } else {

@@ -27,6 +27,10 @@ import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 import { useLanguage } from "src/context/LanguageContext";
+import {
+  formatMonthlyExtraHourPromo,
+  formatMonthlyHourlyRateBand,
+} from "src/Constants/servicePricing";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrAfter);
@@ -492,10 +496,14 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     });
   };
 
-  const bookingTypeOptions: { value: string; label: string }[] = [
-    { value: "Date", label: t("dateOption") },
-    { value: "Short term", label: t("shortTerm") },
-    { value: "Monthly", label: t("monthly") },
+  const bookingTypeOptions: { value: string; label: string; subtitle?: string }[] = [
+    { value: "Date", label: t("dateOption"), subtitle: "Single day booking" },
+    { value: "Short term", label: t("shortTerm"), subtitle: "Multi-day booking" },
+    {
+      value: "Monthly",
+      label: t("monthly"),
+      subtitle: `${formatMonthlyHourlyRateBand()} · ${formatMonthlyExtraHourPromo()}`,
+    },
   ];
 
   const pickerShellSx = {
@@ -607,24 +615,34 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                     />
                   }
                   label={
-                    <Typography
-                      component="span"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        minHeight: "2.75em",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "0.875rem" : "0.9375rem",
-                        lineHeight: 1.3,
-                        color: "text.primary",
-                        textAlign: "left",
-                        hyphens: "auto",
-                        overflowWrap: "break-word",
-                        pr: 0.5,
-                      }}
-                    >
-                      {opt.label}
-                    </Typography>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        component="span"
+                        sx={{
+                          display: "block",
+                          fontWeight: 600,
+                          fontSize: isMobile ? "0.875rem" : "0.9375rem",
+                          lineHeight: 1.3,
+                          color: "text.primary",
+                        }}
+                      >
+                        {opt.label}
+                      </Typography>
+                      {opt.subtitle ? (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            mt: 0.25,
+                            color: "text.secondary",
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {opt.subtitle}
+                        </Typography>
+                      ) : null}
+                    </Box>
                   }
                   sx={{
                     m: 0,

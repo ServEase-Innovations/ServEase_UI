@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BOOKINGS } from "../../Constants/pagesConstants";
 import { Tooltip, IconButton, CircularProgress, Snackbar, Alert } from "@mui/material";
@@ -53,6 +53,13 @@ import {
   loadServiceQuote,
   type ServiceBookingKind,
 } from "./serviceBookingConfig";
+import { buildQuoteBreakdown, type QuoteBreakdownRow } from "src/utils/quoteBreakdown";
+import {
+  appendPaymentFeeRows,
+  computePaymentTotals,
+} from "src/utils/paymentTotals";
+import PriceBreakdown from "./PriceBreakdown";
+import type { PricingQuoteResponse } from "src/services/pricingService";
 
 const ACCENT_BTN = "#0b5bd3";
 
@@ -89,16 +96,16 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   const [loading, setLoading] = useState(false);
   const [auth0SignInOpen, setAuth0SignInOpen] = useState(false);
   const auth0PopupRef = useRef<Window | null>(null);
-  const [rateCard, setRateCard] = useState<{
-    plan?: { base_rate_min?: number; base_rate_max?: number; unit?: string; name?: string };
-  } | null>(null);
   const [quotePreview, setQuotePreview] = useState<{
     total: number;
     loading: boolean;
     error?: string;
+    breakdown: QuoteBreakdownRow[];
+    quote?: PricingQuoteResponse["quote"];
   }>({
     total: 0,
     loading: false,
+    breakdown: [],
   });
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
@@ -130,8 +137,18 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         bookingType?.serviceproviderId ?? bookingType?.serviceProviderId,
       serviceproviderid: bookingType?.serviceproviderId,
     });
-  const quoteTotal = quotePreview.total || 0;
-  const priceReady = !quotePreview.loading && quoteTotal > 0 && !quotePreview.error;
+  const serviceTotal = quotePreview.total || 0;
+  const paymentTotals = useMemo(
+    () => computePaymentTotals(serviceTotal),
+    [serviceTotal]
+  );
+  const payableTotal = paymentTotals.total_amount || 0;
+  const displayBreakdown = useMemo(
+    () => appendPaymentFeeRows(quotePreview.breakdown, serviceTotal),
+    [quotePreview.breakdown, serviceTotal]
+  );
+  const priceReady =
+    !quotePreview.loading && payableTotal > 0 && !quotePreview.error;
   /** On-demand bookings can checkout without a provider (backend: UNASSIGNED). */
   const providerRequired = bookingTypeCode !== "ON_DEMAND";
   const canCheckout = priceReady && (!providerRequired || providerId != null);
@@ -144,7 +161,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         ? "Calculating price…"
         : quotePreview.error
           ? quotePreview.error
-          : quoteTotal <= 0
+          : payableTotal <= 0
             ? "Pick a valid date and time to see price"
             : !providerId && bookingTypeCode === "ON_DEMAND"
               ? "Pay now to confirm — provider matching after payment"
@@ -175,22 +192,6 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   useEffect(() => {
     if (!active) return;
-    let cancelled = false;
-    cfg
-      .fetchRateCard(bookingTypeCode)
-      .then((data: any) => {
-        if (!cancelled && data?.success !== false) setRateCard(data);
-      })
-      .catch(() => {
-        if (!cancelled) setRateCard(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [active, bookingTypeCode, cfg]);
-
-  useEffect(() => {
-    if (!active) return;
     const customerId = appUser?.customerid;
     const start_date =
       formatDateOnly(String(bookingType?.startDate ?? "")) ||
@@ -205,7 +206,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       String(bookingType?.timeRange ?? "")
     );
 
-    setQuotePreview((p) => ({ ...p, loading: true, error: undefined }));
+    setQuotePreview((p) => ({ ...p, loading: true, error: undefined, breakdown: [] }));
     let cancelled = false;
 
     loadServiceQuote(serviceKind, {
@@ -215,7 +216,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       endDate: end_date,
       durationHours,
       hoursPerDay:
-        bookingTypeCode === "SHORT_TERM" && durationHours != null
+        (bookingTypeCode === "SHORT_TERM" || bookingTypeCode === "MONTHLY") &&
+        durationHours != null
           ? durationHours
           : undefined,
       ratePreference: "mid",
@@ -227,6 +229,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             total,
             loading: false,
             error: total > 0 ? undefined : res.quoteError,
+            quote: res.quote,
+            breakdown: buildQuoteBreakdown(res.quote, total),
           });
         }
       })
@@ -237,6 +241,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             total: 0,
             loading: false,
             error: ax.response?.data?.error || ax.message || "Could not load price",
+            breakdown: [],
           });
         }
       })
@@ -359,7 +364,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         endDate: end_date || start_date,
         durationHours,
         hoursPerDay:
-          booking_type === "SHORT_TERM" && durationHours != null
+          (booking_type === "SHORT_TERM" || booking_type === "MONTHLY") &&
+          durationHours != null
             ? durationHours
             : undefined,
         ratePreference: "mid",
@@ -395,7 +401,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       setBookingSuccessDetails({
         providerName: providerFullName,
         serviceType: t(cfg.successServiceKey),
-        totalAmount: checkoutTotal,
+        totalAmount: computePaymentTotals(checkoutTotal).total_amount,
         bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
         persons: 1,
         message:
@@ -420,21 +426,6 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       setLoading(false);
     }
   };
-
-  const rateCardLabel = useMemo(() => {
-    const plan = rateCard?.plan;
-    if (!plan?.base_rate_min && !plan?.base_rate_max) return null;
-    const c = (plan as { constraints_json?: Record<string, number> }).constraints_json;
-    if (bookingTypeCode === "SHORT_TERM" && (c?.sevenDayPkgMin ?? c?.hourlyBaseMin)) {
-      const pkg = `${formatInr(c.sevenDayPkgMin ?? c.hourlyBaseMin)} – ${formatInr(c.sevenDayPkgMax ?? c.hourlyBaseMax)}`;
-      return `${pkg} for 7 days (1h/day) · 25% off extra days after 7`;
-    }
-    const min = plan.base_rate_min ?? plan.base_rate_max ?? 0;
-    const max = plan.base_rate_max ?? min;
-    const unit = plan.unit === "HOUR" ? "/hr" : plan.unit === "DAY" ? "/day" : "/mo";
-    if (min === max) return `${formatInr(min)}${unit}`;
-    return `${formatInr(min)} – ${formatInr(max)}${unit}`;
-  }, [rateCard, bookingTypeCode]);
 
   if (!active && presentation === "dialog" && !successDialogOpen) return null;
 
@@ -499,34 +490,31 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                       Updating price…
                     </>
                   ) : (
-                    t("total")
+                    "Amount payable"
                   )}
                 </MaidPriceLabel>
                 <MaidReviewTotal $loading={quotePreview.loading}>
-                  {formatInr(quoteTotal)}
+                  {formatInr(payableTotal)}
                 </MaidReviewTotal>
               </MaidPriceBlock>
               <MaidPriceMeta>
                 {checkoutBlockReason ?? cfg.priceMetaReady}
               </MaidPriceMeta>
             </MaidPriceHero>
-            {rateCardLabel ? (
-              <MaidMetricRow
-                style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" }}
-              >
-                <MaidMetricLabel>Rate band</MaidMetricLabel>
-                <MaidMetricValue>{rateCardLabel}</MaidMetricValue>
-              </MaidMetricRow>
-            ) : null}
+            <PriceBreakdown
+              rows={displayBreakdown}
+              loading={quotePreview.loading}
+              paymentTotals={paymentTotals}
+            />
           </MaidCard>
         </MaidScroll>
 
         <MaidFooter>
           <MaidFooterTop>
             <div>
-              <MaidFooterMuted>{t("total")}</MaidFooterMuted>
+              <MaidFooterMuted>Amount payable</MaidFooterMuted>
               <MaidFooterPrice>
-                {quotePreview.loading ? "…" : formatInr(quoteTotal)}
+                {quotePreview.loading ? "…" : formatInr(payableTotal)}
               </MaidFooterPrice>
             </div>
           </MaidFooterTop>

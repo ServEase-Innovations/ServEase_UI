@@ -59,6 +59,7 @@ import { Button } from "../Button/button";
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
+import { resolveProviderId } from "src/utils/providerId";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -174,10 +175,10 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const user = useSelector((state: any) => state.user?.value);
 
-  const resolvedProviderId =
-    props.serviceProviderId ?? props.serviceproviderid ?? props.serviceproviderId;
-  const resolvedProviderIdStr =
-    resolvedProviderId != null ? String(resolvedProviderId) : null;
+  const resolvedProviderId = resolveProviderId(
+    props as unknown as Record<string, unknown>
+  );
+  const resolvedProviderIdStr = resolvedProviderId ?? null;
 
   const handleSelection = (hour: number, isEvening: boolean, time: number) => {
     const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
@@ -310,6 +311,12 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   };
 
   const handleBookNow = () => {
+    if (!resolvedProviderIdStr) {
+      alert(
+        "We could not load this provider's profile. Please go back and try another provider."
+      );
+      return;
+    }
     syncProviderIntoBookingStore();
     props.selectedProvider(providerDetailsData);
 
