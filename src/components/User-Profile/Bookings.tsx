@@ -27,6 +27,9 @@ import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
 import ChatInterface from './ChatInterface';
+import CustomerTodayTasksCard, {
+  CustomerTodayBookingSlot,
+} from './CustomerTodayTasksCard';
 
 interface Task {
   taskType: string;
@@ -384,6 +387,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
+  const [todaySchedule, setTodaySchedule] = useState<CustomerTodayBookingSlot[]>([]);
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -573,9 +577,45 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     
   }, [currentBookings, futureBookings, pastBookings, isLoading, appUser?.customerid]);
 
+  const applyOtpGenerated = (engagementId: number, otp: string) => {
+    setGeneratedOTPs((prev) => ({ ...prev, [engagementId]: otp }));
+    const patchTodayService = (ts: TodayService | undefined) =>
+      ts
+        ? { ...ts, otp_active: true, can_generate_otp: false }
+        : ts;
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === engagementId
+          ? { ...b, today_service: patchTodayService(b.today_service) }
+          : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === engagementId
+          ? { ...b, today_service: patchTodayService(b.today_service) }
+          : b
+      )
+    );
+    setTodaySchedule((prev) =>
+      prev.map((slot) =>
+        slot.engagement_id === engagementId && slot.today_service
+          ? {
+              ...slot,
+              today_service: {
+                ...slot.today_service,
+                otp_active: true,
+                can_generate_otp: false,
+              },
+            }
+          : slot
+      )
+    );
+  };
+
   const handleGenerateOTP = async (booking: Booking) => {
-    if (!booking.today_service?.service_day_id) {
-      console.error('Service day ID not found for OTP generation');
+    const serviceDayId = booking.today_service?.service_day_id;
+    if (!serviceDayId) {
       setSnackbarMessage('Service day ID not found for OTP generation');
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
@@ -584,59 +624,77 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
     try {
       setOtpLoading(booking.id);
-      
       const response = await PaymentInstance.post(
-        `/api/engagement-service/service-days/${booking.today_service.service_day_id}/otp`
+        `/api/engagement-service/service-days/${serviceDayId}/otp`
       );
 
       if (response.status === 200 || response.status === 201) {
         const otp = response.data.otp || response.data.data?.otp || '123456';
-        
-        setGeneratedOTPs(prev => ({
-          ...prev,
-          [booking.id]: otp
-        }));
-
-        setCurrentBookings(prev => prev.map(b => 
-          b.id === booking.id ? {
-            ...b,
-            today_service: b.today_service ? {
-              ...b.today_service,
-              otp_active: true,
-              can_generate_otp: false
-            } : b.today_service
-          } : b
-        ));
-
-        setFutureBookings(prev => prev.map(b => 
-          b.id === booking.id ? {
-            ...b,
-            today_service: b.today_service ? {
-              ...b.today_service,
-              otp_active: true,
-              can_generate_otp: false
-            } : b.today_service
-          } : b
-        ));
-
+        applyOtpGenerated(booking.id, otp);
         setSnackbarMessage('OTP generated successfully!');
         setSnackbarSeverity('success');
         setOpenSnackbar(true);
       }
     } catch (error: any) {
       console.error('Error generating OTP:', error);
-      
       const errData = error.response?.data;
-      const errorMessage =
+      setSnackbarMessage(
         errData?.error ||
-        errData?.message ||
-        'Failed to generate OTP. Please try again.';
-      setSnackbarMessage(errorMessage);
+          errData?.message ||
+          'Failed to generate OTP. Please try again.'
+      );
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
     } finally {
       setOtpLoading(null);
     }
+  };
+
+  const handleGenerateOtpFromToday = async (slot: CustomerTodayBookingSlot) => {
+    const serviceDayId =
+      slot.today_service?.service_day_id ?? slot.service_day_id ?? null;
+    if (!serviceDayId) {
+      setSnackbarMessage('Service day ID not found for OTP generation');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    try {
+      setOtpLoading(slot.engagement_id);
+      const response = await PaymentInstance.post(
+        `/api/engagement-service/service-days/${serviceDayId}/otp`
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        const otp = response.data.otp || response.data.data?.otp || '123456';
+        applyOtpGenerated(slot.engagement_id, otp);
+        setSnackbarMessage('OTP generated successfully!');
+        setSnackbarSeverity('success');
+        setOpenSnackbar(true);
+      }
+    } catch (error: any) {
+      console.error('Error generating OTP:', error);
+      const errData = error.response?.data;
+      setSnackbarMessage(
+        errData?.error ||
+          errData?.message ||
+          'Failed to generate OTP. Please try again.'
+      );
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setOtpLoading(null);
+    }
+  };
+
+  const scrollToBooking = (engagementId: number) => {
+    setViewTab('upcoming');
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`booking-${engagementId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   };
 
   const handleCompletePayment = async (booking: Booking) => {
@@ -885,15 +943,19 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     if (effectiveId !== null && effectiveId !== undefined) {
       console.log("Fetching bookings for customerId:", effectiveId);
 
-      const response = await PaymentInstance.get(
-        `/api/customers/${effectiveId}/engagements`
-      );
+      const [engagementsRes, todayRes] = await Promise.all([
+        PaymentInstance.get(`/api/customers/${effectiveId}/engagements`),
+        PaymentInstance.get(`/api/customers/${effectiveId}/today-bookings`).catch(
+          () => ({ data: { bookings: [] } })
+        ),
+      ]);
 
-      const { past = [], ongoing = [], upcoming = [], cancelled = [] } = response.data || {};
+      const { past = [], ongoing = [], upcoming = [] } = engagementsRes.data || {};
 
       setPastBookings(mapBookingData(past));
       setCurrentBookings(mapBookingData(ongoing));
       setFutureBookings(mapBookingData(upcoming));
+      setTodaySchedule(todayRes.data?.bookings ?? []);
     }
   };
 
@@ -1623,6 +1685,27 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
             );
           })}
         </div>
+
+        {viewTab === "upcoming" && (
+          <CustomerTodayTasksCard
+            loading={isLoading}
+            todaySchedule={todaySchedule}
+            otpLoadingId={otpLoading}
+            generatedOTPs={generatedOTPs}
+            onGenerateOtp={handleGenerateOtpFromToday}
+            onOpenBooking={scrollToBooking}
+            onCallProvider={(phone) => {
+              window.location.href = `tel:${phone}`;
+            }}
+            onOpenMap={(address) => {
+              window.open(
+                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+                "_blank",
+                "noopener,noreferrer"
+              );
+            }}
+          />
+        )}
 
         {viewTab !== "past" && (
         <section className="mb-8 md:mb-10">
