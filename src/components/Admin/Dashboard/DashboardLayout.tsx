@@ -16,6 +16,7 @@ import { Input } from "src/components/Common/input";
 import { Button } from "src/components/Common/button";
 import Permissions from "./Permissions";
 import AdminLedgerGrid from "./AdminLedgerGrid";
+import PushNotifications from "./PushNotifications";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 import { cn } from "../../utils";
 
@@ -32,6 +33,7 @@ const SECTION_LABELS: Record<string, string> = {
   settings: "Settings",
   coupons: "Coupons",
   ledger: "Ledger",
+  "push-notifications": "Push notifications",
 };
 
 function roleLabel(role: string) {
@@ -81,6 +83,8 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
           return <Chats />;
         case "permissions":
           return <Permissions />;
+        case "push-notifications":
+          return <PushNotifications />;
         default:
           return <Dashboard userRole={userRole} />;
       }
@@ -112,6 +116,8 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
           return <AdminLedgerGrid />;
         case "coupons":
           return <Coupons />;
+        case "push-notifications":
+          return <PushNotifications />;
         default:
           return <Dashboard userRole={userRole} />;
       }

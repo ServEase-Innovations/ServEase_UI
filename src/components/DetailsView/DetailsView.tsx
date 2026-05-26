@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { usePricingFilterService } from "../../utils/PricingFilter";
 import providerInstance from "../../services/providerInstance";
 import { ServiceProviderDTO } from "src/types/ProviderDetailsType";
+import { resolveProviderId } from "src/utils/providerId";
 
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { Button, Badge } from "@mui/material";
@@ -230,7 +231,15 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
 
       console.log("API Response:", response.data);
 
-      const newProviders = response.data.providers || [];
+      const rawProviders = response.data.providers || [];
+      const newProviders = rawProviders.map((p: Record<string, unknown>) => {
+        const id = resolveProviderId(p);
+        return {
+          ...p,
+          serviceproviderid: id ?? "",
+          serviceProviderId: id ?? p.serviceProviderId,
+        };
+      });
       const total = response.data.count || 0;
       setTotalCount(total);
 
