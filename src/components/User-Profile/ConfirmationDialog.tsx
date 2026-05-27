@@ -2,14 +2,14 @@
 import React from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
-  Typography
+  Typography,
+  Box,
 } from '@mui/material';
 import { Button } from '../Button/button';
-import { X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 
 interface ConfirmationDialogProps {
@@ -33,67 +33,97 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   loading = false,
-  severity = 'info'
+  severity = 'info',
 }) => {
-  const getSeverityColor = () => {
-    switch (severity) {
-      case 'warning':
-        return 'bg-sky-100 text-yellow-800 border-yellow-200';
-      case 'error':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'success':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
+  const isDestructive = severity === 'warning' || severity === 'error';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      {/* <DialogTitle className={`flex items-center justify-between ${getSeverityColor()} p-2`}>
-        <span className="font-semibold">{title}</span>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          overflow: 'hidden',
+          m: 2,
+        },
+      }}
+    >
+      <DialogHeader
+        style={{
+          height: 'auto',
+          minHeight: '3.5rem',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
+          {isDestructive && (
+            <AlertTriangle className="h-5 w-5 shrink-0 text-white" aria-hidden />
+          )}
+          <Typography
+            component="h2"
+            sx={{
+              m: 0,
+              p: 0,
+              color: '#fff',
+              fontSize: { xs: '1.05rem', sm: '1.15rem' },
+              fontWeight: 600,
+              lineHeight: 1.35,
+            }}
+          >
+            {title}
+          </Typography>
+        </Box>
         <IconButton
           onClick={onClose}
-          size="small"
-          className="hover:bg-black/10"
           disabled={loading}
+          aria-label="Close"
+          size="small"
+          sx={{
+            color: '#fff',
+            flexShrink: 0,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+          }}
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </IconButton>
-      </DialogTitle> */}
-         <DialogHeader className="flex justify-between items-center px-4 py-2 bg-blue-600 rounded-t-lg">
-                <DialogTitle className="text-xl font-semibold text-white">
-                  <span className="font-semibold">{title}</span>
-                </DialogTitle>
-                <button
-                  onClick={onClose}
-                  className="text-white hover:text-gray-200 text-2xl font-light focus:outline-none"
-                  aria-label="Close"
-                >
-                  &times;
-                </button>
-              </DialogHeader>
-      
-      <DialogContent className="p-6">
-        <Typography variant="body1" className="text-gray-700 mt-4">
+      </DialogHeader>
+
+      <DialogContent sx={{ px: 3, pt: 2.5, pb: 1 }}>
+        <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, textAlign: 'center' }}>
           {message}
         </Typography>
       </DialogContent>
-      
-      <DialogActions className="p-2 gap-3">
+
+      <DialogActions
+        sx={{
+          px: 3,
+          pb: 3,
+          pt: 1.5,
+          gap: 1.5,
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          '& > *': { m: '0 !important' },
+        }}
+      >
         <Button
           variant="outline"
           onClick={onClose}
           disabled={loading}
-          className="min-w-24"
+          className="min-h-11 w-full sm:min-w-[7.5rem] sm:w-auto"
         >
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
           loading={loading}
-          className="min-w-24"
-          variant={severity === 'error' ? 'destructive' : 'default'}
+          className="min-h-11 w-full sm:min-w-[7.5rem] sm:w-auto"
+          variant={isDestructive ? 'destructive' : 'default'}
         >
           {confirmText}
         </Button>

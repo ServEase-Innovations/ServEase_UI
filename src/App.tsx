@@ -27,9 +27,11 @@ import { useAuth0 } from "@auth0/auth0-react";
 import AboutPage from "./components/AboutUs/AboutUs";
 import ContactUs from "./components/ContactUs/ContactUs";
 import Footer from "./components/Footer/Footer";
-import BookingRequestToast from "./components/Notifications/BookingRequestToast";
+import BookingRequestToast, {
+  isBookingToastInfoOnly,
+  normalizeSocketBookingForToast,
+} from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
-import PaymentInstance from "./services/paymentInstance";
 import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
@@ -45,6 +47,12 @@ import { ClipLoader } from 'react-spinners';
 import { LanguageProvider } from "./context/LanguageContext";
 import AgentDashboard from "./components/Agent/AgentDashboard";
 import { urls } from "./config/urls";
+import { Alert, Snackbar } from "@mui/material";
+import {
+  acceptEngagement,
+  parseAcceptEngagementError,
+  parseEngagementId,
+} from "./services/engagementService";
 
 // Import the LanguageProvider
 
@@ -58,6 +66,13 @@ function App() {
   const [notificationReceived, setNotificationReceived] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [activeToast, setActiveToast] = useState<any>(null);
+  const [acceptingEngagementId, setAcceptingEngagementId] = useState<number | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [bookingSnack, setBookingSnack] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
   const [toastOpen, setToastOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
@@ -269,15 +284,13 @@ function App() {
   }, [isAuthenticated, isLoading, deepLinkProcessed, pendingDeepLink]);
 
   useEffect(() => {
-    if (showMobileDialog) {
-      setMobileDialogOpen(true);
-    }
+    setMobileDialogOpen(showMobileDialog);
   }, [showMobileDialog]);
 
   const handleDataFromChild = (data: string, type?: 'section' | 'selection') => {
     console.log("Data received from child component:", data);
     
-    if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD ||data === AGENT_DASHBOARD ) {
+    if (data === DETAILS || data === BOOKINGS || data === PROFILE || data === DASHBOARD || data === AGENT_DASHBOARD) {
       setSelection(data);
       setCurrentSection("HOME");
     } else if (type === 'section') {
@@ -288,21 +301,39 @@ function App() {
     }
   };
 
-  const handleAccept = async (engagementId: number) => {
+  useEffect(() => {
+    if (activeToast) {
+      setAcceptError(null);
+    }
+  }, [activeToast?.engagement_id]);
+
+  const handleAccept = async (engagementId: number | string) => {
+    const eid = parseEngagementId(engagementId);
+    if (eid == null) {
+      const msg = "Invalid booking id.";
+      setAcceptError(msg);
+      setBookingSnack({ open: true, message: msg, severity: "error" });
+      return;
+    }
+    setAcceptError(null);
+    setAcceptingEngagementId(eid);
     try {
-      const payload = {
-        serviceproviderid: appUser?.serviceProviderId,
-      };
-
-      const res = await PaymentInstance.post(
-        `/api/v2/engagements/${engagementId}/accept`,
-        payload
-      );
-
-      console.log("✅ Engagement accepted:", res.data);
+      const result = await acceptEngagement(eid, appUser as Record<string, unknown>);
+      setActiveToast(null);
+      setAcceptError(null);
+      setBookingSnack({
+        open: true,
+        message: result.message,
+        severity: "success",
+      });
       window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
     } catch (err) {
-      console.error("❌ Failed to accept engagement", err);
+      const msg = parseAcceptEngagementError(err);
+      setAcceptError(msg);
+      setBookingSnack({ open: true, message: msg, severity: "error" });
+      console.error("Failed to accept engagement", err);
+    } finally {
+      setAcceptingEngagementId(null);
     }
   };
 
@@ -399,9 +430,32 @@ function App() {
         newSocket.emit("join", { providerId: appUser.serviceProviderId });
       });
 
-      newSocket.on("new-engagement", (data) => {
-        console.log("📩 New engagement received:", data);
-        setActiveToast(data);
+      const showSpBookingToast = (data: unknown) => {
+        if (!data || typeof data !== "object") return;
+        console.log("📩 Booking socket payload:", data);
+        const normalized = normalizeSocketBookingForToast(
+          data as Record<string, unknown>
+        );
+        // Only show popup once payment is ready (post-checkout), not at booking create.
+        if (isBookingToastInfoOnly(normalized)) return;
+        setActiveToast(normalized);
+      };
+
+      newSocket.on("new-engagement", showSpBookingToast);
+      newSocket.on("new-engagement-request", showSpBookingToast);
+
+      newSocket.on("booking-request-closed", (data: unknown) => {
+        if (!data || typeof data !== "object") return;
+        const closedId = parseEngagementId(
+          (data as { engagement_id?: unknown }).engagement_id
+        );
+        if (closedId == null) return;
+        setActiveToast((cur) => {
+          if (!cur) return null;
+          const curId = parseEngagementId(cur.engagement_id);
+          return curId === closedId ? null : cur;
+        });
+        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
       });
 
       newSocket.on("in_app_notification", () => {
@@ -562,9 +616,32 @@ function App() {
             engagement={activeToast}
             onAccept={handleAccept}
             onReject={handleReject}
-            onClose={() => setActiveToast(null)}
+            onClose={() => {
+              setActiveToast(null);
+              setAcceptError(null);
+            }}
+            actionBusy={
+              parseEngagementId(activeToast.engagement_id) === acceptingEngagementId
+            }
+            acceptError={acceptError}
           />
         )}
+
+        <Snackbar
+          open={bookingSnack.open}
+          autoHideDuration={6000}
+          onClose={() => setBookingSnack((s) => ({ ...s, open: false }))}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setBookingSnack((s) => ({ ...s, open: false }))}
+            severity={bookingSnack.severity}
+            variant="filled"
+            sx={{ width: "100%" }}
+          >
+            {bookingSnack.message}
+          </Alert>
+        </Snackbar>
       </div>
     </LanguageProvider>
   );

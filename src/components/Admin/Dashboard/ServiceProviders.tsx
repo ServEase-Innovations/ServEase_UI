@@ -41,6 +41,7 @@ export interface ServiceProviderRow {
   timeslot?: string | null;
   rating?: string | number | null;
   isactive?: boolean;
+  isActive?: boolean;
   kyc?: string | null;
   correspondenceAddress?: { locality?: string } | null;
   permanentAddress?: { locality?: string } | null;
@@ -70,13 +71,24 @@ const ServiceProviders = () => {
         return;
       }
 
-      const normalized = list.map((row) => ({
-        ...row,
-        serviceproviderid:
-          typeof row.serviceproviderid === "string"
-            ? Number(row.serviceproviderid)
-            : row.serviceproviderid,
-      })) as ServiceProviderRow[];
+      const normalized = list.map((row) => {
+        const r = row as ServiceProviderRow & { isActive?: boolean };
+        const active =
+          r.isactive === true || r.isActive === true
+            ? true
+            : r.isactive === false || r.isActive === false
+              ? false
+              : true;
+        return {
+          ...row,
+          isactive: active,
+          serviceproviderid:
+            typeof row.serviceproviderid === "string"
+              ? Number(row.serviceproviderid)
+              : row.serviceproviderid ??
+                Number((row as { serviceProviderId?: number }).serviceProviderId),
+        };
+      }) as ServiceProviderRow[];
 
       setRowData(normalized);
     } catch (e: unknown) {
@@ -200,10 +212,17 @@ const ServiceProviders = () => {
         cellClass: "tabular-nums",
       },
       {
-        field: "isactive",
+        colId: "active",
         headerName: "Active",
         width: 100,
-        valueFormatter: (p) => (p.value == null ? "—" : p.value ? "Active" : "Inactive"),
+        valueGetter: (p) => {
+          const d = p.data;
+          if (!d) return true;
+          if (d.isactive === true || d.isActive === true) return true;
+          if (d.isactive === false || d.isActive === false) return false;
+          return true;
+        },
+        valueFormatter: (p) => (p.value ? "Active" : "Inactive"),
       },
       { field: "kyc", headerName: "KYC", width: 100, valueFormatter: (p) => p.value || "—" },
       { field: "vendorId", headerName: "Vendor", width: 100, valueFormatter: (p) => (p.value == null ? "—" : String(p.value)) },

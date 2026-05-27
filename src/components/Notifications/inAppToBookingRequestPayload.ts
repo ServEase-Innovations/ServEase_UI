@@ -8,6 +8,7 @@ dayjs.extend(timezone);
 
 /** Subset of `InAppNotification` used to build a booking request payload. */
 type InAppLike = {
+  type?: string;
   engagementId: string | null;
   title: string;
   body?: string;
@@ -81,16 +82,29 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
     distM = Number(m.distance_km) * 1000;
   }
 
+  const typeUpper = String(n.type || "").toUpperCase();
+  const isAssignedConfirmed = typeUpper === "ASSIGNED_BOOKING_CONFIRMED";
+
+  let endDateYmd: string | undefined;
+  if (m.end_date != null && String(m.end_date).trim() !== "") {
+    const raw = String(m.end_date).slice(0, 10);
+    endDateYmd = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : dayjs(String(m.end_date)).format("YYYY-MM-DD");
+  }
+
   return {
     engagement_id: eid,
     service_type: serviceType,
     booking_type: bookingType,
     start_date: ymd,
+    end_date: endDateYmd,
     start_time: startTime,
     end_time: endTime,
     duration_minutes: duration,
     base_amount: Number.isFinite(base) ? base : 0,
     address: address ?? null,
     distance_meters: distM,
+    ...(Number.isFinite(startEpoch) ? { start_epoch: startEpoch } : {}),
+    ...(Number.isFinite(endEpoch) ? { end_epoch: endEpoch } : {}),
+    ...(isAssignedConfirmed ? { payment_completed: true as const } : {}),
   };
 }

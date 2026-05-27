@@ -59,6 +59,7 @@ import { Button } from "../Button/button";
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
+import { resolveProviderId } from "src/utils/providerId";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -174,6 +175,11 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const user = useSelector((state: any) => state.user?.value);
 
+  const resolvedProviderId = resolveProviderId(
+    props as unknown as Record<string, unknown>
+  );
+  const resolvedProviderIdStr = resolvedProviderId ?? null;
+
   const handleSelection = (hour: number, isEvening: boolean, time: number) => {
     const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
     const endTime = moment({ hour: time + 1, minute: 0 }).format("HH:mm");
@@ -227,7 +233,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
     if (!isExpanded) {
       try {
-        if (props.serviceproviderid === bookingType?.serviceproviderId) {
+        if (resolvedProviderIdStr === String(bookingType?.serviceproviderId ?? "")) {
           setMatchedMorningSelection(bookingType?.morningSelection || null);
           setMatchedEveningSelection(bookingType?.eveningSelection || null);
         } else {
@@ -243,7 +249,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const handleViewDetails = (event: React.MouseEvent) => {
     event.stopPropagation();
     // Set the selected card ID to this provider's ID
-    setSelectedCardId(props.serviceproviderid);
+    setSelectedCardId(resolvedProviderIdStr);
     setDrawerOpen(true);
   };
 
@@ -270,22 +276,22 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return "";
   };
 
-  const handleBookNow = () => {
+  const syncProviderIntoBookingStore = () => {
     let booking: Bookingtype;
 
     if (props.housekeepingRole !== "NANNY") {
       booking = {
-        serviceproviderId: props.serviceproviderid,
+        serviceproviderId: resolvedProviderId,
         eveningSelection: eveningSelectionTime,
         morningSelection: morningSelectionTime,
-        ...bookingType
+        ...bookingType,
       };
     } else {
       booking = {
-        serviceproviderId: props.serviceproviderid,
+        serviceproviderId: resolvedProviderId,
         timeRange: `${startTime} - ${endTime}`,
         duration: getHoursDifference(startTime, endTime),
-        ...bookingType
+        ...bookingType,
       };
     }
 
@@ -294,13 +300,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     } else {
       dispatch(add(booking));
     }
-
-    const providerDetails = {
-      ...props,
-      selectedMorningTime: morningSelection,
-      selectedEveningTime: eveningSelection
-    };
-    props.selectedProvider(providerDetails);
   };
 
   const getHoursDifference = (start: string, end: string) => {
@@ -311,9 +310,20 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return (endTotalMinutes - startTotalMinutes) / 60;
   };
 
-  const handleLogin = () => {
-    console.log("Login button clicked");
-    setOpen(true);
+  const handleBookNow = () => {
+    if (!resolvedProviderIdStr) {
+      alert(
+        "We could not load this provider's profile. Please go back and try another provider."
+      );
+      return;
+    }
+    syncProviderIntoBookingStore();
+    props.selectedProvider(providerDetailsData);
+
+    const role = String(props.housekeepingRole || "").toUpperCase();
+    if (role === "MAID" || role === "COOK") {
+      setOpen(true);
+    }
   };
 
   const handleClose = () => {
@@ -425,8 +435,9 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const providerDetailsData: any = {
     ...props,
-    serviceproviderid: props.serviceproviderid,
-    serviceproviderId: props.serviceproviderid,
+    serviceproviderid: resolvedProviderId,
+    serviceProviderId: resolvedProviderId,
+    serviceproviderId: resolvedProviderId,
     selectedMorningTime: morningSelection,
     selectedEveningTime: eveningSelection,
     matchedMorningSelection,
@@ -486,7 +497,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   return (
     <>
       <ProviderCard 
-        selected={selectedCardId === props.serviceproviderid}
+        selected={selectedCardId === resolvedProviderIdStr}
         sx={{
           '@media (max-width: 900px)': {
             borderRadius: 12,
@@ -843,7 +854,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 variant="contained"
                 size="medium"
                 fullWidth={isMobile}
-                onClick={handleLogin}
+                onClick={handleBookNow}
                 sx={{
                   borderRadius: 2,
                   fontWeight: 700,
@@ -873,32 +884,32 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         provider={props}
       />
 
-      {props.housekeepingRole === "COOK" && 
-        <CookServicesDialog 
-          open={open} 
-          handleClose={handleClose} 
-          providerDetails={providerDetailsData} 
-          sendDataToParent={props.sendDataToParent} 
+      {props.housekeepingRole === "COOK" && (
+        <CookServicesDialog
+          open={open}
+          handleClose={handleClose}
+          providerDetails={providerDetailsData}
+          sendDataToParent={props.sendDataToParent}
         />
-      }
-      
-      {props.housekeepingRole === "MAID" && 
-        <MaidServiceDialog 
-          open={open} 
-          handleClose={handleClose} 
-          providerDetails={providerDetailsData} 
-          sendDataToParent={props.sendDataToParent} 
+      )}
+
+      {props.housekeepingRole === "MAID" && (
+        <MaidServiceDialog
+          open={open}
+          handleClose={handleClose}
+          providerDetails={providerDetailsData}
+          sendDataToParent={props.sendDataToParent}
         />
-      }
-      
-      {props.housekeepingRole === "NANNY" && 
-        <NannyServicesDialog 
-          open={open} 
-          handleClose={handleClose} 
-          providerDetails={providerDetailsData} 
-          sendDataToParent={props.sendDataToParent} 
+      )}
+
+      {props.housekeepingRole === "NANNY" && (
+        <NannyServicesDialog
+          open={open}
+          handleClose={handleClose}
+          providerDetails={providerDetailsData}
+          sendDataToParent={props.sendDataToParent}
         />
-      }
+      )}
     </>
   );
 };

@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import store from "src/store/userStore";
 import PaymentInstance from "./paymentInstance";
 import dayjs from "dayjs";
+import { resolveProviderId } from "src/utils/providerId";
 
 /** Injected by https://checkout.razorpay.com/v1/checkout.js (do not augment `Window` — conflicts with other typings). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +39,25 @@ export interface BookingPayload {
   [key: string]: any;
 }
 
+/**
+ * Provider cards / API use `serviceProviderId` (camelCase); legacy code used `serviceproviderid`.
+ * Returns a positive integer PK or null — never 0 (booking layer treats 0 as "no provider").
+ */
+export function resolveServiceProviderIdForPayload(
+  details: {
+    id?: string | number | null;
+    serviceProviderId?: string | number | null;
+    serviceproviderId?: string | number | null;
+    serviceproviderid?: string | number | null;
+  } | null | undefined
+): number | null {
+  const resolved = resolveProviderId(details as Record<string, unknown>);
+  if (!resolved) return null;
+  const n = Number(resolved);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
 export interface RazorpayPaymentResponse {
   razorpay_payment_id: string;
   razorpay_order_id: string;
@@ -55,7 +75,13 @@ export const BookingService = {
     return res.data;
   },
 
-  openRazorpay: async (razorpay_order_id: string, amountPaise: number, currency = "INR") => {
+  openRazorpay: async (
+    razorpay_order_id: string,
+    amountPaise: number,
+    currency = "INR",
+    prefill?: { name?: string; email?: string; contact?: string },
+    razorpayKeyId?: string
+  ) => {
     const ok = await loadRazorpayScript();
     if (!ok) throw new Error("Failed to load Razorpay SDK");
     const Razorpay = getRazorpayCtor();
@@ -65,8 +91,13 @@ export const BookingService = {
 
     return new Promise<RazorpayPaymentResponse>((resolve, reject) => {
       console.log("Opening Razorpay with order id:", razorpay_order_id, "and amount (paise):", amountPaise);
+      const checkoutKey =
+        razorpayKeyId ||
+        process.env.REACT_APP_RAZORPAY_KEY ||
+        "rzp_test_lTdgjtSRlEwreA";
+
       const rzp = new Razorpay({
-        key: "rzp_test_SHU1MPGbiCzst9",
+        key: checkoutKey,
         amount: amountPaise,
         currency,
         order_id: razorpay_order_id,
@@ -76,9 +107,9 @@ export const BookingService = {
           resolve(resp);
         },
         prefill: {
-          name: "Test User",
-          email: "test@example.com",
-          contact: "9999999999",
+          name: prefill?.name || "Test User",
+          email: prefill?.email || "test@example.com",
+          contact: prefill?.contact || "9999999999",
         },
         theme: { color: "#0ea5e9" },
       });
@@ -94,6 +125,70 @@ export const BookingService = {
       headers: { "Content-Type": "application/json" },
     });
     return res.data;
+  },
+
+  /** Resume checkout for a booking with PENDING payment (My Bookings → Pay now). */
+  resumePayment: async (engagementId: number | string) => {
+    const id = Number(engagementId);
+    if (!Number.isFinite(id) || id < 1) {
+      throw new Error("Invalid engagement id");
+    }
+    const res = await PaymentInstance.post(
+      `/api/v2/createEngagements/resume-payment`,
+      { engagementId: id },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    const data = res.data;
+    if (data?.success === false) {
+      throw new Error(data.error || "Could not resume payment");
+    }
+    return data as {
+      razorpay_order_id: string;
+      razorpay_key_id?: string;
+      amount: number;
+      amount_inr?: number;
+      currency: string;
+      engagementId: number;
+      customer?: {
+        firstname?: string;
+        lastname?: string;
+        contact?: string;
+        email?: string;
+      };
+    };
+  },
+
+  /**
+   * Open Razorpay for an existing PENDING payment and verify on success.
+   */
+  payPendingEngagement: async (
+    engagementId: number | string,
+    prefill?: { name?: string; email?: string; contact?: string }
+  ) => {
+    const resume = await BookingService.resumePayment(engagementId);
+    const orderId = resume.razorpay_order_id;
+    if (!orderId) throw new Error("Razorpay order id not found");
+
+    let amountPaise = Number(resume.amount);
+    if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+      const inr = Number(resume.amount_inr);
+      amountPaise = Math.round(inr * 100);
+    }
+    if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+      throw new Error("Invalid payment amount");
+    }
+
+    const paymentResponse = await BookingService.openRazorpay(
+      orderId,
+      amountPaise,
+      resume.currency || "INR",
+      prefill,
+      resume.razorpay_key_id
+    );
+    paymentResponse.engagementId = resume.engagementId ?? Number(engagementId);
+
+    const verifyResult = await BookingService.verifyPayment(paymentResponse);
+    return { resume, paymentResponse, verifyResult };
   },
 
   /**
@@ -149,6 +244,8 @@ export const BookingService = {
     let amountPaise: number;
     if (engagementData?.razorpayOrder?.amount) {
       amountPaise = Number(engagementData.razorpayOrder.amount);
+    } else if (engagementData?.total_amount != null) {
+      amountPaise = Math.round(Number(engagementData.total_amount) * 100);
     } else if (engagementData?.payment?.total_amount) {
       amountPaise = Math.round(Number(engagementData.payment.total_amount) * 100);
     } else {
@@ -156,7 +253,13 @@ export const BookingService = {
     }
 
     // Open Razorpay
-    const paymentResponse = await BookingService.openRazorpay(orderId, amountPaise);
+    const paymentResponse = await BookingService.openRazorpay(
+      orderId,
+      amountPaise,
+      "INR",
+      undefined,
+      engagementData?.razorpay_key_id
+    );
 
     paymentResponse.engagementId = engagementData?.engagement_id;
 

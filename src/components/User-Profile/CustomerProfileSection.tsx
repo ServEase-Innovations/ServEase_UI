@@ -13,6 +13,7 @@ import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import preferenceInstance from "src/services/preferenceInstance";
+import { mapCustomerApiToProfile } from "src/utils/customerApiNormalize";
 
 interface Address {
   id: string;
@@ -106,12 +107,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
       const response = await providerInstance.get(`/api/customer/${userId}`);
       const data = response.data?.data;
 
-      const userDataFromApi = {
-        firstName: data?.firstname || "",
-        lastName: data?.lastname || "",
-        contactNumber: data?.mobileno || "",
-        altContactNumber: data?.alternateno || ""
-      };
+      const userDataFromApi = mapCustomerApiToProfile(data);
 
       setUserData(userDataFromApi);
       setOriginalData(prev => ({
@@ -119,8 +115,7 @@ const CustomerProfileSection: React.FC<CustomerProfileSectionProps> = ({
         userData: userDataFromApi
       }));
 
-      // ✅ Update Redux if you still need it elsewhere in the app
-      if (data?.mobileno) {
+      if (userDataFromApi.contactNumber.length >= 10) {
         dispatch(setHasMobileNumber(true));
       }
 
@@ -195,12 +190,7 @@ useEffect(() => {
       if (userId) {
         if (initialData) {
           // Use initial data if provided
-          const userDataFromProps = {
-            firstName: initialData.firstname || "",
-            lastName: initialData.lastname || "",
-            contactNumber: initialData.mobileno || "",
-            altContactNumber: initialData.alternateno || ""
-          };
+          const userDataFromProps = mapCustomerApiToProfile(initialData);
           setUserData(userDataFromProps);
           setOriginalData(prev => ({
             ...prev,
@@ -208,8 +198,7 @@ useEffect(() => {
           }));
           setIsLoading(false);
           
-          // Update Redux if needed
-          if (initialData.mobileno) {
+          if (userDataFromProps.contactNumber.length >= 10) {
             dispatch(setHasMobileNumber(true));
           }
           

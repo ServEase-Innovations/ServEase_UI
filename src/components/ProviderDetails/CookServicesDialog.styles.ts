@@ -4,6 +4,7 @@ import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import styled from '@emotion/styled';
 import CloseIcon from '@mui/icons-material/Close';
+import { BOOKING_HEADER_GRADIENT } from './MaidServiceDialog.styles';
 
 // Define the Dinner package color scheme
 const DINNER_COLOR = '#0984e3';
@@ -53,7 +54,7 @@ export const DialogHeader = styled.div`
   display: flex;
   align-items: center; /* vertically center content */
   border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(to right, #0a2a66, #328aff); 
+  background: ${BOOKING_HEADER_GRADIENT};
   color: white;
 
   h1 {
@@ -473,4 +474,79 @@ export const CareTypeTitle = styled.h2`
   font-weight: 600;
   color: #0e305c;
   margin-bottom: 1rem;
+`;
+
+// Maid service dialog
+export const BookingTypeBanner = styled.div`
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%);
+  border: 1px solid #b8d4f0;
+  font-size: 13px;
+  color: #2d3436;
+  line-height: 1.45;
+
+  strong {
+    color: #0984e3;
+    font-weight: 600;
+  }
+`;
+
+export const SectionSubtitle = styled.p`
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #636e72;
+  line-height: 1.4;
+`;
+
+export const OptionChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+`;
+
+export const OptionChip = styled.button<{ active: boolean }>`
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid ${(p) => (p.active ? DINNER_COLOR : "#dfe6e9")};
+  background: ${(p) => (p.active ? DINNER_BG_COLOR : "#fff")};
+  color: ${(p) => (p.active ? DINNER_COLOR : "#2d3436")};
+  font-size: 13px;
+  font-weight: ${(p) => (p.active ? 600 : 400)};
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: ${DINNER_COLOR};
+    background: ${DINNER_BG_COLOR};
+  }
+`;
+
+export const PriceBreakdown = styled.div`
+  font-size: 12px;
+  color: #636e72;
+  margin-top: 4px;
+  line-height: 1.5;
+
+  span {
+    display: block;
+  }
+`;
+
+export const ScrollablePackages = styled.div`
+  max-height: min(62vh, 520px);
+  overflow-y: auto;
+  padding-bottom: 8px;
+`;
+
+export const EmptyPricingState = styled.div`
+  padding: 32px 20px;
+  text-align: center;
+  color: #636e72;
+  font-size: 14px;
+  border: 1px dashed #dfe6e9;
+  border-radius: 10px;
+  margin: 0 20px 16px;
 `;

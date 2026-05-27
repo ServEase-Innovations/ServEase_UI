@@ -1,32 +1,156 @@
 import React, { useEffect, useMemo } from "react";
+import { parseEngagementId } from "src/services/engagementService";
 import { Box, Button, Dialog, DialogContent, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Bell, CheckCircle, Clock, MapPin, XCircle, Sparkles } from "lucide-react";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
-/** Payload from Socket.IO `new-engagement` (see payments `createEngagements.js`). */
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const TZ = "Asia/Kolkata";
+
+/** Payload from Socket.IO `new-engagement` / `new-engagement-request` (payments service). */
 export interface NewBookingRequestPayload {
   engagement_id: number;
   service_type: string;
   booking_type?: string;
   start_date: string;
   end_date?: string;
-  start_time: string;
+  start_time?: string;
   end_time?: string;
   duration_minutes?: number;
   base_amount: number;
+  start_epoch?: number;
   address?: string | null;
   /** Straight-line distance (m) from this provider to the customer's service location. */
   distance_meters?: number;
+  /** Customer has not finished checkout yet — do not show Accept */
+  payment_pending?: boolean;
+  /** Assigned MONTHLY/SHORT_TERM: payment captured (informational toast) */
+  payment_completed?: boolean;
+  /** ON_DEMAND: payment captured — provider may accept */
+  payment_ready?: boolean;
 }
 
-function formatDateLabel(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+/**
+ * Fills `start_time` / `end_time` from `start_epoch` when the server only sent epochs
+ * (e.g. `new-engagement-request` after Razorpay).
+ */
+export function normalizeSocketBookingForToast(
+  raw: Record<string, unknown>
+): NewBookingRequestPayload {
+  const out = { ...raw } as unknown as NewBookingRequestPayload;
+  const eid =
+    parseEngagementId(raw.engagement_id) ??
+    parseEngagementId(raw.engagementId) ??
+    parseEngagementId(raw.id);
+  out.engagement_id = eid ?? (NaN as number);
+  const startEpoch =
+    out.start_epoch != null && Number.isFinite(Number(out.start_epoch))
+      ? Number(out.start_epoch)
+      : null;
+  if (startEpoch != null) {
+    const z = dayjs.unix(startEpoch).tz(TZ);
+    out.start_date = z.format("YYYY-MM-DD");
+    if (!out.start_time || String(out.start_time).trim() === "") {
+      out.start_time = z.format("h:mm A");
+      if (out.duration_minutes != null && Number.isFinite(Number(out.duration_minutes))) {
+        out.end_time = z.add(Number(out.duration_minutes), "minute").format("h:mm A");
+      }
+    }
+  } else if (out.start_date) {
+    const d = parseYmdInIst(String(out.start_date));
+    if (d) out.start_date = d.format("YYYY-MM-DD");
+  }
+  if (out.end_date) {
+    const ed = parseYmdInIst(String(out.end_date));
+    if (ed) out.end_date = ed.format("YYYY-MM-DD");
+  }
+  if (out.start_time != null && String(out.start_time).trim() !== "" && out.start_time !== "—") {
+    out.start_time = formatClock12h(out.start_time);
+  }
+  if (out.end_time) {
+    out.end_time = formatClock12h(out.end_time);
+  }
+  if (out.start_time == null || String(out.start_time).trim() === "") {
+    out.start_time = "—";
+  }
+  if (out.base_amount == null || out.base_amount === ("" as unknown)) {
+    out.base_amount = 0;
+  }
+  if (raw.payment_pending === true) out.payment_pending = true;
+  if (raw.payment_completed === true) out.payment_completed = true;
+  if (raw.payment_ready === true) out.payment_ready = true;
+  return out;
+}
+
+function parseYmdInIst(value?: string | null): dayjs.Dayjs | null {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s.slice(0, 10))) {
+    const d = dayjs.tz(s.slice(0, 10), "YYYY-MM-DD", TZ);
+    return d.isValid() ? d : null;
+  }
+  const d = dayjs(s).tz(TZ);
+  return d.isValid() ? d : null;
+}
+
+function formatClock12h(value?: string | null): string {
+  if (!value || value === "—") return "—";
+  const s = String(value).trim();
+  if (/\b(AM|PM|am|pm)\b/.test(s)) {
+    return s.replace(/\b(am|pm)\b/g, (m) => m.toUpperCase());
+  }
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const t = dayjs.tz(`1970-01-01 ${s}`, "YYYY-MM-DD HH:mm", TZ);
+    return t.isValid() ? t.format("h:mm A") : s;
+  }
+  return s;
+}
+
+export function formatDateLabel(value?: string | null, startEpoch?: number): string {
+  if (startEpoch != null && Number.isFinite(startEpoch)) {
+    return dayjs.unix(startEpoch).tz(TZ).format("ddd, D MMM YYYY");
+  }
+  const d = parseYmdInIst(value ?? undefined);
+  return d ? d.format("ddd, D MMM YYYY") : value ? String(value) : "—";
+}
+
+/** Human-readable schedule for SP booking toasts and notification detail. */
+export function formatBookingScheduleDisplay(eng: NewBookingRequestPayload): {
+  dateLine: string;
+  timeLine: string;
+} {
+  const startEpoch =
+    eng.start_epoch != null && Number.isFinite(Number(eng.start_epoch))
+      ? Number(eng.start_epoch)
+      : undefined;
+
+  const startD =
+    startEpoch != null ? dayjs.unix(startEpoch).tz(TZ) : parseYmdInIst(eng.start_date);
+  const endD = parseYmdInIst(eng.end_date);
+
+  let dateLine = formatDateLabel(eng.start_date, startEpoch);
+  if (endD && startD && !endD.isSame(startD, "day")) {
+    dateLine = `${startD.format("ddd, D MMM")} – ${endD.format("ddd, D MMM YYYY")}`;
+  }
+
+  const startT = formatClock12h(eng.start_time);
+  let timeLine = startT;
+  if (eng.end_time) {
+    timeLine = `${startT} – ${formatClock12h(eng.end_time)}`;
+  } else if (eng.duration_minutes && startEpoch != null) {
+    const end = dayjs.unix(startEpoch).tz(TZ).add(Number(eng.duration_minutes), "minute");
+    timeLine = `${startT} – ${end.format("h:mm A")}`;
+  } else if (eng.duration_minutes) {
+    timeLine = `${startT} (${eng.duration_minutes} min)`;
+  }
+
+  return { dateLine, timeLine };
 }
 
 export function formatDistanceMetersLine(m?: number): string | null {
@@ -35,19 +159,17 @@ export function formatDistanceMetersLine(m?: number): string | null {
   return `About ${(m / 1000).toFixed(1)} km from you`;
 }
 
-function timeRange(eng: NewBookingRequestPayload): string {
-  if (eng.end_time) {
-    return `${eng.start_time} – ${eng.end_time}`;
-  }
-  if (eng.duration_minutes) {
-    return `${eng.start_time} · ${eng.duration_minutes} min slot`;
-  }
-  return eng.start_time;
+/** Assigned bookings after payment are informational; on-demand before payment cannot be accepted yet. */
+export function isBookingToastInfoOnly(engagement: NewBookingRequestPayload): boolean {
+  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
+  if (engagement.payment_pending === true) return true;
+  if (!isOnDemand && engagement.payment_completed === true) return true;
+  return false;
 }
 
 export type OndemandBookingRequestPanelProps = {
   engagement: NewBookingRequestPayload;
-  onAccept: (engagementId: number) => void;
+  onAccept: (engagementId: number) => void | Promise<void>;
   onReject: (engagementId: number) => void;
   footerHelperText?: string | null;
   actionBusy?: boolean;
@@ -73,7 +195,10 @@ export function OndemandBookingRequestPanel({
     () => formatDistanceMetersLine(engagement.distance_meters),
     [engagement.distance_meters]
   );
-  const scheduleLine = timeRange(engagement);
+  const schedule = useMemo(
+    () => formatBookingScheduleDisplay(engagement),
+    [engagement]
+  );
 
   const typeLabel = engagement.service_type
     ? engagement.service_type.replace(/_/g, " ")
@@ -81,6 +206,27 @@ export function OndemandBookingRequestPanel({
   const bookLabel = engagement.booking_type
     ? engagement.booking_type.replace(/_/g, " ")
     : "Booking";
+
+  const isOnDemand = String(engagement.booking_type || "").toUpperCase() === "ON_DEMAND";
+  const isInfoOnly = isBookingToastInfoOnly(engagement);
+
+  const resolvedEngagementId = parseEngagementId(engagement.engagement_id);
+  const canAccept = resolvedEngagementId != null && !isInfoOnly;
+
+  const headerTitle = engagement.payment_pending
+    ? isOnDemand
+      ? "Awaiting customer payment"
+      : "New booking"
+    : engagement.payment_completed && !isOnDemand
+      ? "Booking confirmed"
+      : "New booking request";
+  const headerSubtitle = engagement.payment_pending
+    ? isOnDemand
+      ? "You can accept this job after the customer completes payment. We will notify you again."
+      : "The customer is completing payment. You will get another update when it succeeds."
+    : engagement.payment_completed && !isOnDemand
+      ? "This booking is on your calendar with the schedule below."
+      : "A customer nearby is requesting your service";
 
   return (
     <>
@@ -103,7 +249,7 @@ export function OndemandBookingRequestPanel({
             className="text-center font-semibold"
             sx={{ fontSize: "1.1rem", letterSpacing: 0.2 }}
           >
-            New booking request
+            {headerTitle}
           </Typography>
           <Bell className="h-5 w-5 opacity-95" aria-hidden />
         </Stack>
@@ -113,7 +259,7 @@ export function OndemandBookingRequestPanel({
           </Typography>
         ) : null}
         <Typography variant="body2" sx={{ opacity: 0.9, textAlign: "center", mt: headerCaption ? 0.25 : 0.5, fontSize: 13 }}>
-          A customer nearby is requesting your service
+          {headerSubtitle}
         </Typography>
       </Box>
 
@@ -190,7 +336,10 @@ export function OndemandBookingRequestPanel({
                     Schedule
                   </Typography>
                   <Typography variant="body1" color="text.primary" fontWeight={500}>
-                    {formatDateLabel(engagement.start_date)} · {scheduleLine}
+                    {schedule.dateLine}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                    {schedule.timeLine}
                   </Typography>
                 </div>
               </Stack>
@@ -261,41 +410,60 @@ export function OndemandBookingRequestPanel({
       </DialogContent>
 
       <Box sx={{ px: 2.5, pb: 2.5, pt: 0.5 }}>
-        <Stack direction="row" gap={1.5} justifyContent="stretch" sx={{ "& .MuiButton-root": { flex: 1 } }}>
-          <Button
-            type="button"
-            fullWidth
-            size="large"
-            variant="outlined"
-            color="error"
-            disabled={actionBusy}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onReject(engagement.engagement_id);
-            }}
-            startIcon={<XCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
-          >
-            Decline
-          </Button>
+        {isInfoOnly ? (
           <Button
             type="button"
             fullWidth
             size="large"
             variant="contained"
-            color="success"
+            color="primary"
             disabled={actionBusy}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onAccept(engagement.engagement_id);
+              if (resolvedEngagementId != null) onReject(resolvedEngagementId);
             }}
-            startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
-            sx={{ boxShadow: 2 }}
           >
-            Accept
+            Dismiss
           </Button>
-        </Stack>
+        ) : (
+          <Stack direction="row" gap={1.5} justifyContent="stretch" sx={{ "& .MuiButton-root": { flex: 1 } }}>
+            <Button
+              type="button"
+              fullWidth
+              size="large"
+              variant="outlined"
+              color="error"
+              disabled={actionBusy || resolvedEngagementId == null}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (resolvedEngagementId != null) onReject(resolvedEngagementId);
+              }}
+              startIcon={<XCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
+            >
+              Decline
+            </Button>
+            <Button
+              type="button"
+              fullWidth
+              size="large"
+              variant="contained"
+              color="success"
+              disabled={actionBusy || !canAccept}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (resolvedEngagementId == null) return;
+                await onAccept(resolvedEngagementId);
+              }}
+              startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
+              sx={{ boxShadow: 2 }}
+            >
+              Accept
+            </Button>
+          </Stack>
+        )}
         {footerHelperText != null && footerHelperText.length > 0 && (
           <Typography variant="caption" color="text.disabled" textAlign="center" display="block" sx={{ mt: 1.5 }}>
             {footerHelperText}
@@ -308,9 +476,11 @@ export function OndemandBookingRequestPanel({
 
 interface BookingRequestToastProps {
   engagement: NewBookingRequestPayload;
-  onAccept: (engagementId: number) => void;
+  onAccept: (engagementId: number) => void | Promise<void>;
   onReject: (engagementId: number) => void;
   onClose: () => void;
+  actionBusy?: boolean;
+  acceptError?: string | null;
 }
 
 export default function BookingRequestToast({
@@ -318,11 +488,16 @@ export default function BookingRequestToast({
   onAccept: onAcceptFromParent,
   onReject: onRejectFromParent,
   onClose,
+  actionBusy = false,
+  acceptError = null,
 }: BookingRequestToastProps) {
+  const isInfoOnly = isBookingToastInfoOnly(engagement);
+
   useEffect(() => {
-    const timer = setTimeout(() => onClose(), 60_000);
+    if (isInfoOnly || actionBusy) return undefined;
+    const timer = setTimeout(() => onClose(), 20_000);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [onClose, isInfoOnly, actionBusy, engagement.engagement_id]);
 
   return (
     <Dialog
@@ -353,15 +528,26 @@ export default function BookingRequestToast({
     >
       <OndemandBookingRequestPanel
         engagement={engagement}
-        onAccept={(id) => {
-          onAcceptFromParent(id);
-          onClose();
+        onAccept={async (id) => {
+          try {
+            await onAcceptFromParent(id);
+          } catch {
+            /* Parent shows snackbar / acceptError */
+          }
         }}
         onReject={(id) => {
           onRejectFromParent(id);
           onClose();
         }}
-        footerHelperText="This request closes in 60 seconds if you take no action."
+        actionBusy={actionBusy}
+        errorText={acceptError}
+        footerHelperText={
+          isInfoOnly
+            ? null
+            : acceptError
+              ? "Fix the issue above or decline this request."
+              : "This request closes in 60 seconds if you take no action."
+        }
       />
     </Dialog>
   );

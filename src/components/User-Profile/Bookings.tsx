@@ -21,11 +21,15 @@ import AddReviewDialog from './AddReviewDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
+import { BookingService } from 'src/services/bookingService';
 import { useAppUser } from 'src/context/AppUserContext';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
 import ChatInterface from './ChatInterface';
+import CustomerTodayTasksCard, {
+  CustomerTodayBookingSlot,
+} from './CustomerTodayTasksCard';
 
 interface Task {
   taskType: string;
@@ -324,11 +328,28 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
 };
 
+type BookingsViewTab = "upcoming" | "past" | "pending";
+
+const isPaymentPendingBooking = (booking: Booking) =>
+  Boolean(
+    booking.payment?.status === "PENDING" && booking.taskStatus !== "CANCELLED"
+  );
+
+/** Aligns list badges/filters with today’s visit (service_days), not only task_status. */
+const effectiveTaskStatus = (booking: Booking): string => {
+  if (booking.taskStatus === "CANCELLED") return "CANCELLED";
+  const visit = booking.today_service?.status?.toUpperCase();
+  if (visit === "IN_PROGRESS" || visit === "STARTED") return "IN_PROGRESS";
+  if (visit === "COMPLETED" || visit === "DONE") return "COMPLETED";
+  return booking.taskStatus;
+};
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
-  const [selectedTab, setSelectedTab] = useState<number>(0);
+  const [viewTab, setViewTab] = useState<BookingsViewTab>("upcoming");
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
+  const [cancelledBookings, setCancelledBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
   const [customerId, setCustomerId] = useState<number | null>(null);
@@ -358,6 +379,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
   const [otpLoading, setOtpLoading] = useState<number | null>(null);
   
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
@@ -367,6 +389,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
+  const [todaySchedule, setTodaySchedule] = useState<CustomerTodayBookingSlot[]>([]);
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -556,9 +579,45 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     
   }, [currentBookings, futureBookings, pastBookings, isLoading, appUser?.customerid]);
 
+  const applyOtpGenerated = (engagementId: number, otp: string) => {
+    setGeneratedOTPs((prev) => ({ ...prev, [engagementId]: otp }));
+    const patchTodayService = (ts: TodayService | undefined) =>
+      ts
+        ? { ...ts, otp_active: true, can_generate_otp: false }
+        : ts;
+    setCurrentBookings((prev) =>
+      prev.map((b) =>
+        b.id === engagementId
+          ? { ...b, today_service: patchTodayService(b.today_service) }
+          : b
+      )
+    );
+    setFutureBookings((prev) =>
+      prev.map((b) =>
+        b.id === engagementId
+          ? { ...b, today_service: patchTodayService(b.today_service) }
+          : b
+      )
+    );
+    setTodaySchedule((prev) =>
+      prev.map((slot) =>
+        slot.engagement_id === engagementId && slot.today_service
+          ? {
+              ...slot,
+              today_service: {
+                ...slot.today_service,
+                otp_active: true,
+                can_generate_otp: false,
+              },
+            }
+          : slot
+      )
+    );
+  };
+
   const handleGenerateOTP = async (booking: Booking) => {
-    if (!booking.today_service?.service_day_id) {
-      console.error('Service day ID not found for OTP generation');
+    const serviceDayId = booking.today_service?.service_day_id;
+    if (!serviceDayId) {
       setSnackbarMessage('Service day ID not found for OTP generation');
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
@@ -567,50 +626,25 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
     try {
       setOtpLoading(booking.id);
-      
       const response = await PaymentInstance.post(
-        `/api/engagement-service/service-days/${booking.today_service.service_day_id}/otp`
+        `/api/engagement-service/service-days/${serviceDayId}/otp`
       );
 
       if (response.status === 200 || response.status === 201) {
         const otp = response.data.otp || response.data.data?.otp || '123456';
-        
-        setGeneratedOTPs(prev => ({
-          ...prev,
-          [booking.id]: otp
-        }));
-
-        setCurrentBookings(prev => prev.map(b => 
-          b.id === booking.id ? {
-            ...b,
-            today_service: b.today_service ? {
-              ...b.today_service,
-              otp_active: true,
-              can_generate_otp: false
-            } : b.today_service
-          } : b
-        ));
-
-        setFutureBookings(prev => prev.map(b => 
-          b.id === booking.id ? {
-            ...b,
-            today_service: b.today_service ? {
-              ...b.today_service,
-              otp_active: true,
-              can_generate_otp: false
-            } : b.today_service
-          } : b
-        ));
-
+        applyOtpGenerated(booking.id, otp);
         setSnackbarMessage('OTP generated successfully!');
         setSnackbarSeverity('success');
         setOpenSnackbar(true);
       }
     } catch (error: any) {
       console.error('Error generating OTP:', error);
-      
-      const errorMessage = error.response?.data?.message || 'Failed to generate OTP. Please try again.';
-      setSnackbarMessage(errorMessage);
+      const errData = error.response?.data;
+      setSnackbarMessage(
+        errData?.error ||
+          errData?.message ||
+          'Failed to generate OTP. Please try again.'
+      );
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
     } finally {
@@ -618,56 +652,103 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     }
   };
 
+  const handleGenerateOtpFromToday = async (slot: CustomerTodayBookingSlot) => {
+    const serviceDayId =
+      slot.today_service?.service_day_id ?? slot.service_day_id ?? null;
+    if (!serviceDayId) {
+      setSnackbarMessage('Service day ID not found for OTP generation');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    try {
+      setOtpLoading(slot.engagement_id);
+      const response = await PaymentInstance.post(
+        `/api/engagement-service/service-days/${serviceDayId}/otp`
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        const otp = response.data.otp || response.data.data?.otp || '123456';
+        applyOtpGenerated(slot.engagement_id, otp);
+        setSnackbarMessage('OTP generated successfully!');
+        setSnackbarSeverity('success');
+        setOpenSnackbar(true);
+      }
+    } catch (error: any) {
+      console.error('Error generating OTP:', error);
+      const errData = error.response?.data;
+      setSnackbarMessage(
+        errData?.error ||
+          errData?.message ||
+          'Failed to generate OTP. Please try again.'
+      );
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setOtpLoading(null);
+    }
+  };
+
+  const scrollToBooking = (engagementId: number) => {
+    setViewTab('upcoming');
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`booking-${engagementId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  };
+
+  const afterPaymentSuccess = async () => {
+    const effectiveCustomerId = customerId ?? appUser?.customerid;
+    if (effectiveCustomerId != null) {
+      await refreshBookings(effectiveCustomerId);
+    }
+    setDetailsDrawerOpen(false);
+    setSelectedBooking(null);
+    setViewTab("upcoming");
+    setSnackbarMessage("Payment completed successfully.");
+    setSnackbarSeverity("success");
+    setOpenSnackbar(true);
+  };
+
   const handleCompletePayment = async (booking: Booking) => {
-   try {
-    // Use POST with request body
-    const resumeRes = await PaymentInstance.post(
-      '/api/v2/createEngagements/resume-payment',
-      { engagementId: booking.payment?.engagement_id }
-    );
+    const engagementId =
+      booking.payment?.engagement_id ?? booking.id;
+    if (!engagementId) {
+      setSnackbarMessage("Cannot resume payment: booking id missing.");
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+      return;
+    }
 
-      const {
-        razorpay_order_id,
-        amount,
-        currency,
-        engagementId: engagement_id,
-        customer
-      } = resumeRes.data;
+    try {
+      setPaymentLoading(booking.id);
+      const customerName =
+        booking.customerName ||
+        (appUser?.firstname && appUser?.lastname
+          ? `${appUser.firstname} ${appUser.lastname}`
+          : appUser?.email?.split("@")[0] || "Customer");
 
-      const options = {
-        key: "rzp_test_SHU1MPGbiCzst9",
-       amount: amount,
-        currency,
-        order_id: razorpay_order_id,
-        name: "Serveaso",
-        description: "Complete your payment",
-        prefill: {
-          name: customer?.firstname || booking.customerName,
-          contact:  customer?.contact || '9999999999',
-        },
-        handler: async function (response: any) {
-          await PaymentInstance.post("/api/v2/createEngagements/verify", {
-            engagementId: engagement_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-          });
-          refreshBookings();
-        },
-        theme: {
-          color: "#0A7CFF",
-        },
-     };
-     console.log("FINAL ORDER ID USED:", options.order_id);
-console.log("FULL OPTIONS:", options);
-console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
+      await BookingService.payPendingEngagement(engagementId, {
+        name: customerName,
+        email: appUser?.email || undefined,
+        contact: appUser?.mobileno || undefined,
+      });
 
-      const razorpay = new (window as any).Razorpay(options);
-      razorpay.open();
-
+      await afterPaymentSuccess();
     } catch (err: any) {
       console.error("Complete payment error:", err);
-      alert("Unable to resume payment. Please try again.");
+      const msg =
+        err?.response?.data?.error ||
+        err?.description ||
+        err?.message ||
+        "Unable to resume payment. Please try again.";
+      setSnackbarMessage(msg);
+      setSnackbarSeverity("error");
+      setOpenSnackbar(true);
+    } finally {
+      setPaymentLoading(null);
     }
   };
 
@@ -839,15 +920,35 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
     return booking.hasVacation || false;
   };
 
-  const filterBookings = (bookings: Booking[], term: string) => {
-    if (!term) return bookings;
-    
-    return bookings.filter(booking => 
-      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
-      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
+  const getAllBookings = (): Booking[] => {
+    const byId = new Map<number, Booking>();
+    [...futureBookings, ...currentBookings, ...pastBookings, ...cancelledBookings].forEach(
+      (b) => byId.set(b.id, b)
     );
+    return Array.from(byId.values());
+  };
+
+  const normalizeSearchQuery = (term: string) =>
+    term.trim().toLowerCase().replace(/^#/, '');
+
+  const bookingMatchesSearch = (booking: Booking, term: string): boolean => {
+    const q = normalizeSearchQuery(term);
+    if (!q) return true;
+
+    const idStr = String(booking.id ?? '');
+    if (idStr === q || idStr.includes(q)) return true;
+
+    return (
+      getServiceTitle(booking?.service_type).toLowerCase().includes(q) ||
+      booking.serviceProviderName?.toLowerCase().includes(q) ||
+      (booking.address?.toLowerCase().includes(q) ?? false) ||
+      booking.bookingType?.toLowerCase().includes(q)
+    );
+  };
+
+  const filterBookings = (bookings: Booking[], term: string) => {
+    if (!term.trim()) return bookings;
+    return bookings.filter((booking) => bookingMatchesSearch(booking, term));
   };
 
   const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
@@ -865,20 +966,37 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
     });
   };
 
-  const refreshBookings = async (id?: string) => {
-    const effectiveId = id || customerId;
+  const refreshBookings = async (id?: string | number) => {
+    const effectiveId = id ?? customerId;
     if (effectiveId !== null && effectiveId !== undefined) {
       console.log("Fetching bookings for customerId:", effectiveId);
 
-      const response = await PaymentInstance.get(
-        `/api/customers/${effectiveId}/engagements`
+      const [engagementsRes, todayRes] = await Promise.all([
+        PaymentInstance.get(`/api/customers/${effectiveId}/engagements`),
+        PaymentInstance.get(`/api/customers/${effectiveId}/today-bookings`).catch(
+          () => ({ data: { bookings: [] } })
+        ),
+      ]);
+
+      const {
+        past = [],
+        ongoing = [],
+        upcoming = [],
+        cancelled: cancelledFromApi = [],
+      } = engagementsRes.data || {};
+
+      const partitioned = partitionEngagementLists(
+        upcoming,
+        ongoing,
+        past,
+        cancelledFromApi
       );
 
-      const { past = [], ongoing = [], upcoming = [], cancelled = [] } = response.data || {};
-
-      setPastBookings(mapBookingData(past));
-      setCurrentBookings(mapBookingData(ongoing));
-      setFutureBookings(mapBookingData(upcoming));
+      setPastBookings(mapBookingData(partitioned.past));
+      setCurrentBookings(mapBookingData(partitioned.ongoing));
+      setFutureBookings(mapBookingData(partitioned.upcoming));
+      setCancelledBookings(mapBookingData(partitioned.cancelled));
+      setTodaySchedule(todayRes.data?.bookings ?? []);
     }
   };
 
@@ -925,6 +1043,54 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
   };
 
   
+  const isCancelledEngagementItem = (item: any): boolean => {
+    const life = String(item?.engagement_status ?? '').toUpperCase();
+    const stored = String(item?.task_status_stored ?? item?.task_status ?? '').toUpperCase();
+    return life === 'CANCELLED' || stored === 'CANCELLED';
+  };
+
+  const resolveTaskStatusFromEngagement = (item: any): string => {
+    if (isCancelledEngagementItem(item)) return 'CANCELLED';
+    return item?.task_status || '';
+  };
+
+  const partitionEngagementLists = (
+    upcoming: any[],
+    ongoing: any[],
+    past: any[],
+    cancelledFromApi: any[] = []
+  ) => {
+    const cancelled: any[] = [...cancelledFromApi];
+    const activeUpcoming: any[] = [];
+    const activeOngoing: any[] = [];
+    const activePast: any[] = [];
+
+    upcoming.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activeUpcoming).push(item)
+    );
+    ongoing.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activeOngoing).push(item)
+    );
+    past.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activePast).push(item)
+    );
+
+    const seen = new Set<number>();
+    const dedupedCancelled = cancelled.filter((item) => {
+      const id = Number(item?.engagement_id);
+      if (!Number.isFinite(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    return {
+      upcoming: activeUpcoming,
+      ongoing: activeOngoing,
+      past: activePast,
+      cancelled: dedupedCancelled,
+    };
+  };
+
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
@@ -960,7 +1126,10 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
             start_time: item.start_time, 
             end_time: item.end_time,    
             bookingType: item.booking_type,
-            monthlyAmount: item.base_amount,
+            monthlyAmount:
+              item.payment?.total_amount != null
+                ? Number(item.payment.total_amount)
+                : Number(item.base_amount) || 0,
             paymentMode: item.payment?.payment_mode || item.paymentMode,
             address: item.address || 'No address specified',
            customerName: item.customerName || (appUser?.firstname && appUser?.lastname 
@@ -968,7 +1137,7 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
   : appUser?.email?.split('@')[0] || 'Customer'),
             serviceProviderName: serviceProviderName,
             providerRating: providerRating,
-            taskStatus: item.task_status,
+            taskStatus: resolveTaskStatusFromEngagement(item),
             engagements: item.engagements,
             bookingDate: item.created_at,
             service_type: item.service_type?.toLowerCase() || 'other',
@@ -1035,8 +1204,17 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
           await handleCompletePayment(booking);
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error performing action:", error);
+      if (type === 'cancel') {
+        const msg =
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          'Failed to cancel booking. Please try again.';
+        setSnackbarMessage(msg);
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+      }
     } finally {
       setActionLoading(false);
       setConfirmationDialog(prev => ({ ...prev, open: false }));
@@ -1054,11 +1232,15 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
   };
 
   const handlePaymentClick = (booking: Booking) => {
+    const amount =
+      booking.payment?.total_amount != null
+        ? Number(booking.payment.total_amount)
+        : booking.monthlyAmount;
     showConfirmation(
       'payment',
       booking,
       'Complete Payment',
-      `Complete payment of ₹${booking.monthlyAmount} for your ${getServiceTitle(booking.service_type)} booking?`,
+      `Complete payment of ₹${amount} for your ${getServiceTitle(booking.service_type)} booking?`,
       'info'
     );
   };
@@ -1104,44 +1286,12 @@ console.log("RAZORPAY OBJECT:", (window as any).Razorpay);
   };
 
   const handleCancelBooking = async (booking: Booking) => {
-    try {
-      setActionLoading(true);
-      
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        {
-          task_status: "CANCELLED"
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      await refreshBookings();
-      setSnackbarMessage('Booking cancelled successfully!');
-      setSnackbarSeverity('success');
-      setOpenSnackbar(true);
-      
-    } catch (error: any) {
-      console.error("Error cancelling engagement:", error);
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
-        )
-      );
-      setSnackbarMessage('Error cancelling booking. Please try again.');
-      setSnackbarSeverity('error');
-      setOpenSnackbar(true);
-    } finally {
-      setActionLoading(false);
-    }
+    await PaymentInstance.post(`/api/v2/engagements/${booking.id}/cancel`, {});
+    await refreshBookings();
+    setStatusFilter('CANCELLED');
+    setSnackbarMessage('Booking cancelled successfully!');
+    setSnackbarSeverity('success');
+    setOpenSnackbar(true);
   };
 
   const handleSaveModifiedBooking = async (updatedData: {
@@ -1432,21 +1582,74 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     }
   };
 
-  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
-  
-  const filteredByStatus = statusFilter === 'ALL' 
-    ? upcomingBookings 
-    : upcomingBookings.filter(booking => booking.taskStatus === statusFilter);
-  
-  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
-  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+  const upcomingBookings = sortUpcomingBookings(
+    [...currentBookings, ...futureBookings].filter((b) => b.taskStatus !== 'CANCELLED')
+  );
+
+  const pendingPaymentBookings = sortUpcomingBookings(
+    [...currentBookings, ...futureBookings, ...pastBookings].filter(
+      isPaymentPendingBooking
+    )
+  );
+
+  const searchActive = Boolean(searchTerm.trim());
+
+  const filteredByStatus =
+    statusFilter === 'ALL'
+      ? upcomingBookings
+      : statusFilter === 'CANCELLED'
+        ? cancelledBookings
+        : upcomingBookings.filter(
+            (booking) => effectiveTaskStatus(booking) === statusFilter
+          );
+
+  const filteredUpcomingBookings = searchActive
+    ? filterBookings(getAllBookings(), searchTerm)
+    : filterBookings(filteredByStatus, searchTerm);
+
+  const filteredPendingPaymentBookings = searchActive
+    ? filterBookings(
+        getAllBookings().filter((b) => isPaymentPendingBooking(b)),
+        searchTerm
+      )
+    : filterBookings(pendingPaymentBookings, searchTerm);
+
+  const filteredPastBookings = searchActive
+    ? filterBookings(getAllBookings(), searchTerm)
+    : filterBookings(pastBookings, searchTerm);
+
+  const activeBookingsList =
+    viewTab === "pending"
+      ? filteredPendingPaymentBookings
+      : filteredUpcomingBookings;
+
+  const hasActiveBookings =
+    viewTab === "pending"
+      ? pendingPaymentBookings.length > 0
+      : upcomingBookings.length > 0;
+
+  const mainViewTabs: {
+    id: BookingsViewTab;
+    label: string;
+    shortLabel: string;
+    count?: number;
+  }[] = [
+    { id: "upcoming", label: "Upcoming", shortLabel: "Upcoming" },
+    { id: "past", label: "Past", shortLabel: "Past" },
+    {
+      id: "pending",
+      label: "Pending payment",
+      shortLabel: "Pending",
+      count: pendingPaymentBookings.length,
+    },
+  ];
 
   const statusTabs = [
     { value: 'ALL', label: 'All', count: upcomingBookings.length },
-    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => b.taskStatus === 'NOT_STARTED').length },
-    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => b.taskStatus === 'IN_PROGRESS').length },
-    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => b.taskStatus === 'COMPLETED').length },
-    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => b.taskStatus === 'CANCELLED').length },
+    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'NOT_STARTED').length },
+    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'IN_PROGRESS').length },
+    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'COMPLETED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: cancelledBookings.length },
   ];
 
   return (
@@ -1458,9 +1661,15 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => window.history.back()}
+                  onClick={() => {
+                    if (typeof handleDataFromChild === "function") {
+                      handleDataFromChild("HOME", "section");
+                    } else {
+                      window.location.href = "/";
+                    }
+                  }}
                   className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 md:h-10 md:w-10"
-                  aria-label="Go back"
+                  aria-label="Back to home"
                 >
                   <ArrowLeft className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -1490,7 +1699,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               />
               <input
                 type="search"
-                placeholder="Search by provider, service, address, or booking #"
+                placeholder="Search by booking #, provider, service, or address"
                 className="w-full rounded-lg border-0 bg-slate-100 py-2.5 pl-10 pr-10 text-sm text-slate-900 ring-1 ring-slate-200/80 transition placeholder:text-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1511,20 +1720,109 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
       </header>
 
       <div className="container mx-auto max-w-6xl px-4 py-5 md:py-7">
+        <div
+          className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-slate-100/90 p-1 ring-1 ring-slate-200/80 scrollbar-thin"
+          role="tablist"
+          aria-label="Bookings views"
+        >
+          {mainViewTabs.map((tab) => {
+            const active = viewTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setViewTab(tab.id);
+                  if (tab.id !== "upcoming") {
+                    setStatusFilter("ALL");
+                  }
+                }}
+                className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+                  active
+                    ? tab.id === "pending"
+                      ? "bg-red-600 text-white shadow-md shadow-red-600/20"
+                      : "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+                    : "text-slate-600 hover:bg-white/60 hover:text-slate-900"
+                }`}
+              >
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
+                {tab.count != null && tab.count > 0 ? (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
+                      active
+                        ? tab.id === "pending"
+                          ? "bg-white/25 text-white"
+                          : "bg-sky-100 text-sky-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {viewTab === "upcoming" && (
+          <CustomerTodayTasksCard
+            loading={isLoading}
+            todaySchedule={todaySchedule}
+            otpLoadingId={otpLoading}
+            generatedOTPs={generatedOTPs}
+            onGenerateOtp={handleGenerateOtpFromToday}
+            onOpenBooking={scrollToBooking}
+            onCallProvider={(phone) => {
+              window.location.href = `tel:${phone}`;
+            }}
+            onOpenMap={(address) => {
+              window.open(
+                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+                "_blank",
+                "noopener,noreferrer"
+              );
+            }}
+          />
+        )}
+
+        {viewTab !== "past" && (
         <section className="mb-8 md:mb-10">
           <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-stretch gap-3">
               <div
-                className="w-1 shrink-0 rounded-full bg-gradient-to-b from-sky-500 to-sky-600"
+                className={`w-1 shrink-0 rounded-full bg-gradient-to-b ${
+                  viewTab === "pending"
+                    ? "from-red-500 to-red-600"
+                    : "from-sky-500 to-sky-600"
+                }`}
                 aria-hidden
               />
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-                  Upcoming
+                  {viewTab === "pending" ? "Pending payment" : "Upcoming"}
                 </h2>
                 <p className="mt-1 text-sm leading-snug text-slate-500">
                   {isLoading ? (
                     <SkeletonLoader width="180px" height="0.875rem" />
+                  ) : viewTab === "pending" ? (
+                    <>
+                      <span className="font-medium text-slate-700">
+                        {filteredPendingPaymentBookings.length}
+                      </span>
+                      {filteredPendingPaymentBookings.length === 1
+                        ? " booking"
+                        : " bookings"}
+                      {searchTerm.trim()
+                        ? " match your search"
+                        : " awaiting payment"}
+                      <span className="text-slate-400"> · </span>
+                      <span className="tabular-nums text-slate-600">
+                        {pendingPaymentBookings.length} total
+                      </span>
+                    </>
                   ) : (
                     <>
                       <span className="font-medium text-slate-700">{filteredUpcomingBookings.length}</span>
@@ -1543,7 +1841,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
             </div>
           </div>
 
-          {isLoading ? (
+          {viewTab === "upcoming" && (isLoading ? (
             <StatusTabsSkeleton />
           ) : (
             <div className="mb-4">
@@ -1577,7 +1875,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                 </div>
               </div>
             </div>
-          )}
+          ))}
 
           {isLoading ? (
             <div className="grid gap-3">
@@ -1585,9 +1883,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                 <BookingCardSkeleton key={i} />
               ))}
             </div>
-          ) : upcomingBookings.length > 0 ? (
+          ) : hasActiveBookings ? (
             <div className="grid gap-3">
-              {filteredUpcomingBookings.map((booking) => (
+              {activeBookingsList.map((booking) => (
                 <Card
                   key={booking.id}
                   id={`booking-${booking.id}`}
@@ -1635,8 +1933,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </p>
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking.taskStatus)}
-                          {booking.taskStatus !== "CANCELLED" && (
+                          {getStatusBadge(effectiveTaskStatus(booking))}
+                          {effectiveTaskStatus(booking) !== "CANCELLED" && (
                             <>
                               {booking.modifications && booking.modifications.length > 0 && (
                                 <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
@@ -1661,74 +1959,40 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
-                    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
-                      <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
-                        <div className="flex items-start gap-2.5 text-sm">
-                          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
-                            {new Date(booking.startDate).toLocaleDateString("en-US", {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                            {booking.taskStatus !== "CANCELLED" &&
-                              booking.modifications &&
-                              booking.modifications.length > 0 && (
-                                <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
-                              )}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-sm">
-                          <Clock className="h-4 w-4 shrink-0 text-sky-600" />
-                          <span className="text-xs text-slate-700 sm:text-sm">
-                            {formatTimeRange(booking.start_time, booking.end_time)}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2.5 text-sm">
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
-                            {booking.address}
-                          </span>
-                        </div>
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
-                            {getModificationDetails(booking)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="rounded-lg border border-slate-100 bg-white p-2.5 sm:p-3">
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          Responsibilities
-                        </p>
-                        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin md:flex-wrap md:overflow-visible md:pb-0">
-                          {[
-                            ...(booking.responsibilities?.tasks || []).map((task) => ({ task, isAddon: false })),
-                            ...(booking.responsibilities?.add_ons || []).map((task) => ({ task, isAddon: true })),
-                          ].map((item: any, index: number) => {
-                            const { task, isAddon } = item;
-                            const taskLabel =
-                              typeof task === "object" && task !== null
-                                ? Object.entries(task)
-                                    .filter(([key]) => key !== "taskType")
-                                    .map(([key, value]) => `${value} ${key}`)
-                                    .join(", ")
-                                : "";
-                            const taskName = typeof task === "object" ? task.taskType : task;
-                            return (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="whitespace-nowrap border-slate-200 bg-slate-50/80 text-xs text-slate-700 md:whitespace-normal"
-                              >
-                                {isAddon ? "Add-ons - " : ""}
-                                {taskName} {taskLabel && `- ${taskLabel}`}
-                              </Badge>
-                            );
+                    <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
+                      <div className="flex items-start gap-2.5 text-sm">
+                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                        <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                          {new Date(booking.startDate).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
                           })}
-                        </div>
+                          {booking.taskStatus !== "CANCELLED" &&
+                            booking.modifications &&
+                            booking.modifications.length > 0 && (
+                              <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
+                            )}
+                        </span>
                       </div>
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <Clock className="h-4 w-4 shrink-0 text-sky-600" />
+                        <span className="text-xs text-slate-700 sm:text-sm">
+                          {formatTimeRange(booking.start_time, booking.end_time)}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-sm">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                        <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
+                          {booking.address}
+                        </span>
+                      </div>
+                      {booking.modifications && booking.modifications.length > 0 && (
+                        <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
+                          {getModificationDetails(booking)}
+                        </div>
+                      )}
                     </div>
 
                     {booking.payment && booking.payment.status === "PENDING" && (
@@ -1744,10 +2008,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                           size="sm"
                           onClick={() => handlePaymentClick(booking)}
                           className="w-full shrink-0 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
-                          disabled={booking.taskStatus === "CANCELLED"}
+                          disabled={
+                            booking.taskStatus === "CANCELLED" ||
+                            paymentLoading === booking.id
+                          }
                         >
                           <CreditCard className="mr-2 h-4 w-4" />
-                          Pay now
+                          {paymentLoading === booking.id ? "Processing…" : "Pay now"}
                         </Button>
                       </div>
                     )}
@@ -1766,21 +2033,39 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
           ) : (
             <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
               <CardContent className="px-6">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
-                  <Calendar className="h-7 w-7 text-sky-600" />
-                </div>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">No upcoming bookings</h3>
-                <p className="mx-auto mb-6 max-w-sm text-sm text-slate-600">
-                  When you book a service, it will show up here with status, schedule, and quick actions.
-                </p>
-                <Button onClick={() => setServicesDialogOpen(true)} className="w-full rounded-xl sm:w-auto">
-                  Book a service
-                </Button>
+                {viewTab === "pending" ? (
+                  <>
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-red-100">
+                      <CreditCard className="h-7 w-7 text-red-600" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-semibold text-slate-900">
+                      No pending payments
+                    </h3>
+                    <p className="mx-auto max-w-sm text-sm text-slate-600">
+                      Bookings that still need payment will appear here with a Pay now button.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
+                      <Calendar className="h-7 w-7 text-sky-600" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-semibold text-slate-900">No upcoming bookings</h3>
+                    <p className="mx-auto mb-6 max-w-sm text-sm text-slate-600">
+                      When you book a service, it will show up here with status, schedule, and quick actions.
+                    </p>
+                    <Button onClick={() => setServicesDialogOpen(true)} className="w-full rounded-xl sm:w-auto">
+                      Book a service
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
         </section>
+        )}
 
+        {viewTab === "past" && (
         <section>
           <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-stretch gap-3">
@@ -1790,7 +2075,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               />
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-                  History
+                  Past
                 </h2>
                 <p className="mt-1 text-sm leading-snug text-slate-500">
                   {isLoading ? (
@@ -1799,7 +2084,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                     <>
                       <span className="font-medium text-slate-700">{filteredPastBookings.length}</span>
                       {filteredPastBookings.length === 1 ? " booking" : " bookings"}
-                      {searchTerm.trim() ? " match your search" : " in your history"}
+                      {searchTerm.trim()
+                        ? " match your search"
+                        : " — completed, cancelled, or ended"}
                       <span className="text-slate-400"> · </span>
                       <span className="tabular-nums text-slate-600">{pastBookings.length} total</span>
                     </>
@@ -1859,8 +2146,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </p>
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {getBookingTypeBadge(booking.bookingType)}
-                          {getStatusBadge(booking.taskStatus)}
-                          {booking.taskStatus !== "CANCELLED" && (
+                          {getStatusBadge(effectiveTaskStatus(booking))}
+                          {effectiveTaskStatus(booking) !== "CANCELLED" && (
                             <>
                               {booking.modifications && booking.modifications.length > 0 && (
                                 <Badge variant="outline" className="border-amber-200/80 bg-amber-50 text-xs text-amber-900">
@@ -1880,74 +2167,40 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
-                    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
-                      <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
-                        <div className="flex items-start gap-2.5 text-sm">
-                          <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
-                            {new Date(booking.startDate).toLocaleDateString("en-US", {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                            {booking.taskStatus !== "CANCELLED" &&
-                              booking.modifications &&
-                              booking.modifications.length > 0 && (
-                                <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
-                              )}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-sm">
-                          <Clock className="h-4 w-4 shrink-0 text-slate-500" />
-                          <span className="text-xs text-slate-700 sm:text-sm">
-                            {formatTimeRange(booking.start_time, booking.end_time)}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2.5 text-sm">
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                          <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
-                            {booking.address}
-                          </span>
-                        </div>
-                        {booking.modifications && booking.modifications.length > 0 && (
-                          <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
-                            {getModificationDetails(booking)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="rounded-lg border border-slate-100 bg-white p-2.5 sm:p-3">
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          Responsibilities
-                        </p>
-                        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5 scrollbar-thin md:flex-wrap md:overflow-visible md:pb-0">
-                          {[
-                            ...(booking.responsibilities?.tasks || []).map((task) => ({ task, isAddon: false })),
-                            ...(booking.responsibilities?.add_ons || []).map((task) => ({ task, isAddon: true })),
-                          ].map((item: any, index: number) => {
-                            const { task, isAddon } = item;
-                            const taskLabel =
-                              typeof task === "object" && task !== null
-                                ? Object.entries(task)
-                                    .filter(([key]) => key !== "taskType")
-                                    .map(([key, value]) => `${value} ${key}`)
-                                    .join(", ")
-                                : "";
-                            const taskName = typeof task === "object" ? task.taskType : task;
-                            return (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="whitespace-nowrap border-slate-200 bg-slate-50/80 text-xs text-slate-700 md:whitespace-normal"
-                              >
-                                {isAddon ? "Add-ons - " : ""}
-                                {taskName} {taskLabel && `- ${taskLabel}`}
-                              </Badge>
-                            );
+                    <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
+                      <div className="flex items-start gap-2.5 text-sm">
+                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                        <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                          {new Date(booking.startDate).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
                           })}
-                        </div>
+                          {booking.taskStatus !== "CANCELLED" &&
+                            booking.modifications &&
+                            booking.modifications.length > 0 && (
+                              <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
+                            )}
+                        </span>
                       </div>
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <Clock className="h-4 w-4 shrink-0 text-slate-500" />
+                        <span className="text-xs text-slate-700 sm:text-sm">
+                          {formatTimeRange(booking.start_time, booking.end_time)}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2.5 text-sm">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                        <span className="text-xs leading-relaxed text-slate-700 sm:text-sm break-words">
+                          {booking.address}
+                        </span>
+                      </div>
+                      {booking.modifications && booking.modifications.length > 0 && (
+                        <div className="mt-1 rounded-lg border border-slate-100 bg-white/90 p-2.5 text-xs text-slate-600">
+                          {getModificationDetails(booking)}
+                        </div>
+                      )}
                     </div>
 
                     {booking.payment && booking.payment.status === "PENDING" && (
@@ -1963,10 +2216,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                           size="sm"
                           onClick={() => handlePaymentClick(booking)}
                           className="w-full shrink-0 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
-                          disabled={booking.taskStatus === "CANCELLED"}
+                          disabled={
+                            booking.taskStatus === "CANCELLED" ||
+                            paymentLoading === booking.id
+                          }
                         >
                           <CreditCard className="mr-2 h-4 w-4" />
-                          Pay now
+                          {paymentLoading === booking.id ? "Processing…" : "Pay now"}
                         </Button>
                       </div>
                     )}
@@ -1990,12 +2246,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-slate-900">No past bookings yet</h3>
                 <p className="mx-auto max-w-sm text-sm text-slate-600">
-                  Finished and cancelled visits will appear here for your records.
+                  Completed, cancelled, and ended bookings will appear here.
                 </p>
               </CardContent>
             </Card>
           )}
         </section>
+        )}
       </div>
 
       {/* Details Drawer */}
@@ -2006,6 +2263,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
           setSelectedBooking(null);
         }}
         booking={selectedBooking}
+        onPaymentComplete={afterPaymentSuccess}
       />
 
       {/* Chat Interface */}
@@ -2060,7 +2318,16 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         onConfirm={handleConfirmAction}
         title={confirmationDialog.title}
         message={confirmationDialog.message}
-        confirmText={confirmationDialog.type === 'cancel' ? 'Yes, Cancel' : 'Confirm'}
+        confirmText={
+          confirmationDialog.type === 'cancel'
+            ? 'Yes, Cancel Booking'
+            : confirmationDialog.type === 'payment'
+              ? 'Pay now'
+              : 'Confirm'
+        }
+        cancelText={
+          confirmationDialog.type === 'cancel' ? 'No, Keep It' : 'Cancel'
+        }
         loading={actionLoading}
         severity={confirmationDialog.severity}
       />
@@ -2115,7 +2382,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
           }
         }
 
-        /* Custom scrollbar for responsibilities chips on mobile */
+        /* Custom scrollbar for horizontal tab strip on mobile */
         .scrollbar-thin::-webkit-scrollbar {
           height: 4px;
         }

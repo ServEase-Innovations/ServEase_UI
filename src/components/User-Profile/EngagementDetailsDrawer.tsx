@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React from 'react';
-import { X, Calendar, Clock, MapPin, User, CreditCard, Tag, FileText, AlertCircle, CheckCircle, XCircle, Download, Printer } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, User, CreditCard, Tag, AlertCircle, CheckCircle, XCircle, Download, Printer } from 'lucide-react';
 import { Badge } from '../../components/Common/Badge/Badge';
 import { Separator } from '../../components/Common/Separator/Separator';
 import { getServiceTitle, getBookingTypeBadge, getStatusBadge } from '../Common/Booking/BookingUtils';
@@ -15,7 +15,7 @@ interface EngagementDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   booking: any; // Replace with proper Booking type
-  onPaymentComplete?: () => void; // Callback to refresh bookings after payment
+  onPaymentComplete?: () => void | Promise<void>;
 }
 
 const formatTimeToAMPM = (timeString: string): string => {
@@ -37,11 +37,11 @@ const formatDate = (dateString: string) => {
   return dayjs(dateString).format('MMMM D, YYYY');
 };
 
-const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ 
-  isOpen, 
-  onClose, 
+const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
+  isOpen,
+  onClose,
   booking,
-  onPaymentComplete 
+  onPaymentComplete,
 }) => {
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
 
@@ -60,21 +60,32 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
     try {
       setIsProcessingPayment(true);
       
-      const resumeRes = await PaymentInstance.get(
-        `/api/payments/${booking.payment?.engagement_id}/resume`
+      const engagementId = booking.payment?.engagement_id ?? booking.id;
+      const resumeRes = await PaymentInstance.post(
+        `/api/v2/createEngagements/resume-payment`,
+        { engagementId }
       );
 
       const {
         razorpay_order_id,
+        razorpay_key_id,
         amount,
+        amount_inr,
         currency,
+        engagementId: engagement_id_camel,
         engagement_id,
         customer
       } = resumeRes.data;
+      const resolvedEngagementId = engagement_id_camel ?? engagement_id ?? engagementId;
+
+      let amountPaise = Number(amount);
+      if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+        amountPaise = Math.round(Number(amount_inr) * 100);
+      }
 
       const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount: amount * 100,
+        key: razorpay_key_id || process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_lTdgjtSRlEwreA",
+        amount: amountPaise,
         currency,
         order_id: razorpay_order_id,
         name: "Serveaso",
@@ -85,20 +96,17 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
         },
         handler: async function (response: any) {
           try {
-            await PaymentInstance.post("/api/payments/verify", {
-              engagementId: engagement_id,
+            await PaymentInstance.post("/api/v2/createEngagements/verify", {
+              engagementId: resolvedEngagementId,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
             
             if (onPaymentComplete) {
-              onPaymentComplete();
+              await onPaymentComplete();
             }
-            
-            console.log('Payment completed successfully');
-            alert('Payment successful! You can now download your invoice.');
-            
+            onClose();
           } catch (verifyError) {
             console.error("Payment verification error:", verifyError);
             alert("Payment verification failed. Please contact support.");
@@ -231,51 +239,6 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               </div>
             </div>
           )}
-
-          {/* Tasks & Responsibilities */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-gray-900 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-500" />
-              Tasks & Responsibilities
-            </h3>
-            
-            <div className="space-y-3">
-              {/* Main Tasks */}
-              {booking.responsibilities?.tasks && booking.responsibilities.tasks.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Main Tasks</p>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.responsibilities.tasks.map((task: any, index: number) => {
-                      const taskDetails = Object.entries(task)
-                        .filter(([key]) => key !== 'taskType')
-                        .map(([key, value]) => `${value} ${key}`)
-                        .join(', ');
-                      
-                      return (
-                        <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          {task.taskType} {taskDetails && `- ${taskDetails}`}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Add-ons */}
-              {booking.responsibilities?.add_ons && booking.responsibilities.add_ons.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Add-ons</p>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.responsibilities.add_ons.map((addon: any, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        {addon.taskType}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Payment Details */}
           {booking.payment && (

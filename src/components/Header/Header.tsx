@@ -68,7 +68,7 @@ import CookServicesDialog from "../ProviderDetails/CookServicesDialog";
 import MaidServiceDialog from "../ProviderDetails/MaidServiceDialog";
 import NannyServicesDialog from "../ProviderDetails/NannyServicesDialog";
 import utilsInstance from "src/services/utilsInstance";
-import { useAppUser } from "src/context/AppUserContext";
+import { clearStoredAuthSession, useAppUser } from "src/context/AppUserContext";
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import PaymentInstance from "src/services/paymentInstance";
 import NotificationsPage from "../Notifications/NotificationsPage";
@@ -218,6 +218,7 @@ export const Header: React.FC<ChildComponentProps> = ({
 
       try {
         const token = await getAccessTokenSilently();
+        if (token) localStorage.setItem("token", token);
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
 
@@ -924,8 +925,8 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       <header
         className={`fixed left-0 right-0 top-0 z-50 overflow-visible border-b border-white/10 pt-[env(safe-area-inset-top,0px)] ${CHROME_BAR_GRADIENT} ${CHROME_BAR_SHADOW}`}
       >
-        <div className="relative mx-auto flex h-11 max-w-[90rem] items-center justify-between gap-1.5 overflow-visible px-2 py-0 sm:h-12 sm:gap-2 sm:px-3 md:h-14 md:gap-3 md:px-5 lg:px-7">
-        <div className="relative flex h-full shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="relative mx-auto flex h-11 max-w-[90rem] items-center justify-between gap-1 overflow-visible px-2 py-0 sm:h-12 sm:gap-2 sm:px-3 md:h-14 md:gap-3 md:px-5 lg:px-7">
+        <div className="relative flex h-full min-w-0 max-w-[34%] shrink-0 items-center gap-1 sm:max-w-none sm:gap-1.5">
           {isMobile && (
             <button
               type="button"
@@ -937,7 +938,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               <Menu className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
             </button>
           )}
-          <div className="relative h-full min-w-[9.25rem] w-[10.25rem] sm:min-w-[10.75rem] sm:w-[11.75rem] md:min-w-[13.5rem] md:w-[15rem] lg:min-w-[15.5rem] lg:w-[17.25rem] xl:min-w-[17.5rem] xl:w-[19.25rem]">
+          <div className="relative h-full min-w-0 w-[5.25rem] max-w-full sm:min-w-[10.75rem] sm:w-[11.75rem] md:min-w-[13.5rem] md:w-[15rem] lg:min-w-[15.5rem] lg:w-[17.25rem] xl:min-w-[17.5rem] xl:w-[19.25rem]">
             <button
               type="button"
               onClick={() => {
@@ -950,7 +951,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               <img
                 src={publicAsset("ServEaso_Logo.png")}
                 alt=""
-                className="h-16 w-auto max-w-[12rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
+                className="h-11 w-auto max-w-[5.25rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
               />
             </button>
           </div>
@@ -1048,10 +1049,14 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   </nav>
         )}
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 md:gap-3">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2 md:gap-3">
           <div
             ref={locationMenuRef}
-            className="relative flex h-8 min-w-0 max-w-[6.75rem] items-stretch rounded-md border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 sm:max-w-[10rem] md:max-w-[13rem] lg:max-w-[16rem]"
+            className={`relative flex h-8 min-w-0 items-stretch rounded-md border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:h-9 ${
+              isMobile
+                ? "max-w-[min(46vw,11.5rem)] flex-1"
+                : "max-w-[6.75rem] sm:max-w-[10rem] md:max-w-[13rem] lg:max-w-[16rem]"
+            }`}
           >
             <button
               type="button"
@@ -1065,9 +1070,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
                 setShowDropdown((open) => !open);
               }}
-              className={`flex min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
-                showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
-              }`}
+              className={`flex min-w-0 flex-1 items-center gap-0.5 rounded-md py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
+                isMobile ? "px-1.5" : "px-1.5"
+              } ${showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"}`}
+              aria-label={location || t("location")}
+              title={location || t("location")}
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-sky-200 sm:h-4 sm:w-4" aria-hidden />
               <span
@@ -1083,7 +1090,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 </span>
               ) : (
                 <ChevronDown
-                  className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
+                  className={`h-3 w-3 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
                     showDropdown ? "rotate-180" : ""
                   }`}
                   aria-hidden
@@ -1193,22 +1200,28 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
                 setIsLanguageMenuOpen((open) => !open);
               }}
-              className={`flex h-8 items-center gap-1.5 rounded-md border border-white/25 bg-white/10 px-1.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition sm:h-9 sm:gap-2 sm:px-2 md:px-2.5 ${
+              className={`flex h-8 shrink-0 items-center rounded-md border border-white/25 bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md transition sm:h-9 ${
+                isMobile ? "w-8 justify-center px-0" : "gap-1.5 px-1.5 sm:gap-2 sm:px-2 md:px-2.5"
+              } ${
                 isLanguageMenuOpen ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"
               }`}
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/10 text-sky-200 sm:h-7 sm:w-7">
                 <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
               </span>
-              <span className="text-[10px] font-bold tabular-nums tracking-wide sm:text-xs">
-                {currentLanguage.toUpperCase()}
-              </span>
-              <ChevronDown
-                className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
-                  isLanguageMenuOpen ? "rotate-180" : ""
-                }`}
-                aria-hidden
-              />
+              {!isMobile && (
+                <>
+                  <span className="text-[10px] font-bold tabular-nums tracking-wide sm:text-xs">
+                    {currentLanguage.toUpperCase()}
+                  </span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 shrink-0 text-white/70 transition-transform sm:h-4 sm:w-4 ${
+                      isLanguageMenuOpen ? "rotate-180" : ""
+                    }`}
+                    aria-hidden
+                  />
+                </>
+              )}
             </button>
 
             {isLanguageMenuOpen && (
@@ -1257,41 +1270,48 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             )}
           </div>
 
-          <Badge
-            color="error"
-            badgeContent={inAppUnread}
-            overlap="circular"
-            invisible={!inAppUnread}
-            max={99}
-            sx={{
-              "& .MuiBadge-badge": {
-                fontSize: 10,
-                minWidth: 16,
-                height: 16,
-                padding: "0 4px",
-              },
-            }}
-          >
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
-              onClick={handleNotificationClick}
-              aria-label="Notifications"
+          {isUserAuthenticated && (
+            <Badge
+              color="error"
+              badgeContent={inAppUnread}
+              overlap="circular"
+              invisible={!inAppUnread}
+              max={99}
+              sx={{
+                "& .MuiBadge-badge": {
+                  fontSize: 10,
+                  minWidth: 16,
+                  height: 16,
+                  padding: "0 4px",
+                },
+              }}
             >
-              <Bell className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
-            </button>
-          </Badge>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
+                onClick={handleNotificationClick}
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2} />
+              </button>
+            </Badge>
+          )}
 
           {!isUserAuthenticated ? (
             <button
               type="button"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
+              className={
+                isMobile
+                  ? "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-sky-300/60 bg-sky-500 text-white shadow-sm transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  : "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/25 bg-white/10 text-white transition hover:bg-white/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 sm:h-9 sm:w-9"
+              }
               onClick={() => {
                 setAuthChoiceOpen(true);
               }}
-              aria-label="Sign in"
+              aria-label={t("signIn")}
+              title={t("signIn")}
             >
-              <User className="h-4 w-4 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
+              <User className="h-3.5 w-3.5 shrink-0 sm:h-[1.1rem] sm:w-[1.1rem]" strokeWidth={2} />
             </button>
           ) : (
             <div ref={dropdownRef} className="relative text-left">
@@ -1415,11 +1435,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-rose-50/90 focus-visible:bg-rose-50/90 focus-visible:outline-none"
                       onClick={() => {
                         if (isAuthenticated) {
+                          clearStoredAuthSession();
+                          setAppUser(null);
                           logout({
                             logoutParams: { returnTo: window.location.origin },
                           });
                         } else {
-                          localStorage.removeItem("token");
+                          clearStoredAuthSession();
                           setAppUser(null);
                           dispatch(remove());
                           sendDataToParent("");
@@ -1466,7 +1488,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3" aria-label="Main">
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3 pb-2" aria-label="Main">
               <button
                 type="button"
                 className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
@@ -1557,6 +1579,21 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 {t("contactUs")}
               </button>
             </nav>
+            {!isUserAuthenticated && (
+              <div className="shrink-0 border-t border-slate-100 p-3">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
+                  onClick={() => {
+                    setAuthChoiceOpen(true);
+                    closeMobileNav();
+                  }}
+                >
+                  <User className="h-4 w-4" strokeWidth={2} aria-hidden />
+                  {t("signIn")}
+                </button>
+              </div>
+            )}
           </aside>
         </>
       )}

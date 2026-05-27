@@ -336,9 +336,13 @@ const BookingSuccessDialog: React.FC<BookingSuccessDialogProps> = ({
       
       <SuccessDialog
         open={open}
-        onClose={handleViewBookings} // Use the new handler for close
+        onClose={handleViewBookings}
         maxWidth="sm"
         fullWidth
+        sx={{ zIndex: 1600 }}
+        slotProps={{
+          backdrop: { sx: { zIndex: 1599 } },
+        }}
       >
         <DialogContainer>
           {/* Countdown Bar */}

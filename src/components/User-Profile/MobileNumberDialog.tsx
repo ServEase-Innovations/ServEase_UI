@@ -19,8 +19,9 @@ import { useAppUser } from "src/context/AppUserContext";
 import axiosInstance from "src/services/axiosInstance";
 import { CheckIcon, X } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
-import { useDispatch } from "react-redux"; // ADD THIS
-import { setHasMobileNumber } from "../../features/customer/customerSlice"; // ADD THIS
+import { useDispatch, useSelector } from "react-redux";
+import { setHasMobileNumber } from "../../features/customer/customerSlice";
+import { RootState } from "src/store/userStore";
 
 interface MobileNumberDialogProps {
   open: boolean;
@@ -54,7 +55,9 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   const [altContactNumber, setAltContactNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const { appUser, setAppUser } = useAppUser();
-  const dispatch = useDispatch(); // ADD THIS
+  const dispatch = useDispatch();
+  const customerMobile = useSelector((state: RootState) => state.customer.mobileNo);
+  const customerAlt = useSelector((state: RootState) => state.customer.alternateNo);
 
   const [contactValidation, setContactValidation] = useState<ValidationState>({
     loading: false,
@@ -81,15 +84,21 @@ const MobileNumberDialog: React.FC<MobileNumberDialogProps> = ({
   // Initialize with existing user data if available
   useEffect(() => {
     if (open && appUser) {
-      setContactNumber(appUser.mobileNo || "");
-      setAltContactNumber(appUser.alternateNo || "");
+      const mobile =
+        customerMobile ||
+        (appUser.mobileNo != null ? String(appUser.mobileNo) : "");
+      const alt =
+        customerAlt ||
+        (appUser.alternateNo != null ? String(appUser.alternateNo) : "");
+      setContactNumber(mobile.replace(/\D/g, "").slice(0, 10));
+      setAltContactNumber(alt.replace(/\D/g, "").slice(0, 10));
       
       // Reset validation states
       setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
       setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
       setValidatedFields(new Set());
     }
-  }, [open, appUser]);
+  }, [open, appUser, customerMobile, customerAlt]);
 
   const showSnackbar = (message: string, severity: AlertColor = 'info') => {
     setSnackbar({

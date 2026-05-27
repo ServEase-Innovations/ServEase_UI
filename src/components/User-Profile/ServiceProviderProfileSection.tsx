@@ -290,6 +290,70 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     return /^[0-9]{10}$/.test(number);
   };
 
+  const normalizePhone = (value: unknown): string => {
+    if (value == null || value === "" || value === 0) return "";
+    return String(value).replace(/\D/g, "");
+  };
+
+  const sortedRolesKey = (roles: string[]) => [...roles].sort().join(",");
+
+  const getSlotsChanged = () =>
+    isFullTime !== originalIsFullTime ||
+    JSON.stringify(morningSlots) !== JSON.stringify(originalMorningSlots) ||
+    JSON.stringify(eveningSlots) !== JSON.stringify(originalEveningSlots);
+
+  /** Single source of truth for save payload and change detection */
+  const buildSavePayload = (): Record<string, unknown> => {
+    const payload: Record<string, unknown> = {};
+    const u = userData;
+    const o = originalData;
+
+    if (u.firstName.trim() !== o.firstName.trim()) payload.firstName = u.firstName.trim();
+    if (u.lastName.trim() !== o.lastName.trim()) payload.lastName = u.lastName.trim();
+    if (u.middleName.trim() !== o.middleName.trim()) payload.middleName = u.middleName.trim();
+    if (normalizePhone(u.contactNumber) !== normalizePhone(o.contactNumber)) {
+      payload.mobileNo = normalizePhone(u.contactNumber);
+    }
+    if (normalizePhone(u.altContactNumber) !== normalizePhone(o.altContactNumber)) {
+      payload.alternateNo = normalizePhone(u.altContactNumber) || null;
+    }
+    if (u.gender !== o.gender) payload.gender = u.gender;
+    if (u.diet !== o.diet) payload.diet = u.diet;
+    if (u.cookingSpeciality !== o.cookingSpeciality) payload.cookingSpeciality = u.cookingSpeciality;
+    if (u.nannyCareType !== o.nannyCareType) payload.nannyCareType = u.nannyCareType;
+    if (sortedRolesKey(u.housekeepingRoles) !== sortedRolesKey(o.housekeepingRoles)) {
+      payload.housekeepingRoles = u.housekeepingRoles;
+    }
+    if (Number(u.experience) !== Number(o.experience)) {
+      payload.experience = Number(u.experience) || 0;
+    }
+    if (u.languageKnown.trim() !== o.languageKnown.trim()) {
+      payload.languageKnown = u.languageKnown.trim();
+    }
+    if (u.currentLocation.trim() !== o.currentLocation.trim()) {
+      payload.currentLocation = u.currentLocation.trim();
+    }
+    if (u.locality.trim() !== o.locality.trim()) payload.locality = u.locality.trim();
+    if (u.street.trim() !== o.street.trim()) payload.street = u.street.trim();
+    if (u.buildingName.trim() !== o.buildingName.trim()) {
+      payload.buildingName = u.buildingName.trim();
+    }
+    if (String(u.pincode).trim() !== String(o.pincode).trim()) {
+      payload.pincode = parseInt(String(u.pincode), 10) || 0;
+    }
+    if (u.nearbyLocation.trim() !== o.nearbyLocation.trim()) {
+      payload.nearbyLocation = u.nearbyLocation.trim();
+    }
+    if (u.accountHolderName !== o.accountHolderName) payload.accountHolderName = u.accountHolderName;
+    if (u.accountNumber !== o.accountNumber) payload.accountNumber = u.accountNumber;
+    if (u.accountType !== o.accountType) payload.accountType = u.accountType;
+    if (u.bankName !== o.bankName) payload.bankName = u.bankName;
+    if (u.ifscCode !== o.ifscCode) payload.ifscCode = u.ifscCode;
+    if (u.upiId !== o.upiId) payload.upiId = u.upiId;
+
+    return payload;
+  };
+
   const checkMobileAvailability = async (number: string, isAlternate: boolean = false): Promise<boolean> => {
     if (!number || !validateMobileFormat(number)) return false;
     const setValidation = isAlternate ? setAltContactValidation : setContactValidation;
@@ -322,8 +386,14 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
     setIsLoading(true);
     try {
       const response = await providerInstance.get(`/api/service-providers/serviceprovider/${userId}`);
-      const data = response.data.data;
-      setProviderData(data);
+      const data = response.data?.data ?? response.data;
+      const isActive =
+        data.isactive === true || data.isActive === true
+          ? true
+          : data.isactive === false || data.isActive === false
+            ? false
+            : true;
+      setProviderData({ ...data, isactive: isActive });
 
       let languageKnown = data.languageKnown;
       if (Array.isArray(languageKnown)) {
@@ -378,12 +448,15 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       setOriginalIsFullTime(morning.length === 0 && evening.length === 0);
 
       const updatedUserData = {
-        firstName: data.firstName || "",
-        lastName: data.lastName || "",
-        middleName: data.middleName || "",
-        email: data.emailId || userEmail || "",
-        contactNumber: data.mobileNo || "",
-        altContactNumber: data.alternateNo && data.alternateNo !== "0" ? data.alternateNo : "",
+        firstName: data.firstName ?? data.firstname ?? "",
+        lastName: data.lastName ?? data.lastname ?? "",
+        middleName: data.middleName ?? data.middlename ?? "",
+        email: data.emailId ?? data.emailid ?? userEmail ?? "",
+        contactNumber: normalizePhone(data.mobileNo ?? data.mobileno),
+        altContactNumber:
+          data.alternateNo != null && String(data.alternateNo) !== "0"
+            ? normalizePhone(data.alternateNo ?? data.alternateno)
+            : "",
         gender: data.gender || "",
         dob: data.dob ? new Date(data.dob).toLocaleDateString() : "",
         diet: data.diet || "",
@@ -538,82 +611,22 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
 
     setIsSaving(true);
     try {
-      const payload: any = {};
+      const payload = buildSavePayload();
+      const slotsChanged = getSlotsChanged();
 
-      if (userData.contactNumber !== originalData.contactNumber) {
-        payload.mobileNo = userData.contactNumber;
-      }
-      if (userData.altContactNumber !== originalData.altContactNumber) {
-        payload.alternateNo = userData.altContactNumber || null;
-      }
-      if (userData.gender !== originalData.gender) {
-        payload.gender = userData.gender;
-      }
-      if (userData.diet !== originalData.diet) {
-        payload.diet = userData.diet;
-      }
-      if (userData.cookingSpeciality !== originalData.cookingSpeciality) {
-        payload.cookingSpeciality = userData.cookingSpeciality;
-      }
-      if (userData.nannyCareType !== originalData.nannyCareType) {
-        payload.nannyCareType = userData.nannyCareType;
-      }
-
-      // Send housekeepingRoles as an array
-      if (
-        userData.housekeepingRoles.join(",") !==
-        originalData.housekeepingRoles.join(",")
-      ) {
-        payload.housekeepingRoles = userData.housekeepingRoles; // Array format
-      }
-
-      if (userData.experience !== originalData.experience) {
-        payload.experience = userData.experience;
-      }
-      if (userData.languageKnown !== originalData.languageKnown) {
-        payload.languageKnown = userData.languageKnown;
-      }
-      if (userData.currentLocation !== originalData.currentLocation) {
-        payload.currentLocation = userData.currentLocation;
-      }
-      if (userData.locality !== originalData.locality) {
-        payload.locality = userData.locality;
-      }
-      if (userData.street !== originalData.street) {
-        payload.street = userData.street;
-      }
-      if (userData.buildingName !== originalData.buildingName) {
-        payload.buildingName = userData.buildingName;
-      }
-      if (userData.pincode !== originalData.pincode) {
-        payload.pincode = parseInt(userData.pincode) || 0;
-      }
-      if (userData.nearbyLocation !== originalData.nearbyLocation) {
-        payload.nearbyLocation = userData.nearbyLocation;
-      }
-
-      // Bank details
-      if (userData.accountHolderName !== originalData.accountHolderName) payload.accountHolderName = userData.accountHolderName;
-      if (userData.accountNumber !== originalData.accountNumber) payload.accountNumber = userData.accountNumber;
-      if (userData.accountType !== originalData.accountType) payload.accountType = userData.accountType;
-      if (userData.bankName !== originalData.bankName) payload.bankName = userData.bankName;
-      if (userData.ifscCode !== originalData.ifscCode) payload.ifscCode = userData.ifscCode;
-      if (userData.upiId !== originalData.upiId) payload.upiId = userData.upiId;
-
-      let timeslotString = '';
-      if (!isFullTime) {
-        const allSlots = [...morningSlots, ...eveningSlots];
-        if (allSlots.length > 0) {
-          timeslotString = allSlots
-            .map(slot => `${formatTimeForPayload(slot[0])}-${formatTimeForPayload(slot[1])}`)
-            .join(',');
-        }
-      }
-      const slotsChanged = 
-        isFullTime !== originalIsFullTime ||
-        JSON.stringify(morningSlots) !== JSON.stringify(originalMorningSlots) ||
-        JSON.stringify(eveningSlots) !== JSON.stringify(originalEveningSlots);
       if (slotsChanged) {
+        let timeslotString = "";
+        if (!isFullTime) {
+          const allSlots = [...morningSlots, ...eveningSlots];
+          if (allSlots.length > 0) {
+            timeslotString = allSlots
+              .map(
+                (slot) =>
+                  `${formatTimeForPayload(slot[0])}-${formatTimeForPayload(slot[1])}`
+              )
+              .join(",");
+          }
+        }
         payload.timeslot = timeslotString || null;
       }
 
@@ -649,12 +662,7 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
   };
 
   const hasChanges = (): boolean => {
-    const userDataChanged = JSON.stringify(userData) !== JSON.stringify(originalData);
-    const slotsChanged = 
-      isFullTime !== originalIsFullTime ||
-      JSON.stringify(morningSlots) !== JSON.stringify(originalMorningSlots) ||
-      JSON.stringify(eveningSlots) !== JSON.stringify(originalEveningSlots);
-    return userDataChanged || slotsChanged;
+    return Object.keys(buildSavePayload()).length > 0 || getSlotsChanged();
   };
 
   const isFormValid = (): boolean => {

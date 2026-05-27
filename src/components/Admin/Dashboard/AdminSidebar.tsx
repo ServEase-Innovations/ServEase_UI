@@ -12,6 +12,7 @@ import {
   Percent,
   Shield,
   BookOpen,
+  BellRing,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "requests", title: "Requests", icon: ClipboardList },
   { id: "chats", title: "Chats", icon: MessageSquare },
   { id: "permissions", title: "Permissions", icon: Shield },
+  { id: "push-notifications", title: "Push notifications", icon: BellRing },
   { id: "payments", title: "Payments", icon: CreditCard, superadminOnly: true },
   { id: "pricing", title: "Pricing", icon: DollarSign, superadminOnly: true },
   { id: "upload-data", title: "Upload data", icon: Upload, superadminOnly: true },
@@ -83,7 +85,9 @@ export function AdminSidebar({ activeSection, onSectionChange, userRole }: Admin
   const operations = items.filter((i) =>
     ["payments", "pricing", "upload-data", "coupons", "ledger"].includes(i.id)
   );
-  const system = items.filter((i) => ["settings", "permissions"].includes(i.id));
+  const system = items.filter((i) =>
+    ["settings", "permissions", "push-notifications"].includes(i.id)
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-slate-700/20">

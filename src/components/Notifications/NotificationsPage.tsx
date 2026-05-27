@@ -31,6 +31,11 @@ import {
   Megaphone,
 } from "lucide-react";
 import PaymentInstance from "src/services/paymentInstance";
+import {
+  acceptEngagement,
+  parseAcceptEngagementError,
+  parseEngagementId,
+} from "src/services/engagementService";
 import { urls } from "src/config/urls";
 import { useLanguage } from "src/context/LanguageContext";
 import { OndemandBookingRequestPanel } from "./BookingRequestToast";
@@ -86,6 +91,9 @@ function typeMeta(type: string): { label: string; Icon: React.ElementType; color
   const s = (type || "").toUpperCase();
   if (s === "BOOKING_ACCEPTED" || s.includes("ACCEPT")) {
     return { label: "Accepted", Icon: CheckCircle2, color: "#059669" };
+  }
+  if (s.includes("ASSIGNED_BOOKING")) {
+    return { label: "Booking", Icon: Megaphone, color: "#0ea5e9" };
   }
   if (s.includes("OPPORTUNITY") || s.includes("NEW_BOOKING") || s.includes("REQUEST")) {
     return { label: "New booking", Icon: Megaphone, color: "#0ea5e9" };
@@ -187,7 +195,22 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
 
     s.on("in_app_notification", (n: InAppNotification) => {
       setItems((prev) => {
-        const merged = [n, ...prev].filter(
+        const tUpper = (n.type || "").toUpperCase();
+        const isNewBooking =
+          tUpper.includes("NEW_BOOKING") || tUpper.includes("OPPORTUNITY");
+        let base = prev;
+        if (isNewBooking && n.engagementId != null && n.engagementId !== "") {
+          base = prev.filter(
+            (x) =>
+              !(
+                String(x.engagementId) === String(n.engagementId) &&
+                !x.readAt &&
+                ((x.type || "").toUpperCase().includes("NEW_BOOKING") ||
+                  (x.type || "").toUpperCase().includes("OPPORTUNITY"))
+              )
+          );
+        }
+        const merged = [n, ...base].filter(
           (x, i, a) => a.findIndex((y) => y.id === x.id) === i
         );
         return merged;
@@ -213,6 +236,32 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
       console.warn("in-app socket:", err?.message);
     });
 
+    s.on("booking-request-closed", (payload: { engagement_id?: unknown }) => {
+      const eid =
+        payload?.engagement_id != null ? String(payload.engagement_id) : "";
+      if (!eid) return;
+      setDetailFor((d) =>
+        d != null && String(d.engagementId) === eid ? null : d
+      );
+      setItems((prev) =>
+        prev.map((x) => {
+          const t = (x.type || "").toUpperCase();
+          const isNewBooking =
+            t.includes("NEW_BOOKING") || t.includes("OPPORTUNITY");
+          if (isNewBooking && String(x.engagementId) === eid && !x.readAt) {
+            return { ...x, readAt: new Date().toISOString() };
+          }
+          return x;
+        })
+      );
+      setUnread((u) => {
+        const next = Math.max(0, u - 1);
+        onUnreadCountChange?.(next);
+        return next;
+      });
+      window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+    });
+
     return () => {
       s.disconnect();
     };
@@ -221,10 +270,27 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
   const markRead = useCallback(
     async (n: InAppNotification) => {
       if (!r || n.readAt) return;
+      const rid = Number(r.recipientId);
+      if (!Number.isFinite(rid) || rid < 1) return;
+      const nid = String(n.id ?? "").trim();
+      if (!nid || !/^\d+$/.test(nid)) {
+        setSnack({ open: true, message: "Invalid notification id", severity: "error" });
+        return;
+      }
       try {
-        await PaymentInstance.patch(`/api/in-app-notifications/${n.id}/read`, null, {
-          params: { recipientType: r.recipientType, recipientId: r.recipientId },
-        });
+        await PaymentInstance.patch(
+          `/api/in-app-notifications/${nid}/read`,
+          {
+            recipientType: r.recipientType,
+            recipientId: rid,
+          },
+          {
+            params: {
+              recipientType: r.recipientType,
+              recipientId: rid,
+            },
+          }
+        );
         setItems((prev) =>
           prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x))
         );
@@ -234,9 +300,13 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
           return next;
         });
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
-        setSnack({ open: true, message: "Could not update notification", severity: "error" });
+        const msg =
+          (e?.response?.data && (e.response.data.error as string)) ||
+          e?.message ||
+          "Could not update notification";
+        setSnack({ open: true, message: msg, severity: "error" });
       }
     },
     [r, onUnreadCountChange]
@@ -272,29 +342,22 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         setSnack({ open: true, message: "Sign in as a provider to accept", severity: "error" });
         return;
       }
-      const eid = n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
-      if (!Number.isFinite(eid) || eid < 1) {
+      const eid = parseEngagementId(n.engagementId);
+      if (eid == null) {
         setSnack({ open: true, message: "This notification has no engagement id", severity: "error" });
         return;
       }
       setDetailError(null);
       setAcceptingId(n.id);
       try {
-        await PaymentInstance.post(
-          `/api/v2/engagements/${eid}/accept`,
-          { serviceproviderid: Number(appUser.serviceProviderId) }
-        );
-        setSnack({ open: true, message: "Booking accepted", severity: "success" });
+        const result = await acceptEngagement(eid, appUser);
+        setSnack({ open: true, message: result.message, severity: "success" });
         setDetailError(null);
         setDetailFor((d) => (d != null && String(d.id) === String(n.id) ? null : d));
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
         await fetchList();
-      } catch (e: any) {
-        const msg = String(
-          (e?.response?.data && (e.response.data.error as string)) ||
-            e?.message ||
-            "Could not accept"
-        );
+      } catch (e: unknown) {
+        const msg = parseAcceptEngagementError(e);
         setDetailError(msg);
         setSnack({ open: true, message: msg, severity: "error" });
         console.error("Accept from notifications failed", e);
@@ -472,13 +535,15 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
               const tNew = newIds.has(String(n.id));
               const metaRow = asMetaRecord(n.metadata);
               const tUpper = (n.type || "").toUpperCase();
-              const isSpNewBooking =
+              const isSpOndemandNewBooking =
                 r?.recipientType === "provider" &&
                 (tUpper === "NEW_BOOKING_OPPORTUNITY" || tUpper === "NEW_BOOKING_REQUEST");
-              const eid =
-                n.engagementId != null && n.engagementId !== "" ? Number(n.engagementId) : NaN;
-              const hasSpBooking = isSpNewBooking && Number.isFinite(eid) && eid > 0;
-              const canQuickAct = hasSpBooking && unreadItem;
+              const isSpAssignedConfirmed =
+                r?.recipientType === "provider" && tUpper === "ASSIGNED_BOOKING_CONFIRMED";
+              const eid = parseEngagementId(n.engagementId);
+              const hasBookingDetailPanel =
+                (isSpOndemandNewBooking || isSpAssignedConfirmed) && eid != null;
+              const canQuickAct = isSpOndemandNewBooking && unreadItem && hasBookingDetailPanel;
               return (
                 <ListItem
                   key={n.id}
@@ -490,20 +555,47 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                   <Paper
                     variant="outlined"
                     onClick={() => {
-                      if (hasSpBooking) return;
+                      if (isSpAssignedConfirmed && hasBookingDetailPanel) {
+                        setDetailError(null);
+                        setDetailFor(n);
+                        if (unreadItem) void markRead(n);
+                        return;
+                      }
+                      if (isSpOndemandNewBooking) return;
                       if (unreadItem) void markRead(n);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !hasSpBooking && unreadItem) void markRead(n);
+                      if (e.key !== "Enter") return;
+                      if (isSpAssignedConfirmed && hasBookingDetailPanel) {
+                        setDetailError(null);
+                        setDetailFor(n);
+                        if (unreadItem) void markRead(n);
+                        return;
+                      }
+                      if (!isSpOndemandNewBooking && unreadItem) void markRead(n);
                     }}
-                    role={unreadItem && !hasSpBooking ? "button" : "article"}
-                    tabIndex={unreadItem && !hasSpBooking ? 0 : -1}
+                    role={
+                      isSpAssignedConfirmed && hasBookingDetailPanel
+                        ? "button"
+                        : unreadItem && !isSpOndemandNewBooking
+                          ? "button"
+                          : "article"
+                    }
+                    tabIndex={
+                      isSpAssignedConfirmed && hasBookingDetailPanel
+                        ? 0
+                        : unreadItem && !isSpOndemandNewBooking
+                          ? 0
+                          : -1
+                    }
                     aria-label={
-                      hasSpBooking
-                        ? n.title
-                        : unreadItem
-                          ? `${n.title}, unread. Press to mark as read`
-                          : n.title
+                      isSpAssignedConfirmed && hasBookingDetailPanel
+                        ? `${n.title}. View booking details.`
+                        : isSpOndemandNewBooking
+                          ? n.title
+                          : unreadItem
+                            ? `${n.title}, unread. Press to mark as read`
+                            : n.title
                     }
                     elevation={0}
                     sx={{
@@ -519,11 +611,16 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         ? `0 0 0 1px ${alpha("#2563eb", 0.2)}`
                         : "none",
                       transition: "all 0.2s ease",
-                      cursor: unreadItem && !hasSpBooking ? "pointer" : "default",
+                      cursor:
+                        (isSpAssignedConfirmed && hasBookingDetailPanel) || (unreadItem && !isSpOndemandNewBooking)
+                          ? "pointer"
+                          : "default",
                       borderRadius: 2,
-                      "&:hover": !hasSpBooking && unreadItem
-                        ? { bgcolor: (th) => alpha(th.palette.primary.main, 0.07) }
-                        : { bgcolor: "action.hover" },
+                      "&:hover":
+                        (isSpAssignedConfirmed && hasBookingDetailPanel) ||
+                        (!isSpOndemandNewBooking && unreadItem)
+                          ? { bgcolor: (th) => alpha(th.palette.primary.main, 0.07) }
+                          : { bgcolor: "action.hover" },
                       "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" },
                     }}
                   >
@@ -599,7 +696,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                 )}
                               </Stack>
                             )}
-                            {hasSpBooking && (
+                            {hasBookingDetailPanel && (
                               <Stack
                                 direction="row"
                                 flexWrap="wrap"
@@ -607,6 +704,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                 alignItems="center"
                                 sx={{ mt: 1, width: "100%" }}
                                 onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                               >
                                 <Button
@@ -616,6 +714,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                   onClick={() => {
                                     setDetailError(null);
                                     setDetailFor(n);
+                                    if (unreadItem && isSpAssignedConfirmed) void markRead(n);
                                   }}
                                 >
                                   View details
