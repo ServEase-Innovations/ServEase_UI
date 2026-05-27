@@ -337,6 +337,7 @@ const isPaymentPendingBooking = (booking: Booking) =>
 
 /** Aligns list badges/filters with today’s visit (service_days), not only task_status. */
 const effectiveTaskStatus = (booking: Booking): string => {
+  if (booking.taskStatus === "CANCELLED") return "CANCELLED";
   const visit = booking.today_service?.status?.toUpperCase();
   if (visit === "IN_PROGRESS" || visit === "STARTED") return "IN_PROGRESS";
   if (visit === "COMPLETED" || visit === "DONE") return "COMPLETED";
@@ -348,6 +349,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
+  const [cancelledBookings, setCancelledBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
   const [customerId, setCustomerId] = useState<number | null>(null);
@@ -912,15 +914,35 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     return booking.hasVacation || false;
   };
 
-  const filterBookings = (bookings: Booking[], term: string) => {
-    if (!term) return bookings;
-    
-    return bookings.filter(booking => 
-      getServiceTitle(booking?.service_type).toLowerCase().includes(term?.toLowerCase()) ||
-      booking.serviceProviderName?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.address?.toLowerCase().includes(term?.toLowerCase()) ||
-      booking.bookingType?.toLowerCase().includes(term?.toLowerCase())
+  const getAllBookings = (): Booking[] => {
+    const byId = new Map<number, Booking>();
+    [...futureBookings, ...currentBookings, ...pastBookings, ...cancelledBookings].forEach(
+      (b) => byId.set(b.id, b)
     );
+    return Array.from(byId.values());
+  };
+
+  const normalizeSearchQuery = (term: string) =>
+    term.trim().toLowerCase().replace(/^#/, '');
+
+  const bookingMatchesSearch = (booking: Booking, term: string): boolean => {
+    const q = normalizeSearchQuery(term);
+    if (!q) return true;
+
+    const idStr = String(booking.id ?? '');
+    if (idStr === q || idStr.includes(q)) return true;
+
+    return (
+      getServiceTitle(booking?.service_type).toLowerCase().includes(q) ||
+      booking.serviceProviderName?.toLowerCase().includes(q) ||
+      (booking.address?.toLowerCase().includes(q) ?? false) ||
+      booking.bookingType?.toLowerCase().includes(q)
+    );
+  };
+
+  const filterBookings = (bookings: Booking[], term: string) => {
+    if (!term.trim()) return bookings;
+    return bookings.filter((booking) => bookingMatchesSearch(booking, term));
   };
 
   const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
@@ -950,11 +972,24 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         ),
       ]);
 
-      const { past = [], ongoing = [], upcoming = [] } = engagementsRes.data || {};
+      const {
+        past = [],
+        ongoing = [],
+        upcoming = [],
+        cancelled: cancelledFromApi = [],
+      } = engagementsRes.data || {};
 
-      setPastBookings(mapBookingData(past));
-      setCurrentBookings(mapBookingData(ongoing));
-      setFutureBookings(mapBookingData(upcoming));
+      const partitioned = partitionEngagementLists(
+        upcoming,
+        ongoing,
+        past,
+        cancelledFromApi
+      );
+
+      setPastBookings(mapBookingData(partitioned.past));
+      setCurrentBookings(mapBookingData(partitioned.ongoing));
+      setFutureBookings(mapBookingData(partitioned.upcoming));
+      setCancelledBookings(mapBookingData(partitioned.cancelled));
       setTodaySchedule(todayRes.data?.bookings ?? []);
     }
   };
@@ -1002,6 +1037,54 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   
+  const isCancelledEngagementItem = (item: any): boolean => {
+    const life = String(item?.engagement_status ?? '').toUpperCase();
+    const stored = String(item?.task_status_stored ?? item?.task_status ?? '').toUpperCase();
+    return life === 'CANCELLED' || stored === 'CANCELLED';
+  };
+
+  const resolveTaskStatusFromEngagement = (item: any): string => {
+    if (isCancelledEngagementItem(item)) return 'CANCELLED';
+    return item?.task_status || '';
+  };
+
+  const partitionEngagementLists = (
+    upcoming: any[],
+    ongoing: any[],
+    past: any[],
+    cancelledFromApi: any[] = []
+  ) => {
+    const cancelled: any[] = [...cancelledFromApi];
+    const activeUpcoming: any[] = [];
+    const activeOngoing: any[] = [];
+    const activePast: any[] = [];
+
+    upcoming.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activeUpcoming).push(item)
+    );
+    ongoing.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activeOngoing).push(item)
+    );
+    past.forEach((item) =>
+      (isCancelledEngagementItem(item) ? cancelled : activePast).push(item)
+    );
+
+    const seen = new Set<number>();
+    const dedupedCancelled = cancelled.filter((item) => {
+      const id = Number(item?.engagement_id);
+      if (!Number.isFinite(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    return {
+      upcoming: activeUpcoming,
+      ongoing: activeOngoing,
+      past: activePast,
+      cancelled: dedupedCancelled,
+    };
+  };
+
   const mapBookingData = (data: any[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
@@ -1048,7 +1131,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   : appUser?.email?.split('@')[0] || 'Customer'),
             serviceProviderName: serviceProviderName,
             providerRating: providerRating,
-            taskStatus: item.task_status,
+            taskStatus: resolveTaskStatusFromEngagement(item),
             engagements: item.engagements,
             bookingDate: item.created_at,
             service_type: item.service_type?.toLowerCase() || 'other',
@@ -1115,8 +1198,17 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           await handleCompletePayment(booking);
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error performing action:", error);
+      if (type === 'cancel') {
+        const msg =
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          'Failed to cancel booking. Please try again.';
+        setSnackbarMessage(msg);
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+      }
     } finally {
       setActionLoading(false);
       setConfirmationDialog(prev => ({ ...prev, open: false }));
@@ -1188,44 +1280,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   const handleCancelBooking = async (booking: Booking) => {
-    try {
-      setActionLoading(true);
-      
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        {
-          task_status: "CANCELLED"
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      await refreshBookings();
-      setSnackbarMessage('Booking cancelled successfully!');
-      setSnackbarSeverity('success');
-      setOpenSnackbar(true);
-      
-    } catch (error: any) {
-      console.error("Error cancelling engagement:", error);
-      setCurrentBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
-        )
-      );
-      setFutureBookings((prev) =>
-        prev.map((b) =>
-          b.id === booking.id ? { ...b, taskStatus: "CANCELLED" } : b
-        )
-      );
-      setSnackbarMessage('Error cancelling booking. Please try again.');
-      setSnackbarSeverity('error');
-      setOpenSnackbar(true);
-    } finally {
-      setActionLoading(false);
-    }
+    await PaymentInstance.post(`/api/v2/engagements/${booking.id}/cancel`, {});
+    await refreshBookings();
+    setStatusFilter('CANCELLED');
+    setSnackbarMessage('Booking cancelled successfully!');
+    setSnackbarSeverity('success');
+    setOpenSnackbar(true);
   };
 
   const handleSaveModifiedBooking = async (updatedData: {
@@ -1516,7 +1576,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     }
   };
 
-  const upcomingBookings = sortUpcomingBookings([...currentBookings, ...futureBookings]);
+  const upcomingBookings = sortUpcomingBookings(
+    [...currentBookings, ...futureBookings].filter((b) => b.taskStatus !== 'CANCELLED')
+  );
 
   const pendingPaymentBookings = sortUpcomingBookings(
     [...currentBookings, ...futureBookings, ...pastBookings].filter(
@@ -1524,18 +1586,31 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     )
   );
 
-  const filteredByStatus = statusFilter === 'ALL' 
-    ? upcomingBookings 
-    : upcomingBookings.filter(
-        (booking) => effectiveTaskStatus(booking) === statusFilter
-      );
-  
-  const filteredUpcomingBookings = filterBookings(filteredByStatus, searchTerm);
-  const filteredPendingPaymentBookings = filterBookings(
-    pendingPaymentBookings,
-    searchTerm
-  );
-  const filteredPastBookings = filterBookings(pastBookings, searchTerm);
+  const searchActive = Boolean(searchTerm.trim());
+
+  const filteredByStatus =
+    statusFilter === 'ALL'
+      ? upcomingBookings
+      : statusFilter === 'CANCELLED'
+        ? cancelledBookings
+        : upcomingBookings.filter(
+            (booking) => effectiveTaskStatus(booking) === statusFilter
+          );
+
+  const filteredUpcomingBookings = searchActive
+    ? filterBookings(getAllBookings(), searchTerm)
+    : filterBookings(filteredByStatus, searchTerm);
+
+  const filteredPendingPaymentBookings = searchActive
+    ? filterBookings(
+        getAllBookings().filter((b) => isPaymentPendingBooking(b)),
+        searchTerm
+      )
+    : filterBookings(pendingPaymentBookings, searchTerm);
+
+  const filteredPastBookings = searchActive
+    ? filterBookings(getAllBookings(), searchTerm)
+    : filterBookings(pastBookings, searchTerm);
 
   const activeBookingsList =
     viewTab === "pending"
@@ -1568,7 +1643,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'NOT_STARTED').length },
     { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'IN_PROGRESS').length },
     { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'COMPLETED').length },
-    { value: 'CANCELLED', label: 'Cancelled', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'CANCELLED').length },
+    { value: 'CANCELLED', label: 'Cancelled', count: cancelledBookings.length },
   ];
 
   return (
@@ -1618,7 +1693,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               />
               <input
                 type="search"
-                placeholder="Search by provider, service, address, or booking #"
+                placeholder="Search by booking #, provider, service, or address"
                 className="w-full rounded-lg border-0 bg-slate-100 py-2.5 pl-10 pr-10 text-sm text-slate-900 ring-1 ring-slate-200/80 transition placeholder:text-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -2238,10 +2313,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         message={confirmationDialog.message}
         confirmText={
           confirmationDialog.type === 'cancel'
-            ? 'Yes, Cancel'
+            ? 'Yes, Cancel Booking'
             : confirmationDialog.type === 'payment'
               ? 'Pay now'
               : 'Confirm'
+        }
+        cancelText={
+          confirmationDialog.type === 'cancel' ? 'No, Keep It' : 'Cancel'
         }
         loading={actionLoading}
         severity={confirmationDialog.severity}
