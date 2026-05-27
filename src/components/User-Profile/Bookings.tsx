@@ -699,6 +699,19 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     });
   };
 
+  const afterPaymentSuccess = async () => {
+    const effectiveCustomerId = customerId ?? appUser?.customerid;
+    if (effectiveCustomerId != null) {
+      await refreshBookings(effectiveCustomerId);
+    }
+    setDetailsDrawerOpen(false);
+    setSelectedBooking(null);
+    setViewTab("upcoming");
+    setSnackbarMessage("Payment completed successfully.");
+    setSnackbarSeverity("success");
+    setOpenSnackbar(true);
+  };
+
   const handleCompletePayment = async (booking: Booking) => {
     const engagementId =
       booking.payment?.engagement_id ?? booking.id;
@@ -723,14 +736,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         contact: appUser?.mobileno || undefined,
       });
 
-      setSnackbarMessage("Payment completed successfully.");
-      setSnackbarSeverity("success");
-      setOpenSnackbar(true);
-      if (customerId != null) {
-        await refreshBookings(customerId);
-      } else if (appUser?.customerid != null) {
-        await refreshBookings(appUser.customerid);
-      }
+      await afterPaymentSuccess();
     } catch (err: any) {
       console.error("Complete payment error:", err);
       const msg =
@@ -2257,6 +2263,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
           setSelectedBooking(null);
         }}
         booking={selectedBooking}
+        onPaymentComplete={afterPaymentSuccess}
       />
 
       {/* Chat Interface */}

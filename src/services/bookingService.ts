@@ -79,7 +79,8 @@ export const BookingService = {
     razorpay_order_id: string,
     amountPaise: number,
     currency = "INR",
-    prefill?: { name?: string; email?: string; contact?: string }
+    prefill?: { name?: string; email?: string; contact?: string },
+    razorpayKeyId?: string
   ) => {
     const ok = await loadRazorpayScript();
     if (!ok) throw new Error("Failed to load Razorpay SDK");
@@ -88,13 +89,15 @@ export const BookingService = {
       throw new Error("Razorpay not available on window");
     }
 
-    const razorpayKey =
-      process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_SHU1MPGbiCzst9";
-
     return new Promise<RazorpayPaymentResponse>((resolve, reject) => {
       console.log("Opening Razorpay with order id:", razorpay_order_id, "and amount (paise):", amountPaise);
+      const checkoutKey =
+        razorpayKeyId ||
+        process.env.REACT_APP_RAZORPAY_KEY ||
+        "rzp_test_lTdgjtSRlEwreA";
+
       const rzp = new Razorpay({
-        key: razorpayKey,
+        key: checkoutKey,
         amount: amountPaise,
         currency,
         order_id: razorpay_order_id,
@@ -141,6 +144,7 @@ export const BookingService = {
     }
     return data as {
       razorpay_order_id: string;
+      razorpay_key_id?: string;
       amount: number;
       amount_inr?: number;
       currency: string;
@@ -178,7 +182,8 @@ export const BookingService = {
       orderId,
       amountPaise,
       resume.currency || "INR",
-      prefill
+      prefill,
+      resume.razorpay_key_id
     );
     paymentResponse.engagementId = resume.engagementId ?? Number(engagementId);
 
@@ -248,7 +253,13 @@ export const BookingService = {
     }
 
     // Open Razorpay
-    const paymentResponse = await BookingService.openRazorpay(orderId, amountPaise);
+    const paymentResponse = await BookingService.openRazorpay(
+      orderId,
+      amountPaise,
+      "INR",
+      undefined,
+      engagementData?.razorpay_key_id
+    );
 
     paymentResponse.engagementId = engagementData?.engagement_id;
 

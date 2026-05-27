@@ -15,7 +15,7 @@ interface EngagementDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   booking: any; // Replace with proper Booking type
-  onPaymentComplete?: () => void; // Callback to refresh bookings after payment
+  onPaymentComplete?: () => void | Promise<void>;
 }
 
 const formatTimeToAMPM = (timeString: string): string => {
@@ -37,11 +37,11 @@ const formatDate = (dateString: string) => {
   return dayjs(dateString).format('MMMM D, YYYY');
 };
 
-const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({ 
-  isOpen, 
-  onClose, 
+const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
+  isOpen,
+  onClose,
   booking,
-  onPaymentComplete 
+  onPaymentComplete,
 }) => {
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
 
@@ -60,21 +60,32 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
     try {
       setIsProcessingPayment(true);
       
-      const resumeRes = await PaymentInstance.get(
-        `/api/payments/${booking.payment?.engagement_id}/resume`
+      const engagementId = booking.payment?.engagement_id ?? booking.id;
+      const resumeRes = await PaymentInstance.post(
+        `/api/v2/createEngagements/resume-payment`,
+        { engagementId }
       );
 
       const {
         razorpay_order_id,
+        razorpay_key_id,
         amount,
+        amount_inr,
         currency,
+        engagementId: engagement_id_camel,
         engagement_id,
         customer
       } = resumeRes.data;
+      const resolvedEngagementId = engagement_id_camel ?? engagement_id ?? engagementId;
+
+      let amountPaise = Number(amount);
+      if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+        amountPaise = Math.round(Number(amount_inr) * 100);
+      }
 
       const options = {
-        key: "rzp_test_lTdgjtSRlEwreA",
-        amount: amount * 100,
+        key: razorpay_key_id || process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_lTdgjtSRlEwreA",
+        amount: amountPaise,
         currency,
         order_id: razorpay_order_id,
         name: "Serveaso",
@@ -85,20 +96,17 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
         },
         handler: async function (response: any) {
           try {
-            await PaymentInstance.post("/api/payments/verify", {
-              engagementId: engagement_id,
+            await PaymentInstance.post("/api/v2/createEngagements/verify", {
+              engagementId: resolvedEngagementId,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
             
             if (onPaymentComplete) {
-              onPaymentComplete();
+              await onPaymentComplete();
             }
-            
-            console.log('Payment completed successfully');
-            alert('Payment successful! You can now download your invoice.');
-            
+            onClose();
           } catch (verifyError) {
             console.error("Payment verification error:", verifyError);
             alert("Payment verification failed. Please contact support.");
