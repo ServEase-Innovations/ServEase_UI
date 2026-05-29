@@ -65,7 +65,7 @@ export async function setPlanActive(planId: number, isActive: boolean) {
 }
 
 export async function previewPricingQuote(body: MaidQuoteRequest) {
-  const { data } = await PaymentInstance.post<PricingQuoteResponse>("/api/pricing/quote", {
+  const { data } = await PaymentInstance.post<PricingQuoteResponse>("/api/v2/pricing/quote", {
     serviceType: body.serviceType || "MAID",
     bookingType: body.bookingType,
     customerId: body.customerId,

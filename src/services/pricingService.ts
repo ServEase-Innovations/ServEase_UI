@@ -57,7 +57,7 @@ export async function fetchServiceQuote(
   const endDate = String(body.endDate ?? body.startDate ?? "").slice(0, 10);
 
   const { data } = await PaymentInstance.post<PricingQuoteResponse>(
-    "/api/pricing/quote",
+    "/api/v2/pricing/quote",
     {
       serviceType,
       bookingType: String(body.bookingType || "").toUpperCase(),
@@ -76,7 +76,7 @@ export async function fetchServiceQuote(
 export async function fetchServiceRateCard(serviceType: string, bookingType: string) {
   const st = encodeURIComponent(serviceType.toUpperCase());
   const bt = encodeURIComponent(bookingType.toUpperCase());
-  const { data } = await PaymentInstance.get(`/api/pricing/plans/${st}/${bt}`);
+  const { data } = await PaymentInstance.get(`/api/v2/pricing/plans/${st}/${bt}`);
   return data;
 }
 
