@@ -28,6 +28,9 @@ import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 import { useAppUser } from "src/context/AppUserContext";
 import { useLanguage } from "src/context/LanguageContext";
 import { publicAsset } from "src/utils/publicAsset";
+import FirstBookingOffer from "./FirstBookingOffer";
+import ServiceSelectionDialog from "./ServiceSelectionDialog";
+import { useFirstBookingOfferVisible } from "../hooks/useFirstBookingOfferVisible";
 
 
 const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
@@ -65,6 +68,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     open: boolean;
     type: "cook" | "maid" | "babycare" | null;
     }>({ open: false, type: null });
+    const [showServiceSelection, setShowServiceSelection] = useState(false);
 
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
@@ -237,6 +241,8 @@ const handleSave = () => {
   const [role, setRole] = useState<string | null>(null);
 
   const { appUser } = useAppUser();
+  const { showOffer, checking: checkingOffer } = useFirstBookingOfferVisible();
+  const isServiceProvider = appUser?.role === "SERVICE_PROVIDER";
 
 useEffect(() => {
   if (!isAuthenticated || !appUser) return;
@@ -430,6 +436,13 @@ useEffect(() => {
                 </div>
             </section>
 
+            {!isServiceProvider && !checkingOffer && showOffer ? (
+                <section className="border-b border-slate-200/60 bg-white py-5 sm:py-6">
+                    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                        <FirstBookingOffer onPress={() => setShowServiceSelection(true)} />
+                    </div>
+                </section>
+            ) : null}
 
             <section className="border-b border-slate-200/60 bg-white py-12 sm:py-16">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -563,6 +576,15 @@ useEffect(() => {
                 setEndDate={setEndDate}
                 setStartTime={setStartTime}
                 setEndTime={setEndTime}
+            />
+
+            <ServiceSelectionDialog
+                open={showServiceSelection}
+                onClose={() => setShowServiceSelection(false)}
+                onSelectService={(serviceType: string) => {
+                    setSelectedtype(serviceType);
+                    setOpen(true);
+                }}
             />
 
             {showRegistrationDialog ? (

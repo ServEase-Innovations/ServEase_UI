@@ -1,0 +1,157 @@
+import axios from "axios";
+import PaymentInstance from "./paymentInstance";
+import { urls } from "src/config/urls";
+
+export type CustomerCoupon = {
+  code: string;
+  serviceType: string;
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: number;
+  minimumOrderValue?: number | null;
+  description?: string;
+  city?: string | null;
+};
+
+function normalizeDiscountType(raw: unknown): "PERCENTAGE" | "FIXED_AMOUNT" {
+  const u = String(raw || "").toUpperCase();
+  if (u === "PERCENTAGE" || u === "PCT" || u.includes("PERCENT")) {
+    return "PERCENTAGE";
+  }
+  return "FIXED_AMOUNT";
+}
+
+export function resolveCustomerId(appUser: unknown): string | number | null {
+  if (!appUser || typeof appUser !== "object") return null;
+  const u = appUser as Record<string, unknown>;
+  const id = u.customerid ?? u.customerId ?? u.customer_id;
+  if (id == null || String(id).trim() === "") return null;
+  return id as string | number;
+}
+
+function unwrapCouponPayload(data: unknown): Record<string, unknown> {
+  const root = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const nested =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : null;
+  return nested ?? root;
+}
+
+export function mapCouponsFromApiPayload(data: unknown): CustomerCoupon[] {
+  const payload = unwrapCouponPayload(data);
+  const source = Array.isArray(payload.coupons) ? payload.coupons : [];
+
+  return source
+    .map((row) => {
+      const c = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+      const discountValue = Number(c.discount_value);
+      return {
+        code: String(c.coupon_code || "").trim().toUpperCase(),
+        serviceType: String(c.service_type || "").trim().toUpperCase(),
+        discountType: normalizeDiscountType(c.discount_type),
+        discountValue: Number.isFinite(discountValue) ? discountValue : 0,
+        minimumOrderValue:
+          c.minimum_order_value != null ? Number(c.minimum_order_value) : null,
+        description: c.description != null ? String(c.description) : undefined,
+        city: c.city != null ? String(c.city) : null,
+      };
+    })
+    .filter((c) => Boolean(c.code) && c.discountValue > 0);
+}
+
+export type CustomerCouponEligibility = {
+  priorBookingCount: number;
+  coupons: CustomerCoupon[];
+};
+
+export const FIRST_BOOKING_COUPON_CODE = "NEWUSER";
+
+async function fetchCustomerCouponPayload(
+  customerId: string | number,
+  params?: Record<string, string>
+): Promise<unknown> {
+  const id = encodeURIComponent(String(customerId));
+  const path = `/api/coupons/customer/${id}`;
+  const couponsBase = urls.coupons.replace(/\/$/, "");
+  const paymentsBase = urls.payments.replace(/\/$/, "");
+
+  if (couponsBase !== paymentsBase) {
+    try {
+      const { data } = await axios.get(`${couponsBase}${path}`, { params, timeout: 30000 });
+      return data;
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[coupons] direct service failed, using payments proxy:", err);
+      }
+    }
+  }
+
+  const { data } = await PaymentInstance.get(path, { params });
+  return data;
+}
+
+export async function fetchCustomerCouponEligibility(
+  customerId: string | number
+): Promise<CustomerCouponEligibility> {
+  const data = await fetchCustomerCouponPayload(customerId);
+  const payload = unwrapCouponPayload(data);
+  const priorRaw = payload.prior_booking_count;
+  const priorBookingCount =
+    priorRaw != null && Number.isFinite(Number(priorRaw)) ? Number(priorRaw) : 0;
+
+  return {
+    priorBookingCount,
+    coupons: mapCouponsFromApiPayload(data),
+  };
+}
+
+export async function isEligibleForFirstBookingOffer(
+  customerId: string | number
+): Promise<boolean> {
+  const { priorBookingCount, coupons } = await fetchCustomerCouponEligibility(customerId);
+  if (priorBookingCount > 0) return false;
+  return coupons.some((c) => c.code === FIRST_BOOKING_COUPON_CODE);
+}
+
+export function couponMeetsCity(couponCity: unknown, userCity?: string | null): boolean {
+  const c = String(couponCity ?? "").trim();
+  if (!c) return true;
+  const u = String(userCity ?? "").trim();
+  if (!u) return true;
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+  const cn = norm(c);
+  const un = norm(u);
+  if (cn === un) return true;
+  if (
+    (cn === "bengaluru" || cn === "bangalore") &&
+    (un === "bengaluru" || un === "bangalore")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function couponMatchesServiceType(
+  requestedServiceType: string,
+  couponServiceType: string
+): boolean {
+  const req = String(requestedServiceType || "").trim().toUpperCase();
+  const couponSt = String(couponServiceType || "").trim().toUpperCase();
+  if (!req || !couponSt || couponSt === "ALL") return true;
+  if (req === couponSt) return true;
+  return req === "COOK" && couponSt === "MAID";
+}
+
+export async function fetchCustomerCoupons(
+  customerId: string | number,
+  serviceType: "COOK" | "MAID",
+  options?: { userCity?: string | null }
+): Promise<CustomerCoupon[]> {
+  const st = serviceType.toUpperCase() as "COOK" | "MAID";
+  const data = await fetchCustomerCouponPayload(customerId, { serviceType: st });
+  const mapped = mapCouponsFromApiPayload(data);
+  const userCity = options?.userCity;
+  return mapped
+    .filter((c) => couponMatchesServiceType(st, c.serviceType))
+    .filter((c) => couponMeetsCity(c.city, userCity));
+}
