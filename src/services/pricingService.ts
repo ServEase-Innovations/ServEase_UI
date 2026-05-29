@@ -6,6 +6,7 @@ export interface ServiceQuoteRequest {
   serviceType?: string;
   bookingType: string;
   customerId?: number;
+  couponCode?: string;
   startDate: string;
   endDate?: string;
   durationHours?: number;
@@ -61,6 +62,7 @@ export async function fetchServiceQuote(
       serviceType,
       bookingType: String(body.bookingType || "").toUpperCase(),
       customerId: body.customerId,
+      coupon_code: body.couponCode ? String(body.couponCode).trim().toUpperCase() : undefined,
       startDate,
       endDate: endDate || startDate,
       durationHours: body.durationHours,

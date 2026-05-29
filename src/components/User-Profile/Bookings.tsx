@@ -328,7 +328,7 @@ const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
 };
 
-type BookingsViewTab = "upcoming" | "past" | "pending";
+type BookingsViewTab = "today" | "upcoming" | "past" | "pending";
 
 const isPaymentPendingBooking = (booking: Booking) =>
   Boolean(
@@ -1618,6 +1618,24 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     ? filterBookings(getAllBookings(), searchTerm)
     : filterBookings(pastBookings, searchTerm);
 
+  const filteredTodaySchedule = React.useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return todaySchedule;
+    return todaySchedule.filter((slot) => {
+      const provider = [slot.provider_firstname, slot.provider_lastname]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return (
+        String(slot.engagement_id).includes(q) ||
+        provider.includes(q) ||
+        String(slot.service_type || "").toLowerCase().includes(q) ||
+        String(slot.address || "").toLowerCase().includes(q) ||
+        String(slot.booking_type || "").toLowerCase().includes(q)
+      );
+    });
+  }, [todaySchedule, searchTerm]);
+
   const activeBookingsList =
     viewTab === "pending"
       ? filteredPendingPaymentBookings
@@ -1634,6 +1652,12 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     shortLabel: string;
     count?: number;
   }[] = [
+    {
+      id: "today",
+      label: "Today",
+      shortLabel: "Today",
+      count: todaySchedule.length,
+    },
     { id: "upcoming", label: "Upcoming", shortLabel: "Upcoming" },
     { id: "past", label: "Past", shortLabel: "Past" },
     {
@@ -1743,7 +1767,9 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   active
                     ? tab.id === "pending"
                       ? "bg-red-600 text-white shadow-md shadow-red-600/20"
-                      : "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+                      : tab.id === "today"
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                        : "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
                     : "text-slate-600 hover:bg-white/60 hover:text-slate-900"
                 }`}
               >
@@ -1753,10 +1779,14 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
                       active
-                        ? tab.id === "pending"
+                        ? tab.id === "pending" || tab.id === "today"
                           ? "bg-white/25 text-white"
                           : "bg-sky-100 text-sky-800"
-                        : "bg-red-100 text-red-800"
+                        : tab.id === "today"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : tab.id === "pending"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-slate-200 text-slate-700"
                     }`}
                   >
                     {tab.count}
@@ -1767,28 +1797,35 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
           })}
         </div>
 
-        {viewTab === "upcoming" && (
-          <CustomerTodayTasksCard
-            loading={isLoading}
-            todaySchedule={todaySchedule}
-            otpLoadingId={otpLoading}
-            generatedOTPs={generatedOTPs}
-            onGenerateOtp={handleGenerateOtpFromToday}
-            onOpenBooking={scrollToBooking}
-            onCallProvider={(phone) => {
-              window.location.href = `tel:${phone}`;
-            }}
-            onOpenMap={(address) => {
-              window.open(
-                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
-                "_blank",
-                "noopener,noreferrer"
-              );
-            }}
-          />
+        {viewTab === "today" && (
+          <section className="mb-8 md:mb-10">
+            <CustomerTodayTasksCard
+              loading={isLoading}
+              todaySchedule={filteredTodaySchedule}
+              otpLoadingId={otpLoading}
+              generatedOTPs={generatedOTPs}
+              onGenerateOtp={handleGenerateOtpFromToday}
+              onOpenBooking={scrollToBooking}
+              onCallProvider={(phone) => {
+                window.location.href = `tel:${phone}`;
+              }}
+              onOpenMap={(address) => {
+                window.open(
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`,
+                  "_blank",
+                  "noopener,noreferrer"
+                );
+              }}
+            />
+            {!isLoading && searchTerm.trim() && filteredTodaySchedule.length === 0 ? (
+              <p className="mt-3 text-center text-sm text-slate-600">
+                No today&apos;s visits match your search.
+              </p>
+            ) : null}
+          </section>
         )}
 
-        {viewTab !== "past" && (
+        {(viewTab === "upcoming" || viewTab === "pending") && (
         <section className="mb-8 md:mb-10">
           <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-stretch gap-3">
