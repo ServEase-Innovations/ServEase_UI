@@ -58,7 +58,7 @@ import { CartDialog } from "../AddToCart/CartDialog";
 import { FaHome } from "react-icons/fa";
 import { HiBuildingOffice } from "react-icons/hi2";
 import { FaLocationArrow } from "react-icons/fa";
-import { add } from "../../features/geoLocation/geoLocationSlice";
+import { add, remove as clearGeoLocation } from "../../features/geoLocation/geoLocationSlice";
 import { ClipLoader } from "react-spinners";
 import AboutUs from "../AboutUs/AboutUs";
 import BookingDialog from "../BookingDialog/BookingDialog";
@@ -117,8 +117,7 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const { logout, user, isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup } = useAuth0();
 
-  const { setAppUser } = useAppUser();
-  const { appUser } = useAppUser();
+  const { setAppUser, authSessionReady, appUser } = useAppUser();
   const dispatch = useDispatch();
   const isUserAuthenticated = Boolean(isAuthenticated || (appUser?.role && localStorage.getItem("token")));
   const displayName = user?.name || appUser?.name || "User";
@@ -128,8 +127,12 @@ export const Header: React.FC<ChildComponentProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const loadedPreferencesForRef = useRef<number | null>(null);
   const appliedSavedLocationRef = useRef(false);
+  const triedGpsForCustomerRef = useRef(false);
+  const guestGpsStartedRef = useRef(false);
+  const postLoginHandledForRef = useRef<string | null>(null);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [locationPreferencesReady, setLocationPreferencesReady] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [inAppUnread, setInAppUnread] = useState(0);
 
@@ -215,12 +218,20 @@ export const Header: React.FC<ChildComponentProps> = ({
   }, [dropDownOpen]);
 
   useEffect(() => {
-    const run = async () => {
-      if (!resolveCustomerId(appUser)) {
-        await getLocation();
-      }
+    if (!isAuthenticated) {
+      postLoginHandledForRef.current = null;
+    }
+  }, [isAuthenticated]);
 
+  useEffect(() => {
+    const run = async () => {
       if (!isAuthenticated || isLoading || !user?.email) return;
+
+      const userKey = user.sub ?? user.email;
+      if (postLoginHandledForRef.current === userKey) {
+        return;
+      }
+      postLoginHandledForRef.current = userKey;
 
       try {
         const token = await getAccessTokenSilently();
@@ -245,12 +256,14 @@ export const Header: React.FC<ChildComponentProps> = ({
             serviceProviderId: response.data.id,
           });
         } else if (response.data.user_role === "CUSTOMER") {
+          const customerId = Number(response.data.id);
+          loadedPreferencesForRef.current = customerId;
           setAppUser({
             ...user,
             role: "CUSTOMER",
             customerid: response.data.id,
           });
-          await getCustomerPreferences(Number(response.data.id));
+          await getCustomerPreferences(customerId);
         } else if (response.data.user_role === "VENDOR") {
           setAppUser({
             ...user,
@@ -263,11 +276,12 @@ export const Header: React.FC<ChildComponentProps> = ({
         console.log("Post-login steps completed ✅");
       } catch (error) {
         console.error("Error during post-login API call:", error);
+        postLoginHandledForRef.current = null;
       }
     };
 
     run();
-  }, [isAuthenticated, isLoading, user, getAccessTokenSilently, appUser]);
+  }, [isAuthenticated, isLoading, user?.sub, user?.email, getAccessTokenSilently]);
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
@@ -305,6 +319,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   };
 
   const getCustomerPreferences = async (customerId: number) => {
+    setLocationPreferencesReady(false);
     try {
       setLoadingLocations(true);
   const response = await preferenceInstance.get(
@@ -315,22 +330,8 @@ export const Header: React.FC<ChildComponentProps> = ({
       if (response.status === 200) {
         console.log("✅ Customer preferences fetched successfully:", response.data);
 
+        loadedPreferencesForRef.current = customerId;
         setUserPreference(response.data);
-        if (user) {
-          user.customerid = customerId;
-          setAppUser({
-            ...user,
-            role: "CUSTOMER",
-            customerid: customerId,
-          });
-        } else if (appUser) {
-          setAppUser({
-            ...appUser,
-            role: "CUSTOMER",
-            customerid: customerId,
-            customerId,
-          });
-        }
 
         console.log("✅ Updated user object with customerId:", user);
         
@@ -362,17 +363,11 @@ export const Header: React.FC<ChildComponentProps> = ({
       }
     } finally {
       setLoadingLocations(false);
+      setLocationPreferencesReady(true);
     }
   };
 
   const createUserPreferences = async (customerId: number) => {
-    if (user) {
-      setAppUser({
-        ...user,
-        role: "CUSTOMER",
-        customerid: customerId,
-      });
-    }
     try {
       const payload: any = {
         customerId,
@@ -421,47 +416,6 @@ export const Header: React.FC<ChildComponentProps> = ({
     loadedPreferencesForRef.current = idNum;
     void getCustomerPreferences(idNum);
   }, [appUser, isUserAuthenticated, isAuthenticated, user?.email]);
-
-  useEffect(() => {
-    if (!resolveCustomerId(appUser)) {
-      return;
-    }
-
-    const savedLocations =
-      Array.isArray(userPreference) && userPreference[0]?.savedLocations
-        ? userPreference[0].savedLocations
-        : userPreference?.savedLocations || [];
-
-    if (!savedLocations.length || appliedSavedLocationRef.current) {
-      return;
-    }
-
-    const preferred =
-      savedLocations.find((loc: any) => loc.name === "Home") ||
-      savedLocations.find((loc: any) => String(loc.name || "").toLowerCase() === "home") ||
-      savedLocations[0];
-
-    if (!preferred?.location) {
-      return;
-    }
-
-    let displayAddress = "";
-    const locationData = preferred.location;
-
-    if (locationData.address && Array.isArray(locationData.address) && locationData.address[0]?.formatted_address) {
-      displayAddress = locationData.address[0].formatted_address;
-    } else if (locationData.formatted_address) {
-      displayAddress = locationData.formatted_address;
-    }
-
-    if (!displayAddress) {
-      return;
-    }
-
-    appliedSavedLocationRef.current = true;
-    setLocation(displayAddress);
-    dispatch(add(locationData));
-  }, [userPreference, appUser, dispatch]);
 
   const getLocation = async () => {
     if (navigator.geolocation) {
@@ -554,44 +508,102 @@ export const Header: React.FC<ChildComponentProps> = ({
   };
   const handleCartClose = () => setCartOpen(false);
   const totalCartItems = useSelector(selectCartItemCount);
-  
+
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const response = await axios.get(
-              `https://maps.googleapis.com/maps/api/geocode/json`,
-              {
-                params: {
-                  latlng: `${latitude},${longitude}`,
-                  key: keys.api_key,
-                },
-              }
-            );
-            const address = response.data.results[0]?.formatted_address;
-            setLocation(address || t('locationNotFound'));
-            dispatch(add(response.data.results[0]));
-          } catch (error) {
-            console.log("Failed to fetch location: ", error);
-          }
-        },
-        (error: any) => {
-          console.log("Geolocation error: ", error.message);
-          setError(error.message);
-        }
-      );
-    } else {
-      console.log("Geolocation is not supported by this browser.");
+    if (isLoading || !authSessionReady) {
+      return;
     }
-  }, []);
+
+    const customerId = resolveCustomerId(appUser);
+
+    if (customerId) {
+      if (!locationPreferencesReady) {
+        return;
+      }
+
+      const savedLocations =
+        Array.isArray(userPreference) && userPreference[0]?.savedLocations
+          ? userPreference[0].savedLocations
+          : userPreference?.savedLocations || [];
+
+      if (savedLocations.length > 0) {
+        if (appliedSavedLocationRef.current) {
+          return;
+        }
+
+        const preferred =
+          savedLocations.find((loc: any) => loc.name === "Home") ||
+          savedLocations.find((loc: any) => String(loc.name || "").toLowerCase() === "home") ||
+          savedLocations[0];
+
+        if (!preferred?.location) {
+          return;
+        }
+
+        let displayAddress = "";
+        const locationData = preferred.location;
+
+        if (locationData.address && Array.isArray(locationData.address) && locationData.address[0]?.formatted_address) {
+          displayAddress = locationData.address[0].formatted_address;
+        } else if (locationData.formatted_address) {
+          displayAddress = locationData.formatted_address;
+        }
+
+        if (!displayAddress) {
+          return;
+        }
+
+        appliedSavedLocationRef.current = true;
+        setLocation(displayAddress);
+        dispatch(add(locationData));
+        return;
+      }
+
+      if (!triedGpsForCustomerRef.current) {
+        triedGpsForCustomerRef.current = true;
+        void getLocation();
+      }
+      return;
+    }
+
+    if (!guestGpsStartedRef.current) {
+      guestGpsStartedRef.current = true;
+      void getLocation();
+    }
+  }, [
+    appUser,
+    authSessionReady,
+    dispatch,
+    isLoading,
+    locationPreferencesReady,
+    userPreference,
+  ]);
 
   const [suggestions, setSuggestions] = useState([
     { name: t('detectLocation'), index: 1 },
     { name: t('addAddress'), index: 2 },
   ]);
   const [dataFromMap, setDataFromMap] = useState<any>([]);
+
+  const resetHeaderLocationSession = useCallback(() => {
+    setLocation("");
+    setUserPreference([]);
+    loadedPreferencesForRef.current = null;
+    appliedSavedLocationRef.current = false;
+    triedGpsForCustomerRef.current = false;
+    guestGpsStartedRef.current = false;
+    setLocationPreferencesReady(false);
+    setSuggestions([
+      { name: t("detectLocation"), index: 1 },
+      { name: t("addAddress"), index: 2 },
+    ]);
+    dispatch(clearGeoLocation());
+  }, [dispatch, t]);
+
+  const resetAuthSession = useCallback(() => {
+    postLoginHandledForRef.current = null;
+    resetHeaderLocationSession();
+  }, [resetHeaderLocationSession]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -966,11 +978,6 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   }, [mobileNavOpen]);
 
   useEffect(() => {
-    console.log("🔄 userPreference state changed:", userPreference);
-    console.log("🔄 suggestions state changed:", suggestions);
-  }, [userPreference, suggestions]);
-
-  useEffect(() => {
     if (userPreference && userPreference.length > 0 && userPreference[0]?.savedLocations) {
       const baseSuggestions = [
         { name: t('detectLocation'), index: 1 },
@@ -992,6 +999,14 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       }
     }
   }, [userPreference]);
+
+  const resolvedCustomerId = resolveCustomerId(appUser);
+  const isResolvingSavedLocation =
+    Boolean(resolvedCustomerId) &&
+    !locationPreferencesReady &&
+    authSessionReady &&
+    !isLoading;
+  const locationLoading = loadingLocations || isResolvingSavedLocation;
 
   return (
     <>
@@ -1137,7 +1152,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               aria-haspopup="menu"
               aria-expanded={showDropdown}
               aria-controls="header-location-menu"
-              aria-busy={loadingLocations}
+              aria-busy={locationLoading}
               onClick={() => {
                 setIsLanguageMenuOpen(false);
                 setdropDownOpen(false);
@@ -1157,7 +1172,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               >
                 {location || t("location")}
               </span>
-              {loadingLocations ? (
+              {locationLoading ? (
                 <span className="inline-flex shrink-0" aria-hidden>
                   <ClipLoader size={14} color="rgba(255,255,255,0.85)" />
                 </span>
@@ -1507,6 +1522,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       role="menuitem"
                       className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-rose-50/90 focus-visible:bg-rose-50/90 focus-visible:outline-none"
                       onClick={() => {
+                        resetAuthSession();
                         if (isAuthenticated) {
                           clearStoredAuthSession();
                           setAppUser(null);
