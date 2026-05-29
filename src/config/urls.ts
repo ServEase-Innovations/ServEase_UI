@@ -83,10 +83,10 @@ export const urls = {
   },
 };
 
-/** Payments pricing API paths (same handler also at `/api/v2/pricing/*`). */
+/** Payments pricing V2 API paths (Render: https://payments-j5id.onrender.com). */
 export const paymentsPricingPaths = {
-  quote: "/api/pricing/quote",
-  plans: "/api/pricing/plans",
+  quote: "/api/v2/pricing/quote",
+  plans: "/api/v2/pricing/plans",
   plan: (serviceType: string, bookingType: string) =>
-    `/api/pricing/plans/${encodeURIComponent(serviceType.toUpperCase())}/${encodeURIComponent(bookingType.toUpperCase())}`,
+    `/api/v2/pricing/plans/${encodeURIComponent(serviceType.toUpperCase())}/${encodeURIComponent(bookingType.toUpperCase())}`,
 } as const;
