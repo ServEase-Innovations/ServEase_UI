@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
@@ -23,6 +23,7 @@ import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
 import { BookingService } from 'src/services/bookingService';
 import { useAppUser } from 'src/context/AppUserContext';
+import { resolveCustomerId } from 'src/services/couponService';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
@@ -412,8 +413,14 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const isFetchingRef = useRef(false);
   const processedDeepLink = useRef(false);
 
-  const { user: auth0User, isAuthenticated } = useAuth0();
-  const { appUser } = useAppUser();
+  const { user: auth0User, isAuthenticated: auth0IsAuthenticated } = useAuth0();
+  const { appUser, authSessionReady } = useAppUser();
+
+  const isAuthenticated = useMemo(
+    () => auth0IsAuthenticated || !!(appUser && localStorage.getItem("token")),
+    [auth0IsAuthenticated, appUser]
+  );
+  const resolvedCustomerId = useMemo(() => resolveCustomerId(appUser), [appUser]);
 
   // ============= MODIFIED DEEP LINKING EFFECT =============
   useEffect(() => {
@@ -1003,20 +1010,22 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   // Fixed fetch bookings effect with prevention of multiple calls
   useEffect(() => {
     const loadBookings = async () => {
+      if (!authSessionReady) return;
+
       // Prevent multiple simultaneous fetches
       if (isFetchingRef.current) return;
-      
-      if (isAuthenticated && appUser?.customerid) {
+
+      if (isAuthenticated && resolvedCustomerId) {
         // Only show loading on first load
         if (!initialLoadDone.current) {
           setIsLoading(true);
         }
-        
+
         isFetchingRef.current = true;
-        setCustomerId(appUser.customerid);
-        
+        setCustomerId(Number(resolvedCustomerId));
+
         try {
-          await refreshBookings(appUser.customerid);
+          await refreshBookings(resolvedCustomerId);
           initialLoadDone.current = true;
         } catch (error) {
           console.error("Error fetching booking details:", error);
@@ -1030,7 +1039,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     };
 
     loadBookings();
-  }, [appUser?.customerid, isAuthenticated]);
+  }, [authSessionReady, resolvedCustomerId, isAuthenticated]);
 
   const fetchBookings = async (id: string) => {
     try {

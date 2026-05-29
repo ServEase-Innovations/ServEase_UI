@@ -75,6 +75,7 @@ import NotificationsPage from "../Notifications/NotificationsPage";
 import { useLanguage, Language } from "src/context/LanguageContext";
 import providerInstance from "src/services/providerInstance";
 import preferenceInstance from "src/services/preferenceInstance";
+import { resolveCustomerId } from "src/services/couponService";
 import { publicAsset } from "src/utils/publicAsset";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 
@@ -118,12 +119,15 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const { setAppUser } = useAppUser();
   const { appUser } = useAppUser();
+  const dispatch = useDispatch();
   const isUserAuthenticated = Boolean(isAuthenticated || (appUser?.role && localStorage.getItem("token")));
   const displayName = user?.name || appUser?.name || "User";
   const displayEmail = user?.email || appUser?.email || null;
 
   const cart = useSelector((state: any) => state.cart?.value);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const loadedPreferencesForRef = useRef<number | null>(null);
+  const appliedSavedLocationRef = useRef(false);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -212,7 +216,9 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   useEffect(() => {
     const run = async () => {
-      await getLocation();
+      if (!resolveCustomerId(appUser)) {
+        await getLocation();
+      }
 
       if (!isAuthenticated || isLoading || !user?.email) return;
 
@@ -261,7 +267,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     };
 
     run();
-  }, [isAuthenticated, isLoading, user, getAccessTokenSilently]);
+  }, [isAuthenticated, isLoading, user, getAccessTokenSilently, appUser]);
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
@@ -316,6 +322,13 @@ export const Header: React.FC<ChildComponentProps> = ({
             ...user,
             role: "CUSTOMER",
             customerid: customerId,
+          });
+        } else if (appUser) {
+          setAppUser({
+            ...appUser,
+            role: "CUSTOMER",
+            customerid: customerId,
+            customerId,
           });
         }
 
@@ -389,6 +402,67 @@ export const Header: React.FC<ChildComponentProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      return;
+    }
+
+    const customerId = resolveCustomerId(appUser);
+    const role = String(appUser?.role || "").toUpperCase();
+    if (!isUserAuthenticated || role !== "CUSTOMER" || !customerId) {
+      return;
+    }
+
+    const idNum = Number(customerId);
+    if (loadedPreferencesForRef.current === idNum) {
+      return;
+    }
+
+    loadedPreferencesForRef.current = idNum;
+    void getCustomerPreferences(idNum);
+  }, [appUser, isUserAuthenticated, isAuthenticated, user?.email]);
+
+  useEffect(() => {
+    if (!resolveCustomerId(appUser)) {
+      return;
+    }
+
+    const savedLocations =
+      Array.isArray(userPreference) && userPreference[0]?.savedLocations
+        ? userPreference[0].savedLocations
+        : userPreference?.savedLocations || [];
+
+    if (!savedLocations.length || appliedSavedLocationRef.current) {
+      return;
+    }
+
+    const preferred =
+      savedLocations.find((loc: any) => loc.name === "Home") ||
+      savedLocations.find((loc: any) => String(loc.name || "").toLowerCase() === "home") ||
+      savedLocations[0];
+
+    if (!preferred?.location) {
+      return;
+    }
+
+    let displayAddress = "";
+    const locationData = preferred.location;
+
+    if (locationData.address && Array.isArray(locationData.address) && locationData.address[0]?.formatted_address) {
+      displayAddress = locationData.address[0].formatted_address;
+    } else if (locationData.formatted_address) {
+      displayAddress = locationData.formatted_address;
+    }
+
+    if (!displayAddress) {
+      return;
+    }
+
+    appliedSavedLocationRef.current = true;
+    setLocation(displayAddress);
+    dispatch(add(locationData));
+  }, [userPreference, appUser, dispatch]);
+
   const getLocation = async () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -421,8 +495,6 @@ export const Header: React.FC<ChildComponentProps> = ({
       console.log("Geolocation is not supported by this browser.");
     }
   };
-
-  const dispatch = useDispatch();
 
   const [location, setLocation] = useState<any>("");
   const [locationAs, setLocationAs] = useState("");
@@ -733,7 +805,8 @@ export const Header: React.FC<ChildComponentProps> = ({
 };
 
 const updateUserSetting = async () => {
-  if (!user || !locationAs || !dataFromMap) {
+  const effectiveCustomerId = resolveCustomerId(appUser);
+  if (!appUser || !effectiveCustomerId || !locationAs || !dataFromMap) {
     console.error("Missing required data to update user setting.");
     throw new Error("Missing required data");
   }
@@ -747,7 +820,7 @@ const updateUserSetting = async () => {
 
   try {
     const payload = {
-      customerId: user.customerid,
+      customerId: effectiveCustomerId,
       savedLocations: [
         ...(userPreference?.[0]?.savedLocations || []),
         newLocation
@@ -755,7 +828,7 @@ const updateUserSetting = async () => {
     };
 
    const response = await preferenceInstance.put(
-  `/api/user-settings/${appUser.customerid}`,
+  `/api/user-settings/${effectiveCustomerId}`,
   payload
 );
 
@@ -764,7 +837,7 @@ const updateUserSetting = async () => {
       
       const updatedUserPreference = [{
         ...userPreference?.[0],
-        customerId: user.customerid,
+        customerId: effectiveCustomerId,
         savedLocations: payload.savedLocations
       }];
       
