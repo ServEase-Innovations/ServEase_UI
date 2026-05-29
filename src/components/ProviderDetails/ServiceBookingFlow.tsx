@@ -358,6 +358,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
           const nextPayable = computePaymentTotals(total).total_amount || 0;
           const previousPayable = lastPayableTotalRef.current || 0;
           const savings = Math.max(0, previousPayable - nextPayable);
+          const couponWarning =
+            res.coupon_warning ?? (res.quote as { coupon_warning?: string })?.coupon_warning;
           setQuotePreview({
             total,
             loading: false,
@@ -365,7 +367,12 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             quote: res.quote,
             breakdown: buildQuoteBreakdown(res.quote, total),
           });
-          if (appliedCouponCode && total > 0) {
+          if (couponWarning && appliedCouponCode) {
+            setCouponInfo(couponWarning);
+            setSnackbarMessage(couponWarning);
+            setSnackbarSeverity("warning");
+            setSnackbarOpen(true);
+          } else if (appliedCouponCode && total > 0) {
             const discountRow = (res.quote?.discounts ?? []).find((d) =>
               String(d.label || "").toLowerCase().includes("coupon")
             );

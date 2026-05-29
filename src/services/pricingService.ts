@@ -48,6 +48,7 @@ export interface PricingQuoteResponse {
     display?: { base_range?: { min: number; max: number; unit: string } };
   };
   error?: string;
+  coupon_warning?: string | null;
 }
 
 export async function fetchServiceQuote(
