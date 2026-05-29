@@ -1,4 +1,5 @@
 import PaymentInstance from "./paymentInstance";
+import { paymentsPricingPaths } from "src/config/urls";
 import type { MaidQuoteRequest, PricingQuoteResponse } from "./pricingService";
 
 export interface PricingRule {
@@ -65,7 +66,7 @@ export async function setPlanActive(planId: number, isActive: boolean) {
 }
 
 export async function previewPricingQuote(body: MaidQuoteRequest) {
-  const { data } = await PaymentInstance.post<PricingQuoteResponse>("/api/v2/pricing/quote", {
+  const { data } = await PaymentInstance.post<PricingQuoteResponse>(paymentsPricingPaths.quote, {
     serviceType: body.serviceType || "MAID",
     bookingType: body.bookingType,
     customerId: body.customerId,

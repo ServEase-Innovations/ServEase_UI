@@ -82,3 +82,11 @@ export const urls = {
     return process.env.REACT_APP_CHAT_URL || "https://chat-b3wl.onrender.com";
   },
 };
+
+/** Payments pricing API paths (same handler also at `/api/v2/pricing/*`). */
+export const paymentsPricingPaths = {
+  quote: "/api/pricing/quote",
+  plans: "/api/pricing/plans",
+  plan: (serviceType: string, bookingType: string) =>
+    `/api/pricing/plans/${encodeURIComponent(serviceType.toUpperCase())}/${encodeURIComponent(bookingType.toUpperCase())}`,
+} as const;
