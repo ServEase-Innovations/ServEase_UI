@@ -232,7 +232,13 @@ export const BookingService = {
     payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
     payload.latitude = latitude;
     payload.longitude = longitude;
-    payload.address = location?.formatted_address || null;
+   payload.address =
+  location?.formatted_address ||
+  location?.address?.[0]?.formatted_address ||
+  null;
+    console.log("Location:", location);
+console.log("Address:", location?.formatted_address);
+console.log("Payload:", payload);
     const engagementData = await BookingService.createEngagement(payload);
 
     // Extract order id & amount
