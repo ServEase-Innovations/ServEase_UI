@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BOOKINGS } from "../../Constants/pagesConstants";
-import { Tooltip, IconButton, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Tooltip, IconButton, CircularProgress, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Typography } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -60,8 +60,25 @@ import {
 } from "src/utils/paymentTotals";
 import PriceBreakdown from "./PriceBreakdown";
 import type { PricingQuoteResponse } from "src/services/pricingService";
+import axios from "axios";
+import { urls } from "src/config/urls";
 
 const ACCENT_BTN = "#0b5bd3";
+const COUPON_FEEDBACK_MS = 2000;
+
+type CouponOption = {
+  code: string;
+  serviceType: string;
+  discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+  discountValue: number;
+  minimumOrderValue?: number | null;
+};
+
+function couponMeetsMinOrder(coupon: CouponOption, orderTotal: number): boolean {
+  const min = coupon.minimumOrderValue;
+  if (min == null || min <= 0) return true;
+  return orderTotal >= min;
+}
 
 export interface ServiceBookingFlowProps {
   serviceKind: ServiceBookingKind;
@@ -119,6 +136,14 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   >("success");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bookingSuccessDetails, setBookingSuccessDetails] = useState<any>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<CouponOption[]>([]);
+  const [couponDialogOpen, setCouponDialogOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+  const [couponInfo, setCouponInfo] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const lastPayableTotalRef = useRef<number>(0);
+  const couponSnackbarKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     onSuccessDialogChange?.(successDialogOpen);
@@ -143,6 +168,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     [serviceTotal]
   );
   const payableTotal = paymentTotals.total_amount || 0;
+  useEffect(() => {
+    lastPayableTotalRef.current = payableTotal;
+  }, [payableTotal]);
   const displayBreakdown = useMemo(
     () => appendPaymentFeeRows(quotePreview.breakdown, serviceTotal),
     [quotePreview.breakdown, serviceTotal]
@@ -152,6 +180,44 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   /** On-demand bookings can checkout without a provider (backend: UNASSIGNED). */
   const providerRequired = bookingTypeCode !== "ON_DEMAND";
   const canCheckout = priceReady && (!providerRequired || providerId != null);
+  const normalizedCouponInput = couponInput.trim().toUpperCase();
+  const couponCountLabel = availableCoupons.length;
+  const estimateCouponSavings = React.useCallback(
+    (coupon: CouponOption) => {
+      if (serviceTotal <= 0) return 0;
+      if (coupon.discountType === "PERCENTAGE") {
+        return (serviceTotal * coupon.discountValue) / 100;
+      }
+      return coupon.discountValue;
+    },
+    [serviceTotal]
+  );
+  const eligibleCoupons = useMemo(
+    () =>
+      availableCoupons
+        .filter((c) => couponMeetsMinOrder(c, serviceTotal))
+        .sort((a, b) => estimateCouponSavings(b) - estimateCouponSavings(a)),
+    [availableCoupons, serviceTotal, estimateCouponSavings]
+  );
+  const ineligibleCoupons = useMemo(
+    () =>
+      availableCoupons.filter(
+        (c) =>
+          c.minimumOrderValue != null &&
+          c.minimumOrderValue > 0 &&
+          serviceTotal < Number(c.minimumOrderValue)
+      ),
+    [availableCoupons, serviceTotal]
+  );
+  const bestCoupon = eligibleCoupons[0] || null;
+  const bestCouponSavings = bestCoupon ? estimateCouponSavings(bestCoupon) : 0;
+  const secondaryEligibleCoupons = useMemo(
+    () =>
+      bestCoupon
+        ? eligibleCoupons.filter((c) => c.code !== bestCoupon.code)
+        : eligibleCoupons,
+    [eligibleCoupons, bestCoupon]
+  );
   const checkoutBlockReason =
     providerRequired && !providerId
       ? providerDetails
@@ -193,6 +259,69 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   useEffect(() => {
     if (!active) return;
     const customerId = appUser?.customerid;
+    if (!customerId) {
+      setAvailableCoupons([]);
+      return;
+    }
+    let cancelled = false;
+    setCouponLoading(true);
+    axios
+      .get(`${urls.coupons}/api/coupons/customer/${customerId}`, {
+        params: { serviceType: cfg.serviceType },
+      })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const source = Array.isArray(data?.coupons)
+          ? data.coupons
+          : Array.isArray(data?.data?.coupons)
+            ? data.data.coupons
+            : [];
+        const mapped = source
+          .map((c: any) => ({
+            code: String(c?.coupon_code || "").trim().toUpperCase(),
+            serviceType: String(c?.service_type || "").trim().toUpperCase(),
+            discountType:
+              String(c?.discount_type || "FIXED_AMOUNT").toUpperCase() === "PERCENTAGE"
+                ? "PERCENTAGE"
+                : "FIXED_AMOUNT",
+            discountValue: Number(c?.discount_value) || 0,
+            minimumOrderValue:
+              c?.minimum_order_value != null ? Number(c.minimum_order_value) : null,
+          }))
+          .filter((c: CouponOption) => Boolean(c.code) && c.discountValue > 0);
+        setAvailableCoupons(mapped);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableCoupons([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCouponLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [active, appUser?.customerid, cfg.serviceType]);
+
+  useEffect(() => {
+    if (!appliedCouponCode) return;
+    const applied = availableCoupons.find((c) => c.code === appliedCouponCode);
+    if (applied && !couponMeetsMinOrder(applied, serviceTotal)) {
+      setAppliedCouponCode(null);
+      setCouponInfo(
+        `${applied.code} removed: minimum order is ${formatInr(applied.minimumOrderValue ?? 0)}`
+      );
+    }
+  }, [appliedCouponCode, availableCoupons, serviceTotal]);
+
+  useEffect(() => {
+    if (!couponInfo || couponInfo.startsWith("Applying")) return;
+    const id = window.setTimeout(() => setCouponInfo(null), COUPON_FEEDBACK_MS);
+    return () => window.clearTimeout(id);
+  }, [couponInfo]);
+
+  useEffect(() => {
+    if (!active) return;
+    const customerId = appUser?.customerid;
     const start_date =
       formatDateOnly(String(bookingType?.startDate ?? "")) ||
       new Date().toISOString().split("T")[0];
@@ -212,6 +341,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     loadServiceQuote(serviceKind, {
       bookingType: bookingTypeCode,
       customerId,
+      couponCode: appliedCouponCode || undefined,
       startDate: start_date,
       endDate: end_date,
       durationHours,
@@ -225,6 +355,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       .then((res) => {
         if (!cancelled) {
           const total = Number(res.total) || 0;
+          const nextPayable = computePaymentTotals(total).total_amount || 0;
+          const previousPayable = lastPayableTotalRef.current || 0;
+          const savings = Math.max(0, previousPayable - nextPayable);
+          const couponWarning =
+            res.coupon_warning ?? (res.quote as { coupon_warning?: string })?.coupon_warning;
           setQuotePreview({
             total,
             loading: false,
@@ -232,17 +367,60 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             quote: res.quote,
             breakdown: buildQuoteBreakdown(res.quote, total),
           });
+          if (couponWarning && appliedCouponCode) {
+            setCouponInfo(couponWarning);
+            setSnackbarMessage(couponWarning);
+            setSnackbarSeverity("warning");
+            setSnackbarOpen(true);
+          } else if (appliedCouponCode && total > 0) {
+            const discountRow = (res.quote?.discounts ?? []).find((d) =>
+              String(d.label || "").toLowerCase().includes("coupon")
+            );
+            const couponSavings = Number(discountRow?.amount) || savings;
+            if (couponSavings > 0) {
+              setCouponInfo(
+                `Coupon ${appliedCouponCode} applied · You saved ${formatInr(couponSavings)}`
+              );
+              const snackKey = `${appliedCouponCode}:success:${Math.round(couponSavings)}`;
+              if (couponSnackbarKeyRef.current !== snackKey) {
+                couponSnackbarKeyRef.current = snackKey;
+                setSnackbarMessage(`${appliedCouponCode} applied · Saved ${formatInr(couponSavings)}`);
+                setSnackbarSeverity("success");
+                setSnackbarOpen(true);
+              }
+            } else {
+              setCouponInfo(`Coupon ${appliedCouponCode} did not change the price`);
+              const snackKey = `${appliedCouponCode}:warn`;
+              if (couponSnackbarKeyRef.current !== snackKey) {
+                couponSnackbarKeyRef.current = snackKey;
+                setSnackbarMessage(`${appliedCouponCode} did not reduce your total`);
+                setSnackbarSeverity("warning");
+                setSnackbarOpen(true);
+              }
+            }
+          }
         }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           const ax = err as { response?: { data?: { error?: string } }; message?: string };
+          const backendError = ax.response?.data?.error || ax.message || "Could not load price";
           setQuotePreview({
             total: 0,
             loading: false,
-            error: ax.response?.data?.error || ax.message || "Could not load price",
+            error: backendError,
             breakdown: [],
           });
+          if (appliedCouponCode) {
+            setCouponInfo(`Could not apply ${appliedCouponCode}: ${backendError}`);
+            const snackKey = `${appliedCouponCode}:error`;
+            if (couponSnackbarKeyRef.current !== snackKey) {
+              couponSnackbarKeyRef.current = snackKey;
+              setSnackbarMessage(`Coupon apply failed: ${backendError}`);
+              setSnackbarSeverity("error");
+              setSnackbarOpen(true);
+            }
+          }
         }
       })
       .finally(() => {
@@ -264,6 +442,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     bookingType?.endTime,
     bookingType?.timeRange,
     bookingType?.bookingPreference,
+    appliedCouponCode,
     appUser?.customerid,
   ]);
 
@@ -314,6 +493,33 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     sendDataToParent?.(BOOKINGS);
   };
 
+  const applyCouponCode = (code: string) => {
+    const normalized = String(code || "").trim().toUpperCase();
+    if (!normalized) return;
+    const match = availableCoupons.find((c) => c.code === normalized);
+    if (match && !couponMeetsMinOrder(match, serviceTotal)) {
+      setCouponInfo(`${normalized} needs minimum order ${formatInr(match.minimumOrderValue ?? 0)}`);
+      return;
+    }
+    couponSnackbarKeyRef.current = null;
+    setAppliedCouponCode(normalized);
+    setCouponInput(normalized);
+    setCouponDialogOpen(false);
+    setCouponInfo(`Applying ${normalized}...`);
+  };
+
+  const removeCoupon = () => {
+    couponSnackbarKeyRef.current = null;
+    setAppliedCouponCode(null);
+    setCouponInput("");
+    setCouponInfo(null);
+  };
+
+  const couponPreview = (coupon: CouponOption): string => {
+    if (coupon.discountType === "PERCENTAGE") return `${coupon.discountValue}% off`;
+    return `${formatInr(coupon.discountValue)} off`;
+  };
+
   const handleCheckout = async () => {
     if (!canCheckout) {
       setSnackbarMessage("Price is not available for this booking. Try another date or time.");
@@ -360,6 +566,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       const quoteRes = await loadServiceQuote(serviceKind, {
         bookingType: booking_type,
         customerId,
+        couponCode: appliedCouponCode || undefined,
         startDate: start_date,
         endDate: end_date || start_date,
         durationHours,
@@ -393,6 +600,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         addon_total: 0,
         use_pricing_engine: true,
         pricing_snapshot: quoteRes.quote,
+        coupon_code: appliedCouponCode || undefined,
         payment_mode: "razorpay",
         end_time: bookingType?.endTime || "",
       };
@@ -501,6 +709,100 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                 {checkoutBlockReason ?? cfg.priceMetaReady}
               </MaidPriceMeta>
             </MaidPriceHero>
+            <Box sx={{ mt: 1.25, p: 1.5, borderRadius: 2, border: "1px solid #dbeafe", background: "#f8fbff" }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.75 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>Coupons</Typography>
+                </Box>
+                <Box sx={{ minWidth: 24, px: 1, py: "2px", borderRadius: 999, backgroundColor: "#dbeafe", textAlign: "center" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8" }}>{couponCountLabel}</Typography>
+                </Box>
+              </Box>
+              <Typography sx={{ fontSize: 12, color: "#64748b", lineHeight: "17px" }}>
+                  {couponLoading
+                    ? "Checking available coupons..."
+                    : appliedCouponCode
+                      ? `Applied: ${appliedCouponCode}`
+                      : bestCoupon
+                        ? `${couponCountLabel} available · Best: ${bestCoupon.code} (${couponPreview(bestCoupon)})`
+                        : couponCountLabel > 0
+                          ? `${couponCountLabel} available`
+                        : "No coupons available"}
+              </Typography>
+              {!appliedCouponCode && bestCouponSavings > 0 ? (
+                <Typography sx={{ fontSize: 12, color: "#047857", fontWeight: 600, mt: 0.5 }}>
+                  Save up to {formatInr(bestCouponSavings)} with the best coupon
+                </Typography>
+              ) : null}
+              {couponInfo ? (
+                <Typography sx={{ fontSize: 12, color: "#0369a1", mt: 0.5 }}>{couponInfo}</Typography>
+              ) : null}
+              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {!appliedCouponCode && bestCoupon ? (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => applyCouponCode(bestCoupon.code)}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      backgroundColor: ACCENT_BTN,
+                      color: "#fff",
+                      "&:hover": { backgroundColor: "#0848b0" },
+                    }}
+                  >
+                    Apply best
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCouponDialogOpen(true)}
+                  disabled={couponLoading}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    borderColor: ACCENT_BTN,
+                    color: ACCENT_BTN,
+                    "&:hover": { borderColor: "#0848b0", backgroundColor: "#e8f1ff" },
+                  }}
+                >
+                  {appliedCouponCode ? "Change coupon" : "View coupons"}
+                </Button>
+                  {!appliedCouponCode && bestCoupon ? (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="inherit"
+                      onClick={() => {
+                        setCouponInput(bestCoupon.code);
+                        setCouponDialogOpen(true);
+                      }}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        color: "#334155",
+                        borderColor: "#cbd5e1",
+                      }}
+                    >
+                      Details
+                    </Button>
+                  ) : null}
+                {appliedCouponCode ? (
+                  <Button
+                    color="error"
+                    size="small"
+                    onClick={removeCoupon}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </Box>
+            </Box>
             <PriceBreakdown
               rows={displayBreakdown}
               loading={quotePreview.loading}
@@ -563,7 +865,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={4000}
+        autoHideDuration={COUPON_FEEDBACK_MS}
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
@@ -571,6 +873,213 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      <Dialog open={couponDialogOpen} onClose={() => setCouponDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle
+          sx={{
+            pb: 1.25,
+            background: cfg.headerGradient,
+            color: "#fff",
+          }}
+        >
+          <Typography sx={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>Apply Coupon</Typography>
+          <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.9)", mt: 0.5 }}>
+            Use the best offer or enter your code manually.
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: "flex", gap: 1, mb: 1.5, alignItems: "center" }}>
+            <TextField
+              fullWidth
+              label="Coupon code"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value)}
+              size="small"
+            />
+            <Button
+              variant="contained"
+              onClick={() => applyCouponCode(normalizedCouponInput)}
+              disabled={!normalizedCouponInput}
+              sx={{
+                height: 40,
+                px: 2.25,
+                whiteSpace: "nowrap",
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 700,
+                backgroundColor: ACCENT_BTN,
+                "&:hover": { backgroundColor: "#0848b0" },
+              }}
+            >
+              Apply
+            </Button>
+          </Box>
+          {bestCoupon ? (
+            <Box
+              sx={{
+                mb: 1.75,
+                p: 1.5,
+                border: "1px solid #22c55e",
+                background: "linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%)",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1.25,
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: 11, color: "#047857", fontWeight: 700, letterSpacing: 0.2 }}>
+                  Recommended
+                </Typography>
+                <Typography sx={{ fontSize: 15, color: "#064e3b", fontWeight: 800 }}>
+                  {bestCoupon.code}
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "#065f46" }}>
+                  {couponPreview(bestCoupon)} · Save {formatInr(bestCouponSavings)}
+                </Typography>
+              </Box>
+              <Button
+                variant={appliedCouponCode === bestCoupon.code ? "contained" : "outlined"}
+                size="small"
+                onClick={() => applyCouponCode(bestCoupon.code)}
+                sx={{
+                  minWidth: 88,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  ...(appliedCouponCode === bestCoupon.code
+                    ? {
+                        backgroundColor: ACCENT_BTN,
+                        color: "#fff",
+                        "&:hover": { backgroundColor: "#0848b0" },
+                      }
+                    : {
+                        borderColor: ACCENT_BTN,
+                        color: ACCENT_BTN,
+                        "&:hover": {
+                          borderColor: "#0848b0",
+                          backgroundColor: "#e8f1ff",
+                        },
+                      }),
+                }}
+              >
+                {appliedCouponCode === bestCoupon.code ? "Applied" : "Use"}
+              </Button>
+            </Box>
+          ) : null}
+          {secondaryEligibleCoupons.length > 0 ? (
+            <>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1 }}>
+                More eligible coupons
+              </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {secondaryEligibleCoupons.map((coupon) => (
+                <Box
+                  key={coupon.code}
+                  sx={{
+                    border:
+                      appliedCouponCode === coupon.code
+                        ? "1px solid #60a5fa"
+                        : "1px solid #e2e8f0",
+                    borderRadius: 2,
+                    p: 1.25,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                    backgroundColor:
+                      appliedCouponCode === coupon.code ? "#eff6ff" : "#fff",
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{coupon.code}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                      {couponPreview(coupon)}
+                      {coupon.minimumOrderValue ? ` · Min order ${formatInr(coupon.minimumOrderValue)}` : ""}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: "#047857", fontWeight: 600, mt: 0.25 }}>
+                      You save {formatInr(estimateCouponSavings(coupon))}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    onClick={() => applyCouponCode(coupon.code)}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      color: ACCENT_BTN,
+                    }}
+                  >
+                    {appliedCouponCode === coupon.code ? "Applied" : "Use"}
+                  </Button>
+                </Box>
+              ))}
+            </Box>
+            </>
+          ) : eligibleCoupons.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              {couponLoading
+                ? "Loading coupons..."
+                : `No ${cfg.serviceType === "COOK" ? "Cook" : "Maid"} coupons available for this order.`}
+            </Typography>
+          ) : null}
+          {ineligibleCoupons.length > 0 ? (
+            <Box sx={{ mt: 2 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1 }}>
+                Unavailable for current total
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {ineligibleCoupons.map((coupon) => (
+                  <Box
+                    key={coupon.code}
+                    sx={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 2,
+                      p: 1.25,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 1,
+                      opacity: 0.7,
+                      backgroundColor: "#f8fafc",
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{coupon.code}</Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                        Min order {formatInr(Number(coupon.minimumOrderValue || 0))}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#94a3b8" }}>Locked</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setCouponDialogOpen(false)}
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 700,
+              color: ACCENT_BTN,
+              borderColor: "#cbd5e1",
+              backgroundColor: "#fff",
+              "&:hover": {
+                borderColor: ACCENT_BTN,
+                backgroundColor: "#f8fafc",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

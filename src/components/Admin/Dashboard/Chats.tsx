@@ -30,6 +30,11 @@ type UserType = {
   phone?: string;
 };
 
+type PresenceUser = {
+  id: string;
+  name?: string | null;
+};
+
 type Message = {
   _id?: string;
   sender: {
@@ -162,6 +167,7 @@ const Chats = () => {
   const [socketConnected, setSocketConnected] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [onlineSet, setOnlineSet] = useState<Set<string>>(() => new Set());
+  const [onlineNameById, setOnlineNameById] = useState<Record<string, string>>({});
   const [userQuery, setUserQuery] = useState("");
   const [userSearchResults, setUserSearchResults] = useState<(UserType & { isOnline?: boolean })[]>([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
@@ -217,16 +223,26 @@ const Chats = () => {
       a.u.name.localeCompare(b.u.name, undefined, { sensitivity: "base" })
     );
     const known = new Set(byId.keys());
-    const otherOnlyIds: string[] = [];
+    const otherOnlyUsers: PresenceUser[] = [];
     for (const id of Array.from(onlineSet)) {
       const s = String(id);
       if (!known.has(s)) {
-        otherOnlyIds.push(s);
+        otherOnlyUsers.push({
+          id: s,
+          name: onlineNameById[s] || null,
+        });
       }
     }
-    otherOnlyIds.sort();
-    return { withChat, otherOnlyIds, total: onlineSet.size };
-  }, [chatsByRecency, onlineSet, adminId]);
+    otherOnlyUsers.sort((a, b) => {
+      const na = (a.name || "").toLowerCase();
+      const nb = (b.name || "").toLowerCase();
+      if (na && nb) return na.localeCompare(nb);
+      if (na) return -1;
+      if (nb) return 1;
+      return a.id.localeCompare(b.id);
+    });
+    return { withChat, otherOnlyUsers, total: onlineSet.size };
+  }, [chatsByRecency, onlineSet, adminId, onlineNameById]);
 
   const fetchChats = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -259,7 +275,18 @@ const Chats = () => {
 
   const loadOnlineIds = useCallback(async () => {
     try {
-      const { data } = await axios.get<{ online: string[] }>(`${endpoint}/api/presence/online-ids?adminId=${encodeURIComponent(adminId)}`);
+      const { data } = await axios.get<{ online?: string[]; onlineUsers?: PresenceUser[] }>(
+        `${endpoint}/api/presence/online-ids?adminId=${encodeURIComponent(adminId)}`
+      );
+      const nameMap: Record<string, string> = {};
+      for (const u of data.onlineUsers || []) {
+        const id = String(u?.id || "");
+        if (!id || id === String(adminId)) continue;
+        if (u?.name && String(u.name).trim()) {
+          nameMap[id] = String(u.name);
+        }
+      }
+      setOnlineNameById(nameMap);
       setOnlineSet(
         new Set(
           (data.online || [])
@@ -384,8 +411,19 @@ const Chats = () => {
       });
     };
 
-    const onPresence = (p: { online?: string[] }) => {
+    const onPresence = (p: { online?: string[]; onlineUsers?: PresenceUser[] }) => {
       const a = String(adminId);
+      if (Array.isArray(p?.onlineUsers) && p.onlineUsers.length > 0) {
+        const next: Record<string, string> = {};
+        for (const u of p.onlineUsers) {
+          const id = String(u?.id || "");
+          if (!id || id === a) continue;
+          if (u?.name && String(u.name).trim()) {
+            next[id] = String(u.name);
+          }
+        }
+        setOnlineNameById((prev) => ({ ...prev, ...next }));
+      }
       setOnlineSet(
         new Set(
           (p?.online || [])
@@ -679,15 +717,15 @@ const Chats = () => {
                       </button>
                     </li>
                   ))}
-                  {onlineNow.otherOnlyIds.map((id) => (
+                  {onlineNow.otherOnlyUsers.map(({ id, name }) => (
                     <li
                       key={id}
                       className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs text-slate-500"
                       title="Socket online for this user id, but not in this conversation list yet. Use Find a customer to open a thread if they are in the directory."
                     >
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden />
-                      <span className="min-w-0 break-all font-mono text-[11px] leading-snug text-slate-600">
-                        {id.length > 10 ? `…${id.slice(-8)}` : id}
+                      <span className="min-w-0 truncate text-[11px] leading-snug text-slate-700">
+                        {name || (id.length > 10 ? `…${id.slice(-8)}` : id)}
                       </span>
                     </li>
                   ))}

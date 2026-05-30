@@ -1,4 +1,5 @@
 import PaymentInstance from "./paymentInstance";
+import { paymentsPricingPaths } from "src/config/urls";
 
 export type RatePreference = "min" | "max" | "mid";
 
@@ -6,6 +7,7 @@ export interface ServiceQuoteRequest {
   serviceType?: string;
   bookingType: string;
   customerId?: number;
+  couponCode?: string;
   startDate: string;
   endDate?: string;
   durationHours?: number;
@@ -46,6 +48,7 @@ export interface PricingQuoteResponse {
     display?: { base_range?: { min: number; max: number; unit: string } };
   };
   error?: string;
+  coupon_warning?: string | null;
 }
 
 export async function fetchServiceQuote(
@@ -56,11 +59,12 @@ export async function fetchServiceQuote(
   const endDate = String(body.endDate ?? body.startDate ?? "").slice(0, 10);
 
   const { data } = await PaymentInstance.post<PricingQuoteResponse>(
-    "/api/pricing/quote",
+    paymentsPricingPaths.quote,
     {
       serviceType,
       bookingType: String(body.bookingType || "").toUpperCase(),
       customerId: body.customerId,
+      coupon_code: body.couponCode ? String(body.couponCode).trim().toUpperCase() : undefined,
       startDate,
       endDate: endDate || startDate,
       durationHours: body.durationHours,
@@ -72,9 +76,7 @@ export async function fetchServiceQuote(
 }
 
 export async function fetchServiceRateCard(serviceType: string, bookingType: string) {
-  const st = encodeURIComponent(serviceType.toUpperCase());
-  const bt = encodeURIComponent(bookingType.toUpperCase());
-  const { data } = await PaymentInstance.get(`/api/pricing/plans/${st}/${bt}`);
+  const { data } = await PaymentInstance.get(paymentsPricingPaths.plan(serviceType, bookingType));
   return data;
 }
 

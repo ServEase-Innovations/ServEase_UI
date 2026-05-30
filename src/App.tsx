@@ -50,8 +50,10 @@ import { urls } from "./config/urls";
 import { Alert, Snackbar } from "@mui/material";
 import {
   acceptEngagement,
+  dismissProviderNewBookingNotifications,
   parseAcceptEngagementError,
   parseEngagementId,
+  resolveProviderId,
 } from "./services/engagementService";
 
 // Import the LanguageProvider
@@ -337,8 +339,15 @@ function App() {
     }
   };
 
-  const handleReject = (engagementId: number) => {
-    console.log("❌ Engagement rejected:", engagementId);
+  const handleReject = async (engagementId: number) => {
+    const eid = parseEngagementId(engagementId);
+    const providerId = resolveProviderId(appUser as Record<string, unknown>);
+    if (eid != null && providerId != null) {
+      await dismissProviderNewBookingNotifications(eid, providerId);
+    }
+    setActiveToast(null);
+    setAcceptError(null);
+    window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
   };
 
   const handleCheckoutItems = (item: any) => {

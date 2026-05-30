@@ -168,16 +168,20 @@ export const Login: React.FC<ChildComponentProps> = ({
         });
       }
       else if (role === "CUSTOMER") {
-        // Assuming similar structure: customerId (string) and customer object
         const customerId = payload.customerId ? Number(payload.customerId) : null;
         const customerData = payload.customer;
         setAppUser({
           role: "CUSTOMER",
           customerid: customerId,
+          customerId,
+          token: payload.token,
           name: customerData
-            ? [customerData.firstname, customerData.lastname].filter(Boolean).join(" ")
+            ? [customerData.firstName ?? customerData.firstname, customerData.lastName ?? customerData.lastname]
+                .filter(Boolean)
+                .join(" ")
             : "Customer",
-          email: customerData?.emailid ?? null,
+          email: customerData?.emailId ?? customerData?.emailid ?? null,
+          mobileNo: mobile.replace(/\D/g, ""),
         });
       }
       else {
