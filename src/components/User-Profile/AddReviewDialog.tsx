@@ -1,12 +1,17 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, Alert, Snackbar } from "@mui/material";
 import { Button } from "../Button/button";
-import { useAuth0 } from "@auth0/auth0-react";
 import { ClipLoader } from "react-spinners";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-import reviewsInstance from "src/services/reviewsInstance";
+import { useAppUser } from "src/context/AppUserContext";
+import {
+  checkReviewEligibility,
+  createReview,
+  getEngagementIdFromBooking,
+  reviewReasonMessage,
+} from "src/services/reviewsService";
 
 interface AddReviewDialogProps {
   open: boolean;
@@ -24,13 +29,56 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [eligibilityMessage, setEligibilityMessage] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success" as "success" | "error",
   });
 
-  const { user: auth0User } = useAuth0();
+  const { appUser } = useAppUser();
+  const customerId =
+    appUser?.customerId != null
+      ? Number(appUser.customerId)
+      : appUser?.customerid != null
+        ? Number(appUser.customerid)
+        : undefined;
+
+  const engagementId = booking ? getEngagementIdFromBooking(booking) : null;
+
+  useEffect(() => {
+    if (!open || !engagementId) {
+      setEligibilityMessage(null);
+      return;
+    }
+
+    let cancelled = false;
+    setCheckingEligibility(true);
+    checkReviewEligibility(engagementId, customerId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.eligible) {
+          setEligibilityMessage(
+            result.message || reviewReasonMessage(result.reason)
+          );
+        } else {
+          setEligibilityMessage(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEligibilityMessage(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingEligibility(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, engagementId, customerId]);
 
   const handleSubmit = async () => {
     if (!rating) {
@@ -42,17 +90,7 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
       return;
     }
 
-    if (!booking || !auth0User) {
-      setSnackbar({
-        open: true,
-        message: "Missing required information",
-        severity: "error",
-      });
-      return;
-    }
-
-    // Check if engagementId exists (required by the API)
-    if (!booking.engagementId && !booking.id) {
+    if (!booking || !engagementId) {
       setSnackbar({
         open: true,
         message: "Service engagement information is missing",
@@ -61,20 +99,28 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
       return;
     }
 
+    if (eligibilityMessage) {
+      setSnackbar({ open: true, message: eligibilityMessage, severity: "error" });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Prepare payload according to the API specification
-      const payload = {
-        engagementId: booking.engagementId || booking.id, // Use engagementId if available, fallback to booking.id
-        rating: rating,
-        review: review.trim() || "No review provided" // Using "review" instead of "comment" per API spec
-      };
+      const result = await createReview({
+        engagementId,
+        rating,
+        review: review.trim() || undefined,
+        customerId,
+      });
 
-      // Make POST request to the reviews endpoint
-      await reviewsInstance.post("/reviews", payload);
+      if (!result.success) {
+        throw new Error(
+          result.message || reviewReasonMessage(result.reason, "Failed to submit review")
+        );
+      }
 
-      onReviewSubmitted(booking.id);
+      onReviewSubmitted(booking.id ?? engagementId);
 
       setSnackbar({
         open: true,
@@ -89,9 +135,11 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
       }, 1500);
     } catch (error: any) {
       console.error("Error submitting review:", error);
+      const data = error.response?.data;
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
+        data?.message ||
+        reviewReasonMessage(data?.reason) ||
+        error.message ||
         "Failed to submit review. Please try again.";
       setSnackbar({ open: true, message: errorMessage, severity: "error" });
     } finally {
@@ -103,6 +151,9 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const submitDisabled =
+    isSubmitting || checkingEligibility || !rating || !!eligibilityMessage || !engagementId;
+
   return (
     <>
       <Dialog
@@ -111,18 +162,15 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
         PaperProps={{
           sx: {
             width: "100%",
-            maxWidth: "450px", // responsive dialog
+            maxWidth: "450px",
             borderRadius: "16px",
             overflow: "hidden",
-            m: 2, // margin on small screens
+            m: 2,
           },
         }}
       >
-        {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between px-3 py-2 h-12 bg-gray-900">
-          <DialogTitle className="text-sm font-semibold text-white">
-            Add Review
-          </DialogTitle>
+          <DialogTitle className="text-sm font-semibold text-white">Add Review</DialogTitle>
           <button
             onClick={onClose}
             className="text-white hover:text-gray-200 disabled:opacity-50"
@@ -132,9 +180,8 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
           </button>
         </DialogHeader>
 
-        {/* Service Information */}
         {booking && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg mx-4 mt-4">
             <p className="font-medium text-sm text-gray-700">
               Reviewing service:{" "}
               {booking.service_type
@@ -142,14 +189,25 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
                   booking.service_type.slice(1).toLowerCase()
                 : "Unknown Service"}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Engagement ID: {booking.engagementId || booking.id || "Not specified"}
-            </p>
+            {booking.serviceProviderName ? (
+              <p className="text-xs text-gray-500 mt-1">
+                Provider: {booking.serviceProviderName}
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {checkingEligibility && (
+          <p className="text-xs text-slate-500 text-center mb-2">Checking eligibility...</p>
+        )}
+
+        {eligibilityMessage && (
+          <div className="mx-4 mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            {eligibilityMessage}
           </div>
         )}
 
         <DialogContent>
-          {/* Star Rating */}
           <div className="flex justify-center mb-6">
             <div className="w-full bg-white rounded-lg shadow p-4 text-center">
               <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -160,9 +218,7 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
                   <Star
                     key={star}
                     className={`w-8 h-8 cursor-pointer ${
-                      rating >= star
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
+                      rating >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                     }`}
                     onClick={() => !isSubmitting && setRating(star)}
                   />
@@ -171,7 +227,6 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
             </div>
           </div>
 
-          {/* Review Input */}
           <div className="flex justify-center mb-6">
             <div className="w-full bg-white rounded-lg shadow p-4">
               <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
@@ -183,16 +238,16 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
                 className="w-full min-h-[100px] border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Share your experience with this service..."
                 disabled={isSubmitting}
+                maxLength={2000}
               />
             </div>
           </div>
 
-          {/* Submit Button Only */}
           <div className="flex justify-center mt-6">
             <Button
               onClick={handleSubmit}
               className="rounded-lg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isSubmitting || !rating}
+              disabled={submitDisabled}
             >
               {isSubmitting ? (
                 <div className="flex items-center">
@@ -207,7 +262,6 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

@@ -4,45 +4,13 @@ import { Dialog, DialogTitle, DialogContent } from "@mui/material";
 import { Button } from "../../components/Button";
 import { Badge } from "../../components/Common/Badge";
 import { Loader2, ArrowUpRight, ArrowDownRight, Receipt, X } from "lucide-react";
-import PaymentInstance from "src/services/paymentInstance";
 import { useToast } from "../hooks/use-toast";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-
-interface LedgerEntry {
-  ledger_id: string;
-  engagement_id: string | null;
-  amount: number;
-  direction: "CREDIT" | "DEBIT";
-  reason: "DAILY_EARNED" | "WITHDRAWAL" | "SERVICE_FEE" | "SECURITY_DEPOSIT" | "REFUND" | "OTHER";
-  reference_type: string;
-  reference_id: string;
-  created_at: string;
-}
-
-interface PayoutHistoryResponse {
-  success: boolean;
-  serviceproviderid: string;
-  summary: {
-    total_earned: number;
-    total_withdrawn: number;
-    available_to_withdraw: number;
-    wallet_balance: number;
-    security_deposit_paid: boolean;
-    security_deposit_amount: number;
-  };
-  ledger: LedgerEntry[];
-  payouts?: Array<{
-    payout_id: string;
-    engagement_id: string;
-    gross_amount: number;
-    provider_fee: number;
-    tds_amount: number;
-    net_amount: number;
-    payout_mode: string | null;
-    status: string;
-    created_at: string;
-  }>;
-}
+import {
+  fetchWithdrawalHistory as getWithdrawalHistory,
+  type LedgerEntry,
+  type WithdrawalHistoryResponse,
+} from "src/services/withdrawalHistoryService";
 
 interface WithdrawalHistoryDialogProps {
   open: boolean;
@@ -56,31 +24,23 @@ export function WithdrawalHistoryDialog({
   serviceProviderId,
 }: WithdrawalHistoryDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [historyData, setHistoryData] = useState<PayoutHistoryResponse | null>(null);
+  const [historyData, setHistoryData] = useState<WithdrawalHistoryResponse | null>(null);
   const { toast } = useToast();
   const [selectedFilter, setSelectedFilter] = useState<"all" | "credit" | "debit">("all");
 
   useEffect(() => {
     if (open && serviceProviderId) {
-      fetchWithdrawalHistory();
+      loadWithdrawalHistory();
     }
   }, [open, serviceProviderId]);
 
-  const fetchWithdrawalHistory = async () => {
+  const loadWithdrawalHistory = async () => {
     if (!serviceProviderId) return;
 
     setLoading(true);
     try {
-      // You might need to adjust the API endpoint based on your actual API
-      const response = await PaymentInstance.get(
-        `/api/service-providers/${serviceProviderId}/payouts?detailed=true&include_ledger=true`
-      );
-
-      if (response.status === 200) {
-        setHistoryData(response.data);
-      } else {
-        throw new Error(`Failed to fetch history: ${response.status}`);
-      }
+      const data = await getWithdrawalHistory(serviceProviderId);
+      setHistoryData(data);
     } catch (error) {
       console.error("Error fetching withdrawal history:", error);
       toast({
@@ -183,7 +143,7 @@ export function WithdrawalHistoryDialog({
             <Button
               variant="outline"
               className="mt-4"
-              onClick={fetchWithdrawalHistory}
+              onClick={loadWithdrawalHistory}
             >
               Retry
             </Button>
@@ -321,19 +281,23 @@ export function WithdrawalHistoryDialog({
             </div>
 
             {/* Payout History Section (if available) */}
-            {historyData.payouts && historyData.payouts.length > 0 && (
+            {(historyData.withdrawals?.length ?? historyData.payouts?.length ?? 0) > 0 && (
               <div className="mt-6">
-                <h3 className="font-semibold mb-3">Payout Requests</h3>
+                <h3 className="font-semibold mb-3">Withdrawal requests</h3>
                 <div className="border rounded-lg divide-y">
-                  {historyData.payouts.map((payout) => (
+                  {(historyData.withdrawals ?? historyData.payouts ?? []).map((payout) => (
                     <div key={payout.payout_id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium">
-                            Payout #{payout.payout_id}
+                            Request #{payout.payout_id}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {formatDate(payout.created_at)}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Gross {formatAmount(payout.gross_amount)} · TDS{" "}
+                            {formatAmount(payout.tds_amount)}
                           </div>
                         </div>
                         <div className="text-right">
@@ -345,13 +309,6 @@ export function WithdrawalHistoryDialog({
                           </div>
                         </div>
                       </div>
-                      {payout.engagement_id && (
-                        <div className="mt-2 text-sm">
-                          <span className="text-muted-foreground">
-                            Engagement #{payout.engagement_id}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

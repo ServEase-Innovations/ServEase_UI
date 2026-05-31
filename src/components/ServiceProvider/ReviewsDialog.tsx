@@ -1,46 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable */
-import React, { useState, useEffect } from "react";
-
-import { Button } from "../../components/Button";
-import { Star, User, Calendar, MessageSquare, X, Filter } from "lucide-react";
-import { Badge } from "../../components/Common/Badge";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Dialog, DialogContent } from "@mui/material";
+import { Star, X, MessageSquare, Loader2 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
-
-import { Dialog, DialogContent, DialogTitle, Select, MenuItem, FormControl, Chip } from "@mui/material";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-import reviewsInstance from "src/services/reviewsInstance";
-
-// Define types based on the API response
-interface ProviderRating {
-  id: number;
-  rating: string;
-  review_count: number;
-  grade: string;
-  distribution: {
-    "1": number;
-    "2": number;
-    "3": number;
-    "4": number;
-    "5": number;
-  };
-}
-
-interface Review {
-  review_id: number;
-  rating: number;
-  review: string;
-  service_type: string;
-  created_at: number;
-  customerName?: string;
-}
-
-interface ReviewsApiResponse {
-  success: boolean;
-  provider: ProviderRating;
-  count: number;
-  reviews: Review[];
-}
+import {
+  fetchProviderReviews,
+  type ProviderRatingSummary,
+  type ProviderReview,
+} from "src/services/reviewsService";
 
 interface ReviewsDialogProps {
   open: boolean;
@@ -48,182 +15,95 @@ interface ReviewsDialogProps {
   serviceProviderId: number | null;
 }
 
-// Service type options
-const SERVICE_TYPES = [
-  { value: "ALL", label: "All Services" },
-  { value: "ON_DEMAND", label: "On Demand" },
-  { value: "MONTHLY", label: "Monthly" },
-  { value: "SHORT_TERM", label: "Short Term" }
+type FilterKey = "ALL" | "ON_DEMAND" | "MONTHLY" | "SHORT_TERM";
+
+const FILTER_TABS: { key: FilterKey; label: string }[] = [
+  { key: "ALL", label: "All" },
+  { key: "ON_DEMAND", label: "On demand" },
+  { key: "MONTHLY", label: "Monthly" },
+  { key: "SHORT_TERM", label: "Short term" },
 ];
 
-// Get emoji based on rating
-const getRatingEmoji = (rating: number): string => {
-  switch (rating) {
-    case 5:
-      return "😍"; // Love it
-    case 4:
-      return "😊"; // Happy
-    case 3:
-      return "😐"; // Neutral
-    case 2:
-      return "😕"; // Disappointed
-    case 1:
-      return "😞"; // Sad
-    default:
-      return "👤"; // Default user
-  }
-};
+function getGradeStyles(grade: string): string {
+  const g = grade.replace(/[^A-Z]/g, "");
+  if (g.startsWith("A")) return "bg-emerald-600 text-white";
+  if (g.startsWith("B")) return "bg-[#193f79] text-white";
+  if (g.startsWith("C")) return "bg-amber-600 text-white";
+  if (g === "D") return "bg-orange-600 text-white";
+  if (g === "F") return "bg-red-600 text-white";
+  return "bg-slate-500 text-white";
+}
 
-// Get grade color based on grade value
-const getGradeColor = (grade: string): string => {
-  // Remove any "New" or other text and just check the grade
-  const gradeValue = grade.replace(/[^A-Z]/g, '');
-  
-  switch(gradeValue) {
-    case 'A':
-    case 'A+':
-    case 'A-':
-      return 'bg-green-600 text-white font-bold shadow-md'; // Dark green for A grades
-    case 'B':
-    case 'B+':
-    case 'B-':
-      return 'bg-blue-600 text-white font-bold shadow-md'; // Dark blue for B grades
-    case 'C':
-    case 'C+':
-    case 'C-':
-      return 'bg-yellow-600 text-white font-bold shadow-md'; // Dark yellow for C grades
-    case 'D':
-      return 'bg-orange-600 text-white font-bold shadow-md'; // Orange for D grades
-    case 'F':
-      return 'bg-red-600 text-white font-bold shadow-md'; // Red for F grades
+function getServiceTypeLabel(type: string): string {
+  switch (type) {
+    case "ON_DEMAND":
+      return "On demand";
+    case "MONTHLY":
+      return "Monthly";
+    case "SHORT_TERM":
+      return "Short term";
     default:
-      return 'bg-purple-600 text-white font-bold shadow-md'; // Default
+      return type;
   }
-};
+}
 
-// Compact SkeletonLoader
-const SkeletonLoader = () => {
+function getServiceTypeBadge(type: string): string {
+  switch (type) {
+    case "ON_DEMAND":
+      return "bg-sky-50 text-sky-900 border-sky-200";
+    case "MONTHLY":
+      return "bg-emerald-50 text-emerald-800 border-emerald-200";
+    case "SHORT_TERM":
+      return "bg-violet-50 text-violet-800 border-violet-200";
+    default:
+      return "bg-slate-50 text-slate-700 border-slate-200";
+  }
+}
+
+function formatDate(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+}
+
+function renderStars(rating: number, size = "h-3.5 w-3.5") {
   return (
-    <div className="space-y-4 animate-pulse">
-      {/* Rating Summary Skeleton - Compact */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <div className="h-8 w-16 bg-gray-300 rounded-lg mx-auto mb-1"></div>
-            <div className="flex justify-center mt-1 gap-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-3 w-3 bg-gray-300 rounded-sm"></div>
-              ))}
-            </div>
-            <div className="h-3 w-20 bg-gray-300 rounded mx-auto mt-1"></div>
-          </div>
-          
-          <div className="text-center">
-            <div className="h-8 w-16 bg-gray-300 rounded-lg mx-auto mb-1"></div>
-            <div className="h-3 w-20 bg-gray-300 rounded mx-auto"></div>
-          </div>
-          
-          <div className="space-y-1.5">
-            {[5, 4, 3, 2, 1].map((stars) => (
-              <div key={stars} className="flex items-center gap-1">
-                <div className="h-3 w-3 bg-gray-300 rounded"></div>
-                <div className="h-3 w-3 bg-gray-300 rounded-sm"></div>
-                <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                  <div className="bg-gray-300 h-1.5 rounded-full" style={{ width: '60%' }}></div>
-                </div>
-                <div className="h-3 w-5 bg-gray-300 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Skeleton */}
-      <div className="flex justify-between items-center mb-3">
-        <div className="h-6 w-32 bg-gray-300 rounded"></div>
-        <div className="h-6 w-28 bg-gray-300 rounded"></div>
-      </div>
-
-      {/* Review Items Skeleton - Compact */}
-      {Array.from({ length: 2 }).map((_, index) => (
-        <div key={index} className="border rounded-lg p-3 bg-white">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-              <div>
-                <div className="h-4 w-24 bg-gray-300 rounded mb-1"></div>
-                <div className="flex items-center gap-1">
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="h-3 w-3 bg-gray-300 rounded-sm"></div>
-                    ))}
-                  </div>
-                  <div className="h-4 w-14 bg-gray-300 rounded"></div>
-                </div>
-              </div>
-            </div>
-            <div className="h-3 w-16 bg-gray-300 rounded"></div>
-          </div>
-          <div className="h-3 w-full bg-gray-300 rounded ml-10"></div>
-        </div>
+    <div className="flex gap-0.5">
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          className={`${size} ${i < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+        />
       ))}
     </div>
   );
-};
+}
 
 export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: ReviewsDialogProps) {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<ProviderReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [providerRating, setProviderRating] = useState<ProviderRating | null>(null);
-  const [selectedServiceType, setSelectedServiceType] = useState<string>("ALL");
-  const [averageRating, setAverageRating] = useState(0);
-  const [totalReviews, setTotalReviews] = useState(0);
+  const [providerRating, setProviderRating] = useState<ProviderRatingSummary | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<FilterKey>("ALL");
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open && serviceProviderId) {
-      fetchReviews();
-    }
-  }, [open, serviceProviderId]);
+  const averageRating = providerRating?.rating ?? 0;
+  const totalReviews = providerRating?.review_count ?? 0;
 
-  useEffect(() => {
-    if (selectedServiceType === "ALL") {
-      setFilteredReviews(reviews);
-    } else {
-      const filtered = reviews.filter(
-        review => review.service_type === selectedServiceType
-      );
-      setFilteredReviews(filtered);
-    }
-  }, [selectedServiceType, reviews]);
+  const loadReviews = useCallback(async () => {
+    if (!serviceProviderId) return;
 
-  const fetchReviews = async () => {
     try {
-      setLoading(true);
-      
-      const response = await reviewsInstance.get<ReviewsApiResponse>(
-        `/reviews/providers/${serviceProviderId}/reviews`
-      );
-      
-      if (response.data.success) {
-        const { provider, reviews: reviewsData } = response.data;
-        
-        setProviderRating(provider);
-        setAverageRating(parseFloat(provider.rating));
-        setTotalReviews(provider.review_count);
-        
-        // Keep customerName but we'll enhance it with emoji in display
-        const processedReviews = reviewsData.map(review => ({
-          ...review,
-          customerName: `Customer ${review.review_id}`
-        }));
-
-        const sortedReviews = processedReviews.sort((a, b) => b.created_at - a.created_at);
-        
-        setReviews(sortedReviews);
-        setFilteredReviews(sortedReviews);
-      }
+      const data = await fetchProviderReviews(serviceProviderId, { limit: 100 });
+      setProviderRating(data.provider);
+      setReviews(data.reviews);
     } catch (error) {
       console.error("Failed to fetch reviews:", error);
       toast({
@@ -231,293 +111,228 @@ export function ReviewsDialog({ open, onOpenChange, serviceProviderId }: Reviews
         description: "Failed to load reviews. Please try again.",
         variant: "destructive",
       });
-      
       setReviews([]);
-      setFilteredReviews([]);
       setProviderRating(null);
-      setAverageRating(0);
-      setTotalReviews(0);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [serviceProviderId, toast]);
 
-  const fetchReviewsByServiceType = async (serviceType: string) => {
-    if (!serviceProviderId || serviceType === "ALL") return;
-    
-    try {
+  useEffect(() => {
+    if (open && serviceProviderId) {
       setLoading(true);
-      const response = await reviewsInstance.get<ReviewsApiResponse>(
-        `/reviews/providers/${serviceProviderId}/reviews`,
-        {
-          params: {
-            serviceType: serviceType
-          }
-        }
-      );
-      
-      if (response.data.success) {
-        const { reviews: reviewsData } = response.data;
-        
-        const processedReviews = reviewsData.map(review => ({
-          ...review,
-          customerName: `Customer ${review.review_id}`
-        }));
-
-        const sortedReviews = processedReviews.sort((a, b) => b.created_at - a.created_at);
-        setReviews(prevReviews => {
-          const existingIds = new Set(prevReviews.map(r => r.review_id));
-          const newReviews = sortedReviews.filter(r => !existingIds.has(r.review_id));
-          return [...prevReviews, ...newReviews];
-        });
-      }
-    } catch (error) {
-      console.error("Failed to fetch reviews by service type:", error);
-      toast({
-        title: "Error",
-        description: "Failed to filter reviews by service type",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      loadReviews().finally(() => setLoading(false));
+    } else if (!open) {
+      setReviews([]);
+      setProviderRating(null);
+      setSelectedFilter("ALL");
     }
-  };
+  }, [open, serviceProviderId, loadReviews]);
 
-  const handleServiceTypeChange = async (event: any) => {
-    const serviceType = event.target.value;
-    setSelectedServiceType(serviceType);
-    
-    if (serviceType !== "ALL") {
-      await fetchReviewsByServiceType(serviceType);
-    }
-  };
+  const filteredReviews = useMemo(() => {
+    if (selectedFilter === "ALL") return reviews;
+    return reviews.filter((r) => r.service_type === selectedFilter);
+  }, [reviews, selectedFilter]);
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, index) => (
-      <Star
-        key={index}
-        className={`h-3 w-3 ${
-          index < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-        }`}
-      />
-    ));
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterKey, number> = {
+      ALL: reviews.length,
+      ON_DEMAND: 0,
+      MONTHLY: 0,
+      SHORT_TERM: 0,
+    };
+    reviews.forEach((r) => {
+      const key = r.service_type as FilterKey;
+      if (key in counts && key !== "ALL") counts[key] += 1;
     });
-  };
-
-  const getServiceTypeLabel = (type: string) => {
-    switch (type) {
-      case 'ON_DEMAND':
-        return 'On Demand';
-      case 'MONTHLY':
-        return 'Monthly';
-      case 'SHORT_TERM':
-        return 'Short Term';
-      default:
-        return type;
-    }
-  };
-
-  const getServiceTypeColor = (type: string) => {
-    switch (type) {
-      case 'ON_DEMAND':
-        return 'bg-blue-100 text-blue-800';
-      case 'MONTHLY':
-        return 'bg-green-100 text-green-800';
-      case 'SHORT_TERM':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+    return counts;
+  }, [reviews]);
 
   const handleClose = () => {
     onOpenChange(false);
-    setSelectedServiceType("ALL");
+    setSelectedFilter("ALL");
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       PaperProps={{
-        style: {
-          borderRadius: '12px',
-          maxWidth: '600px'
-        }
+        className: "rounded-2xl overflow-hidden max-h-[90vh] flex flex-col",
+        sx: { m: { xs: 1, sm: 2 } },
       }}
     >
-     <DialogHeader className="relative border-b px-4 py-3">
-      <div className="flex items-center">
-        <DialogTitle className="text-lg font-semibold flex items-center gap-2">
-          <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-          <span>Customer Reviews</span>
-
-          {providerRating && (
-            <Chip
-              label={providerRating.grade}
-              size="small"
-              className={`ml-1 ${getGradeColor(providerRating.grade)} text-xs h-6 px-2`}
-              style={{ 
-                fontWeight: 'bold',
-                borderRadius: '16px'
-              }}
-            />
-          )}
-        </DialogTitle>
+      <div className="h-1 bg-[#193f79]" />
+      <div className="flex items-start gap-3 border-b border-slate-200 bg-[#e8f1ff] px-4 py-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
+          <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-bold tracking-tight text-slate-900">Customer reviews</h2>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">
+            Ratings and feedback from your clients
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      <p className="text-xs text-white/70 mt-0.5">
-        Feedback from your clients helps you improve
-      </p>
-
-      {/* Close Button - Top Right */}
-      <button
-        onClick={handleClose}
-        className="absolute top-3 right-3 rounded-full p-1 hover:bg-white/20 transition-colors"
-        aria-label="Close"
-      >
-        <X className="h-4 w-4 text-white" />
-      </button>
-    </DialogHeader>
-
-      
-      <DialogContent className="p-4 max-h-[80vh] overflow-y-auto">
+      <DialogContent className="flex-1 overflow-y-auto bg-slate-50 p-4 !pt-4">
         {loading && reviews.length === 0 ? (
-          <SkeletonLoader />
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+            <p className="text-sm text-slate-500">Loading reviews...</p>
+          </div>
         ) : (
           <>
-            {/* Rating Summary - Compact */}
             {providerRating && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-4">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="h-1 bg-[#193f79]" />
+                <div className="flex items-center justify-between gap-4 p-4">
+                  <div>
+                    <p className="text-4xl font-extrabold tracking-tight text-slate-900">
+                      {averageRating.toFixed(1)}
+                    </p>
+                    {renderStars(Math.round(averageRating))}
+                    <p className="mt-2 text-sm font-medium text-slate-500">
+                      {totalReviews} {totalReviews === 1 ? "review" : "reviews"}
+                    </p>
+                  </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-900">{averageRating.toFixed(1)}</div>
-                    <div className="flex justify-center mt-0.5 gap-0.5">
-                      {renderStars(Math.round(averageRating))}
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Provider grade
+                    </p>
+                    <div
+                      className={`mt-2 flex h-14 w-14 items-center justify-center rounded-full text-lg font-extrabold ${getGradeStyles(providerRating.grade)}`}
+                    >
+                      {providerRating.grade}
                     </div>
-                    <p className="text-xs text-blue-700 mt-0.5">Avg Rating</p>
-                  </div>
-                  
-                  <div className="text-center border-l border-r border-blue-200">
-                    <div className="text-2xl font-bold text-blue-900">{totalReviews}</div>
-                    <p className="text-xs text-blue-700 mt-0.5">Total Reviews</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    {[5, 4, 3, 2, 1].map((stars) => (
-                      <div key={stars} className="flex items-center gap-1">
-                        <span className="text-xs font-medium w-3 text-gray-700">{stars}</span>
-                        <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-yellow-400 h-1.5 rounded-full transition-all duration-300"
-                            style={{
-                              width: `${totalReviews > 0 ? (providerRating.distribution[stars.toString() as keyof typeof providerRating.distribution] / totalReviews) * 100 : 0}%`
-                            }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-gray-600 w-5">
-                          {providerRating.distribution[stars.toString() as keyof typeof providerRating.distribution]}
-                        </span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Service Type Filter - Compact */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1">
-                <Filter className="h-4 w-4 text-gray-500" />
-                <span className="text-xs font-medium text-gray-700">Filter:</span>
+            {providerRating && totalReviews > 0 && (
+              <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Rating breakdown
+                </p>
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const count =
+                      providerRating.distribution[String(stars) as "1" | "2" | "3" | "4" | "5"] ?? 0;
+                    const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                    return (
+                      <div key={stars} className="flex items-center gap-2">
+                        <span className="w-3 text-xs font-semibold text-slate-700">{stars}</span>
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-amber-400 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="w-6 text-right text-xs text-slate-500">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <FormControl size="small" className="w-36">
-                <Select
-                  value={selectedServiceType}
-                  onChange={handleServiceTypeChange}
-                  displayEmpty
-                  className="bg-white text-xs h-8"
-                >
-                  {SERVICE_TYPES.map((type) => (
-                    <MenuItem key={type.value} value={type.value} className="text-xs">
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            )}
+
+            <div className="mb-3 flex flex-wrap gap-2">
+              {FILTER_TABS.map(({ key, label }) => {
+                const active = selectedFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedFilter(key)}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                      active
+                        ? "border-[#193f79] bg-[#193f79] text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:bg-sky-50/80"
+                    }`}
+                  >
+                    {label}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {filterCounts[key]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Results count */}
-            <div className="mb-2 text-xs text-gray-500">
-              Showing {filteredReviews.length} {filteredReviews.length === 1 ? 'review' : 'reviews'}
-              {selectedServiceType !== 'ALL' && ` for ${getServiceTypeLabel(selectedServiceType)}`}
-            </div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              {filteredReviews.length} {filteredReviews.length === 1 ? "review" : "reviews"}
+              {selectedFilter !== "ALL" ? ` · ${getServiceTypeLabel(selectedFilter)}` : ""}
+            </p>
 
-            {/* Reviews List - Compact */}
-            <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {filteredReviews.length === 0 ? (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <MessageSquare className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-                  <p className="text-sm text-gray-600 font-medium">No reviews yet</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {selectedServiceType !== 'ALL' 
-                      ? `No reviews for ${getServiceTypeLabel(selectedServiceType)}`
-                      : 'Reviews will appear here once clients rate your services'}
+                <div className="flex flex-col items-center px-6 py-12 text-center">
+                  <MessageSquare className="mb-3 h-10 w-10 text-slate-300" />
+                  <p className="text-sm font-semibold text-slate-800">No reviews yet</p>
+                  <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
+                    {selectedFilter !== "ALL"
+                      ? `No reviews for ${getServiceTypeLabel(selectedFilter)} services yet.`
+                      : "When customers rate your work, reviews will appear here."}
                   </p>
                 </div>
               ) : (
-                filteredReviews.map((review) => (
-                  <div 
-                    key={review.review_id} 
-                    className="border rounded-lg p-3 hover:shadow-sm transition-all duration-200 bg-white"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="h-4 w-4 text-blue-600" />
+                filteredReviews.map((review, index) => {
+                  const hasText = Boolean(review.review?.trim());
+                  return (
+                    <div
+                      key={review.review_id}
+                      className={`p-4 ${index < filteredReviews.length - 1 ? "border-b border-slate-100" : ""}`}
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 text-sm font-bold text-amber-800">
+                            {review.rating.toFixed(1)}
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                          </span>
+                          {renderStars(review.rating)}
+                          <span
+                            className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${getServiceTypeBadge(review.service_type)}`}
+                          >
+                            {getServiceTypeLabel(review.service_type)}
+                          </span>
                         </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-1">
-                            {/* <span>{review.customerName || 'Anonymous'}</span> */}
-                            <span className="text-base" role="img" aria-label={`Rating ${review.rating}`}>
-                              {getRatingEmoji(review.rating)}
-                            </span>
-                          </h4>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <div className="flex gap-0.5">
-                              {renderStars(review.rating)}
-                            </div>
-                            <Badge className={`${getServiceTypeColor(review.service_type)} font-medium px-1.5 py-0.5 text-[10px]`}>
-                              {getServiceTypeLabel(review.service_type)}
-                            </Badge>
-                          </div>
-                        </div>
+                        <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                          {formatDate(review.created_at)}
+                        </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 flex items-center gap-0.5 bg-gray-50 px-1.5 py-0.5 rounded">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(review.created_at)}
-                      </div>
+                      {review.customer_name ? (
+                        <p className="mb-1 text-sm font-semibold text-slate-800">
+                          {review.customer_name}
+                        </p>
+                      ) : null}
+                      <p
+                        className={`text-sm leading-relaxed ${
+                          hasText ? "text-slate-700" : "italic text-slate-400"
+                        }`}
+                      >
+                        {hasText ? review.review : "No written feedback"}
+                      </p>
                     </div>
-
-                    <p className="text-xs text-gray-700 ml-10">{review.review}</p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </>
         )}
-
-       
       </DialogContent>
     </Dialog>
   );
