@@ -256,14 +256,11 @@ export const Header: React.FC<ChildComponentProps> = ({
             serviceProviderId: response.data.id,
           });
         } else if (response.data.user_role === "CUSTOMER") {
-          const customerId = Number(response.data.id);
-          loadedPreferencesForRef.current = customerId;
           setAppUser({
             ...user,
             role: "CUSTOMER",
             customerid: response.data.id,
           });
-          await getCustomerPreferences(customerId);
         } else if (response.data.user_role === "VENDOR") {
           setAppUser({
             ...user,
@@ -318,13 +315,31 @@ export const Header: React.FC<ChildComponentProps> = ({
     }
   };
 
+  const extractSavedLocations = (preferenceData: unknown) => {
+    if (Array.isArray(preferenceData) && preferenceData[0]?.savedLocations) {
+      return preferenceData[0].savedLocations as unknown[];
+    }
+    if (
+      preferenceData &&
+      typeof preferenceData === "object" &&
+      Array.isArray((preferenceData as { savedLocations?: unknown[] }).savedLocations)
+    ) {
+      return (preferenceData as { savedLocations: unknown[] }).savedLocations;
+    }
+    return [];
+  };
+
   const getCustomerPreferences = async (customerId: number) => {
+    if (loadedPreferencesForRef.current === customerId) {
+      setLocationPreferencesReady(true);
+      return;
+    }
     setLocationPreferencesReady(false);
     try {
       setLoadingLocations(true);
-  const response = await preferenceInstance.get(
-  `/api/user-settings/${customerId}`
-);
+      const response = await preferenceInstance.get(
+        `/api/user-settings/${customerId}`
+      );
       console.log("✅ Response from user settings API:", response.data);
 
       if (response.status === 200) {
@@ -333,31 +348,27 @@ export const Header: React.FC<ChildComponentProps> = ({
         loadedPreferencesForRef.current = customerId;
         setUserPreference(response.data);
 
-        console.log("✅ Updated user object with customerId:", user);
-        
         const baseSuggestions = [
-          { name: t('detectLocation'), index: 1 },
-          { name: t('addAddress'), index: 2 },
+          { name: t("detectLocation"), index: 1 },
+          { name: t("addAddress"), index: 2 },
         ];
-        
-        const savedLocations = Array.isArray(response.data) && response.data[0]?.savedLocations 
-          ? response.data[0].savedLocations 
-          : [];
-        
+
+        const savedLocations = extractSavedLocations(response.data);
+
         console.log("📌 Saved locations from API:", savedLocations);
-        
+
         const savedLocationSuggestions = savedLocations.map((loc: any, i: number) => ({
           name: loc.name,
           index: i + 3,
         }));
 
-        console.log("📌 Updated suggestions:", [...baseSuggestions, ...savedLocationSuggestions]);
         setSuggestions([...baseSuggestions, ...savedLocationSuggestions]);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
         console.log("🔄 Creating new user preferences...");
-        createUserPreferences(customerId);
+        await createUserPreferences(customerId);
+        loadedPreferencesForRef.current = customerId;
       } else {
         console.error("❌ Unexpected error fetching user settings:", error);
       }
@@ -382,11 +393,12 @@ export const Header: React.FC<ChildComponentProps> = ({
 );
 
       if (response.status === 200 || response.status === 201) {
-        setUserPreference(payload);
-        
+        loadedPreferencesForRef.current = customerId;
+        setUserPreference(response.data ?? payload);
+
         const baseSuggestions = [
-          { name: t('detectLocation'), index: 1 },
-          { name: t('addAddress'), index: 2 },
+          { name: t("detectLocation"), index: 1 },
+          { name: t("addAddress"), index: 2 },
         ];
         setSuggestions(baseSuggestions);
       } else {
@@ -398,33 +410,40 @@ export const Header: React.FC<ChildComponentProps> = ({
   };
 
   useEffect(() => {
-    if (isAuthenticated && user?.email) {
+    if (!authSessionReady || isLoading) {
       return;
     }
 
     const customerId = resolveCustomerId(appUser);
     const role = String(appUser?.role || "").toUpperCase();
+
     if (!isUserAuthenticated || role !== "CUSTOMER" || !customerId) {
+      setLocationPreferencesReady(true);
       return;
     }
 
     const idNum = Number(customerId);
-    if (loadedPreferencesForRef.current === idNum) {
+    if (!Number.isFinite(idNum)) {
+      setLocationPreferencesReady(true);
       return;
     }
 
-    loadedPreferencesForRef.current = idNum;
     void getCustomerPreferences(idNum);
-  }, [appUser, isUserAuthenticated, isAuthenticated, user?.email]);
+  }, [appUser, isUserAuthenticated, authSessionReady, isLoading]);
 
-  const getLocation = async () => {
-    if (navigator.geolocation) {
+  const getLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setLocation((prev) => prev || t("locationNotFound"));
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
             const response = await axios.get(
-              `https://maps.googleapis.com/maps/api/geocode/json`,
+              "https://maps.googleapis.com/maps/api/geocode/json",
               {
                 params: {
                   latlng: `${latitude},${longitude}`,
@@ -433,22 +452,27 @@ export const Header: React.FC<ChildComponentProps> = ({
               }
             );
             const address = response.data.results[0]?.formatted_address;
-            setLocation(address || t('locationNotFound'));
-            dispatch(add(response.data.results[0]));
-            console.log("Location fetched: ", address);
+            setLocation(address || t("locationNotFound"));
+            if (response.data.results[0]) {
+              dispatch(add(response.data.results[0]));
+            }
           } catch (error) {
             console.log("Failed to fetch location: ", error);
+            setLocation((prev) => prev || t("locationNotFound"));
+          } finally {
+            resolve();
           }
         },
-        (error: any) => {
+        (error: { message?: string }) => {
           console.log("Geolocation error: ", error.message);
-          setError(error.message);
-        }
+          setError(error.message as any);
+          setLocation((prev) => prev || t("detectLocation"));
+          resolve();
+        },
+        { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
       );
-    } else {
-      console.log("Geolocation is not supported by this browser.");
-    }
-  };
+    });
+  }, [dispatch, t]);
 
   const [location, setLocation] = useState<any>("");
   const [locationAs, setLocationAs] = useState("");
@@ -550,13 +574,19 @@ export const Header: React.FC<ChildComponentProps> = ({
         }
 
         if (!displayAddress) {
-          return;
+          if (preferred.name) {
+            displayAddress = String(preferred.name);
+          } else if (locationData.lat != null && locationData.lng != null) {
+            displayAddress = t("location");
+          }
         }
 
-        appliedSavedLocationRef.current = true;
-        setLocation(displayAddress);
-        dispatch(add(locationData));
-        return;
+        if (displayAddress) {
+          appliedSavedLocationRef.current = true;
+          setLocation(displayAddress);
+          dispatch(add(locationData));
+          return;
+        }
       }
 
       if (!triedGpsForCustomerRef.current) {
@@ -574,8 +604,10 @@ export const Header: React.FC<ChildComponentProps> = ({
     appUser,
     authSessionReady,
     dispatch,
+    getLocation,
     isLoading,
     locationPreferencesReady,
+    t,
     userPreference,
   ]);
 
@@ -1003,10 +1035,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   const resolvedCustomerId = resolveCustomerId(appUser);
   const isResolvingSavedLocation =
     Boolean(resolvedCustomerId) &&
+    String(appUser?.role || "").toUpperCase() === "CUSTOMER" &&
     !locationPreferencesReady &&
     authSessionReady &&
     !isLoading;
-  const locationLoading = loadingLocations || isResolvingSavedLocation;
+  const locationLoading =
+    loadingLocations ||
+    (isResolvingSavedLocation && !location);
 
   return (
     <>
