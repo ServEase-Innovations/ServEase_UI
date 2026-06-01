@@ -29,7 +29,9 @@ import {
   PlayCircle,
   PartyPopper,
   Megaphone,
+  Ticket,
 } from "lucide-react";
+import { openSupportTicketDialog } from "src/utils/supportTicketEvents";
 import PaymentInstance from "src/services/paymentInstance";
 import {
   acceptEngagement,
@@ -104,7 +106,17 @@ function typeMeta(type: string): { label: string; Icon: React.ElementType; color
   if (s === "SERVICE_DAY_COMPLETED" || s.includes("COMPLETED")) {
     return { label: "Service done", Icon: PartyPopper, color: "#7c3aed" };
   }
+  if (s.includes("SUPPORT_TICKET")) {
+    return { label: "Support", Icon: Ticket, color: "#0369a1" };
+  }
   return { label: "Update", Icon: Bell, color: "#64748b" };
+}
+
+function supportTicketIdFromNotification(n: InAppNotification): number | null {
+  const meta = asMetaRecord(n.metadata);
+  const raw = meta?.ticket_id ?? meta?.ticketId;
+  const id = Number(raw);
+  return Number.isFinite(id) && id > 0 ? id : null;
 }
 
 function recipientParams(
@@ -143,7 +155,6 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
-
   const r = useMemo(
     () => recipientParams(appUser),
     [appUser?.role, appUser?.customerid, appUser?.serviceProviderId]
@@ -544,6 +555,13 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
               const hasBookingDetailPanel =
                 (isSpOndemandNewBooking || isSpAssignedConfirmed) && eid != null;
               const canQuickAct = isSpOndemandNewBooking && unreadItem && hasBookingDetailPanel;
+              const isSupportTicket = tUpper.includes("SUPPORT_TICKET");
+              const supportTicketId = isSupportTicket ? supportTicketIdFromNotification(n) : null;
+              const openSupportTicket = () => {
+                if (supportTicketId == null) return;
+                if (unreadItem) void markRead(n);
+                openSupportTicketDialog(supportTicketId);
+              };
               return (
                 <ListItem
                   key={n.id}
@@ -555,6 +573,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                   <Paper
                     variant="outlined"
                     onClick={() => {
+                      if (isSupportTicket && supportTicketId != null) {
+                        openSupportTicket();
+                        return;
+                      }
                       if (isSpAssignedConfirmed && hasBookingDetailPanel) {
                         setDetailError(null);
                         setDetailFor(n);
@@ -566,6 +588,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
+                      if (isSupportTicket && supportTicketId != null) {
+                        openSupportTicket();
+                        return;
+                      }
                       if (isSpAssignedConfirmed && hasBookingDetailPanel) {
                         setDetailError(null);
                         setDetailFor(n);
@@ -575,27 +601,29 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                       if (!isSpOndemandNewBooking && unreadItem) void markRead(n);
                     }}
                     role={
-                      isSpAssignedConfirmed && hasBookingDetailPanel
+                      (isSupportTicket && supportTicketId != null) ||
+                      (isSpAssignedConfirmed && hasBookingDetailPanel) ||
+                      (unreadItem && !isSpOndemandNewBooking)
                         ? "button"
-                        : unreadItem && !isSpOndemandNewBooking
-                          ? "button"
-                          : "article"
+                        : "article"
                     }
                     tabIndex={
-                      isSpAssignedConfirmed && hasBookingDetailPanel
+                      (isSupportTicket && supportTicketId != null) ||
+                      (isSpAssignedConfirmed && hasBookingDetailPanel) ||
+                      (unreadItem && !isSpOndemandNewBooking)
                         ? 0
-                        : unreadItem && !isSpOndemandNewBooking
-                          ? 0
-                          : -1
+                        : -1
                     }
                     aria-label={
-                      isSpAssignedConfirmed && hasBookingDetailPanel
-                        ? `${n.title}. View booking details.`
-                        : isSpOndemandNewBooking
-                          ? n.title
-                          : unreadItem
-                            ? `${n.title}, unread. Press to mark as read`
-                            : n.title
+                      isSupportTicket && supportTicketId != null
+                        ? `${n.title}. View support ticket.`
+                        : isSpAssignedConfirmed && hasBookingDetailPanel
+                          ? `${n.title}. View booking details.`
+                          : isSpOndemandNewBooking
+                            ? n.title
+                            : unreadItem
+                              ? `${n.title}, unread. Press to mark as read`
+                              : n.title
                     }
                     elevation={0}
                     sx={{
@@ -612,11 +640,14 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         : "none",
                       transition: "all 0.2s ease",
                       cursor:
-                        (isSpAssignedConfirmed && hasBookingDetailPanel) || (unreadItem && !isSpOndemandNewBooking)
+                        (isSupportTicket && supportTicketId != null) ||
+                        (isSpAssignedConfirmed && hasBookingDetailPanel) ||
+                        (unreadItem && !isSpOndemandNewBooking)
                           ? "pointer"
                           : "default",
                       borderRadius: 2,
                       "&:hover":
+                        (isSupportTicket && supportTicketId != null) ||
                         (isSpAssignedConfirmed && hasBookingDetailPanel) ||
                         (!isSpOndemandNewBooking && unreadItem)
                           ? { bgcolor: (th) => alpha(th.palette.primary.main, 0.07) }
@@ -695,6 +726,20 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                   </Typography>
                                 )}
                               </Stack>
+                            )}
+                            {isSupportTicket && supportTicketId != null && (
+                              <Button
+                                type="button"
+                                size="small"
+                                variant="contained"
+                                className="!mt-1 !bg-sky-600 hover:!bg-sky-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openSupportTicket();
+                                }}
+                              >
+                                View ticket
+                              </Button>
                             )}
                             {hasBookingDetailPanel && (
                               <Stack

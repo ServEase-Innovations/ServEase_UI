@@ -14,6 +14,12 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from "src/services/ticketsService";
+import { TicketConversationThread } from "../../User-Profile/TicketConversationThread";
+import {
+  ADMIN_OPEN_TICKET_EVENT,
+  ADMIN_TICKET_ACTIVITY_EVENT,
+  type AdminTicketActivityDetail,
+} from "src/utils/supportTicketEvents";
 
 const STATUS_OPTIONS: TicketStatus[] = [
   "OPEN",
@@ -26,18 +32,19 @@ const STATUS_OPTIONS: TicketStatus[] = [
 
 const PRIORITY_OPTIONS: TicketPriority[] = ["LOW", "MEDIUM", "HIGH"];
 
+/** Badge colors readable on light admin cards (bg-slate-50 / white). */
 function priorityClass(p: string) {
-  if (p === "HIGH") return "bg-red-500/15 text-red-200 ring-red-500/30";
-  if (p === "LOW") return "bg-slate-500/20 text-slate-200 ring-slate-500/30";
-  return "bg-amber-500/15 text-amber-200 ring-amber-500/30";
+  if (p === "HIGH") return "bg-red-100 text-red-800 ring-1 ring-red-300/60";
+  if (p === "LOW") return "bg-slate-100 text-slate-700 ring-1 ring-slate-300/60";
+  return "bg-amber-100 text-amber-900 ring-1 ring-amber-300/60";
 }
 
 function statusClass(s: string) {
-  if (s === "OPEN") return "bg-sky-500/15 text-sky-200";
-  if (s === "IN_PROGRESS") return "bg-violet-500/15 text-violet-200";
-  if (s === "RESOLVED" || s === "CLOSED") return "bg-emerald-500/15 text-emerald-200";
-  if (s === "CANCELLED") return "bg-slate-500/20 text-slate-400";
-  return "bg-amber-500/15 text-amber-200";
+  if (s === "OPEN") return "bg-sky-100 text-sky-800 ring-1 ring-sky-300/50";
+  if (s === "IN_PROGRESS") return "bg-violet-100 text-violet-800 ring-1 ring-violet-300/50";
+  if (s === "RESOLVED" || s === "CLOSED") return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300/50";
+  if (s === "CANCELLED") return "bg-slate-100 text-slate-600 ring-1 ring-slate-300/50";
+  return "bg-amber-100 text-amber-900 ring-1 ring-amber-300/50";
 }
 
 function formatDue(iso: string, isOverdue: boolean) {
@@ -98,13 +105,31 @@ const Tickets = () => {
     }
   }, [statusFilter, priorityFilter, overdueOnly, search]);
 
+  const refreshQuiet = useCallback(async () => {
+    try {
+      const [tickets, statRes] = await Promise.all([
+        fetchAdminTickets({
+          status: statusFilter || undefined,
+          priority: priorityFilter || undefined,
+          overdueOnly,
+          search: search.trim() || undefined,
+        }),
+        fetchAdminTicketStats(),
+      ]);
+      setRows(tickets);
+      setStats(statRes.stats as unknown as Record<string, number>);
+    } catch {
+      /* non-blocking */
+    }
+  }, [statusFilter, priorityFilter, overdueOnly, search]);
+
   useEffect(() => {
     void load();
   }, [load]);
 
-  const openDetail = async (ticketId: number) => {
+  const openDetail = useCallback(async (ticketId: number, { silent = false } = {}) => {
     setSelectedId(ticketId);
-    setDetailLoading(true);
+    if (!silent) setDetailLoading(true);
     try {
       const t = await fetchAdminTicketById(ticketId);
       setDetail(t);
@@ -115,20 +140,54 @@ const Tickets = () => {
         assigned_admin_email: t.assigned_admin_email || "",
         resolution_notes: t.resolution_notes || "",
       });
+      setRows((prev) => {
+        const idx = prev.findIndex((r) => r.ticket_id === ticketId);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...t };
+        return next;
+      });
     } catch {
-      setDetail(null);
+      if (!silent) setDetail(null);
     } finally {
-      setDetailLoading(false);
+      if (!silent) setDetailLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const onActivity = (e: Event) => {
+      const { ticketId } = (e as CustomEvent<AdminTicketActivityDetail>).detail || {};
+      const id = Number(ticketId);
+      if (!Number.isFinite(id) || id < 1) return;
+      void refreshQuiet();
+      if (selectedId === id) {
+        void openDetail(id, { silent: true });
+      }
+    };
+    const onOpenTicket = (e: Event) => {
+      const { ticketId } = (e as CustomEvent<{ ticketId: number }>).detail || {};
+      const id = Number(ticketId);
+      if (Number.isFinite(id) && id > 0) void openDetail(id);
+    };
+    window.addEventListener(ADMIN_TICKET_ACTIVITY_EVENT, onActivity);
+    window.addEventListener(ADMIN_OPEN_TICKET_EVENT, onOpenTicket);
+    return () => {
+      window.removeEventListener(ADMIN_TICKET_ACTIVITY_EVENT, onActivity);
+      window.removeEventListener(ADMIN_OPEN_TICKET_EVENT, onOpenTicket);
+    };
+  }, [refreshQuiet, openDetail, selectedId]);
 
   const handleSave = async () => {
     if (!selectedId) return;
     setSaving(true);
     try {
-      const updated = await updateAdminTicket(selectedId, edit);
-      setDetail(updated);
-      setRows((prev) => prev.map((r) => (r.ticket_id === selectedId ? { ...r, ...updated } : r)));
+      await updateAdminTicket(selectedId, edit);
+      await openDetail(selectedId, { silent: true });
+      setRows((prev) =>
+        prev.map((r) =>
+          r.ticket_id === selectedId ? { ...r, status: edit.status, priority: edit.priority } : r
+        )
+      );
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
       setError(err?.response?.data?.error || "Update failed");
@@ -141,10 +200,10 @@ const Tickets = () => {
     if (!selectedId || !comment.trim()) return;
     setSaving(true);
     try {
-      const updated = await addAdminTicketComment(selectedId, comment.trim(), internalNote);
-      setDetail(updated);
+      await addAdminTicketComment(selectedId, comment.trim(), internalNote);
       setComment("");
       setInternalNote(false);
+      await openDetail(selectedId, { silent: true });
     } finally {
       setSaving(false);
     }
@@ -317,7 +376,8 @@ const Tickets = () => {
                     <div>
                       <p className="font-mono text-sm text-muted-foreground">{detail.ticket_number}</p>
                       <h3 className="font-semibold">{detail.subject}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
+                      <p className="mt-1 text-xs font-medium text-muted-foreground">Original complaint</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                         {detail.description}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -419,24 +479,17 @@ const Tickets = () => {
                       {saving ? "Saving…" : "Save changes"}
                     </Button>
 
-                    <div className="border-t pt-3 space-y-2 max-h-40 overflow-y-auto">
-                      <p className="text-xs font-semibold uppercase text-muted-foreground">Thread</p>
-                      {(detail.comments || []).map((c) => (
-                        <div
-                          key={c.comment_id}
-                          className={cn(
-                            "rounded-md p-2 text-sm",
-                            c.is_internal ? "bg-amber-50 border border-amber-200" : "bg-muted/50"
-                          )}
-                        >
-                          <p className="text-xs text-muted-foreground">
-                            {c.author_name || c.author_type}
-                            {c.is_internal ? " (internal)" : ""} ·{" "}
-                            {new Date(c.created_at).toLocaleString()}
-                          </p>
-                          <p>{c.body}</p>
-                        </div>
-                      ))}
+                    <div className="border-t pt-3">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+                        Conversation
+                      </p>
+                      <div className="max-h-52 overflow-y-auto pr-1">
+                        <TicketConversationThread
+                          comments={detail.comments}
+                          ticket={detail}
+                          emptyLabel="No messages yet. Reply below or save resolution notes to add to the thread."
+                        />
+                      </div>
                     </div>
 
                     <div className="flex gap-2">

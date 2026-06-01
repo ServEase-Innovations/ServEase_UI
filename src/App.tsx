@@ -55,6 +55,8 @@ import {
   parseEngagementId,
   resolveProviderId,
 } from "./services/engagementService";
+import SupportTicketDetailDialog from "./components/User-Profile/SupportTicketDetailDialog";
+import type { OpenSupportTicketDetail } from "./utils/supportTicketEvents";
 
 // Import the LanguageProvider
 
@@ -81,6 +83,7 @@ function App() {
   const [chatSupportPreview, setChatSupportPreview] = useState<string | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  const [supportTicketId, setSupportTicketId] = useState<number | null>(null);
   
   // Deep linking states
   const [deepLinkProcessed, setDeepLinkProcessed] = useState(false);
@@ -417,35 +420,55 @@ function App() {
     fetchPricingData();
   }, [dispatch]);
 
-  // Effect for socket connection
+  useEffect(() => {
+    const onOpenTicket = (e: Event) => {
+      const detail = (e as CustomEvent<OpenSupportTicketDetail>).detail;
+      const id = Number(detail?.ticketId);
+      if (Number.isFinite(id) && id > 0) setSupportTicketId(id);
+    };
+    window.addEventListener("open-support-ticket", onOpenTicket);
+    return () => window.removeEventListener("open-support-ticket", onOpenTicket);
+  }, []);
+
+  // Effect for socket connection (providers + customers for in-app notifications)
   useEffect(() => {
     if (!isAuthenticated || !appUser) {
       console.log("⏳ Waiting for user authentication...");
       return;
     }
 
-    console.log("🔎 Full user object:", appUser);
+    const role = appUser?.role?.toUpperCase();
+    const isProvider = role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null;
+    const customerId =
+      appUser.customerid != null
+        ? Number(appUser.customerid)
+        : appUser.customerId != null
+          ? Number(appUser.customerId)
+          : null;
+    const isCustomer = customerId != null && Number.isFinite(customerId);
 
-    if (appUser?.role?.toUpperCase() === "SERVICE_PROVIDER") {
-      console.log("++++++++++++++ CONNECTING TO SOCKET ++++++++++++++");
+    if (!isProvider && !isCustomer) return;
 
-      const newSocket = io(urls.payments, {
-        transports: ["websocket"],
-        withCredentials: true,
-      });
+    const newSocket = io(urls.payments, {
+      transports: ["websocket"],
+      withCredentials: true,
+    });
 
-      newSocket.on("connect", () => {
-        console.log("✅ Connected to server:", newSocket.id);
+    newSocket.on("connect", () => {
+      if (isProvider) {
         newSocket.emit("join", { providerId: appUser.serviceProviderId });
-      });
+      }
+      if (isCustomer) {
+        newSocket.emit("join", { customerId });
+      }
+    });
 
+    if (isProvider) {
       const showSpBookingToast = (data: unknown) => {
         if (!data || typeof data !== "object") return;
-        console.log("📩 Booking socket payload:", data);
         const normalized = normalizeSocketBookingForToast(
           data as Record<string, unknown>
         );
-        // Only show popup once payment is ready (post-checkout), not at booking create.
         if (isBookingToastInfoOnly(normalized)) return;
         setActiveToast(normalized);
       };
@@ -466,26 +489,30 @@ function App() {
         });
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
       });
-
-      newSocket.on("in_app_notification", () => {
-        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("❌ Disconnected from server");
-      });
-
-      newSocket.on("connect_error", (err) => {
-        console.error("❌ Connection error:", err.message);
-      });
-
-      setSocket(newSocket);
-
-      return () => {
-        console.log("🔌 Closing socket connection...");
-        newSocket.disconnect();
-      };
     }
+
+    newSocket.on("in_app_notification", (payload: { type?: string; metadata?: unknown }) => {
+      window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+      const t = String(payload?.type || "").toUpperCase();
+      if (isCustomer && t.includes("SUPPORT_TICKET")) {
+        const meta =
+          payload?.metadata && typeof payload.metadata === "object"
+            ? (payload.metadata as Record<string, unknown>)
+            : null;
+        const tid = Number(meta?.ticket_id ?? meta?.ticketId);
+        if (Number.isFinite(tid) && tid > 0) setSupportTicketId(tid);
+      }
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("❌ Connection error:", err.message);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, [isAuthenticated, appUser]);
 
   const shouldShowFooter = () => {
@@ -651,6 +678,19 @@ function App() {
             {bookingSnack.message}
           </Alert>
         </Snackbar>
+
+        <SupportTicketDetailDialog
+          open={supportTicketId != null}
+          onClose={() => setSupportTicketId(null)}
+          ticketId={supportTicketId}
+          customerId={
+            appUser?.customerid != null
+              ? Number(appUser.customerid)
+              : appUser?.customerId != null
+                ? Number(appUser.customerId)
+                : undefined
+          }
+        />
       </div>
     </LanguageProvider>
   );

@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useAdminTicketSocket } from "src/hooks/useAdminTicketSocket";
+import { AdminTicketNotifications } from "./AdminTicketNotifications";
 import Dashboard from "./Dashboard";
 import Users from "./Users";
 import ServiceProviders from "./ServiceProviders";
@@ -51,6 +53,10 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
 
   const sectionTitle = SECTION_LABELS[activeSection] ?? "Dashboard";
   const role = useMemo(() => roleLabel(userRole), [userRole]);
+  const canUseTicketAlerts =
+    userRole.toLowerCase() === "admin" || userRole.toLowerCase() === "superadmin";
+
+  useAdminTicketSocket(canUseTicketAlerts);
 
   const renderActiveSection = () => {
     if (userRole === "user") {
@@ -184,16 +190,20 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
               >
                 {role.short}
               </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-slate-200/90 hover:bg-white/10 hover:text-white"
-                title="Notifications (coming soon)"
-                type="button"
-                disabled
-              >
-                <Bell className="h-4 w-4" />
-              </Button>
+              {canUseTicketAlerts ? (
+                <AdminTicketNotifications onGoToTickets={() => setActiveSection("tickets")} />
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-200/90 hover:bg-white/10 hover:text-white"
+                  title="Notifications"
+                  type="button"
+                  disabled
+                >
+                  <Bell className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
