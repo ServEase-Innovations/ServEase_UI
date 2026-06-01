@@ -17,6 +17,7 @@ import { Button } from "src/components/Common/button";
 import Permissions from "./Permissions";
 import AdminLedgerGrid from "./AdminLedgerGrid";
 import PushNotifications from "./PushNotifications";
+import Tickets from "./Tickets";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 import { cn } from "../../utils";
 
@@ -25,6 +26,7 @@ const SECTION_LABELS: Record<string, string> = {
   users: "Users",
   "service-providers": "Service providers",
   requests: "Requests",
+  tickets: "Support tickets",
   chats: "Chats",
   permissions: "Permissions",
   payments: "Payments",
@@ -79,6 +81,8 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
           return <ServiceProviders />;
         case "requests":
           return <Requests />;
+        case "tickets":
+          return <Tickets />;
         case "chats":
           return <Chats />;
         case "permissions":
@@ -100,6 +104,8 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
           return <ServiceProviders />;
         case "requests":
           return <Requests />;
+        case "tickets":
+          return <Tickets />;
         case "chats":
           return <Chats />;
         case "payments":

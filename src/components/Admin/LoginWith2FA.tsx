@@ -66,6 +66,9 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
 
       if (res.data.message === "2FA verified successfully") {
         setMessage("Signed in successfully. Loading dashboard…");
+        if (username.trim()) {
+          sessionStorage.setItem("adminUsername", username.trim());
+        }
         onLoginSuccess(res.data.role);
       } else {
         setMessage("Failed to verify 2FA");

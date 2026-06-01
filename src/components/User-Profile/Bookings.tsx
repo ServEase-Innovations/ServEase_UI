@@ -18,6 +18,8 @@ import { ClipLoader } from 'react-spinners';
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from '../Common/Booking/BookingUtils';
 import ConfirmationDialog from './ConfirmationDialog';
 import AddReviewDialog from './AddReviewDialog';
+import RaiseComplaintDialog from './RaiseComplaintDialog';
+import MyTicketsDialog from './MyTicketsDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
@@ -367,6 +369,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedReviewBooking, setSelectedReviewBooking] = useState<Booking | null>(null);
+  const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
+  const [selectedComplaintBooking, setSelectedComplaintBooking] = useState<Booking | null>(null);
+  const [myTicketsOpen, setMyTicketsOpen] = useState(false);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [reviewedBookings, setReviewedBookings] = useState<number[]>([]);
   const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
@@ -1267,6 +1272,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setReviewDialogOpen(true);
   };
 
+  const handleReportIssueClick = (booking: Booking) => {
+    setSelectedComplaintBooking(booking);
+    setComplaintDialogOpen(true);
+  };
+
   const handleModifyClick = (booking: Booking) => {
     setSelectedBooking(booking);
     setModifyDialogOpen(true);
@@ -1360,6 +1370,19 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     setChatOpen(true);
   };
 
+  const reportIssueButton = (booking: Booking) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+      onClick={() => handleReportIssueClick(booking)}
+    >
+      <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+      <span className="hidden sm:inline">Report issue</span>
+      <span className="sm:hidden">Issue</span>
+    </Button>
+  );
+
   const renderActionButtons = (booking: Booking) => {
     const modificationDisabled = isModificationDisabled(booking);
     const modificationTooltip = getModificationTooltip(booking);
@@ -1385,6 +1408,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         return (
           <>
             {viewDetailsButton}
+            {reportIssueButton(booking)}
             <Button
               variant="outline"
               size="sm"
@@ -1468,6 +1492,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         return (
           <>
             {viewDetailsButton}
+            {reportIssueButton(booking)}
             <Button
               variant="outline"
               size="sm"
@@ -1536,6 +1561,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         return (
           <>
             {viewDetailsButton}
+            {reportIssueButton(booking)}
             {hasReview(booking) ? (
               <Button
                 variant="outline"
@@ -1575,6 +1601,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         return (
           <>
             {viewDetailsButton}
+            {reportIssueButton(booking)}
             <Button
               variant="outline"
               size="sm"
@@ -1587,7 +1614,12 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         );
 
       default:
-        return viewDetailsButton;
+        return (
+          <>
+            {viewDetailsButton}
+            {reportIssueButton(booking)}
+          </>
+        );
     }
   };
 
@@ -1715,14 +1747,25 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-                onClick={() => setWalletDialogOpen(true)}
-                aria-label="Open wallet"
-              >
-                <Wallet className="h-5 w-5" strokeWidth={2} />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  className="mt-0.5 inline-flex h-10 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:text-sm"
+                  onClick={() => setMyTicketsOpen(true)}
+                  aria-label="My support tickets"
+                >
+                  <FileText className="h-4 w-4" strokeWidth={2} />
+                  <span className="hidden sm:inline">Support</span>
+                </button>
+                <button
+                  type="button"
+                  className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                  onClick={() => setWalletDialogOpen(true)}
+                  aria-label="Open wallet"
+                >
+                  <Wallet className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </div>
             </div>
 
             <div className="relative">
@@ -2383,6 +2426,25 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         onClose={() => setReviewDialogOpen(false)}
         booking={selectedReviewBooking}
         onReviewSubmitted={handleReviewSubmitted}
+      />
+
+      <RaiseComplaintDialog
+        open={complaintDialogOpen}
+        onClose={() => {
+          setComplaintDialogOpen(false);
+          setSelectedComplaintBooking(null);
+        }}
+        booking={selectedComplaintBooking}
+      />
+
+      <MyTicketsDialog
+        open={myTicketsOpen}
+        onClose={() => setMyTicketsOpen(false)}
+        onRaiseNew={() => {
+          setMyTicketsOpen(false);
+          setSelectedComplaintBooking(null);
+          setComplaintDialogOpen(true);
+        }}
       />
       
       <WalletDialog 

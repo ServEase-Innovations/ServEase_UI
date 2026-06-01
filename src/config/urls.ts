@@ -12,7 +12,8 @@
  * | `REACT_APP_PREFERENCES_URL` | `urls.preferences` → `preferenceInstance` | **preferences** (saved locations / `user-settings` API) |
  * | `REACT_APP_UTILS_URL`, `REACT_APP_UTLIS_URL` (typo) | `urls.utils` → `utilsInstance` | **utils** (`/customer/check-email`, `/records` pricing, `/api/platform-settings`, `/api/platform-status`) |
  * | `REACT_APP_UTILS_WS_URL` (optional) | `urls.utilsWebsocket` | Raw **WebSocket** to utils (e.g. `NotificationClient`); if unset, derived from `urls.utils` (`http` → `ws`, `https` → `wss`) |
- * | `REACT_APP_REVIEWS_URL` | `urls.reviews` → `reviewsInstance` | **reviews** (no imports in UI yet; wire when needed) |
+ * | `REACT_APP_REVIEWS_URL` | `urls.reviews` → `reviewsInstance` | **reviews** |
+ * | `REACT_APP_TICKETS_URL` | `urls.tickets` → `ticketsInstance` | **tickets** (complaints / support) |
  * | `REACT_APP_COUPONS_URL` | `urls.coupons` | **coupons** (no axios file yet; reserved) |
  * | `REACT_APP_CHAT_URL` | `urls.chat` → `Chatbot` (axios + Socket.IO) | **help / live support** widget |
  *
@@ -69,6 +70,10 @@ export const urls = {
   },
   get reviews() {
     return process.env.REACT_APP_REVIEWS_URL || "http://localhost:5005";
+  },
+  /** **tickets** — customer complaints & admin support queue. */
+  get tickets() {
+    return process.env.REACT_APP_TICKETS_URL || "http://localhost:5006";
   },
   /** **coupons** service — not wired to a shared axios client yet. */
   get coupons() {
