@@ -11,6 +11,7 @@ adminTicketsInstance.interceptors.request.use(
     const secret =
       process.env.REACT_APP_ADMIN_TICKET_SECRET ||
       process.env.REACT_APP_ADMIN_PUSH_SECRET ||
+      (process.env.NODE_ENV === "development" ? "serveaso-test-push-secret" : "") ||
       "";
     if (secret) {
       config.headers["x-admin-ticket-secret"] = secret;
