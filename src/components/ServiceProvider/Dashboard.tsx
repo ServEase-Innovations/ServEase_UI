@@ -1077,27 +1077,7 @@ const handleTrackAddress = (address: string) => {
                           </div>
                         </div>
 
-                        <div className="mb-3">
-                          <p className="text-xs font-medium text-muted-foreground mb-1">Responsibilities</p>
-                          <div className="flex flex-wrap gap-1">
-                            {booking.bookingData?.responsibilities?.tasks?.map((task: any, index: number) => {
-                              const taskLabel = task.persons ? `${task.persons} persons` : "";
-                              return (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {task.taskType} {taskLabel}
-                                </Badge>
-                              );
-                            })}
-                            {booking.bookingData?.responsibilities?.add_ons?.map((addon: any, index: number) => (
-                              <Badge key={`addon-${index}`} variant="outline" className="text-xs bg-blue-50">
-                                Add-on: {typeof addon === 'object' ? JSON.stringify(addon) : addon}
-                              </Badge>
-                            ))}
-                            {(!booking.bookingData?.responsibilities?.tasks?.length && !booking.bookingData?.responsibilities?.add_ons?.length) && (
-                              <span className="text-xs text-muted-foreground">No responsibilities listed</span>
-                            )}
-                          </div>
-                        </div>
+                        {/* Responsibilities section removed */}
 
                         <div className="mb-3">
                           <div className="flex items-center justify-between mb-1">
@@ -1337,6 +1317,7 @@ const handleTrackAddress = (address: string) => {
           serviceProviderId={serviceProviderId}
         />
 
+        {/* FIXED: Updated bookingInfo to properly pass the booking ID */}
         <OtpVerificationDialog
           open={otpDialogOpen}
           onOpenChange={setOtpDialogOpen}
@@ -1345,7 +1326,7 @@ const handleTrackAddress = (address: string) => {
           bookingInfo={currentBooking ? {
             clientName: currentBooking.bookingData?.firstname || currentBooking.bookingData?.customerName,
             service: getServiceTitle(currentBooking.bookingData?.service_type || currentBooking.bookingData?.serviceType),
-            bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.id,
+            bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.bookingId || currentBooking.bookingData?.id || currentBooking.bookingId,
           } : undefined}
         />
         
