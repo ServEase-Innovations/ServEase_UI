@@ -642,28 +642,7 @@ export function AllBookingsDialog({
                         </div>
                       </div>
 
-                      {/* Responsibilities Section */}
-                      <div className="mb-3">
-                        <p className="text-xs font-medium text-gray-500 mb-1">Responsibilities</p>
-                        <div className="flex flex-wrap gap-1">
-                          {booking.responsibilities?.tasks?.map((task: any, index: number) => {
-                            const taskLabel = task.persons ? `${task.persons} persons` : "";
-                            return (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {task.taskType} {taskLabel}
-                              </Badge>
-                            );
-                          })}
-                          {booking.responsibilities?.add_ons?.map((addon: any, index: number) => (
-                            <Badge key={`addon-${index}`} variant="outline" className="text-xs bg-blue-50">
-                              Add-on: {typeof addon === 'object' ? JSON.stringify(addon) : addon}
-                            </Badge>
-                          ))}
-                          {(!booking.responsibilities?.tasks?.length && !booking.responsibilities?.add_ons?.length) && (
-                            <span className="text-xs text-gray-500">No responsibilities listed</span>
-                          )}
-                        </div>
-                      </div>
+                      {/* Responsibilities Section - REMOVED */}
 
                       {/* Location with Track Address Button */}
                       <div className="mb-3">
