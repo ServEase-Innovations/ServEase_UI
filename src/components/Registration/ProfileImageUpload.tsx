@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useRef, useState, ChangeEvent, useCallback } from 'react';
 import {
   Avatar,
-  Box,
-  IconButton,
-  Typography,
+  Box,  Typography,
   Button,
   Dialog,
   DialogActions,

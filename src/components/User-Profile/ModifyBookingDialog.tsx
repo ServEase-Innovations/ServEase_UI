@@ -3,28 +3,31 @@ import React, { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import {
   Typography,
-  IconButton,
   Dialog,
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { X } from "lucide-react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import {
   LocalizationProvider,
   DateTimePicker,
   TimePicker,
 } from "@mui/x-date-pickers";
-import { Button } from "../Button/button";
+import { Button, dialogActionsClassName } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import VacationManagementDialog from "./VacationManagement";
+import { coalesceStartEpoch, coalesceEndEpoch } from "src/services/bookingEpoch";
 
 interface Booking {
   bookingType: string;
   id: number;
   startDate: string;
   endDate: string;
+  start_epoch?: number | null;
+  end_epoch?: number | null;
   timeSlot: string;
   service_type: string;
   customerId?: number;
@@ -67,6 +70,15 @@ interface ModifyBookingDialogProps {
   setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+type BookingUpdatePayload = {
+  modified_by_id: number | null;
+  modified_by_role: "CUSTOMER";
+  start_date?: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
+};
+
 const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   open,
   onClose,
@@ -77,14 +89,25 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   refreshBookings,
   setOpenSnackbar,
 }) => {
+  const resolveBookingStart = (value: Booking | null): Dayjs | null => {
+    if (!value) return null;
+    const startEpoch = coalesceStartEpoch(value.start_epoch, value.startDate);
+    return startEpoch != null ? dayjs.unix(startEpoch) : dayjs(value.startDate);
+  };
+  const resolveBookingEnd = (value: Booking | null): Dayjs | null => {
+    if (!value) return null;
+    const endEpoch = coalesceEndEpoch(value.end_epoch, value.endDate);
+    return endEpoch != null ? dayjs.unix(endEpoch) : dayjs(value.endDate);
+  };
+
   const today = dayjs();
   const maxDate90Days = dayjs().add(90, "day");
 
   const [startDate, setStartDate] = useState<Dayjs | null>(
-    booking ? dayjs(booking.startDate) : null
+    resolveBookingStart(booking)
   );
   const [endDate, setEndDate] = useState<Dayjs | null>(
-    booking ? dayjs(booking.endDate) : null
+    resolveBookingEnd(booking)
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,13 +135,15 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     const minutes = parseInt(minutesStr, 10);
     if (period === "PM" && hours !== 12) hours += 12;
     if (period === "AM" && hours === 12) hours = 0;
-    return dayjs(booking.startDate)
+    return resolveBookingStart(booking)
+      ? (resolveBookingStart(booking) as Dayjs)
       .set("hour", hours)
       .set("minute", minutes)
-      .set("second", 0);
+      .set("second", 0)
+      : dayjs();
   };
 
-  const isModificationTimeAllowed = (startDate: string, timeSlot: string): boolean => {
+  const isModificationTimeAllowed = (baseDate: Dayjs, timeSlot: string): boolean => {
     const now = dayjs();
     const [time, period] = timeSlot.split(" ");
     const [hoursStr, minutesStr] = time.split(":");
@@ -126,7 +151,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     const minutes = parseInt(minutesStr, 10);
     if (period === "PM" && hours !== 12) hours += 12;
     if (period === "AM" && hours === 12) hours = 0;
-    const bookingDateTime = dayjs(startDate)
+    const bookingDateTime = baseDate
       .set("hour", hours)
       .set("minute", minutes)
       .set("second", 0);
@@ -147,7 +172,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     if (!booking) return "";
     if (isBookingAlreadyModified(booking))
       return "This booking has already been modified and cannot be modified again.";
-    if (!isModificationTimeAllowed(booking.startDate, booking.timeSlot))
+    const base = resolveBookingStart(booking);
+    if (!base || !isModificationTimeAllowed(base, booking.timeSlot))
       return "Modification is only allowed at least 30 minutes before the scheduled time.";
     return "";
   };
@@ -155,7 +181,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const isModificationDisabled = (booking: Booking | null): boolean => {
     if (!booking) return true;
     return (
-      !isModificationTimeAllowed(booking.startDate, booking.timeSlot) ||
+      !resolveBookingStart(booking) ||
+      !isModificationTimeAllowed(resolveBookingStart(booking) as Dayjs, booking.timeSlot) ||
       isBookingAlreadyModified(booking)
     );
   };
@@ -201,7 +228,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       const isTimeModification = selectedSection === "BOOKING_TIME";
 
       // Base payload (common)
-      let updatePayload: any = {
+      let updatePayload: BookingUpdatePayload = {
         modified_by_id: customerId,
         modified_by_role: "CUSTOMER", // change if admin modifies
       };
@@ -266,7 +293,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     if (open && booking) {
       const bookedTime = getBookedTime();
       setStartDate(bookedTime);
-      setEndDate(dayjs(booking.endDate));
+      setEndDate(resolveBookingEnd(booking));
       setError(null);
       setSuccess(null);
       setSelectedSection("OPTIONS");
@@ -290,8 +317,8 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogHeader className="flex justify-between items-center">
         <Typography variant="h6">Modify Booking</Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
+        <IconButton onClick={onClose} aria-label="Close" className="h-8 w-8">
+          <X className="h-5 w-5" />
         </IconButton>
       </DialogHeader>
 
@@ -301,7 +328,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
             Booking #{booking.id} - {booking.service_type}
           </Typography>
           <Typography variant="body2" className="text-gray-600">
-            Scheduled: {dayjs(booking.startDate).format("MMM D, YYYY")} at{" "}
+            Scheduled: {(resolveBookingStart(booking) || dayjs()).format("MMM D, YYYY")} at{" "}
             {booking.timeSlot}
           </Typography>
           <Typography variant="body2" className="text-gray-600">
@@ -383,7 +410,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                 value={startDate}
                 onChange={(newValue) => {
                   if (newValue) {
-                    const originalTime = dayjs(booking.startDate);
+                    const originalTime = resolveBookingStart(booking) || dayjs();
                     const updated = newValue
                       .set("hour", originalTime.hour())
                       .set("minute", originalTime.minute());
@@ -419,7 +446,7 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                 value={startDate}
                 onChange={(newValue) => {
                   if (newValue) {
-                    const updated = dayjs(booking.startDate)
+                    const updated = (resolveBookingStart(booking) || dayjs())
                       .set("hour", newValue.hour())
                       .set("minute", newValue.minute());
                     setStartDate(updated);
@@ -436,26 +463,17 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       </DialogContent>
 
       {(selectedSection === "BOOKING_DATE" || selectedSection === "BOOKING_TIME") && (
-        <DialogActions className="justify-between p-4">
-          <Button onClick={() => setSelectedSection("OPTIONS")} variant="outlined">
+        <DialogActions className={`${dialogActionsClassName} sm:!justify-between`}>
+          <Button variant="dialogCancel" onClick={() => setSelectedSection("OPTIONS")}>
             Back
           </Button>
           <Button
+            variant="dialogPrimary"
             onClick={handleSubmit}
             disabled={isLoading || modificationDisabled}
-            variant="contained"
-            className="flex items-center gap-2"
+            loading={isLoading}
           >
-            {isLoading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving...
-              </>
-            ) : selectedSection === "BOOKING_DATE" ? (
-              "Save Date"
-            ) : (
-              "Save Time"
-            )}
+            {selectedSection === "BOOKING_DATE" ? "Save Date" : "Save Time"}
           </Button>
         </DialogActions>
       )}

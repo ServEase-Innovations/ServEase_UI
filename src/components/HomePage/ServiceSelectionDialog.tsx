@@ -3,10 +3,10 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  IconButton,
   Snackbar,
   Alert,
 } from "@mui/material";
+import { IconButton } from "../Button/icon-button";
 import { ArrowRight, Copy, X } from "lucide-react";
 import { FIRST_BOOKING_COUPON_CODE } from "src/services/couponService";
 
@@ -66,7 +66,11 @@ const ServiceSelectionDialog: React.FC<ServiceSelectionDialogProps> = ({
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <DialogTitle className="flex items-center justify-between bg-gradient-to-r from-sky-700 to-blue-500 py-3 pr-2 text-white">
           <span className="text-lg font-semibold">Select service</span>
-          <IconButton onClick={onClose} size="small" aria-label="Close" sx={{ color: "#fff" }}>
+          <IconButton
+            onClick={onClose}
+            aria-label="Close"
+            className="h-8 w-8 text-white hover:bg-white/10"
+          >
             <X className="h-5 w-5" />
           </IconButton>
         </DialogTitle>

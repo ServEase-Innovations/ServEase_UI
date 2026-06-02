@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -10,9 +11,7 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  AlertColor,
-  IconButton,
-} from "@mui/material";
+  AlertColor,} from "@mui/material";
 import { Button } from "../Button/button";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";

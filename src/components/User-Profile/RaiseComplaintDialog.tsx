@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, Alert, Snackbar } from "@mui/material";
 import { Button } from "../Button/button";
-import { ClipLoader } from "react-spinners";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import {
@@ -180,11 +179,13 @@ const RaiseComplaintDialog: React.FC<RaiseComplaintDialogProps> = ({
           />
 
           <Button
+            variant="dialogPrimary"
             className="w-full"
             onClick={() => void handleSubmit()}
             disabled={isSubmitting}
+            loading={isSubmitting}
           >
-            {isSubmitting ? <ClipLoader size={20} color="#fff" /> : "Submit complaint"}
+            Submit complaint
           </Button>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React from "react";
 import {
   Dialog,
@@ -11,9 +12,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Box,
-  IconButton,
-} from "@mui/material";
+  Box,} from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { Button } from "../Button/button";

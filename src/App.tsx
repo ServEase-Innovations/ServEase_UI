@@ -16,8 +16,7 @@ import { ADMIN, AGENT_DASHBOARD, BOOKINGS, CHECKOUT, CONFIRMATION, DASHBOARD, DE
 import { ServiceProviderContext } from "./context/ServiceProviderContext";
 import AgentRegistrationForm from "./components/Registration/AgentRegistrationForm";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
-import { add } from "./features/pricing/pricingSlice";
+import { useDispatch } from "react-redux";
 import ServiceProviderDashboard from "./components/DetailsView/ServiceProviderDashboard";
 import { RootState } from './store/userStore'; 
 import HomePage from "./components/HomePage/HomePage";
@@ -32,7 +31,6 @@ import BookingRequestToast, {
   normalizeSocketBookingForToast,
 } from "./components/Notifications/BookingRequestToast";
 import { io, Socket } from "socket.io-client";
-import utilsInstance from "./services/utilsInstance";
 import Chatbot from "./components/Chat/Chatbot";
 import ChatbotButton from "./components/Chat/ChatbotButton";
 import ChatGlobalSocket from "./components/Chat/ChatGlobalSocket";
@@ -40,7 +38,6 @@ import { useAppUser } from "./context/AppUserContext";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import TnC from "./TermsAndConditions/TnC";
 import MobileNumberDialog from "./components/User-Profile/MobileNumberDialog";
-import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
 import { useCustomerMobileCheck } from "./components/hooks/useCustomerMobileCheck";
 import { setHasMobileNumber } from "./features/customer/customerSlice";
 import { ClipLoader } from 'react-spinners';
@@ -81,7 +78,6 @@ function App() {
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const [chatSupportPreview, setChatSupportPreview] = useState<string | null>(null);
-  const [isAppLoading, setIsAppLoading] = useState(true);
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   const [supportTicketId, setSupportTicketId] = useState<number | null>(null);
   
@@ -112,8 +108,8 @@ function App() {
     getAccessTokenSilently,
   } = useAuth0();
 
-  const { setAppUser } = useAppUser();
-  const { appUser } = useAppUser();
+  const { setAppUser, appUser, authSessionReady } = useAppUser();
+  const paymentsSocketRef = useRef<Socket | null>(null);
 
   const onChatUnreadDelta = useCallback((d: number) => {
     setChatUnread((n) => Math.max(0, n + d));
@@ -404,22 +400,6 @@ function App() {
 
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  // Effect for fetching pricing data
-  useEffect(() => {
-    const fetchPricingData = async () => {
-      try {
-        const response = await utilsInstance.get('/records');
-        dispatch(add(response.data));
-        setIsAppLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch pricing data:", error);
-        setIsAppLoading(false);
-      }
-    };
-
-    fetchPricingData();
-  }, [dispatch]);
-
   useEffect(() => {
     const onOpenTicket = (e: Event) => {
       const detail = (e as CustomEvent<OpenSupportTicketDetail>).detail;
@@ -432,13 +412,31 @@ function App() {
 
   // Effect for socket connection (providers + customers for in-app notifications)
   useEffect(() => {
-    if (!isAuthenticated || !appUser) {
-      console.log("⏳ Waiting for user authentication...");
+    if (!appUser) {
       return;
     }
 
+    const hasSession = Boolean(
+      isAuthenticated || (appUser.role && localStorage.getItem("token"))
+    );
+    if (!hasSession) {
+      return;
+    }
+
+    // Auth0: wait until token bridge + check-email have set role / ids
+    if (isAuthenticated) {
+      if (!authSessionReady) return;
+      if (!appUser.role) return;
+    }
+
     const role = appUser?.role?.toUpperCase();
-    const isProvider = role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null;
+    const providerIdRaw = resolveProviderId(appUser);
+    const providerId =
+      providerIdRaw != null && Number.isFinite(Number(providerIdRaw))
+        ? Number(providerIdRaw)
+        : null;
+    const joinProviderRoom = providerId != null;
+    const showSpBookingToasts = role === "SERVICE_PROVIDER" && joinProviderRoom;
     const customerId =
       appUser.customerid != null
         ? Number(appUser.customerid)
@@ -447,23 +445,29 @@ function App() {
           : null;
     const isCustomer = customerId != null && Number.isFinite(customerId);
 
-    if (!isProvider && !isCustomer) return;
+    if (!joinProviderRoom && !isCustomer) return;
+
+    const emitJoinRooms = (sock: Socket) => {
+      if (joinProviderRoom && providerId != null) {
+        sock.emit("join", { providerId });
+        console.log(`[socket] join provider_${providerId}`);
+      }
+      if (isCustomer) {
+        sock.emit("join", { customerId });
+        console.log(`[socket] join customer_${customerId}`);
+      }
+    };
 
     const newSocket = io(urls.payments, {
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       withCredentials: true,
     });
 
-    newSocket.on("connect", () => {
-      if (isProvider) {
-        newSocket.emit("join", { providerId: appUser.serviceProviderId });
-      }
-      if (isCustomer) {
-        newSocket.emit("join", { customerId });
-      }
-    });
+    paymentsSocketRef.current = newSocket;
+    newSocket.on("connect", () => emitJoinRooms(newSocket));
+    newSocket.on("reconnect", () => emitJoinRooms(newSocket));
 
-    if (isProvider) {
+    if (showSpBookingToasts) {
       const showSpBookingToast = (data: unknown) => {
         if (!data || typeof data !== "object") return;
         const normalized = normalizeSocketBookingForToast(
@@ -511,9 +515,49 @@ function App() {
     setSocket(newSocket);
 
     return () => {
+      paymentsSocketRef.current = null;
       newSocket.disconnect();
     };
-  }, [isAuthenticated, appUser]);
+  }, [
+    isAuthenticated,
+    authSessionReady,
+    appUser,
+    appUser?.role,
+    appUser?.serviceProviderId,
+    appUser?.serviceproviderid,
+    appUser?.customerid,
+    appUser?.customerId,
+  ]);
+
+  // Re-join rooms when provider/customer ids arrive after connect (Auth0 post-login)
+  useEffect(() => {
+    const sock = paymentsSocketRef.current;
+    if (!sock?.connected || !appUser) return;
+
+    const providerIdRaw = resolveProviderId(appUser);
+    const providerId =
+      providerIdRaw != null && Number.isFinite(Number(providerIdRaw))
+        ? Number(providerIdRaw)
+        : null;
+    const customerId =
+      appUser.customerid != null
+        ? Number(appUser.customerid)
+        : appUser.customerId != null
+          ? Number(appUser.customerId)
+          : null;
+
+    if (providerId != null) {
+      sock.emit("join", { providerId });
+    }
+    if (customerId != null && Number.isFinite(customerId)) {
+      sock.emit("join", { customerId });
+    }
+  }, [
+    appUser?.serviceProviderId,
+    appUser?.serviceproviderid,
+    appUser?.customerid,
+    appUser?.customerId,
+  ]);
 
   const shouldShowFooter = () => {
     const noFooterPages = [
@@ -575,10 +619,6 @@ function App() {
     </ServiceProviderContext.Provider>
   );
 };
-  if (isAppLoading) {
-    return <LoadingScreen />;
-  }
-
   return (
     <LanguageProvider>
       <div className="bg-gray-50 text-gray-800">

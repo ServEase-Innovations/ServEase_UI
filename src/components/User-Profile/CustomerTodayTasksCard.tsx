@@ -4,10 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "../Common/Card";
 import { Button } from "../Button/button";
 import { Badge } from "../Common/Badge/Badge";
 import { getBookingTypeBadge, getServiceTitle } from "../Common/Booking/BookingUtils";
+import dayjs from "dayjs";
 
 export interface CustomerTodayBookingSlot {
   availability_id: number;
   engagement_id: number;
+  slot_start_epoch?: number | null;
+  slot_end_epoch?: number | null;
+  engagement_start_epoch?: number | null;
+  engagement_end_epoch?: number | null;
   start_time_ist: string | null;
   end_time_ist: string | null;
   booking_type: string;
@@ -41,6 +46,11 @@ const formatTimeToAMPM = (timeString: string): string => {
   } catch {
     return timeString;
   }
+};
+
+const epochToAmPm = (epoch?: number | null): string | null => {
+  if (epoch == null || !Number.isFinite(epoch) || epoch <= 0) return null;
+  return dayjs.unix(Number(epoch)).format("h:mm A");
 };
 
 const visitStatusLabel = (sd: string | null | undefined): string => {
@@ -103,11 +113,17 @@ export default function CustomerTodayTasksCard({
                 [b.provider_firstname, b.provider_lastname].filter(Boolean).join(" ").trim() ||
                 "Provider";
               const sd = String(b.service_day_status ?? b.today_service?.status ?? "").toUpperCase();
+              const startLabel =
+                epochToAmPm(b.slot_start_epoch) ||
+                (b.start_time_ist ? formatTimeToAMPM(b.start_time_ist) : null);
+              const endLabel =
+                epochToAmPm(b.slot_end_epoch) ||
+                (b.end_time_ist ? formatTimeToAMPM(b.end_time_ist) : null);
               const timeRange =
-                b.start_time_ist && b.end_time_ist
-                  ? `${formatTimeToAMPM(b.start_time_ist)} – ${formatTimeToAMPM(b.end_time_ist)}`
-                  : b.start_time_ist
-                    ? formatTimeToAMPM(b.start_time_ist)
+                startLabel && endLabel
+                  ? `${startLabel} – ${endLabel}`
+                  : startLabel
+                    ? startLabel
                     : "Time TBD";
               const engId = b.engagement_id;
               const otp = generatedOTPs[engId];
@@ -131,7 +147,7 @@ export default function CustomerTodayTasksCard({
                       {sd === "SCHEDULED" && (
                         <p className="text-xs text-slate-600">
                           Waiting for your provider to start at{" "}
-                          {b.start_time_ist ? formatTimeToAMPM(b.start_time_ist) : "the scheduled time"}.
+                          {startLabel || "the scheduled time"}.
                         </p>
                       )}
                       {sd === "IN_PROGRESS" && (

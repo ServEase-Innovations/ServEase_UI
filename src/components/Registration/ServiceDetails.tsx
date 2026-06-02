@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 // components/Registration/ServiceDetails.tsx
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Grid,
@@ -16,9 +17,7 @@ import {
   Box,
   TextField,
   Chip,
-  Tooltip,
-  IconButton,
-  Fade,
+  Tooltip,  Fade,
   Alert,
   Autocomplete,
   Slider,

@@ -1,13 +1,12 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Chip,
   Paper,
-  Slider,
-  IconButton,
-  Alert,
+  Slider,  Alert,
   Tooltip,
 } from "@mui/material";
 import { AccessTime, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";

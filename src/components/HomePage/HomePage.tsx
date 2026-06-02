@@ -33,7 +33,6 @@ import ServiceSelectionDialog from "./ServiceSelectionDialog";
 import { useFirstBookingOfferVisible } from "../hooks/useFirstBookingOfferVisible";
 
 
-const publicVapidKey = 'BO0fj8ZGgK5NOd9lv0T0E273Uh4VptN2d8clBns7aOBusDGbIh\_ZIyQ8W8C-WViT1bdJlr0NkEozugQQqj8\_nTo';
 interface ChildComponentProps {
     sendDataToParent: (data: string) => void;
     bookingType: (data: string) => void;
@@ -62,7 +61,6 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     const [endTime, setEndTime] = useState<Dayjs | null>(null);
     const [chatbotOpen, setChatbotOpen] = useState(false);
     const [isAgentRegistrationOpen, setIsAgentRegistrationOpen] = useState(false);
-     const [notificationPermission, setNotificationPermission] = useState<string>(Notification.permission);
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false); // Changed this state name
     const [serviceDialog, setServiceDialog] = useState<{
     open: boolean;
@@ -119,13 +117,18 @@ const handleSave = () => {
     timeSlot = startTime?.format("HH:mm") || "";
   }
 
+  const startDateYmd = startDate ? dayjs(startDate).format("YYYY-MM-DD") : "";
+  const endDateYmd = endDate
+    ? dayjs(endDate).format("YYYY-MM-DD")
+    : startDateYmd;
+
   const booking: Bookingtype & { 
     startTime?: string; 
     endTime?: string;
     timeSlot?: string;
   } = {
-    startDate: startDate ? startDate.split("T")[0] : "",
-    endDate: endDate ? endDate.split("T")[0] : (startDate ? startDate.split("T")[0] : ""),
+    startDate: startDateYmd,
+    endDate: endDateYmd,
     timeRange: timeRange, // "05:35-09:35" for Date, "05:35" for others
     bookingPreference: selectedRadioButtonValue,
     housekeepingRole: selectedType,
@@ -172,68 +175,6 @@ const handleSave = () => {
         return start.toISOString().split('T')[0];
     };
     
-    useEffect(() => {
-        const requestNotificationPermission = async () => {
-          try {
-            if ('serviceWorker' in navigator && 'Notification' in window) {
-              const permission = await Notification.requestPermission();
-              setNotificationPermission(permission);
-              
-              if (permission === 'granted') {
-                await subscribeUser();
-              }
-            }
-          } catch (error) {
-            console.error('Error requesting notification permission:', error);
-          }
-        };
-    
-        // Only request permission if it hasn't been granted or denied yet
-        if (notificationPermission === 'default') {
-          requestNotificationPermission();
-        } else if (notificationPermission === 'granted') {
-          // If already granted, subscribe the user
-          subscribeUser();
-        }
-      }, [notificationPermission]);
-      
- const subscribeUser = async () => {
-    try {
-      const register = await navigator.serviceWorker.ready;
-
-      const existingSubscription = await register.pushManager.getSubscription();
-      if (existingSubscription) {
-        await existingSubscription.unsubscribe();
-      }
-
-      const subscription = await register.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-      });
-
-      await fetch('http://localhost:4000/subscribe', {
-        method: 'POST',
-        body: JSON.stringify(subscription),
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      console.log('User subscribed:', subscription);
-    } catch (error) {
-      console.error('Error subscribing user:', error);
-    }
-  };
-
- function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray.buffer;
-}
  // AUTH & INITIALIZATION
  const { user, isAuthenticated, loginWithPopup } = useAuth0<Auth0User>();
 

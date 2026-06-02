@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { keys } from '../../env/env';
-import { Autocomplete, Button, TextField } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Autocomplete, TextField } from '@mui/material';
+import { Button } from '../Button/button';
+import { Trash2 } from 'lucide-react';
 
 const GeolocationComponent = () => {
   const [location, setLocation] = useState(null);
@@ -50,7 +51,7 @@ const GeolocationComponent = () => {
   renderInput={(params) => <TextField {...params} label={location} />}
 />
 
-<Button variant="outlined" startIcon={<DeleteIcon />}>
+<Button variant="outline" startIcon={<Trash2 className="h-4 w-4" />}>
   {location}
 </Button>
     </div>

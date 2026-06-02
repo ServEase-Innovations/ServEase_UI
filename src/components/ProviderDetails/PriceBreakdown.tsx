@@ -1,5 +1,6 @@
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState } from "react";
-import { Box, Typography, IconButton, Popover } from "@mui/material";
+import { Box, Typography, Popover } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import type { QuoteBreakdownRow } from "src/utils/quoteBreakdown";
 import { formatInr } from "src/utils/maidPricingUtils";

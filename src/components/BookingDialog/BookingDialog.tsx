@@ -1,3 +1,4 @@
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -12,9 +13,7 @@ import {
   Box,
   useTheme,
   useMediaQuery,
-  Typography,
-  IconButton,
-  Stack,
+  Typography,  Stack,
   SwipeableDrawer,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -38,7 +37,15 @@ dayjs.extend(isSameOrAfter);
 interface BookingDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (bookingDetails: any) => void;
+  onSave: (bookingDetails: {
+    option: string;
+    startDate: string | null;
+    endDate: string | null;
+    startTime: Dayjs | null;
+    endTime: Dayjs | null;
+    start_epoch: number | null;
+    end_epoch: number | null;
+  }) => void;
   selectedOption: string;
   onOptionChange: (val: string) => void;
   startDate: string | null;
@@ -59,6 +66,15 @@ const isBookingValid = (time: Dayjs | null) => {
   const hour = time.hour();
   return hour >= 5 && hour < 22;
 };
+
+const toEpochSeconds = (value: Dayjs | null): number | null => {
+  if (!value || !value.isValid()) return null;
+  return value.unix();
+};
+
+/** Max day offset from range start → 14 means 15 calendar days inclusive. */
+const SHORT_TERM_MAX_SPAN_DAYS = 14;
+const SHORT_TERM_WINDOW_DAYS = SHORT_TERM_MAX_SPAN_DAYS + 1;
 
 const BookingDialog: React.FC<BookingDialogProps> = ({
   open,
@@ -163,10 +179,88 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     setEndTime(null);
     setLastSelectedDate(start);
     if (payload.endDate) {
-      setEndDate(dayjs(payload.endDate).startOf("day").toISOString());
+      let end = dayjs(payload.endDate).startOf("day");
+      if (end.diff(start, "day") > SHORT_TERM_MAX_SPAN_DAYS) {
+        end = start.add(SHORT_TERM_MAX_SPAN_DAYS, "day");
+      }
+      setEndDate(end.toISOString());
     } else {
       setEndDate(null);
     }
+  };
+
+  const renderShortTermStepGuide = () => {
+    const steps = [
+      { n: 1, label: "Select first service day", done: Boolean(startDate) },
+      { n: 2, label: `Select last day (within ${SHORT_TERM_WINDOW_DAYS} days)`, done: Boolean(endDate) },
+      { n: 3, label: "Select daily start time", done: Boolean(startTime) },
+      { n: 4, label: "Set hours per day", done: Boolean(startTime && endTime) },
+    ];
+    const activeStep = steps.find((s) => !s.done)?.n ?? 4;
+
+    return (
+      <Box
+        sx={{
+          mb: 2,
+          p: isMobile ? 1.25 : 1.75,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: alpha(theme.palette.primary.main, 0.2),
+          bgcolor: alpha(theme.palette.primary.main, 0.04),
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "primary.dark" }}>
+          How to book (short term)
+        </Typography>
+        <Stack spacing={0.75}>
+          {steps.map((step) => (
+            <Box
+              key={step.n}
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 1,
+                opacity: step.done ? 0.75 : 1,
+              }}
+            >
+              <Box
+                sx={{
+                  minWidth: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  bgcolor: step.done
+                    ? "success.main"
+                    : step.n === activeStep
+                      ? "primary.main"
+                      : "grey.300",
+                  color: step.done || step.n === activeStep ? "common.white" : "text.secondary",
+                }}
+              >
+                {step.done ? "✓" : step.n}
+              </Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: step.n === activeStep ? 700 : 500,
+                  color: step.n === activeStep ? "text.primary" : "text.secondary",
+                  fontSize: isMobile ? "0.75rem" : "0.8125rem",
+                }}
+              >
+                {step.label}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+        <Typography variant="caption" sx={{ display: "block", mt: 1.25, color: "text.secondary" }}>
+          One time slot applies to every day in your range. Use +/− below to set how many hours per day.
+        </Typography>
+      </Box>
+    );
   };
 
   const isConfirmDisabled = () => {
@@ -337,7 +431,11 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
   // Booking details section (rendered below the date/time picker)
   const renderBookingDetails = () => {
-    if (!startTime) return null; // Only show once a start time is selected
+    if (selectedOption === "Short term") {
+      if (!startDate) return null;
+    } else if (!startTime) {
+      return null;
+    }
 
     return (
       <Box
@@ -403,18 +501,24 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             </Typography>
           )}
 
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: "text.secondary",
-              fontSize: isMobile ? "0.75rem" : "0.875rem"
-            }}
-          >
-            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-              {t("startTime")}:{" "}
-            </Box>
-            {startTime?.format("h:mm A")}
-          </Typography>
+          {startTime ? (
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.75rem" : "0.875rem",
+              }}
+            >
+              <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                {t("startTime")}:{" "}
+              </Box>
+              {startTime.format("h:mm A")}
+            </Typography>
+          ) : selectedOption === "Short term" ? (
+            <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+              Daily start time: not selected yet
+            </Typography>
+          ) : null}
 
           {endTime && (
             <Typography 
@@ -487,12 +591,23 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       alert(t('bookingTimeRestriction'));
       return;
     }
+    const normalizedStart = startTime || (startDate ? dayjs(startDate) : null);
+    const normalizedEnd =
+      endTime ||
+      (selectedOption === "Monthly" && endDate
+        ? dayjs(endDate).endOf("day")
+        : endDate
+          ? dayjs(endDate)
+          : null);
+
     onSave({
       option: selectedOption,
       startDate,
       endDate,
       startTime,
       endTime,
+      start_epoch: toEpochSeconds(normalizedStart),
+      end_epoch: toEpochSeconds(normalizedEnd),
     });
   };
 
@@ -524,17 +639,12 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
         <IconButton
           aria-label={t("close")}
           onClick={onClose}
-          sx={{
-            position: "absolute",
-            right: 10,
-            top: "50%",
-            transform: "translateY(-50%)",
-            zIndex: 2,
-            color: isMobile ? "text.primary" : "common.white",
-            bgcolor: isMobile ? alpha(theme.palette.grey[500], 0.1) : alpha("#fff", 0.12),
+          className="absolute right-2 top-1/2 z-[2] -translate-y-1/2"
+          style={{
+            color: isMobile ? theme.palette.text.primary : theme.palette.common.white,
+            backgroundColor: isMobile ? alpha(theme.palette.grey[500], 0.1) : alpha("#fff", 0.12),
             width: isMobile ? 32 : 40,
             height: isMobile ? 32 : 40,
-            "&:hover": { bgcolor: isMobile ? alpha(theme.palette.grey[500], 0.2) : alpha("#fff", 0.22) },
           }}
         >
           <CloseIcon sx={{ fontSize: isMobile ? 18 : 22 }} />
@@ -737,35 +847,39 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           {/* Short Term Option */}
           {selectedOption === "Short term" && (
             <Box>
-              {renderDurationControl()}
+              {renderShortTermStepGuide()}
               <Box sx={{ width: "100%", mb: 2 }}>
                 <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
                   <Box sx={pickerShellSx}>
                     <DribbbleDateTimePicker
                       mode="range"
-                      value={{ startDate: startDate ? dayjs(startDate).toDate() : undefined, endDate: endDate ? dayjs(endDate).toDate() : undefined }}
+                      maxRangeDays={SHORT_TERM_MAX_SPAN_DAYS}
+                      value={{
+                        startDate: startDate ? dayjs(startDate).toDate() : undefined,
+                        endDate: endDate ? dayjs(endDate).toDate() : undefined,
+                      }}
                       onDateChange={handleRangeDateOnlyChange}
-                      onChange={({ startDate, endDate, time }) => {
-                        const start = dayjs(startDate);
-                        let end = dayjs(endDate);
-                        if (end.diff(start, "day") > 14) {
-                          end = start.add(14, "day");
-                          alert("Short-term bookings are limited to 15 days.");
+                      onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
+                        const start = dayjs(rangeStart).startOf("day");
+                        let end = dayjs(rangeEnd).startOf("day");
+                        if (end.diff(start, "day") > SHORT_TERM_MAX_SPAN_DAYS) {
+                          end = start.add(SHORT_TERM_MAX_SPAN_DAYS, "day");
                         }
-                        const [t, meridian] = time.split(" ");
-                        let hour = Number(t.split(":")[0]);
+                        const [timePart, meridian] = time.split(" ");
+                        let hour = Number(timePart.split(":")[0]);
                         if (meridian === "PM" && hour !== 12) hour += 12;
                         if (meridian === "AM" && hour === 12) hour = 0;
                         const startWithTime = start.hour(hour).minute(0);
                         setStartDate(startWithTime.toISOString());
                         setStartTime(startWithTime);
-                        setEndDate(end.format('YYYY-MM-DD'));
-                        setEndTime(startWithTime.add(1, 'hour'));
+                        setEndDate(end.toISOString());
+                        setEndTime(startWithTime.add(1, "hour"));
                       }}
                     />
                   </Box>
                 </Box>
               </Box>
+              {startTime ? renderDurationControl() : null}
               {renderBookingDetails()}
             </Box>
           )}

@@ -115,6 +115,29 @@
   animation: fadeInOut 3s ease;
 }
 
+.dtp-range-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-align: center;
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  background: rgba(62, 87, 208, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(62, 87, 208, 0.2);
+}
+
+.dtp-day-unavailable-hint {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  margin: 8px 0 4px;
+  padding: 6px 8px;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translateY(-10px); }
   10% { opacity: 1; transform: translateY(0); }
@@ -150,6 +173,18 @@
   background: rgba(255, 59, 48, 0.05);
   padding: 2px 8px;
   border-radius: 12px;
+}
+
+.dtp-step-hint {
+  font-size: 11px;
+  color: #1d4ed8;
+  font-weight: 500;
+  line-height: 1.35;
+  background: rgba(62, 87, 208, 0.08);
+  padding: 4px 10px;
+  border-radius: 12px;
+  flex: 1 1 100%;
+  text-align: left;
 }
 
 /* TIME GRID - compact and expandable */

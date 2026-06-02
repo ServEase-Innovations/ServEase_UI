@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -7,9 +8,7 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  Box,
-  IconButton,
-  Typography
+  Box,  Typography
 } from '@mui/material';
 import { LocalizationProvider, DateTimePicker, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -19,6 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ConfirmationDialog from './ConfirmationDialog';
 import { getServiceTitle } from '../Common/Booking/BookingUtils';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
+import { coalesceEndEpoch, coalesceStartEpoch } from 'src/services/bookingEpoch';
 
 interface Booking {
   id: number;
@@ -26,6 +26,8 @@ interface Booking {
   startDate: string;
   endDate: string;
   bookingType: string;
+  start_epoch?: number | null;
+  end_epoch?: number | null;
 }
 
 interface UserHolidayProps {
@@ -43,11 +45,15 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const bookingStartEpoch = coalesceStartEpoch(booking?.start_epoch, booking?.startDate);
+  const bookingEndEpoch = coalesceEndEpoch(booking?.end_epoch, booking?.endDate);
 
   useEffect(() => {
     if (booking) {
-      const start = dayjs(booking.startDate);
-      const end = dayjs(booking.endDate);
+      const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
+      const endEpoch = coalesceEndEpoch(booking.end_epoch, booking.endDate);
+      const start = startEpoch != null ? dayjs.unix(startEpoch) : dayjs(booking.startDate);
+      const end = endEpoch != null ? dayjs.unix(endEpoch) : dayjs(booking.endDate);
 
       // ✅ Ensure start date cannot be in the past
       const today = dayjs().startOf('day');
@@ -174,7 +180,15 @@ const UserHoliday: React.FC<UserHolidayProps> = ({ open, onClose, booking, onLea
       {/* Booking Info */}
       {booking && (
         <div className="text-sm text-muted-foreground">
-          <p>Your booked period: {dayjs(booking.startDate).format('DD/MM/YYYY')} to {dayjs(booking.endDate).format('DD/MM/YYYY')}</p>
+          <p>
+            Your booked period: {(bookingStartEpoch != null
+              ? dayjs.unix(bookingStartEpoch)
+              : dayjs(booking.startDate)
+            ).format('DD/MM/YYYY')} to {(bookingEndEpoch != null
+              ? dayjs.unix(bookingEndEpoch)
+              : dayjs(booking.endDate)
+            ).format('DD/MM/YYYY')}
+          </p>
           <p>Service Type: {booking.service_type}</p>
           <p>Booking Type: {booking.bookingType}</p>
         </div>

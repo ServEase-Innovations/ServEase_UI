@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Draggable from "react-draggable";
 import { MessageCircle, X } from "lucide-react";
 
@@ -69,6 +69,7 @@ const ChatbotButton: React.FC<ChatbotButtonProps> = ({
 }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isMobile, setIsMobile] = useState(false);
+  const dragNodeRef = useRef<HTMLDivElement>(null);
   const showPreview = Boolean(supportPreview) && !open;
   const dismiss = () => onDismissSupportPreview?.();
   const openFromPreview = () => onOpenFromSupportPreview?.();
@@ -127,13 +128,17 @@ const ChatbotButton: React.FC<ChatbotButtonProps> = ({
 
   return (
     <Draggable
+      nodeRef={dragNodeRef}
       position={position}
       onDrag={(_, data) => setPosition({ x: data.x, y: data.y })}
       bounds="parent"
       handle=".chat-drag-surface"
       cancel=".support-preview-panel, .support-preview-panel *"
     >
-      <div className={["chat-drag-surface", fixedWrap, "cursor-grab active:cursor-grabbing"].join(" ")}>
+      <div
+        ref={dragNodeRef}
+        className={["chat-drag-surface", fixedWrap, "cursor-grab active:cursor-grabbing"].join(" ")}
+      >
         {showPreview && supportPreview && (
           <SupportPreviewPanel line={supportPreview} onOpen={openFromPreview} onDismiss={dismiss} />
         )}

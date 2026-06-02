@@ -4,11 +4,11 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  IconButton,
   Typography,
   Box,
 } from '@mui/material';
-import { Button } from '../Button/button';
+import { Button, dialogActionsClassName } from '../Button/button';
+import { IconButton } from '../Button/icon-button';
 import { AlertTriangle, X } from 'lucide-react';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 
@@ -84,12 +84,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           onClick={onClose}
           disabled={loading}
           aria-label="Close"
-          size="small"
-          sx={{
-            color: '#fff',
-            flexShrink: 0,
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
-          }}
+          className="h-8 w-8 shrink-0 text-white hover:bg-white/10"
         >
           <X className="h-5 w-5" />
         </IconButton>
@@ -101,29 +96,15 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         </Typography>
       </DialogContent>
 
-      <DialogActions
-        sx={{
-          px: 3,
-          pb: 3,
-          pt: 1.5,
-          gap: 1.5,
-          flexDirection: { xs: 'column-reverse', sm: 'row' },
-          '& > *': { m: '0 !important' },
-        }}
-      >
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={loading}
-          className="min-h-11 w-full sm:min-w-[7.5rem] sm:w-auto"
-        >
+      <DialogActions className={dialogActionsClassName}>
+        <Button variant="dialogCancel" onClick={onClose} disabled={loading}>
           {cancelText}
         </Button>
         <Button
           onClick={onConfirm}
           loading={loading}
-          className="min-h-11 w-full sm:min-w-[7.5rem] sm:w-auto"
-          variant={isDestructive ? 'destructive' : 'default'}
+          variant={isDestructive ? 'destructive' : 'dialogPrimary'}
+          className={isDestructive ? 'w-full min-h-11 sm:w-auto sm:min-w-[7.5rem]' : undefined}
         >
           {confirmText}
         </Button>

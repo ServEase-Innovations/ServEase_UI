@@ -7,7 +7,6 @@ import {
   DialogContent, 
   DialogContentText, 
   DialogTitle, 
-  IconButton, 
   Paper, 
   TextField, 
   Tooltip, 
@@ -24,6 +23,8 @@ import {
   useMediaQuery,
   useTheme
 } from "@mui/material";
+import { Info } from "lucide-react";
+import { Button } from "../Button/button";
 import { styled } from "@mui/material/styles";
 import moment from "moment";
 import "./ProviderDetails.css"; 
@@ -55,7 +56,6 @@ import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LanguageIcon from '@mui/icons-material/Language';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
-import { Button } from "../Button/button";
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
@@ -825,51 +825,20 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
               alignItems="stretch"
             >
               <Button
-                variant="outlined"
-                size="medium"
+                variant="outline"
                 fullWidth={isMobile}
-                startIcon={<InfoOutlinedIcon />}
+                startIcon={<Info className="h-4 w-4" />}
                 onClick={handleViewDetails}
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  borderColor: 'rgba(14, 165, 233, 0.45)',
-                  color: 'primary.dark',
-                  bgcolor: 'rgba(255, 255, 255, 0.95)',
-                  minWidth: { sm: 168 },
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    bgcolor: 'rgba(240, 249, 255, 0.95)',
-                  },
-                  '@media (max-width: 600px)': {
-                    minHeight: 42,
-                  },
-                }}
+                className="min-h-[42px] sm:min-w-[168px] font-semibold"
               >
                 {isMobile ? t('details') : t('viewDetails')}
               </Button>
 
               <Button
-                variant="contained"
-                size="medium"
+                variant="cta"
                 fullWidth={isMobile}
                 onClick={handleBookNow}
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  minWidth: { sm: 168 },
-                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0369a1 100%)',
-                  boxShadow: '0 8px 22px -6px rgba(14, 165, 233, 0.55)',
-                  '@media (max-width: 600px)': {
-                    minHeight: 42,
-                  },
-                  '&:hover': {
-                    boxShadow: '0 12px 28px -6px rgba(14, 165, 233, 0.55)',
-                    background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 50%, #0369a1 100%)',
-                  },
-                }}
+                className="min-h-[42px] sm:min-w-[168px]"
               >
                 {isMobile ? t('book') : t('bookNow')}
               </Button>

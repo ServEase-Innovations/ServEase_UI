@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -10,9 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
-  IconButton,
-  InputLabel,
+  FormControlLabel,  InputLabel,
   MenuItem,
   Select,
   Switch,

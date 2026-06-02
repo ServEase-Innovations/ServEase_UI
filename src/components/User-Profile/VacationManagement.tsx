@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import {
   Typography,
-  IconButton,
   Dialog,
   DialogContent,
   DialogActions,
@@ -12,12 +11,11 @@ import {
   Chip,
   Paper,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import EventIcon from "@mui/icons-material/Event";
-import EditCalendarIcon from "@mui/icons-material/EditCalendar";
+import { X, CalendarDays, CalendarRange } from "lucide-react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { Button } from "../Button/button";
+import { Button, dialogActionsClassName } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
 import PaymentInstance from "src/services/paymentInstance";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage } from "src/context/LanguageContext";
@@ -348,23 +346,16 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   }}
 >
   <Box className="flex items-center gap-2">
-    <EventIcon />
+    <CalendarDays className="h-5 w-5 text-white" aria-hidden />
     <Typography variant="h6" fontWeight="600">{t("modifyVacation")}</Typography>
   </Box>
 
  <IconButton
   onClick={onClose}
-  size="small"
-  sx={{
-    position: "absolute",
-    right: 12,
-    top: 12,
-    color: "white",          // icon color
-    width: 32,
-    height: 32,
-  }}
+  aria-label="Close"
+  className="absolute right-3 top-3 h-8 w-8 text-white hover:bg-white/10"
 >
-    <CloseIcon />
+    <X className="h-5 w-5" />
   </IconButton>
 </DialogHeader>
 
@@ -384,7 +375,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
             }}
           >
             <Box className="flex items-center gap-2 mb-2">
-              <EditCalendarIcon color="info" />
+              <CalendarRange className="h-5 w-5 text-sky-600" aria-hidden />
               <Typography variant="subtitle1" fontWeight="600" color="info.dark">
                 {t("currentVacationPeriod")}
               </Typography>
@@ -548,32 +539,23 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         </Paper>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 2, borderTop: 1, borderColor: 'divider' }}>
+      <DialogActions className={`${dialogActionsClassName} sm:!justify-between`}>
         <Button
           onClick={handleCancelVacation}
-          variant="outlined"
-          color="error"
+          variant="destructiveOutline"
           disabled={isLoading}
-          sx={{ minWidth: 140 }}
+          className="sm:min-w-[140px]"
         >
           {t("cancelVacation")}
         </Button>
-        <Box sx={{ flex: 1 }} />
         <Button
           onClick={handleUpdateVacation}
-          variant="contained"
+          variant="dialogPrimary"
           disabled={isLoading || !startDate || !endDate || !isValidVacationPeriod()}
-          sx={{ minWidth: 160 }}
-          className="flex items-center gap-2"
+          loading={isLoading}
+          className="sm:min-w-[160px]"
         >
-          {isLoading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              {t("updating")}
-            </>
-          ) : (
-            t("updateVacation")
-          )}
+          {t("updateVacation")}
         </Button>
       </DialogActions>
     </Dialog>

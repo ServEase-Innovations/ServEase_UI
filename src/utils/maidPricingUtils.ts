@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 export interface MaidPricingRow {
   _id?: string;
   Service?: string;
@@ -212,9 +214,10 @@ export function formatDateOnly(value?: string | null): string {
   if (!value) return "";
   const s = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+  const parsed = dayjs(s);
+  if (!parsed.isValid()) return "";
+  // Keep local calendar day selected by user (avoid UTC date-shift from toISOString()).
+  return parsed.format("YYYY-MM-DD");
 }
 
 export function computeDurationDays(startDate?: string, endDate?: string): number {

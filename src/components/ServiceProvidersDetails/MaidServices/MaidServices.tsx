@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable */
 
-import { Alert, Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid,  Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import CategoryIcon from '@mui/icons-material/Category';
-import PaymentIcon from "@mui/icons-material/Payment";
+import { Alert, Box, Card, Checkbox, FormControlLabel, FormGroup, Grid,  Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import { Button } from "../../Button/button";
+import { IconButton } from "../../Button/icon-button";
+import { CreditCard, LayoutGrid, ShoppingCart } from "lucide-react";
 import { SyntheticEvent, useEffect, useState } from "react";
 import { getPriceByNumber, getPriceByvalue } from "../../../customServices/PricingService";
-import AddIcon from '@mui/icons-material/Add';
 import { useDispatch, useSelector } from "react-redux";
 import { add } from "../../../features/cart/cartSlice";
 import { CHECKOUT } from "../../../Constants/pagesConstants";
@@ -261,7 +260,7 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                 >
                   
                   {/* Icon outside the tabs */}
-                  <CategoryIcon sx={{  color: "#1e88e5" , marginLeft: 4,fontSize: "2rem"}} />
+                  <LayoutGrid className="ml-4 h-8 w-8 text-sky-600" aria-hidden />
                   <Tabs
                     // value={serviceType}
                     // onChange={handleServiceType}
@@ -406,12 +405,13 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
     }}
 />
 
-<Button 
-    variant="outlined" 
-    onClick={() => addSelectedItemToCart(selectedCategory[1][0]['Sub-Categories'])} 
+<IconButton
+    variant="outline"
+    className="border-sky-600 text-sky-600 hover:bg-sky-50"
+    onClick={() => addSelectedItemToCart(selectedCategory[1][0]['Sub-Categories'])}
 >
-    <ShoppingCartIcon />
-</Button> 
+    <ShoppingCart className="h-5 w-5" />
+</IconButton> 
 
     </div>
 )}
@@ -431,12 +431,13 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
         }
     }}
 />
-<Button 
-    variant="outlined" 
-    onClick={() => addSelectedItemToCart(getLabel(button))} 
+<IconButton
+    variant="outline"
+    className="border-sky-600 text-sky-600 hover:bg-sky-50"
+    onClick={() => addSelectedItemToCart(getLabel(button))}
 >
-<ShoppingCartIcon />
-</Button>
+<ShoppingCart className="h-5 w-5" />
+</IconButton>
 
       </div>
       
@@ -488,11 +489,10 @@ const MaidServices = ({ onPriceChange , onAddToCart , pricing , sendToParent }: 
                       </Card>
         
                       <Button
-                        variant="contained"
-                        color="success"
-                        startIcon={<PaymentIcon />}
+                        variant="success"
+                        startIcon={<CreditCard className="h-5 w-5" />}
                         fullWidth
-                        sx={{ height: 50 }}
+                        className="h-[50px]"
                         onClick={handleProceedToCheckout}
                       >
                         {t("proceedToCheckout")}

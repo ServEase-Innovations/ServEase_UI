@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { useState, useEffect, useMemo } from "react";
 import moment from "moment";
+import dayjs from "dayjs";
 import { DashboardMetricCard } from "./DashboardMetricCard";
 import { PaymentHistory } from "./PaymentHistory";
 import { Button } from "../../components/Button";
@@ -17,7 +18,6 @@ import {
   Home,
   Bell,
   Loader2,
-  CheckCircle,
   Shield,
   CreditCard,
   Wallet,
@@ -35,6 +35,11 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import ProviderCalendarBig from "./ProviderCalendarBig";
 import PaymentInstance from "src/services/paymentInstance";
 import { useAppUser } from "src/context/AppUserContext";
+import {
+  epochToDisplayTime,
+  toEpochOrNull,
+} from "src/services/bookingEpoch";
+import type { EngagementEpochFields } from "src/services/epochContract";
 import { OtpVerificationDialog } from "./OtpVerificationDialog";
 import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
@@ -72,11 +77,11 @@ interface ServiceProviderLeave {
 interface ResponsibilityTask {
   taskType: string;
   persons?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ResponsibilityAddOn {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 interface Responsibilities {
   tasks?: ResponsibilityTask[];
@@ -118,13 +123,13 @@ export interface Booking {
   location: string;
   status: string;
   amount: string;
-  bookingData: any;
+  bookingData: ProviderDashboardBooking;
 }
 
 export interface BookingHistoryResponse {
-  current: Booking[];
-  upcoming?: any[];
-  past: Booking[];
+  current: ProviderDashboardBooking[];
+  upcoming?: ProviderDashboardBooking[];
+  past: ProviderDashboardBooking[];
 }
 
 export interface ProviderPayoutResponse {
@@ -174,6 +179,8 @@ export interface TodayBookingSlot {
   visit_date: string;
   slot_start_epoch: number | null;
   slot_end_epoch: number | null;
+  engagement_start_epoch?: number | null;
+  engagement_end_epoch?: number | null;
   start_time_ist: string | null;
   end_time_ist: string | null;
   booking_type: string;
@@ -190,6 +197,27 @@ export interface TodayBookingSlot {
   /** `service_days.status`: SCHEDULED | IN_PROGRESS | COMPLETED | … */
   service_day_status: string | null;
 }
+
+type TaskBookingData = {
+  today_service?: {
+    service_day_id?: string | number | null;
+    status?: string | null;
+    can_start?: boolean;
+  };
+  firstname?: string;
+  lastname?: string;
+  customerName?: string;
+  service_type?: string;
+  serviceType?: string;
+  engagement_id?: string | number;
+  id?: string | number;
+  mobileno?: string | null;
+};
+
+type CurrentBookingState = {
+  bookingId: string;
+  bookingData: TaskBookingData;
+} | null;
 
 // Mock data for payments
 const paymentHistory = [
@@ -247,87 +275,33 @@ const formatTimeToAMPM = (timeString: string): string => {
   }
 };
 
-// Function to format time range from start and end time strings
-const formatTimeRange = (startTime: string, endTime: string): string => {
-  return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
-};
-
-// Function to format API booking data for the BookingCard component
-const formatBookingForCard = (booking: any) => {
-  let date, timeRange;
-  
-  if (booking.start_epoch && booking.end_epoch) {
-    const startDate = new Date(booking.start_epoch * 1000);
-    const endDate = new Date(booking.end_epoch * 1000);
-    
-    const formattedDate = startDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-    
-    timeRange = `${startDate.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
-    })} - ${endDate.toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
-    })}`;
-    
-    date = formattedDate;
-  } else {
-    const startDateRaw = booking.startDate || booking.start_date;
-    const startTimeStr = booking.startTime || "00:00";
-    const endTimeStr = booking.endTime || "00:00";
-
-    const startDate = new Date(startDateRaw);
-    const endDate = new Date(startDateRaw);
-
-    const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
-    const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
-
-    startDate.setHours(startHours, startMinutes);
-    endDate.setHours(endHours, endMinutes);
-
-    timeRange = formatTimeRange(booking.startTime, booking.endTime);
-    
-    date = startDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-  }
-
-  const clientName = booking.firstname || 
-                    booking.customerName || 
-                    booking.email || 
-                    "Client";
-
-  const bookingId = booking.engagement_id || booking.id;
-
-  const amount = booking.base_amount ? 
-    `₹${parseFloat(booking.base_amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
-    "₹0";
-
-  return {
-    id: booking.engagement_id?.toString() || booking.id?.toString() || "",
-    bookingId: booking.engagement_id || booking.id,
-    engagement_id: booking.engagement_id?.toString() || booking.id?.toString(),
-    clientName,
-    service: getServiceTitle(booking.service_type || booking.serviceType),
-    date: date,
-    time: timeRange,
-    location: booking.address || booking.location || "R4J8+WCR, Bazar, Haripal Station Rd, opposite to state bank, Haripal, Jejur, West Bengal 712405, India",
-    status: booking.task_status === "COMPLETED" ? "completed" : 
-            booking.task_status === "IN_PROGRESS" || booking.task_status === "STARTED" ? "in-progress" : 
-            booking.task_status === "NOT_STARTED" ? "upcoming" : "upcoming",
-    amount: amount,
-    bookingData: booking,
-    responsibilities: booking.responsibilities || {},
-    contact: booking.mobileno || "Contact info not available",
-    task_status: booking.task_status
+type ProviderDashboardBooking = Partial<EngagementEpochFields> & {
+  [key: string]: unknown;
+  id?: number | string;
+  engagement_id?: number | string;
+  startDate?: string;
+  start_date?: string;
+  endDate?: string;
+  end_date?: string;
+  startTime?: string;
+  endTime?: string;
+  booking_type?: string;
+  bookingType?: string;
+  firstname?: string;
+  customerName?: string;
+  email?: string;
+  base_amount?: number | string;
+  service_type?: string;
+  serviceType?: string;
+  address?: string | null;
+  location?: string;
+  task_status?: string;
+  responsibilities?: { tasks?: unknown[]; add_ons?: unknown[] };
+  mobileno?: string | null;
+  today_service?: {
+    service_day_id?: string | number | null;
+    status?: string | null;
+    can_start?: boolean;
   };
 };
 
@@ -339,7 +313,7 @@ interface TodayVisitsCardProps {
   onTrackAddress: (address: string) => void;
   /** Resolves today’s service day when needed, then calls the start API */
   onStartTodayVisit: (slot: TodayBookingSlot) => void | Promise<void>;
-  onStopTask: (bookingId: string, bookingData: any) => void;
+  onStopTask: (bookingId: string, bookingData: TaskBookingData) => void;
 }
 
 function TodayVisitsCard({
@@ -397,11 +371,19 @@ function TodayVisitsCard({
                 (sd === "SCHEDULED" ||
                   (isOnDemand && (b.service_day_id == null || !sd)) ||
                   (recurring && (b.service_day_id == null || sd === "")));
+              const slotStart = toEpochOrNull(b.slot_start_epoch);
+              const slotEnd = toEpochOrNull(b.slot_end_epoch);
+              const startLabel =
+                epochToDisplayTime(slotStart) ||
+                (b.start_time_ist ? formatTimeToAMPM(b.start_time_ist) : null);
+              const endLabel =
+                epochToDisplayTime(slotEnd) ||
+                (b.end_time_ist ? formatTimeToAMPM(b.end_time_ist) : null);
               const timeRange =
-                b.start_time_ist && b.end_time_ist
-                  ? `${formatTimeToAMPM(b.start_time_ist)} – ${formatTimeToAMPM(b.end_time_ist)}`
-                  : b.start_time_ist
-                    ? formatTimeToAMPM(b.start_time_ist)
+                startLabel && endLabel
+                  ? `${startLabel} – ${endLabel}`
+                  : startLabel
+                    ? startLabel
                     : "Time TBD";
               const amountLabel =
                 b.base_amount != null
@@ -424,8 +406,8 @@ function TodayVisitsCard({
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                    {getBookingTypeBadge(b.booking_type)}
-                    {getStatusBadge(b.task_status)}
+                    {getBookingTypeBadge(String(b.booking_type || ""))}
+                    {getStatusBadge(String(b.task_status || ""))}
                     {b.mobileno ? (
                       <Button
                         type="button"
@@ -514,7 +496,7 @@ export default function Dashboard() {
   const [taskStatusUpdating, setTaskStatusUpdating] = useState<Record<string, boolean>>({});
   
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
-  const [currentBooking, setCurrentBooking] = useState<any>(null);
+  const [currentBooking, setCurrentBooking] = useState<CurrentBookingState>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [withdrawalHistoryDialogOpen, setWithdrawalHistoryDialogOpen] = useState(false);
   const [withdrawalDialogOpen, setWithdrawalDialogOpen] = useState(false);
@@ -559,10 +541,7 @@ export default function Dashboard() {
   ];
 
   const getCurrentMonthYear = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    return `${year}-${month}`;
+    return dayjs().format("YYYY-MM");
   };
 
   const { appUser } = useAppUser();
@@ -603,7 +582,16 @@ export default function Dashboard() {
       setBookings(data);
       const tr = todayRes as AxiosResponse<{ bookings?: TodayBookingSlot[] }>;
       const slots = tr?.data?.bookings;
-      setTodaySchedule(Array.isArray(slots) ? slots : []);
+      const normalizedSlots = Array.isArray(slots)
+        ? slots.map((slot) => ({
+            ...slot,
+            slot_start_epoch: toEpochOrNull(slot.slot_start_epoch),
+            slot_end_epoch: toEpochOrNull(slot.slot_end_epoch),
+            engagement_start_epoch: toEpochOrNull(slot.engagement_start_epoch),
+            engagement_end_epoch: toEpochOrNull(slot.engagement_end_epoch),
+          }))
+        : [];
+      setTodaySchedule(normalizedSlots);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
@@ -680,7 +668,7 @@ const handleTrackAddress = (address: string) => {
   setTrackAddressDialogOpen(true);
 };
 
-  const handleStartTask = async (bookingId: string, bookingData: any) => {
+  const handleStartTask = async (bookingId: string, bookingData: TaskBookingData) => {
     if (!bookingId || !bookingData) return;
 
     const serviceDayId = bookingData.today_service?.service_day_id;
@@ -757,7 +745,7 @@ const handleTrackAddress = (address: string) => {
       toast({
         title: "Can't start this visit",
         description:
-          "No service day was found for today. If the booking is new, wait a moment and refresh, or start from Recent booking.",
+          "No service day was found for today. If the booking is new, wait a moment and refresh the dashboard.",
         variant: "destructive",
       });
       return;
@@ -767,7 +755,7 @@ const handleTrackAddress = (address: string) => {
     });
   };
 
-  const handleStopTask = async (bookingId: string, bookingData: any) => {
+  const handleStopTask = async (bookingId: string, bookingData: TaskBookingData) => {
     setCurrentBooking({ bookingId, bookingData });
     setOtpDialogOpen(true);
   };
@@ -825,12 +813,6 @@ const handleTrackAddress = (address: string) => {
     }
   };
 
-  const upcomingBookings = bookings
-    ? [...(bookings.current || []), ...(bookings.upcoming || [])].map(formatBookingForCard)
-    : [];
-
-  const latestBooking = upcomingBookings.length > 0 ? [upcomingBookings[0]] : [];
-
   const unavailabilityMonth = useMemo(
     () => moment().format("YYYY-MM"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -840,17 +822,14 @@ const handleTrackAddress = (address: string) => {
     if (!bookings) return [] as { value: string; label: string }[];
     const out: { value: string; label: string }[] = [];
     const seen = new Set<string>();
-    const fromRow = (b: any) => {
-      const id = b?.engagement_id;
+    const fromRow = (b: ProviderDashboardBooking) => {
+      const id = b?.engagement_id ?? b?.id;
       if (id == null) return;
       const s = String(id);
       if (seen.has(s)) return;
       seen.add(s);
       const name =
-        [b?.firstname, b?.lastname]
-          .filter(Boolean)
-          .join(" ")
-          .trim() || (b?.customerid != null ? `Customer #${b.customerid}` : "—");
+        b?.customerName?.trim() || "—";
       out.push({ value: s, label: `#${s} · ${name}` });
     };
     bookings.current?.forEach(fromRow);
@@ -961,237 +940,8 @@ const handleTrackAddress = (address: string) => {
           />
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
-          <div className="lg:col-span-2">
-            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-lg shadow-slate-200/40 ring-1 ring-slate-900/5">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-slate-100/90 bg-slate-50/50 py-3.5 sm:py-4">
-                <CardTitle className="text-base font-bold text-slate-900 sm:text-lg">Recent booking</CardTitle>
-                {!loading && latestBooking.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-sky-100 text-[10px] font-semibold text-sky-800 ring-1 ring-sky-200/60 sm:text-xs"
-                  >
-                    Latest
-                  </Badge>
-                )}
-              </CardHeader>
-
-              <CardContent className="p-4 sm:p-5">
-                {loading ? (
-                  <div className="flex min-h-[120px] items-center justify-center py-6">
-                    <Loader2 className="h-7 w-7 animate-spin text-sky-600" />
-                  </div>
-                ) : error ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-slate-600">
-                    <p className="text-sm font-medium">Failed to load bookings. Please try again.</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 border-slate-300"
-                      onClick={fetchData}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : latestBooking.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/40 py-10 text-center">
-                    <p className="text-sm text-slate-500">No upcoming bookings found.</p>
-                  </div>
-                ) : (
-                  latestBooking.map((booking) => {
-                    const todayServiceStatus = booking.bookingData?.today_service?.status;
-                    const taskStatusOriginal = booking.task_status?.toUpperCase();
-                    
-                    const isInProgress = todayServiceStatus === 'IN_PROGRESS' || 
-                                         taskStatus[booking.id] === 'IN_PROGRESS' || 
-                                         taskStatusOriginal === 'IN_PROGRESS' || 
-                                         taskStatusOriginal === 'STARTED';
-                    
-                    const isCompleted = todayServiceStatus === 'COMPLETED' || 
-                                        taskStatusOriginal === 'COMPLETED';
-                    
-                    const isNotStarted = todayServiceStatus === 'SCHEDULED' || 
-                                         taskStatusOriginal === 'NOT_STARTED';
-
-                    const ts = booking.bookingData?.today_service;
-                    const canStart = ts?.can_start === true;
-                    const isOnDemandBooking =
-                      String(
-                        booking.bookingData?.booking_type ||
-                          booking.bookingData?.bookingType ||
-                          ""
-                      ).toUpperCase() === "ON_DEMAND";
-                    const showStartButton =
-                      isNotStarted &&
-                      (canStart ||
-                        ts?.status === "SCHEDULED" ||
-                        (isOnDemandBooking && !ts?.service_day_id));
-                    const showCompleteButton = isInProgress;
-                    const showCompletedButton = isCompleted;
-
-                    return (
-                      <div
-                        key={booking.id}
-                        className="mb-0 rounded-xl border border-slate-200/90 bg-slate-50/40 p-4 ring-1 ring-slate-900/5"
-                      >
-                        <div className="mb-3 flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                              Booking ID: {booking.bookingId || "N/A"}
-                            </p>
-                            <h2 className="text-base font-semibold text-slate-900">{booking.clientName}</h2>
-                            <p className="text-xs text-slate-500">{booking.service}</p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                            {getBookingTypeBadge(booking.bookingData.booking_type || booking.bookingData.bookingType)}
-                            {getStatusBadge(booking.bookingData.task_status)}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground">Date & Time</p>
-                            <p className="text-xs">
-                              {booking.date} at {booking.time}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Amount</p>
-                              <p className="text-xs font-semibold">
-                                {booking.amount}
-                              </p>
-                            </div>
-                            {booking.bookingData?.mobileno && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2"
-                                onClick={() => handleCallCustomer(booking.bookingData.mobileno, booking.clientName)}
-                                title={`Call ${booking.clientName}`}
-                              >
-                                <Phone className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Responsibilities section removed */}
-
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-medium text-muted-foreground">Address</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => handleTrackAddress(booking.location)}
-                            >
-                              <MapPin className="h-3 w-3 mr-1" />
-                              Track Address
-                            </Button>
-                          </div>
-                          <p className="text-xs">
-                            {booking.location || "R4J8+WCR, Bazar, Haripal Station Rd, opposite to state bank, Haripal, Jejur, West Bengal 712405, India"}
-                          </p>
-                        </div>
-
-                        {todayServiceStatus && (
-                          <div className="mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground">Today's Service:</span>
-                              <Badge 
-                                variant="outline"
-                                className={`
-                                  text-xs
-                                  ${todayServiceStatus === 'SCHEDULED' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
-                                  ${todayServiceStatus === 'IN_PROGRESS' ? 'bg-green-50 text-green-700 border-green-200' : ''}
-                                  ${todayServiceStatus === 'COMPLETED' ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
-                                `}
-                              >
-                                {todayServiceStatus}
-                              </Badge>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            {isInProgress 
-                              ? "Task In Progress" 
-                              : isCompleted 
-                                ? 'Task Completed' 
-                                : isNotStarted
-                                  ? 'Not Started' 
-                                  : 'Upcoming'
-                            }
-                          </p>
-                          <div className="flex gap-2">
-                            {taskStatusUpdating[booking.id] ? (
-                              <Button variant="ghost" size="sm" disabled>
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              </Button>
-                            ) : showCompleteButton ? (
-                              <Button 
-                                variant="destructive" 
-                                size="sm"
-                                className="h-7 text-xs px-2"
-                                onClick={() => handleStopTask(booking.id, booking.bookingData)}
-                              >
-                                Complete Task
-                              </Button>
-                            ) : showCompletedButton ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 text-xs px-2 bg-green-50 text-green-700 border-green-200"
-                                disabled
-                              >
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Completed
-                              </Button>
-                            ) : showStartButton ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 text-xs px-2"
-                                disabled={ts?.service_day_id != null && !canStart}
-                                onClick={() => {
-                                  if (ts?.service_day_id) {
-                                    void handleStartTask(booking.id, booking.bookingData);
-                                  } else {
-                                    void handleStartTodayVisit({
-                                      engagement_id: Number(booking.bookingId || booking.id),
-                                      booking_type: booking.bookingData?.booking_type,
-                                    } as TodayBookingSlot);
-                                  }
-                                }}
-                              >
-                                Start Task
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 text-xs px-2 bg-gray-50 text-gray-500 border-gray-200"
-                                disabled
-                              >
-                                Cannot Start Yet
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5">
+          <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
               <CardHeader className="border-b border-slate-100/90 bg-slate-50/50 py-3.5">
                 <CardTitle className="text-base font-bold text-slate-900">Quick actions</CardTitle>
               </CardHeader>
@@ -1276,28 +1026,27 @@ const handleTrackAddress = (address: string) => {
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
-              <CardHeader className="border-b border-slate-100/90 bg-slate-50/50 py-3.5">
-                <CardTitle className="text-base font-bold text-slate-900">Service status</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
-                    <span className="text-xs font-medium text-slate-600">Profile status</span>
-                    <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Active</Badge>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
-                    <span className="text-xs font-medium text-slate-600">Verification</span>
-                    <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Verified</Badge>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
-                    <span className="text-xs font-medium text-slate-600">Availability</span>
-                    <Badge className="border-0 bg-sky-100 text-xs font-medium text-sky-900">Available</Badge>
-                  </div>
+          <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
+            <CardHeader className="border-b border-slate-100/90 bg-slate-50/50 py-3.5">
+              <CardTitle className="text-base font-bold text-slate-900">Service status</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                  <span className="text-xs font-medium text-slate-600">Profile status</span>
+                  <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Active</Badge>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                  <span className="text-xs font-medium text-slate-600">Verification</span>
+                  <Badge className="border-0 bg-emerald-100 text-xs font-medium text-emerald-800">Verified</Badge>
+                </div>
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-100/90 bg-slate-50/50 px-3 py-2">
+                  <span className="text-xs font-medium text-slate-600">Availability</span>
+                  <Badge className="border-0 bg-sky-100 text-xs font-medium text-sky-900">Available</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mt-2">
@@ -1325,7 +1074,7 @@ const handleTrackAddress = (address: string) => {
           verifying={verifyingOtp}
           bookingInfo={currentBooking ? {
             clientName: currentBooking.bookingData?.firstname || currentBooking.bookingData?.customerName,
-            service: getServiceTitle(currentBooking.bookingData?.service_type || currentBooking.bookingData?.serviceType),
+            service: getServiceTitle(String(currentBooking.bookingData?.service_type || currentBooking.bookingData?.serviceType || "")),
             bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.bookingId || currentBooking.bookingData?.id || currentBooking.bookingId,
           } : undefined}
         />

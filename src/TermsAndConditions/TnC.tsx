@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React from 'react';
 import { 
   Container, 
@@ -8,9 +9,7 @@ import {
   Divider, 
   List, 
   ListItem, 
-  ListItemText,
-  IconButton,
-  Stack
+  ListItemText,  Stack
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useLanguage } from 'src/context/LanguageContext';

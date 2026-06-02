@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
+import { resolveAccessToken } from "src/utils/auth0Token";
 
 const APP_USER_STORAGE_KEY = "serveaso_app_user";
 
@@ -36,7 +37,7 @@ interface AppUserContextType {
 const AppUserContext = createContext<AppUserContextType | undefined>(undefined);
 
 function AuthSessionBridge({ onReady }: { onReady: () => void }) {
-  const { isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup } = useAuth0();
 
   useEffect(() => {
     if (isLoading) return;
@@ -49,7 +50,7 @@ function AuthSessionBridge({ onReady }: { onReady: () => void }) {
     let cancelled = false;
     (async () => {
       try {
-        const token = await getAccessTokenSilently();
+        const token = await resolveAccessToken(getAccessTokenSilently, loginWithPopup);
         if (!cancelled && token) {
           localStorage.setItem("token", token);
         }
@@ -63,7 +64,7 @@ function AuthSessionBridge({ onReady }: { onReady: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isLoading, getAccessTokenSilently, onReady]);
+  }, [isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup, onReady]);
 
   return null;
 }

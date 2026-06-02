@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { X, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, Alert, Snackbar } from "@mui/material";
 import { Button } from "../Button/button";
-import { ClipLoader } from "react-spinners";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import {
@@ -16,7 +15,12 @@ import {
 interface AddReviewDialogProps {
   open: boolean;
   onClose: () => void;
-  booking: any;
+  booking: {
+    id?: number;
+    engagement_id?: number;
+    service_type?: string;
+    serviceProviderName?: string;
+  } | null;
   onReviewSubmitted: (bookingId: number) => void;
 }
 
@@ -245,18 +249,13 @@ const AddReviewDialog: React.FC<AddReviewDialogProps> = ({
 
           <div className="flex justify-center mt-6">
             <Button
+              variant="dialogPrimary"
               onClick={handleSubmit}
-              className="rounded-lg px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white"
               disabled={submitDisabled}
+              loading={isSubmitting}
+              className="px-8"
             >
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <ClipLoader color="#ffffff" size={16} className="mr-2" />
-                  Submitting...
-                </div>
-              ) : (
-                "Submit Review"
-              )}
+              Submit Review
             </Button>
           </div>
         </DialogContent>

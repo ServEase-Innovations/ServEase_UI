@@ -31,6 +31,10 @@ export interface BookingPayload {
   serviceproviderid: number | null;
   start_date: string;
   end_date: string;
+  start_epoch?: number;
+  end_epoch?: number;
+  start_date_epoch?: number;
+  end_date_epoch?: number;
   responsibilities: any;
   booking_type: string;
   service_type: string;
@@ -63,6 +67,71 @@ export interface RazorpayPaymentResponse {
   razorpay_order_id: string;
   razorpay_signature: string;
   engagementId : number;
+}
+
+function toEpochSeconds(dateYmd?: string, timeHm?: string): number | null {
+  if (!dateYmd || !timeHm) return null;
+  const dt = dayjs(`${dateYmd} ${timeHm}`);
+  if (!dt.isValid()) return null;
+  return dt.unix();
+}
+
+function toDateStartEpoch(dateYmd?: string): number | null {
+  if (!dateYmd) return null;
+  const d = dayjs(dateYmd);
+  return d.isValid() ? d.startOf("day").unix() : null;
+}
+
+function toDateEndEpoch(dateYmd?: string): number | null {
+  if (!dateYmd) return null;
+  const d = dayjs(dateYmd);
+  return d.isValid() ? d.endOf("day").unix() : null;
+}
+
+function normalizeEpochFirstPayload(payload: BookingPayload): BookingPayload {
+  const out: BookingPayload = { ...payload };
+  const bookingType = String(out.booking_type || "").toUpperCase();
+  const startDate = String(out.start_date || "").slice(0, 10);
+  const endDateRaw = String(out.end_date || "").slice(0, 10);
+  const startTime = String(out.start_time || "");
+  const endTime = String(out.end_time || "");
+
+  const startEpochFromFields = toEpochSeconds(startDate, startTime);
+  let endEpochFromFields = toEpochSeconds(
+    bookingType === "ON_DEMAND" ? startDate : (endDateRaw || startDate),
+    endTime
+  );
+
+  let startEpoch = Number(out.start_epoch);
+  if (!Number.isFinite(startEpoch) || startEpoch <= 0) {
+    startEpoch = startEpochFromFields ?? NaN;
+  }
+
+  let endEpoch = Number(out.end_epoch);
+  if (!Number.isFinite(endEpoch) || endEpoch <= 0) {
+    endEpoch = endEpochFromFields ?? NaN;
+  }
+
+  if (bookingType === "ON_DEMAND") {
+    out.end_date = startDate;
+    if ((!Number.isFinite(endEpoch) || endEpoch <= startEpoch) && Number.isFinite(startEpoch)) {
+      endEpoch = startEpoch + 60 * 60;
+    }
+  }
+
+  if (Number.isFinite(startEpoch) && Number.isFinite(endEpoch) && endEpoch > startEpoch) {
+    out.start_epoch = Math.floor(startEpoch);
+    out.end_epoch = Math.floor(endEpoch);
+    out.duration_minutes = Math.round((endEpoch - startEpoch) / 60);
+  } else {
+    out.duration_minutes = out.duration_minutes || 60;
+  }
+
+  out.start_date_epoch = out.start_date_epoch ?? toDateStartEpoch(startDate) ?? undefined;
+  const finalEndDate = String(out.end_date || startDate).slice(0, 10);
+  out.end_date_epoch = out.end_date_epoch ?? toDateEndEpoch(finalEndDate) ?? undefined;
+
+  return out;
 }
 
 export const BookingService = {
@@ -198,14 +267,7 @@ export const BookingService = {
 
 
     console.log("Booking payload before processing:", payload);
-
-    payload.duration_minutes = payload.duration_minutes || 60; // Default to 60 minutes if not provided
-
-    if(payload.start_time && payload.end_time){
-      const start = dayjs(`${payload.start_date} ${payload.start_time}`);
-      const end = dayjs(`${payload.end_date} ${payload.end_time}`);
-      payload.duration_minutes = Math.round(end.diff(start, 'minute'));
-    }
+    payload = normalizeEpochFirstPayload(payload);
 
     const state = store.getState();
     const location : any = state.geoLocation.value; 

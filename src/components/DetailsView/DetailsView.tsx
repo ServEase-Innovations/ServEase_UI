@@ -8,15 +8,27 @@ import { usePricingFilterService } from "../../utils/PricingFilter";
 import providerInstance from "../../services/providerInstance";
 import { ServiceProviderDTO } from "src/types/ProviderDetailsType";
 import { resolveProviderId } from "src/utils/providerId";
+import dayjs from "dayjs";
 
-import FilterListIcon from "@mui/icons-material/FilterList";
-import { Button, Badge } from "@mui/material";
+import { Badge } from "@mui/material";
+import { Button } from "../Button/button";
+import { Filter } from "lucide-react";
 import ProviderFilter, { FilterCriteria } from "./ProviderFilter";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import { useAppUser } from "src/context/AppUserContext";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useLanguage } from "src/context/LanguageContext";
-import { ArrowLeft, MapPinOff, SlidersHorizontal, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPinOff, SlidersHorizontal, Users } from "lucide-react";
+import {
+  formatDateOnly,
+  formatInr,
+  getBookingTypeFromPreference,
+  getCatalogPrice,
+  getPriceUnitSuffix,
+  filterMaidRowsForBooking,
+  type MaidPricingRow,
+} from "src/utils/maidPricingUtils";
+import { formatMonthlyHourlyRateBand } from "src/Constants/servicePricing";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -49,9 +61,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   // No client-side filtering needed – backend does it
   const filteredProviders = allProviders;
 
-  const { getBookingType, getPricingData, getFilteredPricing } = usePricingFilterService();
+  const { getBookingType, getFilteredPricing } = usePricingFilterService();
   const bookingType = getBookingType();
-  console.log("Details:", bookingType);
 
   // Fields that affect the nearby-providers API — exclude provider id / slot picks
   // so Book Now (redux update) does not remount the list and close the booking dialog.
@@ -87,6 +98,85 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const { t } = useLanguage();
   const customerId = appUser?.role === "CUSTOMER" ? appUser?.customerid : null;
 
+  const formatDisplayTime = (hhmm?: string) => {
+    if (!hhmm) return "";
+    const parsed = dayjs(hhmm.trim(), ["HH:mm", "H:mm", "hh:mm A", "h:mm A"], true);
+    return parsed.isValid() ? parsed.format("h:mm A") : hhmm;
+  };
+
+  const formatDisplayDate = (value?: string) => {
+    const ymd = formatDateOnly(value);
+    return ymd ? dayjs(ymd).format("MMM D, YYYY") : "";
+  };
+
+  const resolveSearchRateLabel = (
+    rows: MaidPricingRow[],
+    bookingPreference?: string,
+    bookingTypeCode?: string
+  ): string | null => {
+    if (bookingTypeCode === "MONTHLY") {
+      return formatMonthlyHourlyRateBand();
+    }
+    if (!rows.length) return null;
+    const filtered = filterMaidRowsForBooking(rows, bookingPreference, bookingTypeCode);
+    const prices = filtered
+      .map((row) => getCatalogPrice(row, bookingPreference, bookingTypeCode))
+      .filter((price) => price > 0);
+    if (!prices.length) return null;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const suffix = getPriceUnitSuffix(bookingPreference, bookingTypeCode);
+    if (min === max) return `${formatInr(min)}${suffix}`;
+    return `${formatInr(min)} – ${formatInr(max)}${suffix}`;
+  };
+
+  const searchContextSummary = useMemo(() => {
+    const pref = providerSearchCriteria.bookingPreference;
+    const bookingTypeCode = getBookingTypeFromPreference(pref);
+    const role = String(providerSearchCriteria.housekeepingRole || "COOK").toUpperCase();
+    const serviceLabel =
+      role === "MAID" ? t("cleaningHelp") || "Maid" : role === "NANNY" ? t("caregiver") || "Nanny" : t("homeCook") || "Cook";
+    const modeLabel =
+      bookingTypeCode === "ON_DEMAND"
+        ? t("dateOption") || "On demand"
+        : bookingTypeCode === "SHORT_TERM"
+          ? t("shortTerm") || "Short term"
+          : t("monthly") || "Monthly";
+
+    const start = formatDisplayDate(providerSearchCriteria.startDate);
+    const end = formatDisplayDate(providerSearchCriteria.endDate);
+    let dateLine = "";
+    if (bookingTypeCode === "SHORT_TERM" && start && end && start !== end) {
+      dateLine = `${start} – ${end}`;
+    } else if (start) {
+      dateLine = start;
+    } else if (end) {
+      dateLine = end;
+    }
+
+    const startT = formatDisplayTime(providerSearchCriteria.startTime);
+    const endT = formatDisplayTime(providerSearchCriteria.endTime);
+    let timeLine = "";
+    if (startT && endT) {
+      timeLine = `${startT} – ${endT}`;
+    } else if (providerSearchCriteria.timeRange) {
+      timeLine = providerSearchCriteria.timeRange.replace(/-/g, " – ");
+    } else if (startT) {
+      timeLine = startT;
+    }
+
+    const pricingKey = role === "NANNY" ? "nanny" : role === "MAID" ? "maid" : "cook";
+    let catalogRows = getFilteredPricing(pricingKey) as MaidPricingRow[];
+    if (!catalogRows?.length && pricingKey === "cook") {
+      catalogRows = getFilteredPricing("maid") as MaidPricingRow[];
+    }
+    const rateLine = resolveSearchRateLabel(catalogRows, pref, bookingTypeCode);
+
+    if (!dateLine && !timeLine && !rateLine) return null;
+
+    return { serviceLabel, modeLabel, dateLine, timeLine, rateLine };
+  }, [providerSearchCriteria, getFilteredPricing, t]);
+
   const handleCheckoutData = (data: any) => {
     console.log("Received checkout data:", data);
     if (checkoutItem) {
@@ -100,9 +190,6 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     try {
       const startTimeStr = startTime.trim();
       const endTimeStr = endTime.trim();
-      const today = new Date();
-      const startDateTime = new Date(today);
-      const endDateTime = new Date(today);
       const startParts = startTimeStr.match(/(\d+):(\d+)(?:\s*(AM|PM))?/i);
       const endParts = endTimeStr.match(/(\d+):(\d+)(?:\s*(AM|PM))?/i);
       if (startParts && endParts) {
@@ -120,10 +207,12 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
           if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
           if (endPeriod === 'AM' && endHour === 12) endHour = 0;
         }
-        startDateTime.setHours(startHour, startMinute, 0, 0);
-        endDateTime.setHours(endHour, endMinute, 0, 0);
-        const diffInMilliseconds = endDateTime.getTime() - startDateTime.getTime();
-        const diffInMinutes = Math.round(diffInMilliseconds / (1000 * 60));
+        const startDateTime = dayjs().hour(startHour).minute(startMinute).second(0).millisecond(0);
+        let endDateTime = dayjs().hour(endHour).minute(endMinute).second(0).millisecond(0);
+        if (endDateTime.isBefore(startDateTime)) {
+          endDateTime = endDateTime.add(1, "day");
+        }
+        const diffInMinutes = endDateTime.diff(startDateTime, "minute");
         if (diffInMinutes < 0) return diffInMinutes + (24 * 60);
         return diffInMinutes > 0 ? diffInMinutes : 60;
       }
@@ -153,11 +242,6 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         longitude = location.lng;
       }
 
-      const formatDateOnly = (dateString?: string) => {
-        if (!dateString) return "";
-        return dateString.split("T")[0];
-      };
-
       const serviceDurationMinutes = calculateDurationInMinutes(
         providerSearchCriteria.startTime,
         providerSearchCriteria.endTime
@@ -168,8 +252,11 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         lat: latitude.toString(),
         lng: longitude.toString(),
         radius: 10,
-        startDate: formatDateOnly(providerSearchCriteria.startDate) || "2025-04-01",
-        endDate: formatDateOnly(providerSearchCriteria.endDate) || "2025-04-30",
+        startDate: formatDateOnly(providerSearchCriteria.startDate) || dayjs().format("YYYY-MM-DD"),
+        endDate:
+          formatDateOnly(providerSearchCriteria.endDate) ||
+          formatDateOnly(providerSearchCriteria.startDate) ||
+          dayjs().format("YYYY-MM-DD"),
         preferredStartTime: providerSearchCriteria.timeRange
           ? providerSearchCriteria.timeRange.split("-")[0]
           : "16:37",
@@ -366,16 +453,36 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const resultsLabel =
     totalCount === 1 ? t("detailsOneProviderFound") : t("detailsManyProvidersFound", { count: totalCount });
 
+  const searchContextLine = useMemo(() => {
+    if (!searchContextSummary) return "";
+    return [
+      searchContextSummary.serviceLabel,
+      searchContextSummary.modeLabel,
+      searchContextSummary.dateLine,
+      searchContextSummary.timeLine,
+      searchContextSummary.rateLine,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }, [searchContextSummary]);
+
+  const showResultsHeader =
+    totalCount > 0 || activeFilters || (hasFetchedOnce && Boolean(searchContextLine));
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100/80">
       {loading && allProviders.length === 0 ? (
         renderLoadingSkeleton()
       ) : (
         <main className="mx-auto max-w-5xl px-4 pb-12 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] md:pt-[calc(5.75rem+env(safe-area-inset-top,0px))]">
-          {(totalCount > 0 || activeFilters) && (
-            <div className="relative mb-6 flex min-h-[2.75rem] items-center rounded-2xl border border-slate-200/90 bg-white/90 px-2 py-2.5 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] backdrop-blur-sm sm:min-h-[3rem] sm:px-4 sm:py-3.5">
+          {showResultsHeader ? (
+            <div
+              className={`relative mb-6 flex items-center rounded-2xl border border-slate-200/90 bg-white/90 px-2 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] backdrop-blur-sm sm:px-4 ${
+                searchContextLine ? "min-h-[3.75rem] py-2 sm:min-h-[4rem] sm:py-2.5" : "min-h-[2.75rem] py-2.5 sm:min-h-[3rem] sm:py-3.5"
+              }`}
+            >
               {/* Equal halves so left/right chrome balances; label is centered on the full bar */}
-              <div className="relative z-[1] flex min-h-[2.5rem] min-w-0 flex-1 items-center justify-start">
+              <div className="relative z-[1] flex min-h-[2.25rem] min-w-0 flex-1 items-center justify-start">
                 <button
                   type="button"
                   onClick={handleBackClick}
@@ -386,51 +493,50 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
                 </button>
               </div>
 
-              <div className="relative z-[1] flex min-h-[2.5rem] min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
+              <div className="relative z-[1] flex min-h-[2.25rem] min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
                 <Badge badgeContent={activeFilterCount} color="primary" invisible={activeFilterCount === 0}>
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<FilterListIcon />}
+                    variant="outline"
+                    size="sm"
+                    startIcon={<Filter className="h-4 w-4" />}
                     onClick={() => setFilterOpen(true)}
-                    sx={{
-                      textTransform: "none",
-                      borderRadius: "12px",
-                      fontWeight: 600,
-                      borderColor: "rgba(15, 23, 42, 0.12)",
-                      color: "rgb(15 23 42)",
-                      bgcolor: "rgba(255,255,255,0.95)",
-                      "&:hover": { borderColor: "rgb(14 165 233)", bgcolor: "rgb(240 249 255)" },
-                    }}
+                    className="rounded-xl font-semibold bg-white/95"
                   >
                     {t("detailsFilters")}
                   </Button>
                 </Badge>
                 {activeFilterCount > 0 ? (
                   <Button
-                    size="small"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleClearFilters}
-                    sx={{
-                      color: "text.secondary",
-                      fontSize: "0.8125rem",
-                      textTransform: "none",
-                      fontWeight: 600,
-                      borderRadius: "10px",
-                      "&:hover": { bgcolor: "rgba(14, 165, 233, 0.08)" },
-                    }}
+                    className="rounded-lg font-semibold text-slate-600"
                   >
                     {t("clearAll")}
                   </Button>
                 ) : null}
               </div>
 
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[28%] sm:px-[26%]">
-                <p className="w-full min-w-0 truncate text-center text-xs font-medium tabular-nums leading-none text-slate-600 sm:text-sm">
+              <div
+                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[26%] sm:px-[24%]"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="w-full min-w-0 truncate text-center text-xs font-medium tabular-nums leading-tight text-slate-600 sm:text-sm">
                   {resultsLabel}
                 </p>
+                {searchContextLine ? (
+                  <p
+                    className="mt-0.5 flex w-full min-w-0 items-center justify-center gap-1 truncate text-center text-[10px] leading-tight text-slate-500 sm:text-[11px]"
+                    title={searchContextLine}
+                  >
+                    <CalendarDays className="hidden h-3 w-3 shrink-0 sm:inline" aria-hidden />
+                    <span className="min-w-0 truncate">{searchContextLine}</span>
+                  </p>
+                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
           {hasFetchedOnce && filteredProviders.length === 0 && !loading ? (
             <div className="flex min-h-[55vh] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-white/70 px-6 py-14 text-center shadow-sm">
@@ -450,9 +556,9 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 {activeFilters ? (
                   <Button
-                    variant="outlined"
+                    variant="outline"
                     onClick={handleClearFilters}
-                    sx={{ textTransform: "none", borderRadius: "12px", fontWeight: 600, minWidth: 160 }}
+                    className="min-w-[160px] rounded-xl font-semibold"
                   >
                     {t("detailsClearFilters")}
                   </Button>
@@ -460,13 +566,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
                 <Button
                   variant="contained"
                   onClick={() => sendDataToParent("")}
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: "12px",
-                    fontWeight: 600,
-                    minWidth: 160,
-                    boxShadow: "0 8px 20px -6px rgba(14, 165, 233, 0.45)",
-                  }}
+                  className="min-w-[160px] rounded-xl font-semibold shadow-lg shadow-sky-500/30"
                 >
                   {t("back")}
                 </Button>

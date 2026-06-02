@@ -26,6 +26,8 @@ import PaymentInstance from 'src/services/paymentInstance';
 import { BookingService } from 'src/services/bookingService';
 import { useAppUser } from 'src/context/AppUserContext';
 import { resolveCustomerId } from 'src/services/couponService';
+import { coalesceStartEpoch, toEpochOrNull } from 'src/services/bookingEpoch';
+import type { EngagementEpochFields, TodayBookingEpochFields } from 'src/services/epochContract';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
@@ -93,6 +95,7 @@ interface Booking {
   hasVacation?: boolean;
   assignmentStatus: string;
   start_epoch?: number;
+  end_epoch?: number;
   leave_days?: number;
   vacationDetails?: {
     leave_type?: string;
@@ -118,6 +121,57 @@ interface Booking {
   today_service?: TodayService;
   payment?: Payment;
 }
+
+type EngagementApiItem = Partial<EngagementEpochFields> & {
+  engagement_id?: number | string;
+  task_status?: string;
+  task_status_stored?: string;
+  engagement_status?: string;
+  assignment_status?: string;
+  start_date?: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
+  booking_type?: string;
+  service_type?: string;
+  created_at?: string;
+  serviceproviderid?: number | string | null;
+  provider?: { firstName?: string; lastName?: string; rating?: number | null };
+  payment?: Payment;
+  modifications?: any[];
+  vacations?: any[];
+  vacation?: { leave_days?: number };
+  responsibilities?: Responsibilities;
+  address?: string;
+  customerName?: string;
+  paymentMode?: string;
+  serviceProviderName?: string;
+  base_amount?: number | string;
+  customerId?: number | string;
+  engagements?: unknown;
+  childAge?: string;
+  experience?: string;
+  noOfPersons?: string;
+  mealType?: string;
+  customerHolidays?: unknown[];
+  leave_days?: number;
+  today_service?: TodayService;
+};
+
+type CustomerTodaySlotApi = Partial<TodayBookingEpochFields> & {
+  availability_id?: number | string;
+  engagement_id?: number | string;
+  start_time_ist?: string;
+  end_time_ist?: string;
+  provider_name?: string;
+  provider_phone?: string;
+  service_type?: string;
+  booking_type?: string;
+  task_status?: string;
+  date_ist?: string;
+  date?: string;
+  address?: string;
+};
 
 // Skeleton Loader Component
 interface SkeletonLoaderProps {
@@ -329,6 +383,27 @@ const formatTimeToAMPM = (timeString: string): string => {
 
 const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
+};
+
+const formatBookingDisplayDate = (booking: Booking): string => {
+  const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
+  if (startEpoch != null) {
+    return dayjs.unix(startEpoch).format("dddd, MMMM D, YYYY");
+  }
+  return booking.startDate
+    ? dayjs(booking.startDate).format("dddd, MMMM D, YYYY")
+    : "—";
+};
+
+const formatBookingDisplayTimeRange = (booking: Booking): string => {
+  const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
+  const endEpoch = toEpochOrNull(booking.end_epoch);
+  if (startEpoch != null) {
+    const startLabel = dayjs.unix(startEpoch).format("h:mm A");
+    const endLabel = endEpoch != null ? dayjs.unix(endEpoch).format("h:mm A") : null;
+    return endLabel ? `${startLabel} - ${endLabel}` : startLabel;
+  }
+  return formatTimeRange(booking.start_time, booking.end_time);
 };
 
 type BookingsViewTab = "today" | "upcoming" | "past" | "pending";
@@ -971,10 +1046,14 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       'CANCELLED': 4
     };
 
+    const toEpoch = (booking: Booking): number =>
+      coalesceStartEpoch(booking.start_epoch, booking.startDate) ?? 0;
+
     return [...bookings].sort((a, b) => {
       const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
       if (statusComparison !== 0) return statusComparison;
-      return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+      // Epoch-first ordering for upcoming/pending lists (earliest first).
+      return toEpoch(a) - toEpoch(b);
     });
   };
 
@@ -1004,11 +1083,33 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         cancelledFromApi
       );
 
+      const normalizedTodaySchedule: CustomerTodayBookingSlot[] = (todayRes.data?.bookings ?? []).map((slot: CustomerTodaySlotApi) => ({
+        ...slot,
+        availability_id: Number(slot.availability_id),
+        engagement_id: Number(slot.engagement_id),
+        slot_start_epoch:
+          slot.slot_start_epoch != null && Number.isFinite(Number(slot.slot_start_epoch))
+            ? Number(slot.slot_start_epoch)
+            : null,
+        slot_end_epoch:
+          slot.slot_end_epoch != null && Number.isFinite(Number(slot.slot_end_epoch))
+            ? Number(slot.slot_end_epoch)
+            : null,
+        engagement_start_epoch:
+          slot.engagement_start_epoch != null && Number.isFinite(Number(slot.engagement_start_epoch))
+            ? Number(slot.engagement_start_epoch)
+            : null,
+        engagement_end_epoch:
+          slot.engagement_end_epoch != null && Number.isFinite(Number(slot.engagement_end_epoch))
+            ? Number(slot.engagement_end_epoch)
+            : null,
+      }));
+
       setPastBookings(mapBookingData(partitioned.past));
       setCurrentBookings(mapBookingData(partitioned.ongoing));
       setFutureBookings(mapBookingData(partitioned.upcoming));
       setCancelledBookings(mapBookingData(partitioned.cancelled));
-      setTodaySchedule(todayRes.data?.bookings ?? []);
+      setTodaySchedule(normalizedTodaySchedule);
     }
   };
 
@@ -1057,27 +1158,27 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   
-  const isCancelledEngagementItem = (item: any): boolean => {
+  const isCancelledEngagementItem = (item: EngagementApiItem): boolean => {
     const life = String(item?.engagement_status ?? '').toUpperCase();
     const stored = String(item?.task_status_stored ?? item?.task_status ?? '').toUpperCase();
     return life === 'CANCELLED' || stored === 'CANCELLED';
   };
 
-  const resolveTaskStatusFromEngagement = (item: any): string => {
+  const resolveTaskStatusFromEngagement = (item: EngagementApiItem): string => {
     if (isCancelledEngagementItem(item)) return 'CANCELLED';
     return item?.task_status || '';
   };
 
   const partitionEngagementLists = (
-    upcoming: any[],
-    ongoing: any[],
-    past: any[],
-    cancelledFromApi: any[] = []
+    upcoming: EngagementApiItem[],
+    ongoing: EngagementApiItem[],
+    past: EngagementApiItem[],
+    cancelledFromApi: EngagementApiItem[] = []
   ) => {
-    const cancelled: any[] = [...cancelledFromApi];
-    const activeUpcoming: any[] = [];
-    const activeOngoing: any[] = [];
-    const activePast: any[] = [];
+    const cancelled: EngagementApiItem[] = [...cancelledFromApi];
+    const activeUpcoming: EngagementApiItem[] = [];
+    const activeOngoing: EngagementApiItem[] = [];
+    const activePast: EngagementApiItem[] = [];
 
     upcoming.forEach((item) =>
       (isCancelledEngagementItem(item) ? cancelled : activeUpcoming).push(item)
@@ -1105,10 +1206,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     };
   };
 
-  const mapBookingData = (data: any[]) => {
+  const mapBookingData = (data: EngagementApiItem[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
-          const hasVacation = item?.vacations?.length > 0;
+          const hasVacation = (item?.vacations?.length ?? 0) > 0;
           const modifications = item.modifications || [];
           const hasModifications = modifications.length > 0;
 
@@ -1126,25 +1227,27 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
           const effectiveStartDate = item.start_date;
           const effectiveEndDate = item.end_date;
+          const normalizedStartEpoch = coalesceStartEpoch(item.start_epoch, effectiveStartDate);
 
           return {
-            start_epoch: item.start_epoch,
-            id: item.engagement_id,
-            customerId: item.customerId,
-            serviceProviderId: item.serviceproviderid,
-            name: item.customerName,
-            timeSlot: item.start_time,
-            date: effectiveStartDate,
-            startDate: effectiveStartDate,
-            endDate: effectiveEndDate,
-            start_time: item.start_time, 
-            end_time: item.end_time,    
-            bookingType: item.booking_type,
+            start_epoch: normalizedStartEpoch ?? undefined,
+            end_epoch: toEpochOrNull(item.end_epoch) ?? undefined,
+            id: Number(item.engagement_id ?? 0),
+            customerId: Number(item.customerId ?? 0),
+            serviceProviderId: Number(item.serviceproviderid ?? 0),
+            name: item.customerName || 'Customer',
+            timeSlot: item.start_time || '',
+            date: effectiveStartDate || '',
+            startDate: effectiveStartDate || '',
+            endDate: effectiveEndDate || '',
+            start_time: item.start_time || '', 
+            end_time: item.end_time || '',    
+            bookingType: item.booking_type || '',
             monthlyAmount:
               item.payment?.total_amount != null
                 ? Number(item.payment.total_amount)
                 : Number(item.base_amount) || 0,
-            paymentMode: item.payment?.payment_mode || item.paymentMode,
+            paymentMode: item.payment?.payment_mode || item.paymentMode || '',
             address: item.address || 'No address specified',
            customerName: item.customerName || (appUser?.firstname && appUser?.lastname 
   ? `${appUser.firstname} ${appUser.lastname}` 
@@ -1153,23 +1256,25 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             providerRating: providerRating,
             taskStatus: resolveTaskStatusFromEngagement(item),
             engagements: item.engagements,
-            bookingDate: item.created_at,
+            bookingDate: item.created_at || '',
             service_type: item.service_type?.toLowerCase() || 'other',
-            childAge: item.childAge,
-            experience: item.experience,
-            noOfPersons: item.noOfPersons,
-            mealType: item.mealType,
-            modifiedDate: hasModifications
+            childAge: item.childAge || '',
+            experience: item.experience || '',
+            noOfPersons: item.noOfPersons || '',
+            mealType: item.mealType || '',
+            modifiedDate: (hasModifications
               ? modifications[modifications.length - 1]?.date || item.created_at
-              : item.created_at,
-            responsibilities: item.responsibilities,
+              : item.created_at) || '',
+            responsibilities: item.responsibilities || { tasks: [] },
             customerHolidays: item.customerHolidays || [],
             hasVacation: hasVacation,
             assignmentStatus: item.assignment_status || "ASSIGNED",
             leave_days: item.leave_days || 0,
-            vacationDetails: hasVacation && item.vacation?.leave_days > 0 
-              ? item.vacation 
-              : null,
+            vacationDetails: hasVacation && (item.vacation?.leave_days ?? 0) > 0
+              ? {
+                  total_days: item.vacation?.leave_days,
+                }
+              : undefined,
             modifications: modifications,
             today_service: item.today_service,
             payment: item.payment
@@ -1893,7 +1998,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
                   {viewTab === "pending" ? "Pending payment" : "Upcoming"}
                 </h2>
-                <p className="mt-1 text-sm leading-snug text-slate-500">
+                <div className="mt-1 text-sm leading-snug text-slate-500">
                   {isLoading ? (
                     <SkeletonLoader width="180px" height="0.875rem" />
                   ) : viewTab === "pending" ? (
@@ -1925,7 +2030,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <span className="tabular-nums text-slate-600">{upcomingBookings.length} total</span>
                     </>
                   )}
-                </p>
+                </div>
               </div>
             </div>
           </div>
@@ -2052,12 +2157,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
                         <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
-                          {new Date(booking.startDate).toLocaleDateString("en-US", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                          {formatBookingDisplayDate(booking)}
                           {booking.taskStatus !== "CANCELLED" &&
                             booking.modifications &&
                             booking.modifications.length > 0 && (
@@ -2068,7 +2168,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-sky-600" />
                         <span className="text-xs text-slate-700 sm:text-sm">
-                          {formatTimeRange(booking.start_time, booking.end_time)}
+                          {formatBookingDisplayTimeRange(booking)}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">
@@ -2166,7 +2266,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
                   Past
                 </h2>
-                <p className="mt-1 text-sm leading-snug text-slate-500">
+                <div className="mt-1 text-sm leading-snug text-slate-500">
                   {isLoading ? (
                     <SkeletonLoader width="160px" height="0.875rem" />
                   ) : (
@@ -2180,7 +2280,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <span className="tabular-nums text-slate-600">{pastBookings.length} total</span>
                     </>
                   )}
-                </p>
+                </div>
               </div>
             </div>
           </div>
@@ -2260,12 +2360,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                         <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
-                          {new Date(booking.startDate).toLocaleDateString("en-US", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                          {formatBookingDisplayDate(booking)}
                           {booking.taskStatus !== "CANCELLED" &&
                             booking.modifications &&
                             booking.modifications.length > 0 && (
@@ -2276,7 +2371,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-slate-500" />
                         <span className="text-xs text-slate-700 sm:text-sm">
-                          {formatTimeRange(booking.start_time, booking.end_time)}
+                          {formatBookingDisplayTimeRange(booking)}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">

@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable */
 
-import { Box, Button, Card, Checkbox, FormControlLabel, FormGroup, Grid, Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Box, Card, Checkbox, FormControlLabel, FormGroup, Grid, Snackbar, SnackbarCloseReason, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Button } from "../../../Button/button";
+import { ShoppingCart } from "lucide-react";
 import { SyntheticEvent, useEffect, useState } from "react";
-import AddShoppingCartIcon  from '@mui/icons-material/AddShoppingCart';
 import './Cookpricing.css'
 import { CHECKOUT } from "../../../../Constants/pagesConstants";
 import { useDispatch, useSelector } from "react-redux";
@@ -331,18 +332,9 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
             }
             label={
               <Button
-                variant="outlined"
-                size="large"
-                sx={{
-                  textTransform: "capitalize",
-                  borderRadius: "25px",
-                  color: "#1e88e5",
-                  borderColor: "#1e88e5",
-                  padding: "8px 16px",
-                  "&:hover": {
-                    backgroundColor: "#e3f2fd",
-                  },
-                }}
+                variant="outline"
+                size="lg"
+                className="capitalize rounded-full border-sky-600 text-sky-600 px-4 py-2 hover:bg-sky-50"
               >
                 {button.Categories}
               </Button>
@@ -411,39 +403,21 @@ const CookPricing = ({ onPriceChange , onAddToCart , pricing , sendToParent }: C
        {/* Add to Cart Button */}
        <Button
         type="submit"
-        variant="outlined"
-        sx={{
-          flex: 1,
-          float: "right",
-          margin: "10px",
-          minWidth: "150px",
-          height: 50,
-          marginBottom:1,
-          textTransform: "none",
-          borderRadius: "25px",
-          color: "#1e88e5",
-          borderColor: "#1e88e5",
-          "&:hover": {
-            backgroundColor: "#e3f2fd",
-          },
-        }}
-        endIcon={<AddShoppingCartIcon />}
+        variant="outline"
+        className="mb-1 flex-1 min-w-[150px] h-[50px] rounded-full border-sky-600 text-sky-600 normal-case hover:bg-sky-50 m-2.5"
+        endIcon={<ShoppingCart className="h-5 w-5" />}
         onClick={onClickAddToCart}
-        disabled={selecteditem.length === 0 } // Disable button if any value is not selected
+        disabled={selecteditem.length === 0 }
       >
         Add to Cart
       </Button>
 
       <Button
-            variant="outlined"
-            sx={{  flex: 1,
-              minWidth: "150px",
-              height: 50,
-              textTransform: "none",
-              borderRadius: "25px", }}
-            endIcon={<AddShoppingCartIcon />}
+            variant="outline"
+            className="flex-1 min-w-[150px] h-[50px] rounded-full normal-case"
+            endIcon={<ShoppingCart className="h-5 w-5" />}
             onClick={handleProceedToCheckout}
-            disabled={!addtoCartSelected} // Disable if nothing added to cart
+            disabled={!addtoCartSelected}
           >
             Proceed to Checkout
           </Button>

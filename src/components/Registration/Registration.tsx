@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -18,9 +19,7 @@ import {
   RadioGroup,
   Checkbox,
   FormControlLabel,
-  InputAdornment,
-  IconButton,
-  FormLabel,
+  InputAdornment,  FormLabel,
   FormControl,
   Alert,
   Snackbar,

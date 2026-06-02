@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useEffect, useState, useCallback } from "react";
 import moment from "moment";
 import {
@@ -12,9 +13,7 @@ import {
   AlertColor,
   Snackbar,
   Dialog,
-  CircularProgress,
-  IconButton,
-  Tooltip,
+  CircularProgress,  Tooltip,
   Card,
   CardContent,
   Slider,

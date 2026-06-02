@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState } from "react";
 import { 
   Box, 
@@ -8,7 +9,6 @@ import {
   CardContent, 
   Typography, 
   Button, 
-  IconButton, 
   Chip, 
   CircularProgress,
   Alert,
@@ -27,6 +27,27 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import dayjs from "dayjs";
+import { coalesceEndEpoch, coalesceStartEpoch } from "src/services/bookingEpoch";
+
+type DashboardBooking = {
+  start_epoch?: number | null;
+  end_epoch?: number | null;
+  startDate?: string;
+  endDate?: string;
+  [key: string]: any;
+};
+
+const formatBookingDate = (value?: string, epoch?: number | null): string => {
+  const normalizedEpoch = epoch != null && Number.isFinite(Number(epoch)) ? Number(epoch) : null;
+  if (normalizedEpoch != null) return dayjs.unix(normalizedEpoch).format("MMM D, YYYY");
+  return value ? dayjs(value).format("MMM D, YYYY") : "N/A";
+};
+
+const isPastBooking = (booking: DashboardBooking): boolean => {
+  const endEpoch = coalesceEndEpoch(booking.end_epoch, booking.endDate);
+  if (endEpoch != null) return endEpoch < Math.floor(Date.now() / 1000);
+  return booking.endDate ? dayjs(booking.endDate).isBefore(dayjs()) : false;
+};
 const DashboardCard = styled(Card)(({ theme }) => ({
   // Fixed dimensions for desktop (md and up)
   [theme.breakpoints.up('md')]: {
@@ -190,14 +211,14 @@ const handleLeaveSubmit = async (e: React.FormEvent) => {
 
                           <Typography variant="subtitle1" color="#555">Booking Start Date</Typography>
                           <Typography variant="h6" color="#2a7f62">
-                            {new Date(booking.startDate).toLocaleDateString()}
+                            {formatBookingDate(booking.startDate, booking.start_epoch)}
                           </Typography>
 
                           {booking.endDate && (
                             <>
                               <Typography variant="subtitle1" color="#555">Booking End Date</Typography>
                               <Typography variant="h6" color="#2a7f62">
-                                {new Date(booking.endDate).toLocaleDateString()}
+                                {formatBookingDate(booking.endDate, booking.end_epoch)}
                               </Typography>
                             </>
                           )}
@@ -207,8 +228,10 @@ const handleLeaveSubmit = async (e: React.FormEvent) => {
 
                           {/* Action Buttons */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                            <IconButton color="primary" href={`tel:${booking.phone}`} sx={{ fontSize: 26 }}>
-                              <CallIcon />
+                            <IconButton asChild variant="ghost" className="text-sky-600 text-[26px]">
+                              <a href={`tel:${booking.phone}`} aria-label={`Call ${booking.phone}`}>
+                                <CallIcon />
+                              </a>
                             </IconButton>
 
                             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -281,7 +304,7 @@ const handleLeaveSubmit = async (e: React.FormEvent) => {
 
           <Grid container spacing={2} sx={{ width: '100%' }}>
             {bookings
-              .filter((booking) => new Date(booking.endDate) < new Date())
+              .filter((booking) => isPastBooking(booking))
               .map((history, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
                   <Card sx={{ 
@@ -295,8 +318,8 @@ const handleLeaveSubmit = async (e: React.FormEvent) => {
                     <Typography variant="body2" color="green"><strong>Time Slot:</strong> {history.timeslot}</Typography>
                     <Typography variant="body2" color="#777"><strong>Address:</strong> {history.address}</Typography>
                     <Typography variant="body2" color="#555"><strong>Monthly Amount:</strong> {history.monthlyAmount ? `₹${history.monthlyAmount}` : 'N/A'}</Typography>
-                    <Typography variant="body2" color="#555"><strong>Start Date:</strong> {history.startDate ? new Date(history.startDate).toLocaleDateString() : 'N/A'}</Typography>
-                    <Typography variant="body2" color="#555"><strong>End Date:</strong> {history.endDate ? new Date(history.endDate).toLocaleDateString() : 'N/A'}</Typography>
+                    <Typography variant="body2" color="#555"><strong>Start Date:</strong> {formatBookingDate(history.startDate, history.start_epoch)}</Typography>
+                    <Typography variant="body2" color="#555"><strong>End Date:</strong> {formatBookingDate(history.endDate, history.end_epoch)}</Typography>
                     <Typography variant="body2" color="#555"><strong>Service Type:</strong> {history.serviceType || 'N/A'}</Typography>
                     <Typography variant="body2" color="#555"><strong>Booking Type:</strong> {history.bookingType || 'N/A'}</Typography>
 

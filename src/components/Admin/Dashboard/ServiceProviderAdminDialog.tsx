@@ -1,3 +1,4 @@
+import { IconButton } from "src/components/Button/icon-button";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
@@ -9,9 +10,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
-  IconButton,
-  Paper,
+  Divider,  Paper,
   Snackbar,
   Stack,
   Tab,

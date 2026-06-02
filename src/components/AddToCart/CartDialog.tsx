@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, IconButton, CircularProgress, Chip } from '@mui/material';
+import { IconButton } from "src/components/Button/icon-button";
+import { Dialog, DialogContent, DialogTitle, Box, Typography, Divider, CircularProgress, Chip } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';

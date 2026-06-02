@@ -1,5 +1,6 @@
 /* ContactUs.tsx */
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React from "react";
 import {
   Box,
@@ -8,9 +9,7 @@ import {
   Container,
   Divider,
   FormControlLabel,
-  Grid,
-  IconButton,
-  Link,
+  Grid,  Link,
   Paper,
   Stack,
   TextField,
@@ -339,24 +338,18 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                   {socialLinks.map(({ href, icon, label }) => (
                     <IconButton
                       key={label}
-                      component="a"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={label}
-                      sx={{
-                        border: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
-                        color: "text.secondary",
-                        "&:hover": {
-                          color: "primary.main",
-                          borderColor: "primary.light",
-                          bgcolor: "action.hover",
-                        },
-                      }}
+                      asChild
+                      variant="outline"
+                      className="border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:bg-slate-50 hover:text-sky-600"
                     >
-                      {icon}
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={label}
+                      >
+                        {icon}
+                      </a>
                     </IconButton>
                   ))}
                 </Stack>
@@ -368,38 +361,32 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                 </Typography>
                 <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
                   <IconButton
-                    component="a"
-                    href="https://play.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Google Play"
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      bgcolor: "background.paper",
-                      fontSize: 28,
-                      color: "text.primary",
-                      "&:hover": { bgcolor: "action.hover" },
-                    }}
+                    asChild
+                    variant="outline"
+                    className="border-slate-200 bg-white text-slate-900 hover:bg-slate-50 text-[28px]"
                   >
-                    <FaGooglePlay />
+                    <a
+                      href="https://play.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Google Play"
+                    >
+                      <FaGooglePlay />
+                    </a>
                   </IconButton>
                   <IconButton
-                    component="a"
-                    href="https://apps.apple.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="App Store"
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      bgcolor: "background.paper",
-                      fontSize: 28,
-                      color: "text.primary",
-                      "&:hover": { bgcolor: "action.hover" },
-                    }}
+                    asChild
+                    variant="outline"
+                    className="border-slate-200 bg-white text-slate-900 hover:bg-slate-50 text-[28px]"
                   >
-                    <FaAppStoreIos />
+                    <a
+                      href="https://apps.apple.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="App Store"
+                    >
+                      <FaAppStoreIos />
+                    </a>
                   </IconButton>
                 </Stack>
               </Paper>

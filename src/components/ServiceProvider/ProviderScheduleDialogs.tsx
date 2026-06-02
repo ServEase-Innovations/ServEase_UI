@@ -1,10 +1,9 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
-  DialogContent,
-  IconButton,
-  TextField,
+  DialogContent,  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -20,6 +19,7 @@ import { X, CalendarOff, Ban, Loader2, Trash2, CalendarRange, ArrowRight } from 
 import PaymentInstance from "src/services/paymentInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import { ClipLoader } from "react-spinners";
+import { toEpochOrNull } from "src/services/bookingEpoch";
 
 export interface LeaveEngagementOption {
   value: string;
@@ -30,6 +30,8 @@ export interface ProviderLeave {
   leave_id: string;
   start_date: string;
   end_date: string;
+  start_date_epoch?: number | null;
+  end_date_epoch?: number | null;
   reason: string | null;
   status: string;
   engagement_id: string | null;
@@ -44,8 +46,9 @@ interface ProviderLeaveDialogProps {
   onSuccess?: () => void;
 }
 
-function formatLeaveDate(s: string): string {
-  const d = dayjs(s);
+function formatLeaveDate(s: string, epoch?: number | null): string {
+  const fromEpoch = toEpochOrNull(epoch);
+  const d = fromEpoch != null ? dayjs.unix(fromEpoch) : dayjs(s);
   return d.isValid() ? d.format("D MMM YYYY") : s;
 }
 
@@ -341,13 +344,13 @@ export const ProviderLeaveDialog: React.FC<ProviderLeaveDialogProps> = ({
                       <div className="w-0 min-w-0 flex-1 border-l-[3px] border-sky-500/90 py-2.5 pl-3.5 pr-1 sm:py-3 sm:pl-4">
                         <p className="text-sm font-semibold text-slate-900 sm:text-base">
                           <time dateTime={lv.start_date}>
-                            {formatLeaveDate(lv.start_date)}
+                            {formatLeaveDate(lv.start_date, lv.start_date_epoch)}
                           </time>
                           <span className="mx-1.5 font-normal text-slate-400" aria-hidden>
                             →
                           </span>
                           <time dateTime={lv.end_date}>
-                            {formatLeaveDate(lv.end_date)}
+                            {formatLeaveDate(lv.end_date, lv.end_date_epoch)}
                           </time>
                         </p>
                         {lv.reason ? (
@@ -397,6 +400,7 @@ export const ProviderLeaveDialog: React.FC<ProviderLeaveDialogProps> = ({
 interface UnavailBlock {
   id: string;
   date: string;
+  date_epoch?: number | null;
 }
 
 interface ProviderUnavailabilityDialogProps {
@@ -436,7 +440,15 @@ export const ProviderUnavailabilityDialog: React.FC<ProviderUnavailabilityDialog
           viewMonth
         )}`
       );
-      setBlocks((res.data?.blocks || []).map((b: { id: number; date: string }) => ({ id: String(b.id), date: b.date })));
+      setBlocks(
+        (res.data?.blocks || []).map(
+          (b: { id: number; date: string; date_epoch?: number | null }) => ({
+            id: String(b.id),
+            date: b.date,
+            date_epoch: toEpochOrNull(b.date_epoch),
+          })
+        )
+      );
     } catch {
       setBlocks([]);
     } finally {
@@ -592,7 +604,9 @@ export const ProviderUnavailabilityDialog: React.FC<ProviderUnavailabilityDialog
                     key={b.id}
                     className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2"
                   >
-                    <span className="font-mono text-sm text-slate-800">{b.date}</span>
+                    <span className="font-mono text-sm text-slate-800">
+                      {formatLeaveDate(b.date, b.date_epoch)}
+                    </span>
                     <button
                       type="button"
                       onClick={() => void remove(b.id)}

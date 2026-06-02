@@ -83,7 +83,7 @@ export const Landingpage: React.FC<ChildComponentProps> = ({ sendDataToParent, b
     setSelectedBookingType(data);
   };
 
-  const handleClose = (data: string) => {
+  const handleClose = () => {
     setOpen(false);
   };
 

@@ -22,6 +22,20 @@ import { AppUserProvider } from "./context/AppUserContext";
 const domain = "dev-plavkbiy7v55pbg4.us.auth0.com";
 const clientId = "FkZvRgSNTXloPOo2ZVRmt24MbTrfIusi";
 
+const auth0AuthorizationParams: {
+  redirect_uri: string;
+  scope: string;
+  audience?: string;
+} = {
+  redirect_uri: window.location.origin,
+  scope: "openid profile email offline_access",
+};
+
+const auth0Audience = process.env.REACT_APP_AUTH0_AUDIENCE?.trim();
+if (auth0Audience) {
+  auth0AuthorizationParams.audience = auth0Audience;
+}
+
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -55,9 +69,8 @@ root.render(
     clientId={clientId}
     cacheLocation="localstorage"
     useRefreshTokens={true}
-    authorizationParams={{
-      redirect_uri: window.location.origin,
-    }}
+    useRefreshTokensFallback={true}
+    authorizationParams={auth0AuthorizationParams}
   >
     <AppUserProvider>
       <React.StrictMode>

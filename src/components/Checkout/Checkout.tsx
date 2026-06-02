@@ -4,17 +4,17 @@
 /* eslint-disable */
 
 
-import { Card, Button, Box, Typography, Snackbar, Alert, IconButton, Tooltip, DialogContent, Dialog } from "@mui/material";
+import { Card, Box, Typography, Snackbar, Alert, Tooltip, DialogContent, Dialog } from "@mui/material";
+import { Button } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
+import { ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BookingDetails } from "../../types/engagementRequest";
 import { Bookingtype } from "../../types/bookingTypeData";
 import axiosInstance from "../../services/axiosInstance";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import axios from "axios";
 import Login from "../Login/Login";
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { BOOKINGS, CONFIRMATION } from "../../Constants/pagesConstants";
 import { add, remove } from "../../features/cart/cartSlice";
 import { useAppUser } from "src/context/AppUserContext";
@@ -187,7 +187,7 @@ const Checkout : React.FC<ChildComponentProps> = ({ providerDetails , sendDataTo
         alignItems: "center",
         marginTop: '65px'
       }}>
-        <Button variant="outlined" style={{marginRight:'30%'}} onClick={handleBackClick}>
+        <Button variant="outline" className="mr-[30%]" onClick={handleBackClick}>
                         Back
                       </Button>
         <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.5rem" }}>
@@ -226,8 +226,8 @@ flexDirection: "column",
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <h2 style={{ fontSize: "26px", fontWeight: "bold" }}>COOK</h2>
           <Tooltip title="Remove this service">
-            <IconButton sx={{ color: "#d32f2f" }}>
-              <DeleteOutlineIcon />
+            <IconButton variant="ghost" className="text-red-600 hover:bg-red-50">
+              <Trash2 className="h-5 w-5" />
             </IconButton>
           </Tooltip>
         </div>
@@ -398,17 +398,10 @@ flexDirection: "column",
       
       <Tooltip title="Proceed to checkout">
         <Button
-          startIcon={<ShoppingCartCheckoutIcon />}
-          variant="contained"
-          style={{
-            fontWeight: "600",
-            color: "#fff",
-            background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",  // Grey when disabled
-            border: "1px solid rgb(63, 70, 146)",
-            padding: "10px 24px",
-            borderRadius: "8px",
-          }}
-          onClick={handleLogin}  // Disable if not logged in or items are not selected
+          startIcon={<ShoppingCart className="h-5 w-5" />}
+          variant="cta"
+          className="px-6 py-2.5"
+          onClick={handleLogin}
         >
           Login
         </Button>
@@ -419,16 +412,9 @@ flexDirection: "column",
       
       <Tooltip title="Proceed to checkout">
         <Button
-          startIcon={<ShoppingCartCheckoutIcon />}
-          variant="contained"
-          style={{
-            fontWeight: "600",
-            color: "#fff",
-            background: loggedInUser ? "linear-gradient(to right, #1a73e8, #1565c0)" : "#b0bec5",  // Grey when disabled
-            border: "1px solid rgb(63, 70, 146)",
-            padding: "10px 24px",
-            borderRadius: "8px",
-          }}
+          startIcon={<ShoppingCart className="h-5 w-5" />}
+          variant="cta"
+          className="px-6 py-2.5"
           onClick={handleCheckout}
         >
           Checkout

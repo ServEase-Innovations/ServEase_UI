@@ -5,11 +5,11 @@ import {
   ArrowLeft,
   Phone,
   Mail,
-  Loader2,
   Headset,
 } from "lucide-react";
 import Draggable from "react-draggable";
-import { Button, Card, CardContent, Accordion, AccordionSummary, AccordionDetails, Typography, CircularProgress } from "@mui/material";
+import { Card, CardContent, Accordion, AccordionSummary, AccordionDetails, Typography } from "@mui/material";
+import { Button } from "../Button/button";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useAppUser } from "../../context/AppUserContext";
@@ -70,6 +70,7 @@ const botReplyForFreetext = (q: string): string => {
 
 const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   const { appUser } = useAppUser();
+  const dragNodeRef = useRef<HTMLDivElement>(null);
 
   const [isLiveChat, setIsLiveChat] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -302,8 +303,15 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
   }
 
   return (
-    <Draggable disabled={isMobile} bounds="parent" handle=".chatbot-header" cancel="button, a, [role=button]">
+    <Draggable
+      nodeRef={dragNodeRef}
+      disabled={isMobile}
+      bounds="parent"
+      handle=".chatbot-header"
+      cancel="button, a, [role=button]"
+    >
       <div
+        ref={dragNodeRef}
         className="fixed bottom-20 right-2 z-[9998] w-[min(100vw-1rem,380px)]"
         role="dialog"
         aria-label="Support chat"
@@ -320,8 +328,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
             <div className="flex items-center w-full gap-1">
               {isLiveChat && (
                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={handleBack}
-                  sx={{ minWidth: 36, p: 0.5, color: "#fff" }}
+                  className="min-w-9 text-white hover:bg-white/10 border-transparent"
                   aria-label="Back to FAQs and assistant"
                 >
                   <ArrowLeft size={20} />
@@ -397,10 +408,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                             <Typography className="text-sm text-slate-600">{faq.answer}</Typography>
                             <Button
                               type="button"
-                              size="small"
-                              variant="outlined"
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleQuestionClick(faq)}
-                              className="!normal-case !text-sky-700 !border-sky-300"
+                              className="text-sky-700 border-sky-300"
                             >
                               Add to chat
                             </Button>
@@ -413,10 +424,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                   {showViewAllBtn && !showAccordion && (
                     <Button
                       type="button"
-                      variant="text"
+                      variant="link"
                       onClick={() => setShowAccordion(true)}
-                      className="w-full !text-sky-700"
-                      size="small"
+                      className="w-full"
+                      size="sm"
                     >
                       View all quick questions
                     </Button>
@@ -425,10 +436,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                   {showViewAllBtn && showAccordion && (
                     <Button
                       type="button"
-                      variant="text"
+                      variant="ghost"
                       onClick={() => setShowAccordion(false)}
-                      className="w-full !text-slate-500"
-                      size="small"
+                      className="w-full text-slate-500"
+                      size="sm"
                     >
                       Collapse list
                     </Button>
@@ -441,13 +452,14 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                   {appUser ? (
                     <Button
                       type="button"
-                      variant="contained"
+                      variant="success"
                       onClick={startLiveChat}
                       disabled={connecting}
-                      className="!w-full !py-2 !normal-case !rounded-xl !font-semibold !bg-emerald-600 hover:!bg-emerald-700 !text-white !shadow"
-                      startIcon={connecting ? <CircularProgress size={18} color="inherit" /> : <Headset className="w-4 h-4" />}
+                      loading={connecting}
+                      className="w-full py-2 rounded-xl font-semibold"
+                      startIcon={!connecting ? <Headset className="w-4 h-4" /> : undefined}
                     >
-                      {connecting ? "Connecting…" : "Connect to live support"}
+                      Connect to live support
                     </Button>
                   ) : (
                     <p className="text-sm text-center text-slate-600">Sign in to connect with our support team.</p>
@@ -498,12 +510,13 @@ const Chatbot: React.FC<ChatbotProps> = ({ open, onClose }) => {
                   type="button"
                   onClick={() => void handleSendMessage()}
                   disabled={!inputText.trim() || sendBusy}
-                  className="!min-w-0 !rounded-xl !h-10 !w-10 !p-0 !shrink-0"
-                  color="primary"
+                  loading={sendBusy}
                   variant="contained"
+                  size="icon"
+                  className="shrink-0 rounded-xl"
                   aria-label="Send message"
                 >
-                  {sendBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {!sendBusy ? <Send className="w-5 h-5" /> : null}
                 </Button>
               </div>
               {isLiveChat && (

@@ -9,12 +9,60 @@ import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import PaymentInstance from 'src/services/paymentInstance';
 import { Button } from '../../components/Button/button';
 import Invoice from '../Invoice/Invoice';
+import { coalesceStartEpoch, toEpochOrNull } from 'src/services/bookingEpoch';
+import type { EngagementEpochFields } from 'src/services/epochContract';
 
+interface DrawerPayment {
+  engagement_id?: number | string;
+  base_amount?: number | string;
+  platform_fee?: number | string;
+  gst?: number | string;
+  total_amount?: number | string;
+  payment_mode?: string;
+  status?: string;
+}
+
+interface RazorpaySuccessResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayInstance {
+  open: () => void;
+}
+
+interface RazorpayConstructor {
+  new (options: Record<string, unknown>): RazorpayInstance;
+}
+
+type WindowWithRazorpay = Window & {
+  Razorpay?: RazorpayConstructor;
+};
+
+interface DrawerBooking extends Partial<EngagementEpochFields> {
+  id: number;
+  bookingType?: string;
+  taskStatus?: string;
+  service_type?: string;
+  startDate?: string;
+  endDate?: string;
+  start_time?: string;
+  end_time?: string;
+  customerName?: string;
+  serviceProviderName?: string;
+  providerRating?: number;
+  bookingDate?: string;
+  assignmentStatus?: string;
+  leave_days?: number;
+  payment?: DrawerPayment;
+  modifications?: Array<{ action?: string; date?: string; refund?: number; penalty?: number }>;
+}
 
 interface EngagementDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  booking: any; // Replace with proper Booking type
+  booking: DrawerBooking | null;
   onPaymentComplete?: () => void | Promise<void>;
 }
 
@@ -46,6 +94,33 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
 
   if (!isOpen || !booking) return null;
+
+  const startEpoch = coalesceStartEpoch(booking?.start_epoch, booking?.startDate);
+  const endEpoch = toEpochOrNull(booking?.end_epoch);
+  const displayStartDate =
+    startEpoch != null
+      ? dayjs.unix(startEpoch).format('MMMM D, YYYY')
+      : booking?.startDate
+        ? formatDate(booking.startDate)
+        : '—';
+  const displayEndDate =
+    endEpoch != null
+      ? dayjs.unix(endEpoch).format('MMMM D, YYYY')
+      : booking?.endDate
+        ? formatDate(booking.endDate)
+        : displayStartDate;
+  const displayStartTime =
+    startEpoch != null
+      ? dayjs.unix(startEpoch).format('h:mm A')
+      : booking?.start_time
+        ? formatTimeToAMPM(booking.start_time)
+        : '—';
+  const displayEndTime =
+    endEpoch != null
+      ? dayjs.unix(endEpoch).format('h:mm A')
+      : booking?.end_time
+        ? formatTimeToAMPM(booking.end_time)
+        : '—';
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
@@ -94,7 +169,7 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
           name: customer?.firstname || booking.customerName,
           contact: customer?.contact || '9999999999',
         },
-        handler: async function (response: any) {
+        handler: async function (response: RazorpaySuccessResponse) {
           try {
             await PaymentInstance.post("/api/v2/createEngagements/verify", {
               engagementId: resolvedEngagementId,
@@ -117,10 +192,15 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
         },
       };
 
-      const razorpay = new (window as any).Razorpay(options);
+      const razorpayCtor = (window as WindowWithRazorpay).Razorpay;
+      if (!razorpayCtor) {
+        alert("Payment SDK not loaded. Please refresh and try again.");
+        return;
+      }
+      const razorpay = new razorpayCtor(options);
       razorpay.open();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Complete payment error:", err);
       alert("Unable to resume payment. Please try again.");
     } finally {
@@ -168,8 +248,8 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               <p className="text-lg font-medium text-gray-900">#{booking.id}</p>
             </div>
             <div className="flex gap-2">
-              {getBookingTypeBadge(booking.bookingType)}
-              {getStatusBadge(booking.taskStatus)}
+              {getBookingTypeBadge(booking.bookingType || '')}
+              {getStatusBadge(booking.taskStatus || '')}
             </div>
           </div>
 
@@ -185,7 +265,7 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Service Type</p>
-                <p className="text-xl font-bold text-gray-900">{getServiceTitle(booking.service_type)}</p>
+                <p className="text-xl font-bold text-gray-900">{getServiceTitle(booking.service_type || '')}</p>
               </div>
             </div>
           </div>
@@ -200,11 +280,11 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                <p className="font-medium">{formatDate(booking.startDate)}</p>
+                <p className="font-medium">{displayStartDate}</p>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">End Date</p>
-                <p className="font-medium">{formatDate(booking.endDate)}</p>
+                <p className="font-medium">{displayEndDate}</p>
               </div>
             </div>
 
@@ -212,7 +292,7 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               <p className="text-xs text-gray-500 mb-1">Time Slot</p>
               <p className="font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4 text-gray-400" />
-                {formatTimeToAMPM(booking.start_time)} - {formatTimeToAMPM(booking.end_time)}
+                {displayStartTime} - {displayEndTime}
               </p>
             </div>
           </div>
@@ -230,9 +310,9 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
                   <div>
                     <p className="font-medium text-gray-900">{booking.serviceProviderName}</p>
                   </div>
-                  {booking.providerRating > 0 && (
+                  {(booking.providerRating ?? 0) > 0 && (
                     <Badge className="bg-yellow-100 text-yellow-800">
-                      ⭐ {booking.providerRating.toFixed(1)}
+                      ⭐ {(booking.providerRating ?? 0).toFixed(1)}
                     </Badge>
                   )}
                 </div>
@@ -269,8 +349,8 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
                 
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                   <span className="text-gray-600">Payment Status</span>
-                  <Badge className={getPaymentStatusColor(booking.payment.status)}>
-                    {booking.payment.status}
+                  <Badge className={getPaymentStatusColor(booking.payment.status || 'UNKNOWN')}>
+                    {booking.payment.status || 'UNKNOWN'}
                   </Badge>
                 </div>
                 
@@ -313,7 +393,7 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               </h3>
               
               <div className="space-y-3">
-                {booking.modifications.map((mod: any, index: number) => (
+                {booking.modifications.map((mod, index: number) => (
                   <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-100">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge className="bg-yellow-200 text-yellow-800">
@@ -345,13 +425,13 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">Booking Date</p>
-                <p className="text-sm font-medium">{dayjs(booking.bookingDate).format('MMM D, YYYY')}</p>
+                <p className="text-sm font-medium">{dayjs(booking.bookingDate || '').format('MMM D, YYYY')}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Assignment Status</p>
                 <p className="text-sm font-medium capitalize">{booking.assignmentStatus}</p>
               </div>
-              {booking.leave_days > 0 && (
+              {(booking.leave_days ?? 0) > 0 && (
                 <div>
                   <p className="text-xs text-gray-500">Leave Days</p>
                   <p className="text-sm font-medium">{booking.leave_days}</p>

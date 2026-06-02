@@ -1,13 +1,12 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   Box,
-  Typography,
-  IconButton,
-  TextField,
+  Typography,  TextField,
   Button,
   Divider,
   Chip,

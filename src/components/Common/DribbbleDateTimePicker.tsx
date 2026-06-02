@@ -20,7 +20,8 @@ const generateTimeSlots = () => {
 };
 
 const ALL_TIMES = generateTimeSlots();
-const MAX_RANGE_DAYS = 21;
+/** Default max span between range start and end (inclusive window = this + 1 days). */
+const DEFAULT_MAX_RANGE_DAYS = 21;
 
 /* -------------------- Types -------------------- */
 
@@ -41,6 +42,8 @@ type SingleProps = {
 type RangeProps = {
   mode: "range";
   value?: RangeValue;
+  /** Max days after start date for end selection (14 = 15 calendar days inclusive). */
+  maxRangeDays?: number;
   /** Fired when start/end dates change (time selection is cleared). */
   onDateChange?: (payload: { startDate: Date; endDate?: Date }) => void;
   onChange: (payload: {
@@ -91,6 +94,11 @@ export default function DribbbleDateTimePicker(props: Props) {
   const mode = props.mode ?? "single";
   const value = props.value;
   const maxDate = props.mode === "single" ? props.maxDate : undefined;
+  const maxRangeDays =
+    props.mode === "range"
+      ? Math.max(1, props.maxRangeDays ?? DEFAULT_MAX_RANGE_DAYS)
+      : DEFAULT_MAX_RANGE_DAYS;
+  const maxRangeDaysInclusive = maxRangeDays + 1;
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -167,6 +175,13 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   const hasAvailableTimes = availableTimes.length > 0;
 
+  /** When every slot for today is in the past, block selecting today on the calendar. */
+  const todayHasNoSlots = useMemo(
+    () => getAvailableTimes(today).length === 0,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-check when active month/day context changes
+    [today.format("YYYY-MM-DD"), now.hour(), now.minute()]
+  );
+
   // For the "More time" toggle: 
   // - For today: show first 6 slots initially (same as before)
   // - For future dates: show only slots up to 12 PM initially, then all slots after expanding
@@ -227,19 +242,31 @@ export default function DribbbleDateTimePicker(props: Props) {
   const isDisabledInRangeMode = (day: number) => {
     const date = currentMonth.date(day);
     if (isPastDate(date)) return true;
-    
+    if (date.isSame(today, "day") && todayHasNoSlots) return true;
+
     // For single mode (on-demand), disable dates beyond maxDate
     if (mode === "single" && maxDate) {
       if (date.isAfter(dayjs(maxDate), "day")) return true;
     }
-    
+
     if (mode === "range" && rangeStart && !rangeEnd) {
-      if (date.isAfter(rangeStart.add(MAX_RANGE_DAYS, "day"), "day")) return true;
+      if (date.isBefore(rangeStart, "day")) return true;
+      if (date.isAfter(rangeStart.add(maxRangeDays, "day"), "day")) return true;
     }
     return false;
   };
 
   const getTimeSectionMessage = () => {
+    if (mode === "range") {
+      if (!rangeStart) return "Step 1: Tap your first service day on the calendar";
+      if (!rangeEnd) {
+        return `Step 2: Tap your last day (up to ${maxRangeDaysInclusive} days from the first)`;
+      }
+      if (!selectedTime) {
+        return "Step 3: Choose the daily start time (same time applies on each day)";
+      }
+      return null;
+    }
     if (!activeDate) return "Select a date first";
     if (isPastDate(activeDate)) return "Past dates cannot be booked";
     if (!hasAvailableTimes) return "No time slots available for today. Please select another date.";
@@ -254,6 +281,7 @@ export default function DribbbleDateTimePicker(props: Props) {
   const selectDate = (day: number) => {
     const date = currentMonth.date(day);
     if (isDisabledInRangeMode(day)) return;
+    if (date.isSame(today, "day") && todayHasNoSlots) return;
 
     if (mode === "single") {
       // Check max date limit
@@ -281,7 +309,7 @@ export default function DribbbleDateTimePicker(props: Props) {
 
     if (date.isSame(rangeStart, "day")) return;
 
-    if (date.diff(rangeStart, "day") > MAX_RANGE_DAYS) {
+    if (date.diff(rangeStart, "day") > maxRangeDays) {
       setShowTimeHint(true);
       setTimeout(() => setShowTimeHint(false), 3000);
       return;
@@ -390,13 +418,42 @@ export default function DribbbleDateTimePicker(props: Props) {
         })}
       </div>
 
-      {showTimeHint && <div className="dtp-range-hint">Maximum range is {MAX_RANGE_DAYS} days</div>}
+      {todayHasNoSlots && currentMonth.isSame(today, "month") && (
+        <div className="dtp-day-unavailable-hint">
+          Today has no remaining time slots. Please select a future date.
+        </div>
+      )}
+
+      {showTimeHint && (
+        <div className="dtp-range-hint">
+          Short-term bookings are limited to {maxRangeDaysInclusive} days. Pick an end date within that
+          window.
+        </div>
+      )}
+
+      {mode === "range" && rangeStart && rangeEnd && (
+        <div className="dtp-range-summary">
+          {rangeStart.format("MMM D")} – {rangeEnd.format("MMM D, YYYY")} ·{" "}
+          {rangeEnd.diff(rangeStart, "day") + 1} day
+          {rangeEnd.diff(rangeStart, "day") + 1 === 1 ? "" : "s"}
+        </div>
+      )}
 
       <div className="dtp-divider" />
       <div className="dtp-time-header">
-        <h4 className="dtp-time-title">Select Time</h4>
+        <h4 className="dtp-time-title">
+          {mode === "range" && (!rangeStart || !rangeEnd) ? "Time (after dates)" : "Select time"}
+        </h4>
         {getTimeSectionMessage() && (
-          <span className="dtp-time-hint">{getTimeSectionMessage()}</span>
+          <span
+            className={
+              mode === "range" && (!rangeStart || !rangeEnd || !selectedTime)
+                ? "dtp-step-hint"
+                : "dtp-time-hint"
+            }
+          >
+            {getTimeSectionMessage()}
+          </span>
         )}
       </div>
 

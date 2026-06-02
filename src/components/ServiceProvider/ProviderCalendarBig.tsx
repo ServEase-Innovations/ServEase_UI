@@ -8,6 +8,7 @@ import {
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import PaymentInstance from "src/services/paymentInstance";
+import dayjs from "dayjs";
 
 const localizer = momentLocalizer(moment);
 
@@ -52,42 +53,40 @@ export default function ProviderCalendarBig({
         const entries: CalendarEntry[] = res.data.calendar || [];
 
         const normalizeTime = (t: string) => {
-            if (!t) return "00:00:00";
-            const parts = t.split(":");
-            if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
-            return t;
-          };
+          if (!t) return "00:00:00";
+          const parts = t.split(":");
+          if (parts.length === 2) return `${parts[0]}:${parts[1]}:00`;
+          return t;
+        };
 
         const evts = entries
-            .filter((e) => {
-              const st = String(e.status || "").toUpperCase();
-              return st === "BOOKED" || st === "UNAVAILABLE" || st === "FREE";
-            })
-            .map((e) => {
-              const baseDate = new Date(e.date);
-              const [sh, sm, ss] = normalizeTime(e.start_time).split(":").map(Number);
-              const [eh, em, es] = normalizeTime(e.end_time).split(":").map(Number);
-              const start = new Date(baseDate);
-              start.setHours(sh, sm, ss);
-              const end = new Date(baseDate);
-              end.setHours(eh, em, es);
-              const st = String(e.status || "").toUpperCase();
-              const title =
-                st === "UNAVAILABLE"
-                  ? "Unavailable (blocked)"
-                  : st === "FREE"
-                    ? "Free / open"
-                    : `Engagement #${e.engagement_id ?? "?"}`;
+          .filter((e) => {
+            const st = String(e.status || "").toUpperCase();
+            return st === "BOOKED" || st === "UNAVAILABLE" || st === "FREE";
+          })
+          .map((e) => {
+            const dayPart = dayjs(e.date).isValid()
+              ? dayjs(e.date).format("YYYY-MM-DD")
+              : String(e.date).slice(0, 10);
+            const start = dayjs(`${dayPart} ${normalizeTime(e.start_time)}`, "YYYY-MM-DD HH:mm:ss");
+            const end = dayjs(`${dayPart} ${normalizeTime(e.end_time)}`, "YYYY-MM-DD HH:mm:ss");
+            const st = String(e.status || "").toUpperCase();
+            const title =
+              st === "UNAVAILABLE"
+                ? "Unavailable (blocked)"
+                : st === "FREE"
+                  ? "Free / open"
+                  : `Engagement #${e.engagement_id ?? "?"}`;
 
-              return {
-                id: e.id,
-                engagement_id: e.engagement_id,
-                title,
-                start,
-                end,
-                status: st,
-              };
-            });
+            return {
+              id: e.id,
+              engagement_id: e.engagement_id,
+              title,
+              start: start.isValid() ? start.toDate() : dayjs(e.date).toDate(),
+              end: end.isValid() ? end.toDate() : dayjs(e.date).toDate(),
+              status: st,
+            };
+          });
 
         setEvents(evts);
       } catch (err) {

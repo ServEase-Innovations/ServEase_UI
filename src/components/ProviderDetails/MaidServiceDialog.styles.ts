@@ -1,6 +1,7 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import styled from "@emotion/styled";
-import { Dialog, DialogContent, IconButton } from "@mui/material";
+import { Dialog, DialogContent } from "@mui/material";
 
 const accent = "#0b5bd3";
 const accentSoft = "#e8f1ff";

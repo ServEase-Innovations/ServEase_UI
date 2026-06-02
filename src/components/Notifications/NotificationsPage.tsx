@@ -3,14 +3,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -40,6 +38,8 @@ import {
 } from "src/services/engagementService";
 import { urls } from "src/config/urls";
 import { useLanguage } from "src/context/LanguageContext";
+import { Button, dialogActionsClassName } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
 import { OndemandBookingRequestPanel } from "./BookingRequestToast";
 import { inAppToBookingRequestPayload } from "./inAppToBookingRequestPayload";
 
@@ -441,12 +441,8 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
           </div>
         </DialogContent>
 
-        <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
-          <Button
-            type="button"
-            onClick={onClose}
-            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
-          >
+        <DialogActions className={dialogActionsClassName}>
+          <Button type="button" variant="dialogCancel" onClick={onClose}>
             {t("cancel")}
           </Button>
         </DialogActions>
@@ -834,20 +830,12 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         </div>
       </DialogContent>
 
-      <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
-        <Button
-          type="button"
-          onClick={onClose}
-          className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
-        >
+      <DialogActions className={dialogActionsClassName}>
+        <Button type="button" variant="dialogCancel" onClick={onClose}>
           {t("cancel")}
         </Button>
         {unread > 0 && (
-          <Button
-            type="button"
-            onClick={markAll}
-            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 sm:!w-auto"
-          >
+          <Button type="button" variant="dialogPrimary" onClick={markAll}>
             Mark all as read
           </Button>
         )}

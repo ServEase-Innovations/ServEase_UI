@@ -1,8 +1,10 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
-import { CircularProgress, Dialog, DialogContent, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
+import { CircularProgress, Dialog, DialogContent, Tooltip, Snackbar, Alert } from '@mui/material';
+import dayjs from "dayjs";
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { addToCart, clearCart, removeFromCart, selectCartItems } from '../../features/addToCart/addToSlice';
@@ -502,8 +504,11 @@ const { appUser } = useAppUser();
       const payload: BookingPayload = {
         customerid: customerId,
         serviceproviderid: spId,
-        start_date: bookingType?.startDate || new Date().toISOString().split('T')[0],
-        end_date: bookingType?.endDate || "",
+        start_date: bookingType?.startDate || dayjs().format("YYYY-MM-DD"),
+        end_date:
+          getBookingTypeFromPreference(bookingType?.bookingPreference) === "ON_DEMAND"
+            ? (bookingType?.startDate || dayjs().format("YYYY-MM-DD"))
+            : (bookingType?.endDate || ""),
         start_time: bookingType?.startTime || '',
         responsibilities: { tasks: responsibilities },
         booking_type: getBookingTypeFromPreference(bookingType?.bookingPreference),
@@ -513,6 +518,20 @@ const { appUser } = useAppUser();
         payment_mode: "razorpay",
         end_time: bookingType?.endTime || "",
       };
+      const startDateYmd = String(payload.start_date).slice(0, 10);
+      const endDateYmd = String(payload.end_date || startDateYmd).slice(0, 10);
+      const startEpoch = dayjs(`${startDateYmd} ${payload.start_time || "00:00"}`).unix();
+      const endEpoch =
+        payload.booking_type === "ON_DEMAND"
+          ? startEpoch + 60 * 60
+          : payload.end_time
+            ? dayjs(`${endDateYmd} ${payload.end_time}`).unix()
+            : startEpoch + 60 * 60;
+      payload.start_epoch = Number.isFinite(startEpoch) ? startEpoch : undefined;
+      payload.end_epoch =
+        Number.isFinite(endEpoch) && endEpoch > startEpoch ? endEpoch : startEpoch + 60 * 60;
+      payload.start_date_epoch = dayjs(startDateYmd).startOf("day").unix();
+      payload.end_date_epoch = dayjs(endDateYmd).endOf("day").unix();
 
       const result = await BookingService.bookAndPay(payload);
 
@@ -521,7 +540,7 @@ const { appUser } = useAppUser();
         providerName: providerFullName,
         serviceType: t("caregiverService"),
         totalAmount: baseTotal,
-        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        bookingDate: bookingType?.startDate || dayjs().format("YYYY-MM-DD"),
         persons: selectedPackages.length,
         message: result?.verifyResult?.message || "Booking & Payment Successful ✅"
       });

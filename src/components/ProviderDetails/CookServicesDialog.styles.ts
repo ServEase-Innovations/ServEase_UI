@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { Dialog, DialogContent, Tooltip, IconButton } from '@mui/material';
+import { IconButton } from "src/components/Button/icon-button";
+import { Dialog, DialogContent, Tooltip } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import styled from '@emotion/styled';

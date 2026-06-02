@@ -1,8 +1,9 @@
 /* eslint-disable */
 import React from 'react';
-import { Typography, Box, IconButton } from '@mui/material';
-import { Button } from "../Button/button";
-import CloseIcon from '@mui/icons-material/Close';
+import { Typography, Box } from '@mui/material';
+import { Button } from '../Button/button';
+import { IconButton } from '../Button/icon-button';
+import { X } from 'lucide-react';
 import { useLanguage } from 'src/context/LanguageContext';
 // Import the language context
 
@@ -70,10 +71,10 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
       
       {!value ? (
         <Button
-          variant="contained"
-          component="span"
+          type="button"
+          variant="dialogPrimary"
           onClick={handleButtonClick}
-          sx={{ mb: 2 }}
+          className="mb-2"
           disabled={disabled}
         >
           {displayButtonText}
@@ -93,13 +94,12 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
                 {t("selectedFile")} {value.name}
               </Typography>
               <IconButton
-                size="small"
                 onClick={handleRemoveFile}
-                sx={{ ml: 1 }}
+                className="ml-1 h-8 w-8"
                 aria-label={t("removeFile")}
                 title={t("removeFile")}
               >
-                <CloseIcon fontSize="small" />
+                <X className="h-4 w-4" />
               </IconButton>
             </Box>
             
@@ -121,10 +121,10 @@ const CustomFileInput: React.FC<CustomFileInputProps> = ({
             )}
           </Box>
           <Button
-            variant="outlined"
+            variant="outline"
             onClick={handleButtonClick}
-            size="small"
-            sx={{ mt: 1 }}
+            size="sm"
+            className="mt-1"
           >
             {t("changeFile")}
           </Button>

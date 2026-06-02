@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState } from 'react';
 import { 
   Dialog, 
   DialogContent, 
-  IconButton, 
   useMediaQuery, 
   Typography, 
   Box, 
@@ -17,7 +17,7 @@ import BookingDialog from '../BookingDialog/BookingDialog';
 import CookServicesDialog from '../ProviderDetails/CookServicesDialog';
 import MaidServiceDialog from '../ProviderDetails/MaidServiceDialog';
 import NannyServicesDialog from '../ProviderDetails/NannyServicesDialog';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import { useDispatch } from 'react-redux';
 import { add as addBooking } from "../../features/bookingType/bookingTypeSlice";
 import { Button } from '../Button/button';
@@ -163,13 +163,14 @@ const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
       timeSlot = startTime?.format("HH:mm") || "";
     }
 
+    const startDateYmd = startDate ? dayjs(startDate).format("YYYY-MM-DD") : "";
+    const endDateYmd = endDate
+      ? dayjs(endDate).format("YYYY-MM-DD")
+      : startDateYmd;
+
     const booking = {
-      startDate: startDate ? startDate.split("T")[0] : "",
-      endDate: endDate
-        ? endDate.split("T")[0]
-        : startDate
-        ? startDate.split("T")[0]
-        : "",
+      startDate: startDateYmd,
+      endDate: endDateYmd,
       timeRange: timeRange,
       bookingPreference: selectedRadioButtonValue,
       housekeepingRole: selectedType,

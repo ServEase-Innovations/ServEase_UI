@@ -2,8 +2,9 @@
 /* eslint-disable */
 
 import React, { SyntheticEvent, useState } from 'react';
-import { Box, Button, Card, FormControl, FormControlLabel, FormLabel, Grid, Radio, RadioGroup, Snackbar, SnackbarCloseReason, Tab, Tabs, Typography } from '@mui/material';
-import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import { Box, Card, FormControl, FormControlLabel, FormLabel, Grid, Radio, RadioGroup, Snackbar, SnackbarCloseReason, Tab, Tabs, Typography } from '@mui/material';
+import { Button } from '../../../Button/button';
+import { ShoppingCart } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { add } from '../../../../features/cart/cartSlice';
 import { CHECKOUT } from '../../../../Constants/pagesConstants';
@@ -225,39 +226,21 @@ const NannyPricing = ({ onPriceChange, onAddToCart, pricing, sendToParent }: Nan
     >
           {/* Add to Cart Button */}
           <Button
-            variant="outlined"
-            sx={{
-              flex: 1,
-              float: "right",
-              margin: "10px",
-              minWidth: "150px",
-              height: 50,
-              textTransform: "none",
-              borderRadius: "25px",
-              color: "#1e88e5",
-              borderColor: "#1e88e5",
-              "&:hover": {
-                backgroundColor: "#e3f2fd",
-              },
-            }}
-            endIcon={<AddShoppingCartIcon />}
+            variant="outline"
+            className="flex-1 min-w-[150px] h-[50px] rounded-full border-sky-600 text-sky-600 normal-case hover:bg-sky-50 m-2.5"
+            endIcon={<ShoppingCart className="h-5 w-5" />}
             onClick={onClickAddToCart}
-            disabled={selectedItemFromNanny.length === 0} // Disable if no item is selected
+            disabled={selectedItemFromNanny.length === 0}
           >
             Add to Cart
           </Button>
 
-          {/* Proceed to Checkout Button */}
           <Button
-            variant="outlined"
-            sx={{  flex: 1,
-              minWidth: "150px",
-              height: 50,
-              textTransform: "none",
-              borderRadius: "25px", }}
-            endIcon={<AddShoppingCartIcon />}
+            variant="outline"
+            className="flex-1 min-w-[150px] h-[50px] rounded-full normal-case"
+            endIcon={<ShoppingCart className="h-5 w-5" />}
             onClick={handleProceedToCheckout}
-            disabled={!addtoCartSelected} // Disable if nothing added to cart
+            disabled={!addtoCartSelected}
           >
             Proceed to Checkout
           </Button>

@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BOOKINGS } from "../../Constants/pagesConstants";
-import { Tooltip, IconButton, CircularProgress, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Typography } from "@mui/material";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { Tooltip, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, CircularProgress } from "@mui/material";
+import { Button, dialogActionsClassName } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
+import { Info } from "lucide-react";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
@@ -62,9 +64,10 @@ import PriceBreakdown from "./PriceBreakdown";
 import type { PricingQuoteResponse } from "src/services/pricingService";
 import axios from "axios";
 import { urls } from "src/config/urls";
+import dayjs from "dayjs";
 
-const ACCENT_BTN = "#0b5bd3";
 const COUPON_FEEDBACK_MS = 2000;
+const todayYmd = () => dayjs().format("YYYY-MM-DD");
 
 type CouponOption = {
   code: string;
@@ -276,8 +279,15 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
           : Array.isArray(data?.data?.coupons)
             ? data.data.coupons
             : [];
+        type CouponApi = {
+          coupon_code?: string;
+          service_type?: string;
+          discount_type?: string;
+          discount_value?: number | string;
+          minimum_order_value?: number | string | null;
+        };
         const mapped = source
-          .map((c: any) => ({
+          .map((c: CouponApi) => ({
             code: String(c?.coupon_code || "").trim().toUpperCase(),
             serviceType: String(c?.service_type || "").trim().toUpperCase(),
             discountType:
@@ -324,8 +334,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     const customerId = appUser?.customerid;
     const start_date =
       formatDateOnly(String(bookingType?.startDate ?? "")) ||
-      new Date().toISOString().split("T")[0];
-    const end_date = formatDateOnly(String(bookingType?.endDate ?? "")) || start_date;
+      todayYmd();
+    const raw_end_date = formatDateOnly(String(bookingType?.endDate ?? "")) || start_date;
+    const end_date = bookingTypeCode === "ON_DEMAND" ? start_date : raw_end_date;
     const durationHours = computeDurationHours(
       bookingTypeCode,
       String(bookingType?.startTime ?? ""),
@@ -552,8 +563,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
       const start_date =
         formatDateOnly(String(bookingType?.startDate ?? "")) ||
-        new Date().toISOString().split("T")[0];
-      const end_date = formatDateOnly(String(bookingType?.endDate ?? "")) || start_date;
+        todayYmd();
+      const raw_end_date = formatDateOnly(String(bookingType?.endDate ?? "")) || start_date;
+      const end_date = booking_type === "ON_DEMAND" ? start_date : raw_end_date;
       const durationHours = computeDurationHours(
         booking_type,
         String(bookingType?.startTime ?? ""),
@@ -590,7 +602,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         customerid: customerId,
         serviceproviderid: spId ?? null,
         start_date,
-        end_date,
+        end_date: booking_type === "ON_DEMAND" ? start_date : end_date,
         start_time: bookingType?.startTime || "",
         responsibilities: { tasks: [], add_ons: [] },
         booking_type,
@@ -604,13 +616,25 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         payment_mode: "razorpay",
         end_time: bookingType?.endTime || "",
       };
+      const startEpoch = dayjs(`${start_date} ${payload.start_time}`).unix();
+      const endEpoch =
+        booking_type === "ON_DEMAND"
+          ? startEpoch + 60 * 60
+          : payload.end_time
+            ? dayjs(`${payload.end_date} ${payload.end_time}`).unix()
+            : startEpoch + 60 * 60;
+      payload.start_epoch = Number.isFinite(startEpoch) ? startEpoch : undefined;
+      payload.end_epoch =
+        Number.isFinite(endEpoch) && endEpoch > startEpoch ? endEpoch : startEpoch + 60 * 60;
+      payload.start_date_epoch = dayjs(start_date).startOf("day").unix();
+      payload.end_date_epoch = dayjs(payload.end_date || start_date).endOf("day").unix();
       const result = await BookingService.bookAndPay(payload);
 
       setBookingSuccessDetails({
         providerName: providerFullName,
         serviceType: t(cfg.successServiceKey),
         totalAmount: computePaymentTotals(checkoutTotal).total_amount,
-        bookingDate: bookingType?.startDate || new Date().toISOString().split("T")[0],
+        bookingDate: bookingType?.startDate || todayYmd(),
         persons: 1,
         message:
           result?.verifyResult?.message ||
@@ -618,14 +642,18 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       });
 
       setSuccessDialogOpen(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let backendMessage = "Failed to initiate payment";
-      if (error?.response?.data) {
-        if (typeof error.response.data === "string") backendMessage = error.response.data;
-        else if (error.response.data.error) backendMessage = error.response.data.error;
-        else if (error.response.data.message) backendMessage = error.response.data.message;
-      } else if (error.message) {
-        backendMessage = error.message;
+      const axErr = error as {
+        response?: { data?: string | { error?: string; message?: string } };
+        message?: string;
+      };
+      if (axErr?.response?.data) {
+        if (typeof axErr.response.data === "string") backendMessage = axErr.response.data;
+        else if (axErr.response.data.error) backendMessage = axErr.response.data.error;
+        else if (axErr.response.data.message) backendMessage = axErr.response.data.message;
+      } else if (axErr.message) {
+        backendMessage = axErr.message;
       }
       setSnackbarMessage(backendMessage);
       setSnackbarSeverity("error");
@@ -741,62 +769,41 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                 {!appliedCouponCode && bestCoupon ? (
                   <Button
                     variant="contained"
-                    size="small"
+                    size="sm"
                     onClick={() => applyCouponCode(bestCoupon.code)}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: "none",
-                      fontWeight: 700,
-                      backgroundColor: ACCENT_BTN,
-                      color: "#fff",
-                      "&:hover": { backgroundColor: "#0848b0" },
-                    }}
+                    className="font-bold"
                   >
                     Apply best
                   </Button>
                 ) : null}
                 <Button
-                  variant="outlined"
-                  size="small"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setCouponDialogOpen(true)}
                   disabled={couponLoading}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 700,
-                    borderColor: ACCENT_BTN,
-                    color: ACCENT_BTN,
-                    "&:hover": { borderColor: "#0848b0", backgroundColor: "#e8f1ff" },
-                  }}
+                  className="font-bold border-sky-600 text-sky-700 hover:bg-sky-50"
                 >
                   {appliedCouponCode ? "Change coupon" : "View coupons"}
                 </Button>
                   {!appliedCouponCode && bestCoupon ? (
                     <Button
-                      variant="outlined"
-                      size="small"
-                      color="inherit"
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         setCouponInput(bestCoupon.code);
                         setCouponDialogOpen(true);
                       }}
-                      sx={{
-                        borderRadius: 2,
-                        textTransform: "none",
-                        fontWeight: 700,
-                        color: "#334155",
-                        borderColor: "#cbd5e1",
-                      }}
+                      className="font-bold"
                     >
                       Details
                     </Button>
                   ) : null}
                 {appliedCouponCode ? (
                   <Button
-                    color="error"
-                    size="small"
+                    variant="destructive"
+                    size="sm"
                     onClick={removeCoupon}
-                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+                    className="font-bold"
                   >
                     Remove
                   </Button>
@@ -827,8 +834,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             {!isAuthenticated ? (
               <>
                 <Tooltip title={t("youNeedToLogin")}>
-                  <IconButton size="small" sx={{ color: ACCENT_BTN }}>
-                    <InfoOutlinedIcon fontSize="small" />
+                  <IconButton
+                    className="h-8 w-8 text-sky-600"
+                    aria-label="Coupon info"
+                  >
+                    <Info className="h-4 w-4" />
                   </IconButton>
                 </Tooltip>
                 <MaidBtnPrimary type="button" onClick={handleLoginToContinue}>
@@ -900,16 +910,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
               variant="contained"
               onClick={() => applyCouponCode(normalizedCouponInput)}
               disabled={!normalizedCouponInput}
-              sx={{
-                height: 40,
-                px: 2.25,
-                whiteSpace: "nowrap",
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 700,
-                backgroundColor: ACCENT_BTN,
-                "&:hover": { backgroundColor: "#0848b0" },
-              }}
+              className="h-10 shrink-0 whitespace-nowrap px-4 font-bold"
             >
               Apply
             </Button>
@@ -940,29 +941,10 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                 </Typography>
               </Box>
               <Button
-                variant={appliedCouponCode === bestCoupon.code ? "contained" : "outlined"}
-                size="small"
+                variant={appliedCouponCode === bestCoupon.code ? "contained" : "outline"}
+                size="sm"
                 onClick={() => applyCouponCode(bestCoupon.code)}
-                sx={{
-                  minWidth: 88,
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 700,
-                  ...(appliedCouponCode === bestCoupon.code
-                    ? {
-                        backgroundColor: ACCENT_BTN,
-                        color: "#fff",
-                        "&:hover": { backgroundColor: "#0848b0" },
-                      }
-                    : {
-                        borderColor: ACCENT_BTN,
-                        color: ACCENT_BTN,
-                        "&:hover": {
-                          borderColor: "#0848b0",
-                          backgroundColor: "#e8f1ff",
-                        },
-                      }),
-                }}
+                className="min-w-[88px] font-bold"
               >
                 {appliedCouponCode === bestCoupon.code ? "Applied" : "Use"}
               </Button>
@@ -1003,14 +985,10 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                     </Typography>
                   </Box>
                   <Button
-                    size="small"
+                    size="sm"
+                    variant={appliedCouponCode === coupon.code ? "contained" : "link"}
                     onClick={() => applyCouponCode(coupon.code)}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: "none",
-                      fontWeight: 700,
-                      color: ACCENT_BTN,
-                    }}
+                    className="font-bold"
                   >
                     {appliedCouponCode === coupon.code ? "Applied" : "Use"}
                   </Button>
@@ -1059,23 +1037,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             </Box>
           ) : null}
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setCouponDialogOpen(false)}
-            variant="outlined"
-            sx={{
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 700,
-              color: ACCENT_BTN,
-              borderColor: "#cbd5e1",
-              backgroundColor: "#fff",
-              "&:hover": {
-                borderColor: ACCENT_BTN,
-                backgroundColor: "#f8fafc",
-              },
-            }}
-          >
+        <DialogActions className={dialogActionsClassName}>
+          <Button variant="dialogCancel" onClick={() => setCouponDialogOpen(false)}>
             Cancel
           </Button>
         </DialogActions>

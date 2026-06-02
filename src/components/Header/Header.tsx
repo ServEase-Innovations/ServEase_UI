@@ -8,13 +8,13 @@ import {
   useMediaQuery,
   useTheme,
   Badge,
-  IconButton,
   TextField,
   CircularProgress,
   Alert,
   Snackbar,
 } from "@mui/material";
 import React, { useState, useEffect, useReducer, useRef, useCallback } from "react";
+import dayjs from "dayjs";
 import axios from "axios";
 import { keys } from "../../env/env";
 import "./Header.css";
@@ -50,8 +50,10 @@ import {
   User,
   X,
 } from "lucide-react";
-import { Button } from "../Button/button";
+import { Button, dialogActionsClassName } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
 import { useAuth0 } from "@auth0/auth0-react";
+import { AUTH0_DEFAULT_SCOPE, resolveAccessToken } from "src/utils/auth0Token";
 import MapComponent from "../MapComponent/MapComponent";
 import { get } from "http";
 import { CartDialog } from "../AddToCart/CartDialog";
@@ -231,10 +233,9 @@ export const Header: React.FC<ChildComponentProps> = ({
       if (postLoginHandledForRef.current === userKey) {
         return;
       }
-      postLoginHandledForRef.current = userKey;
 
       try {
-        const token = await getAccessTokenSilently();
+        const token = await resolveAccessToken(getAccessTokenSilently, loginWithPopup);
         if (token) localStorage.setItem("token", token);
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
@@ -247,6 +248,14 @@ export const Header: React.FC<ChildComponentProps> = ({
         console.log("Email check response:", response.data);
         console.log("User role:", response.data.user_role);
         
+        const linkedSpIdRaw =
+          response.data.service_provider_id != null
+            ? Number(response.data.service_provider_id)
+            : NaN;
+        const linkedSpId = Number.isFinite(linkedSpIdRaw) && linkedSpIdRaw > 0
+          ? linkedSpIdRaw
+          : undefined;
+
         if (!response.data.user_role) {
           await createUser(user);
         } else if (response.data.user_role === "SERVICE_PROVIDER") {
@@ -260,6 +269,7 @@ export const Header: React.FC<ChildComponentProps> = ({
             ...user,
             role: "CUSTOMER",
             customerid: response.data.id,
+            ...(linkedSpId != null ? { serviceProviderId: linkedSpId } : {}),
           });
         } else if (response.data.user_role === "VENDOR") {
           setAppUser({
@@ -269,6 +279,7 @@ export const Header: React.FC<ChildComponentProps> = ({
           });
         }
 
+        postLoginHandledForRef.current = userKey;
         console.log("Updated user object with role:", user);
         console.log("Post-login steps completed ✅");
       } catch (error) {
@@ -278,7 +289,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     };
 
     run();
-  }, [isAuthenticated, isLoading, user?.sub, user?.email, getAccessTokenSilently]);
+  }, [isAuthenticated, isLoading, user?.sub, user?.email, getAccessTokenSilently, loginWithPopup]);
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
@@ -766,13 +777,14 @@ export const Header: React.FC<ChildComponentProps> = ({
       timeSlot = startTime?.format("HH:mm") || "";
     }
 
+    const startDateYmd = startDate ? dayjs(startDate).format("YYYY-MM-DD") : "";
+    const endDateYmd = endDate
+      ? dayjs(endDate).format("YYYY-MM-DD")
+      : startDateYmd;
+
     const booking = {
-      startDate: startDate ? startDate.split("T")[0] : "",
-      endDate: endDate
-        ? endDate.split("T")[0]
-        : startDate
-        ? startDate.split("T")[0]
-        : "",
+      startDate: startDateYmd,
+      endDate: endDateYmd,
       timeRange: timeRange,  
       bookingPreference: selectedRadioButtonValue,
       housekeepingRole: selectedType,
@@ -1783,21 +1795,11 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           </div>
         </DialogContent>
 
-        <DialogActions
-          className="!m-0 flex flex-col-reverse justify-end gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!gap-3 sm:!p-4"
-        >
-          <Button
-            type="button"
-            onClick={handleClose}
-            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
-          >
+        <DialogActions className={dialogActionsClassName}>
+          <Button type="button" variant="dialogCancel" onClick={handleClose}>
             {t("cancel")}
           </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 sm:!w-auto"
-          >
+          <Button type="button" variant="dialogPrimary" onClick={handleSave}>
             {t("save")}
           </Button>
         </DialogActions>
@@ -1886,29 +1888,18 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           )}
         </DialogContent>
 
-        <DialogActions className="!m-0 !flex !flex-col-reverse !gap-2 !border-t !border-slate-200 !bg-slate-50/60 !p-3 sm:!flex-row sm:!justify-end sm:!gap-3 sm:!p-4">
-          <Button
-            type="button"
-            onClick={handleClose}
-            disabled={isSaving}
-            className="!w-full !justify-center !border-slate-300 !text-slate-700 hover:!bg-slate-100 sm:!w-auto"
-          >
+        <DialogActions className={dialogActionsClassName}>
+          <Button type="button" variant="dialogCancel" onClick={handleClose} disabled={isSaving}>
             {t("cancel")}
           </Button>
           <Button
             type="button"
+            variant="dialogPrimary"
             onClick={locationHandleSave}
             disabled={isSaving || !locationAs}
-            className="!w-full !justify-center !border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700 disabled:!opacity-50 sm:!w-auto"
+            loading={isSaving}
           >
-            {isSaving ? (
-              <span className="inline-flex items-center gap-2">
-                <CircularProgress size={18} className="!text-white" />
-                {t("saving")}
-              </span>
-            ) : (
-              t("save")
-            )}
+            {isSaving ? t("saving") : t("save")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1987,28 +1978,28 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
             Continue with your preferred sign-in option.
           </p>
         </DialogContent>
-        <DialogActions>
+        <DialogActions className={dialogActionsClassName}>
           <Button
             type="button"
+            variant="dialogCancel"
+            onClick={() => {
+              setAuthChoiceOpen(false);
+              void loginWithPopup({
+                authorizationParams: { prompt: "login", scope: AUTH0_DEFAULT_SCOPE },
+              }).catch(() => {});
+            }}
+          >
+            Login with email
+          </Button>
+          <Button
+            type="button"
+            variant="dialogPrimary"
             onClick={() => {
               setAuthChoiceOpen(false);
               setPhoneLoginDialogOpen(true);
             }}
-            className="!border-sky-600 !bg-sky-600 !text-white hover:!bg-sky-700"
           >
             Login with phone
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              setAuthChoiceOpen(false);
-              void loginWithPopup({
-                authorizationParams: { prompt: "login" },
-              }).catch(() => {});
-            }}
-            className="!border-slate-300 !text-slate-700 hover:!bg-slate-100"
-          >
-            Login with email
           </Button>
         </DialogActions>
       </Dialog>

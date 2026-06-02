@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { parseEngagementId } from "src/services/engagementService";
-import { Box, Button, Dialog, DialogContent, Stack, Typography } from "@mui/material";
+import { Box, Dialog, DialogContent, Stack, Typography } from "@mui/material";
+import { Button } from "../Button/button";
 import { alpha } from "@mui/material/styles";
 import { Bell, CheckCircle, Clock, MapPin, XCircle, Sparkles } from "lucide-react";
 import dayjs from "dayjs";
@@ -427,7 +428,7 @@ export function OndemandBookingRequestPanel({
             Dismiss
           </Button>
         ) : (
-          <Stack direction="row" gap={1.5} justifyContent="stretch" sx={{ "& .MuiButton-root": { flex: 1 } }}>
+          <Stack direction="row" gap={1.5} justifyContent="stretch" className="[&>button]:flex-1">
             <Button
               type="button"
               fullWidth
@@ -458,7 +459,7 @@ export function OndemandBookingRequestPanel({
                 await onAccept(resolvedEngagementId);
               }}
               startIcon={<CheckCircle className="h-4 w-4" strokeWidth={2.4} aria-hidden />}
-              sx={{ boxShadow: 2 }}
+              className="shadow-md"
             >
               Accept
             </Button>

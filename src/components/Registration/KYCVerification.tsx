@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from "react";
 import {
   Grid,
@@ -15,9 +16,7 @@ import {
   Alert,
   Divider,
   Chip,
-  Avatar,
-  IconButton,
-} from "@mui/material";
+  Avatar,} from "@mui/material";
 import {
   PictureAsPdf as PdfIcon,
   InsertDriveFile as FileIcon,
