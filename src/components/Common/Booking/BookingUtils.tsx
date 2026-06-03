@@ -3,6 +3,22 @@
 import { AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Badge } from "../Badge";
 
+/** Prefer today's service_days.status over stale engagements.task_status. */
+export function effectiveProviderTaskStatus(
+  storedTaskStatus: string | undefined | null,
+  todayServiceStatus?: string | null,
+  localOverride?: "IN_PROGRESS" | "COMPLETED"
+): string {
+  if (localOverride) return localOverride;
+  const sd = String(todayServiceStatus ?? "").toUpperCase();
+  if (sd === "IN_PROGRESS" || sd === "STARTED") return "IN_PROGRESS";
+  if (sd === "COMPLETED" || sd === "DONE") return "COMPLETED";
+  const t = String(storedTaskStatus ?? "").toUpperCase();
+  if (t === "STARTED") return "IN_PROGRESS";
+  if (t) return t;
+  return "NOT_STARTED";
+}
+
 // ✅ Function to get status badge for service provider dashboard
 export const getStatusBadge = (status: string) => {
   switch (status) {

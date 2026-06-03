@@ -45,6 +45,7 @@ import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails";
 import MapComponent from "../MapComponent/MapComponent";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
+import { useAuth0 } from "@auth0/auth0-react";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -183,7 +184,9 @@ interface RegistrationProps {
 const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   onBackToLogin,
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
+  const { user: auth0User, isAuthenticated } = useAuth0();
+  const auth0LoginEmail = (auth0User?.email ?? "").trim().toLowerCase();
 
   // Steps with translations - added Bank Details step
   const steps = [
@@ -742,6 +745,15 @@ const handleKycDocumentSelect = (file: File | null) => {
     }));
   };
   const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation({ t });
+
+  useEffect(() => {
+    if (!auth0LoginEmail) return;
+    setFormData((prev) => ({
+      ...prev,
+      emailId: auth0LoginEmail,
+    }));
+    validateField("email", auth0LoginEmail);
+  }, [auth0LoginEmail, validateField]);
   // Handler for KYC type change
   const handleKycTypeChange = (kycType: string) => {
     setFormData(prev => ({
@@ -1222,13 +1234,29 @@ const handleSubmit = async (event: React.FormEvent) => {
     // Helper to convert empty strings to null
     const toNull = (value: any) => (value === "" ? null : value);
 
+    const registrationEmail = (
+      isAuthenticated && auth0LoginEmail
+        ? auth0LoginEmail
+        : (formData.emailId || "").trim().toLowerCase()
+    );
+    if (!registrationEmail) {
+      setIsSubmitting(false);
+      setSnackbarOpen(true);
+      setSnackbarSeverity("error");
+      setSnackbarMessage(
+        t("emailRequired") ||
+          "Email is required. Sign in with Auth0 first or enter the same email you will use to log in."
+      );
+      return;
+    }
+
     const payload = {
       firstName: toNull(formData.firstName),
       middleName: toNull(formData.middleName),
       lastName: toNull(formData.lastName),
       mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
       alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
-      emailId: toNull(formData.emailId),
+      emailId: registrationEmail,
       gender: toNull(formData.gender),
       buildingName: toNull(formData.buildingName),
       locality: toNull(formData.locality),
@@ -1252,7 +1280,7 @@ const handleSubmit = async (event: React.FormEvent) => {
       timeslot: toNull(formData.timeslot),
       expectedSalary: 0,
       experience: formData.experience ? parseInt(formData.experience) : null,
-      username: toNull(formData.emailId),
+      username: registrationEmail,
       password: toNull(formData.password),
       agentReferralId: toNull(formData.agentReferralId),
       privacy: formData.privacy || false,
@@ -1297,14 +1325,30 @@ const handleSubmit = async (event: React.FormEvent) => {
       }
     );
 
+    const created =
+      response.data?.data ??
+      response.data;
+    const spId =
+      created?.serviceProviderId ??
+      created?.serviceproviderid ??
+      created?.id;
+    if (spId != null && isAuthenticated && auth0LoginEmail) {
+      const storedEmail = String(created?.emailId ?? created?.emailid ?? "").toLowerCase();
+      if (storedEmail !== auth0LoginEmail) {
+        await providerInstance.put(`/api/service-providers/serviceprovider/${spId}`, {
+          emailId: auth0LoginEmail,
+        });
+      }
+    }
+
     setSnackbarOpen(true);
     setSnackbarSeverity("success");
     setSnackbarMessage(t("serviceProviderAdded"));
 
     // 5. Create Auth0 user if email and password provided
-    if (formData.emailId && formData.password) {
+    if (registrationEmail && formData.password) {
       const authPayload = {
-        email: formData.emailId,
+        email: registrationEmail,
         password: formData.password,
         name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
       };
@@ -1619,6 +1663,7 @@ const handleSubmit = async (event: React.FormEvent) => {
             onClearEmail={handleClearEmail}
             onClearMobile={handleClearMobile}
             onClearAlternate={handleClearAlternate}
+            lockAuth0Email={Boolean(auth0LoginEmail)}
           />
         );
 

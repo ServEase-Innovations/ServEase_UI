@@ -16,7 +16,12 @@ import {
   Clock,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@mui/material";
-import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
+import {
+  effectiveProviderTaskStatus,
+  getBookingTypeBadge,
+  getServiceTitle,
+  getStatusBadge,
+} from "../Common/Booking/BookingUtils";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -247,7 +252,12 @@ function BookingRow({
 }: BookingRowProps) {
   const bookingKey = booking.id.toString();
   const todayServiceStatus = booking.bookingData?.today_service?.status;
-  const taskStatusOriginal = booking.taskStatus?.toUpperCase() || "";
+  const displayStatus = effectiveProviderTaskStatus(
+    booking.taskStatus,
+    todayServiceStatus,
+    taskStatus[bookingKey]
+  );
+  const taskStatusOriginal = displayStatus.toUpperCase();
 
   const isInProgress =
     todayServiceStatus === "IN_PROGRESS" ||
@@ -297,7 +307,7 @@ function BookingRow({
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1.5">
               {getBookingTypeBadge(booking.booking_type)}
-              {getStatusBadge(booking.taskStatus)}
+              {getStatusBadge(displayStatus)}
             </div>
           </div>
 

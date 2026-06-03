@@ -299,7 +299,8 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
           confirmPassword: "",
         });
 
-        resetValidation();
+        resetValidation("email");
+        resetValidation("mobile");
 
         setTimeout(() => {
           setIsSubmitting(false);
