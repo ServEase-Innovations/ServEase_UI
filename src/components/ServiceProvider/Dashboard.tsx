@@ -1075,7 +1075,10 @@ const handleTrackAddress = (address: string) => {
           bookingInfo={currentBooking ? {
             clientName: currentBooking.bookingData?.firstname || currentBooking.bookingData?.customerName,
             service: getServiceTitle(String(currentBooking.bookingData?.service_type || currentBooking.bookingData?.serviceType || "")),
-            bookingId: currentBooking.bookingData?.engagement_id || currentBooking.bookingData?.bookingId || currentBooking.bookingData?.id || currentBooking.bookingId,
+            bookingId:
+              currentBooking.bookingData?.engagement_id ??
+              currentBooking.bookingData?.id ??
+              currentBooking.bookingId,
           } : undefined}
         />
         
