@@ -403,7 +403,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
             )}
             {!hasStartTime && (
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-                {t("selectStartTimeToAdjust") || "Select a start time to adjust duration"}
+                {t("selectStartTimeToAdjust")}
               </Typography>
             )}
           </Box>

@@ -3838,6 +3838,18 @@ hourUnit: {
   kn: "ಗಂಟೆ",
   bn: "ঘন্টা"
 },
+until: {
+  en: "until",
+  hi: "तक",
+  kn: "ವರೆಗೆ",
+  bn: "পর্যন্ত"
+},
+selectStartTimeToAdjust: {
+  en: "Select a start time to adjust duration",
+  hi: "अवधि समायोजित करने के लिए प्रारंभ समय चुनें",
+  kn: "ಅವಧಿಯನ್ನು ಹೊಂದಿಸಲು ಪ್ರಾರಂಭ ಸಮಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+  bn: "সময়কাল সামঞ্জস্য করতে একটি শুরুর সময় নির্বাচন করুন"
+},
 // Add these to your translations object in LanguageContext.tsx
 orderSummary: {
   en: "Your Order Summary",
