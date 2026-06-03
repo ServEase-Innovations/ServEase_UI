@@ -259,16 +259,32 @@ export const Header: React.FC<ChildComponentProps> = ({
         if (!response.data.user_role) {
           await createUser(user);
         } else if (response.data.user_role === "SERVICE_PROVIDER") {
+          const spId = Number(response.data.service_provider_id ?? response.data.id);
+          const spName = [response.data.firstname, response.data.lastname]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
           setAppUser({
             ...user,
             role: "SERVICE_PROVIDER",
-            serviceProviderId: response.data.id,
+            serviceProviderId: Number.isFinite(spId) ? spId : response.data.id,
+            name: spName || user.name,
+            email: response.data.emailid ?? user.email,
+            mobileno: response.data.mobileno ?? undefined,
           });
         } else if (response.data.user_role === "CUSTOMER") {
+          const custName = [response.data.firstname, response.data.lastname]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
           setAppUser({
             ...user,
             role: "CUSTOMER",
             customerid: response.data.id,
+            customerId: response.data.id,
+            name: custName || user.name,
+            email: response.data.emailid ?? user.email,
+            mobileno: response.data.mobileno ?? undefined,
             ...(linkedSpId != null ? { serviceProviderId: linkedSpId } : {}),
           });
         } else if (response.data.user_role === "VENDOR") {

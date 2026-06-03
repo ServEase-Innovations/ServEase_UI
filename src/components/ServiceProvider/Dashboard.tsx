@@ -28,7 +28,12 @@ import {
 } from "lucide-react";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
-import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
+import {
+  effectiveProviderTaskStatus,
+  getBookingTypeBadge,
+  getServiceTitle,
+  getStatusBadge,
+} from "../Common/Booking/BookingUtils";
 import { ReviewsDialog } from "./ReviewsDialog";
 import axios, { AxiosResponse } from "axios";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -356,7 +361,11 @@ function TodayVisitsCard({
                 [b.customer_firstname, b.customer_lastname].filter(Boolean).join(" ").trim() ||
                 "Customer";
               const sd = String(b.service_day_status ?? "").toUpperCase();
-              const taskU = String(b.task_status ?? "").toUpperCase();
+              const displayStatus = effectiveProviderTaskStatus(
+                b.task_status,
+                b.service_day_status
+              );
+              const taskU = displayStatus.toUpperCase();
               const recurring =
                 b.booking_type === "MONTHLY" || b.booking_type === "SHORT_TERM";
               const isOnDemand =
@@ -407,7 +416,7 @@ function TodayVisitsCard({
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     {getBookingTypeBadge(String(b.booking_type || ""))}
-                    {getStatusBadge(String(b.task_status || ""))}
+                    {getStatusBadge(displayStatus)}
                     {b.mobileno ? (
                       <Button
                         type="button"

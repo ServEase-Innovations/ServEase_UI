@@ -38,6 +38,8 @@ interface BasicInformationProps {
   onClearEmail: () => void;
   onClearMobile: () => void;
   onClearAlternate: () => void;
+  /** When set, email is locked to the Auth0 login address (required for check-email after login). */
+  lockAuth0Email?: boolean;
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({
@@ -56,6 +58,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
   onClearEmail,
   onClearMobile,
   onClearAlternate,
+  lockAuth0Email = false,
 }) => {
   const { t } = useLanguage();
   const MAX_NAME_LENGTH = 30;
@@ -158,13 +161,16 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
           value={formData.emailId}
           onChange={onFieldChange}
           onFocus={() => onFieldFocus("emailId")}
+          disabled={lockAuth0Email}
           error={!!errors.emailId || validationResults.email.isAvailable === false}
           helperText={
-            errors.emailId ||
-            (validationResults.email.loading
-              ? t("checkingAvailability")
-              : validationResults.email.error ||
-                (validationResults.email.isAvailable ? t("emailAvailable") : ""))
+            lockAuth0Email
+              ? t("auth0EmailLocked") || "Uses your login email so sign-in finds your profile."
+              : errors.emailId ||
+                (validationResults.email.loading
+                  ? t("checkingAvailability")
+                  : validationResults.email.error ||
+                    (validationResults.email.isAvailable ? t("emailAvailable") : ""))
           }
           InputProps={{
             endAdornment: validationResults.email.loading ? (

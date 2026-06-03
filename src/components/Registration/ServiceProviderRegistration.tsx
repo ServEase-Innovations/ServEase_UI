@@ -45,6 +45,7 @@ import BankDetails, { BankDetailsData, BankDetailsErrors } from "./BankDetails";
 import MapComponent from "../MapComponent/MapComponent";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
+import { useAuth0 } from "@auth0/auth0-react";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -183,7 +184,9 @@ interface RegistrationProps {
 const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   onBackToLogin,
 }) => {
-  const { t } = useLanguage(); // Use the language context
+  const { t } = useLanguage();
+  const { user: auth0User, isAuthenticated } = useAuth0();
+  const auth0LoginEmail = (auth0User?.email ?? "").trim().toLowerCase();
 
   // Steps with translations - added Bank Details step
   const steps = [
@@ -304,7 +307,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [image, setImage] = useState<Blob | null>(null);
 
-const [kycDocumentFile, setKycDocumentFile] = useState<File | null>(null);
+  const [kycDocumentFile, setKycDocumentFile] = useState<File | null>(null);
+
+  // ============================================================
+  // FIX: Helper to check if all mandatory agreements are accepted
+  // ============================================================
+  const areTermsAccepted = (): boolean => {
+    return formData.terms && formData.privacy && formData.keyFacts;
+  };
 
   // NEW: Handler for bank details field changes
   const handleBankFieldChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -601,14 +611,15 @@ const [kycDocumentFile, setKycDocumentFile] = useState<File | null>(null);
     }
   };
 
-const handleKycDocumentSelect = (file: File | null) => {
-  setKycDocumentFile(file);
-  if (file) {
-    setSnackbarMessage(t("kycDocumentSelected") || "Document selected");
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
-  }
-};
+  const handleKycDocumentSelect = (file: File | null) => {
+    setKycDocumentFile(file);
+    if (file) {
+      setSnackbarMessage(t("kycDocumentSelected") || "Document selected");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    }
+  };
+
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -734,6 +745,7 @@ const handleKycDocumentSelect = (file: File | null) => {
       }
     }
   };
+
   const handleAgentReferralIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     setFormData(prev => ({
@@ -741,7 +753,18 @@ const handleKycDocumentSelect = (file: File | null) => {
       agentReferralId: value
     }));
   };
+
   const { validationResults, validateField, resetValidation, isStep0ValidationsComplete } = useFieldValidation({ t });
+
+  useEffect(() => {
+    if (!auth0LoginEmail) return;
+    setFormData((prev) => ({
+      ...prev,
+      emailId: auth0LoginEmail,
+    }));
+    validateField("email", auth0LoginEmail);
+  }, [auth0LoginEmail, validateField]);
+
   // Handler for KYC type change
   const handleKycTypeChange = (kycType: string) => {
     setFormData(prev => ({
@@ -845,9 +868,6 @@ const handleKycDocumentSelect = (file: File | null) => {
       }));
     }
 
-    // Optional: keep format validation only when user enters something, but never block submission
-    // (The errors are only shown for UX, not for blocking next/submit)
-    
     if (name === "firstName" && value.trim()) {
       const trimmedValue = value.trim();
       if (!nameRegex.test(trimmedValue)) {
@@ -1153,182 +1173,227 @@ const handleKycDocumentSelect = (file: File | null) => {
     }
   };
 
-const handleSubmit = async (event: React.FormEvent) => {
-  event.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-  if (activeStep !== steps.length - 1) return;
+    if (activeStep !== steps.length - 1) return;
 
-  setIsSubmitting(true);
-  try {
-    let profilePicUrl = "";
-
-    // 1. Upload profile image if any
-    if (image) {
-      const formData1 = new FormData();
-      formData1.append("image", image);
-
-      const imageResponse = await axios.post(
-        "https://imageuploader-5njj.onrender.com/api/images/upload",
-        formData1,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+    // ============================================================
+    // FIX: Guard — do not submit if terms are not accepted
+    // ============================================================
+    if (!areTermsAccepted()) {
+      setSnackbarMessage(
+        t("Please Accept All Agreements") ||
+          "Please accept all agreements before submitting."
       );
-
-      if (imageResponse.status === 200) {
-        profilePicUrl = imageResponse.data.imageUrl || imageResponse.data.url || "";
-      }
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
     }
 
-    // 2. Upload KYC document if a file was selected
-    let uploadedKycUrl = "";
-    if (kycDocumentFile) {
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", kycDocumentFile);
+    setIsSubmitting(true);
+    try {
+      let profilePicUrl = "";
 
-      const uploadResponse = await axios.post(
-        "https://imageuploader-5njj.onrender.com/api/files/upload-file",
-        uploadFormData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+      // 1. Upload profile image if any
+      if (image) {
+        const formData1 = new FormData();
+        formData1.append("image", image);
+
+        const imageResponse = await axios.post(
+          "https://imageuploader-5njj.onrender.com/api/images/upload",
+          formData1,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        if (imageResponse.status === 200) {
+          profilePicUrl = imageResponse.data.imageUrl || imageResponse.data.url || "";
         }
-      );
+      }
 
-      // Accept both 200 and 201 status codes
-      if (uploadResponse.status === 200 || uploadResponse.status === 201) {
-        const url = uploadResponse.data.file?.url || "";
-        if (url) {
-          uploadedKycUrl = url;
+      // 2. Upload KYC document if a file was selected
+      let uploadedKycUrl = "";
+      if (kycDocumentFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", kycDocumentFile);
+
+        const uploadResponse = await axios.post(
+          "https://imageuploader-5njj.onrender.com/api/files/upload-file",
+          uploadFormData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        // Accept both 200 and 201 status codes
+        if (uploadResponse.status === 200 || uploadResponse.status === 201) {
+          const url = uploadResponse.data.file?.url || "";
+          if (url) {
+            uploadedKycUrl = url;
+          } else {
+            throw new Error("No URL returned from KYC upload");
+          }
         } else {
-          throw new Error("No URL returned from KYC upload");
+          throw new Error("KYC upload failed");
         }
-      } else {
-        throw new Error("KYC upload failed");
       }
-    }
 
-    // 3. Prepare the registration payload
-    const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
+      // 3. Prepare the registration payload
+      const primaryRole = formData.housekeepingRole.length > 0 ? formData.housekeepingRole[0] : "";
 
-    // Prepare bank details object (only include non-empty fields)
-    const bankDetailsPayload = Object.fromEntries(
-      Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
-    );
+      // Prepare bank details object (only include non-empty fields)
+      const bankDetailsPayload = Object.fromEntries(
+        Object.entries(formData.bankDetails).filter(([_, v]) => v && v.trim() !== "")
+      );
 
-    // Helper to convert empty strings to null
-    const toNull = (value: any) => (value === "" ? null : value);
+      // Helper to convert empty strings to null
+      const toNull = (value: any) => (value === "" ? null : value);
 
-    const payload = {
-      firstName: toNull(formData.firstName),
-      middleName: toNull(formData.middleName),
-      lastName: toNull(formData.lastName),
-      mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
-      alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
-      emailId: toNull(formData.emailId),
-      gender: toNull(formData.gender),
-      buildingName: toNull(formData.buildingName),
-      locality: toNull(formData.locality),
-      latitude: currentLocation?.latitude || formData.latitude || null,
-      longitude: currentLocation?.longitude || formData.longitude || null,
-      street: toNull(formData.street),
-      pincode: formData.pincode ? parseInt(formData.pincode) : null,
-      currentLocation: toNull(formData.currentLocation),
-      nearbyLocation: toNull(formData.nearbyLocation),
-      location: toNull(formData.currentLocation),
-      housekeepingRoles: formData.housekeepingRole.length ? formData.housekeepingRole : null,
-      serviceTypes: formData.housekeepingRole.length ? formData.housekeepingRole : null,
-      diet: toNull(formData.diet),
-      languages: selectedLanguages.length ? selectedLanguages : null,
-      ...(formData.housekeepingRole.includes("COOK") && formData.cookingSpeciality && {
-        cookingSpeciality: formData.cookingSpeciality
-      }),
-      ...(formData.housekeepingRole.includes("NANNY") && formData.nannyCareType && {
-        nannyCareType: formData.nannyCareType
-      }),
-      timeslot: toNull(formData.timeslot),
-      expectedSalary: 0,
-      experience: formData.experience ? parseInt(formData.experience) : null,
-      username: toNull(formData.emailId),
-      password: toNull(formData.password),
-      agentReferralId: toNull(formData.agentReferralId),
-      privacy: formData.privacy || false,
-      keyFacts: formData.keyFacts || false,
-      permanentAddress: {
-        field1: toNull(formData.permanentAddress.apartment),
-        field2: toNull(formData.permanentAddress.street),
-        ctarea: toNull(formData.permanentAddress.city),
-        pinno: toNull(formData.permanentAddress.pincode),
-        state: toNull(formData.permanentAddress.state),
-        country: toNull(formData.permanentAddress.country)
-      },
-      correspondenceAddress: {
-        field1: toNull(formData.correspondenceAddress.apartment),
-        field2: toNull(formData.correspondenceAddress.street),
-        ctarea: toNull(formData.correspondenceAddress.city),
-        pinno: toNull(formData.correspondenceAddress.pincode),
-        state: toNull(formData.correspondenceAddress.state),
-        country: toNull(formData.correspondenceAddress.country)
-      },
-      active: true,
-      kycType: toNull(formData.kycType),
-      kycNumber: toNull(formData.kycNumber),
-      kycDocumentUrl: uploadedKycUrl || null,   // Use the uploaded URL
-      dob: toNull(formData.dob),
-      bankName: toNull(formData.bankDetails.bankName),
-      ifscCode: toNull(formData.bankDetails.ifscCode),
-      accountHolderName: toNull(formData.bankDetails.accountHolderName),
-      accountNumber: toNull(formData.bankDetails.accountNumber),
-      accountType: toNull(formData.bankDetails.accountType),
-      upiId: toNull(formData.bankDetails.upiId),
-    };
+      const registrationEmail = (
+        isAuthenticated && auth0LoginEmail
+          ? auth0LoginEmail
+          : (formData.emailId || "").trim().toLowerCase()
+      );
+      if (!registrationEmail) {
+        setIsSubmitting(false);
+        setSnackbarOpen(true);
+        setSnackbarSeverity("error");
+        setSnackbarMessage(
+          t("emailRequired") ||
+            "Email is required. Sign in with Auth0 first or enter the same email you will use to log in."
+        );
+        return;
+      }
 
-    // 4. Submit registration
-    const response = await providerInstance.post(
-      "/api/service-providers/serviceprovider/add",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/json",
+      const payload = {
+        firstName: toNull(formData.firstName),
+        middleName: toNull(formData.middleName),
+        lastName: toNull(formData.lastName),
+        mobileNo: formData.mobileNo ? parseInt(formData.mobileNo) : null,
+        alternateNo: formData.AlternateNumber ? parseInt(formData.AlternateNumber) : null,
+        emailId: registrationEmail,
+        gender: toNull(formData.gender),
+        buildingName: toNull(formData.buildingName),
+        locality: toNull(formData.locality),
+        latitude: currentLocation?.latitude || formData.latitude || null,
+        longitude: currentLocation?.longitude || formData.longitude || null,
+        street: toNull(formData.street),
+        pincode: formData.pincode ? parseInt(formData.pincode) : null,
+        currentLocation: toNull(formData.currentLocation),
+        nearbyLocation: toNull(formData.nearbyLocation),
+        location: toNull(formData.currentLocation),
+        housekeepingRoles: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+        serviceTypes: formData.housekeepingRole.length ? formData.housekeepingRole : null,
+        diet: toNull(formData.diet),
+        languages: selectedLanguages.length ? selectedLanguages : null,
+        ...(formData.housekeepingRole.includes("COOK") && formData.cookingSpeciality && {
+          cookingSpeciality: formData.cookingSpeciality
+        }),
+        ...(formData.housekeepingRole.includes("NANNY") && formData.nannyCareType && {
+          nannyCareType: formData.nannyCareType
+        }),
+        timeslot: toNull(formData.timeslot),
+        expectedSalary: 0,
+        experience: formData.experience ? parseInt(formData.experience) : null,
+        username: registrationEmail,
+        password: toNull(formData.password),
+        agentReferralId: toNull(formData.agentReferralId),
+        privacy: formData.privacy || false,
+        keyFacts: formData.keyFacts || false,
+        permanentAddress: {
+          field1: toNull(formData.permanentAddress.apartment),
+          field2: toNull(formData.permanentAddress.street),
+          ctarea: toNull(formData.permanentAddress.city),
+          pinno: toNull(formData.permanentAddress.pincode),
+          state: toNull(formData.permanentAddress.state),
+          country: toNull(formData.permanentAddress.country)
         },
-      }
-    );
-
-    setSnackbarOpen(true);
-    setSnackbarSeverity("success");
-    setSnackbarMessage(t("serviceProviderAdded"));
-
-    // 5. Create Auth0 user if email and password provided
-    if (formData.emailId && formData.password) {
-      const authPayload = {
-        email: formData.emailId,
-        password: formData.password,
-        name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
+        correspondenceAddress: {
+          field1: toNull(formData.correspondenceAddress.apartment),
+          field2: toNull(formData.correspondenceAddress.street),
+          ctarea: toNull(formData.correspondenceAddress.city),
+          pinno: toNull(formData.correspondenceAddress.pincode),
+          state: toNull(formData.correspondenceAddress.state),
+          country: toNull(formData.correspondenceAddress.country)
+        },
+        active: true,
+        kycType: toNull(formData.kycType),
+        kycNumber: toNull(formData.kycNumber),
+        kycDocumentUrl: uploadedKycUrl || null,
+        dob: toNull(formData.dob),
+        bankName: toNull(formData.bankDetails.bankName),
+        ifscCode: toNull(formData.bankDetails.ifscCode),
+        accountHolderName: toNull(formData.bankDetails.accountHolderName),
+        accountNumber: toNull(formData.bankDetails.accountNumber),
+        accountType: toNull(formData.bankDetails.accountType),
+        upiId: toNull(formData.bankDetails.upiId),
       };
 
-      axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
-        .then((authResponse) => {
-          console.log("AuthO user created successfully:", authResponse.data);
-        }).catch((authError) => {
-          console.error("Error creating AuthO user:", authError);
-        });
-    }
+      // 4. Submit registration
+      const response = await providerInstance.post(
+        "/api/service-providers/serviceprovider/add",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    setTimeout(() => {
+      const created =
+        response.data?.data ??
+        response.data;
+      const spId =
+        created?.serviceProviderId ??
+        created?.serviceproviderid ??
+        created?.id;
+      if (spId != null && isAuthenticated && auth0LoginEmail) {
+        const storedEmail = String(created?.emailId ?? created?.emailid ?? "").toLowerCase();
+        if (storedEmail !== auth0LoginEmail) {
+          await providerInstance.put(`/api/service-providers/serviceprovider/${spId}`, {
+            emailId: auth0LoginEmail,
+          });
+        }
+      }
+
+      setSnackbarOpen(true);
+      setSnackbarSeverity("success");
+      setSnackbarMessage(t("serviceProviderAdded"));
+
+      // 5. Create Auth0 user if email and password provided
+      if (registrationEmail && formData.password) {
+        const authPayload = {
+          email: registrationEmail,
+          password: formData.password,
+          name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
+        };
+
+        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+          .then((authResponse) => {
+            console.log("AuthO user created successfully:", authResponse.data);
+          }).catch((authError) => {
+            console.error("Error creating AuthO user:", authError);
+          });
+      }
+
+      setTimeout(() => {
+        setIsSubmitting(false);
+        onBackToLogin(true);
+      }, 3000);
+    } catch (error) {
       setIsSubmitting(false);
-      onBackToLogin(true);
-    }, 3000);
-  } catch (error) {
-    setIsSubmitting(false);
-    setSnackbarOpen(true);
-    setSnackbarSeverity("error");
-    setSnackbarMessage(t("failedToAddServiceProvider"));
-    console.error("Error submitting form:", error);
-  }
-};
+      setSnackbarOpen(true);
+      setSnackbarSeverity("error");
+      setSnackbarMessage(t("failedToAddServiceProvider"));
+      console.error("Error submitting form:", error);
+    }
+  };
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
@@ -1619,6 +1684,7 @@ const handleSubmit = async (event: React.FormEvent) => {
             onClearEmail={handleClearEmail}
             onClearMobile={handleClearMobile}
             onClearAlternate={handleClearAlternate}
+            lockAuth0Email={Boolean(auth0LoginEmail)}
           />
         );
 
@@ -1748,15 +1814,15 @@ const handleSubmit = async (event: React.FormEvent) => {
 
       case 3:
         return (
-           <KYCVerification
-      formData={formData}
-      errors={errors}
-      onFieldChange={handleRealTimeValidation}
-      onFieldFocus={handleFieldFocus}
-      onFileSelect={handleKycDocumentSelect}   // changed name
-      onKycTypeChange={handleKycTypeChange}
-      selectedFile={kycDocumentFile}           // pass file for preview
-    />
+          <KYCVerification
+            formData={formData}
+            errors={errors}
+            onFieldChange={handleRealTimeValidation}
+            onFieldFocus={handleFieldFocus}
+            onFileSelect={handleKycDocumentSelect}
+            onKycTypeChange={handleKycTypeChange}
+            selectedFile={kycDocumentFile}
+          />
         );
 
       // NEW: Bank Details step
@@ -1781,6 +1847,16 @@ const handleSubmit = async (event: React.FormEvent) => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <TermsCheckboxes onChange={handleTermsChange} />
               </Box>
+
+              {/* ============================================================
+                  FIX: Show inline hint when agreements are not yet accepted
+                  ============================================================ */}
+              {!areTermsAccepted() && (
+                <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+                  {t("Please Accept All Agreements") ||
+                    "Please accept all agreements above to enable the Submit button."}
+                </Alert>
+              )}
             </Grid>
           </Grid>
         );
@@ -1924,18 +2000,34 @@ const handleSubmit = async (event: React.FormEvent) => {
                 {t("back")}
               </Button>
               {activeStep === steps.length - 1 ? (
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
+                // ============================================================
+                // FIX: Disable Submit until all agreements are accepted.
+                // Wrap in a span so Tooltip works on a disabled button.
+                // ============================================================
+                <Tooltip
+                  title={
+                    !areTermsAccepted()
+                      ? t("Please Accept All Agreements") ||
+                        "Please accept all agreements to submit"
+                      : ""
+                  }
+                  placement="top"
                 >
-                  {isSubmitting ? (
-                    <CircularProgress size={24} sx={{ color: 'white' }} />
-                  ) : (
-                    t("submit")
-                  )}
-                </Button>
+                  <span>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      disabled={isSubmitting || !areTermsAccepted()}
+                    >
+                      {isSubmitting ? (
+                        <CircularProgress size={24} sx={{ color: "white" }} />
+                      ) : (
+                        t("submit")
+                      )}
+                    </Button>
+                  </span>
+                </Tooltip>
               ) : (
                 <Button
                   variant="contained"
