@@ -1183,7 +1183,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
     // ============================================================
     if (!areTermsAccepted()) {
       setSnackbarMessage(
-        t("Please Accept All Agreements") ||
+        t("pleaseAcceptAllAgreements") ||
           "Please accept all agreements before submitting."
       );
       setSnackbarSeverity("error");
@@ -1853,7 +1853,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                   ============================================================ */}
               {!areTermsAccepted() && (
                 <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-                  {t("Please Accept All Agreements") ||
+                  {t("pleaseAcceptAllAgreements") ||
                     "Please accept all agreements above to enable the Submit button."}
                 </Alert>
               )}
@@ -2007,7 +2007,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                 <Tooltip
                   title={
                     !areTermsAccepted()
-                      ? t("Please Accept All Agreements") ||
+                      ? t("pleaseAcceptAllAgreements") ||
                         "Please accept all agreements to submit"
                       : ""
                   }
