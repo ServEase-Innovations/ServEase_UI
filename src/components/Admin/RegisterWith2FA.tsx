@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import utilsInstance from "src/services/utilsInstance";
+import { buildAdminLoginPayload } from "src/utils/adminAuthHashes";
 import { User, Lock, Loader2, QrCode, CheckCircle2 } from "lucide-react";
 
 const RegisterWith2FA = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [usernameHash, setUsernameHash] = useState("");
   const [qrCode, setQrCode] = useState("");
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState("");
@@ -16,9 +18,11 @@ const RegisterWith2FA = () => {
     setLoading(true);
     setMessage("");
     try {
-      const res = await utilsInstance.post(`/api/register`, { username, password });
+      const payload = await buildAdminLoginPayload(username, password);
+      const res = await utilsInstance.post(`/api/register`, payload);
       setQrCode(res.data.qr);
-      setUsername(res.data.username);
+      setUsernameHash(payload.usernameHash);
+      setPassword("");
       setStep("verify");
       setMessage("Scan the QR in Google Authenticator, then enter the 6-digit code below.");
     } catch (err: unknown) {
@@ -34,7 +38,7 @@ const RegisterWith2FA = () => {
     setLoading(true);
     setMessage("");
     try {
-      await utilsInstance.post(`/api/verify`, { username, token: otp });
+      await utilsInstance.post(`/api/verify`, { usernameHash, token: otp });
       setMessage("2FA setup complete. Open the Login tab to sign in.");
       setStep("register");
       setQrCode("");

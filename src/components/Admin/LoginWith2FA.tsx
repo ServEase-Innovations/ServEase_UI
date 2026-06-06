@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import utilsInstance from "src/services/utilsInstance";
+import { buildAdminLoginPayload } from "src/utils/adminAuthHashes";
 import { User, Lock, KeyRound, Loader2, Shield } from "lucide-react";
 
 type LoginWith2FAProps = {
@@ -10,6 +11,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
   const [step, setStep] = useState<"login" | "2fa">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [usernameHash, setUsernameHash] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,12 +21,14 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await utilsInstance.post(`/api/register`, { username, password });
+      const payload = await buildAdminLoginPayload(username, password);
+      const res = await utilsInstance.post(`/api/register`, payload);
       if (res.data.qr) {
         setMessage("Registered. You can sign in below.");
         setMode("login");
         setUsername("");
         setPassword("");
+        setUsernameHash("");
       } else {
         setMessage("Unexpected registration response.");
       }
@@ -40,8 +44,11 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await utilsInstance.post(`/api/login`, { username, password });
+      const payload = await buildAdminLoginPayload(username, password);
+      const res = await utilsInstance.post(`/api/login`, payload);
       if (res.data.message === "2FA required") {
+        setUsernameHash(payload.usernameHash);
+        setPassword("");
         setMessage("Enter the 6-digit code from your authenticator app.");
         setStep("2fa");
       } else {
@@ -60,14 +67,14 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     setLoading(true);
     try {
       const res = await utilsInstance.post(`/api/verify-token`, {
-        username,
+        usernameHash,
         token: otpCode,
       });
 
       if (res.data.message === "2FA verified successfully") {
         setMessage("Signed in successfully. Loading dashboard…");
-        if (username.trim()) {
-          sessionStorage.setItem("adminUsername", username.trim());
+        if (usernameHash) {
+          sessionStorage.setItem("adminUsernameHash", usernameHash);
         }
         onLoginSuccess(res.data.role);
       } else {
@@ -86,6 +93,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
     setMessage("");
     setUsername("");
     setPassword("");
+    setUsernameHash("");
     setOtpCode("");
   };
 
@@ -107,7 +115,7 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
               <p className="mt-1.5 text-sm text-slate-400">
                 {step === "2fa"
                   ? "Use the code from Google Authenticator or your registered app."
-                  : "ServEase admin console. Access is protected with 2FA after password."}
+                  : "ServEase admin console. Credentials are hashed in the browser before sending."}
               </p>
             </div>
 
