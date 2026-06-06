@@ -89,6 +89,31 @@ interface ChildComponentProps {
   onLogoClick: () => void;
 }
 
+/** POST /api/customer wraps the row in `{ status, message, data }`. */
+function parseCreatedCustomerResponse(payload: unknown): {
+  customerId: number;
+  firstname?: string;
+  lastname?: string;
+  emailid?: string;
+} | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const data =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : root;
+  const rawId = data.customerId ?? data.customerid ?? data.id;
+  const customerId = Number(rawId);
+  if (!Number.isFinite(customerId) || customerId <= 0) return null;
+  const emailRaw = data.emailId ?? data.emailid;
+  return {
+    customerId,
+    firstname: typeof data.firstname === "string" ? data.firstname : undefined,
+    lastname: typeof data.lastname === "string" ? data.lastname : undefined,
+    emailid: typeof emailRaw === "string" ? emailRaw : undefined,
+  };
+}
+
 export const Header: React.FC<ChildComponentProps> = ({
   sendDataToParent,
   bookingType,
@@ -257,17 +282,23 @@ export const Header: React.FC<ChildComponentProps> = ({
           : undefined;
 
         if (!response.data.user_role) {
-          await createUser(user);
+          const created = await createUser(user);
+          if (!created) {
+            postLoginHandledForRef.current = null;
+            return;
+          }
         } else if (response.data.user_role === "SERVICE_PROVIDER") {
           const spId = Number(response.data.service_provider_id ?? response.data.id);
           const spName = [response.data.firstname, response.data.lastname]
             .filter(Boolean)
             .join(" ")
             .trim();
+          const resolvedSpId = Number.isFinite(spId) ? spId : Number(response.data.id);
           setAppUser({
             ...user,
             role: "SERVICE_PROVIDER",
-            serviceProviderId: Number.isFinite(spId) ? spId : response.data.id,
+            serviceProviderId: resolvedSpId,
+            serviceproviderid: resolvedSpId,
             name: spName || user.name,
             email: response.data.emailid ?? user.email,
             mobileno: response.data.mobileno ?? undefined,
@@ -285,7 +316,13 @@ export const Header: React.FC<ChildComponentProps> = ({
             name: custName || user.name,
             email: response.data.emailid ?? user.email,
             mobileno: response.data.mobileno ?? undefined,
-            ...(linkedSpId != null ? { serviceProviderId: linkedSpId } : {}),
+            ...(linkedSpId != null
+              ? {
+                  serviceProviderId: linkedSpId,
+                  serviceproviderid: linkedSpId,
+                  dual_role: Boolean(response.data.dual_role),
+                }
+              : {}),
           });
         } else if (response.data.user_role === "VENDOR") {
           setAppUser({
@@ -309,7 +346,7 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const [userPreference, setUserPreference] = useState<any>([]);
 
-  const createUser = async (user: any) => {
+  const createUser = async (user: any): Promise<boolean> => {
     try {
       const userData = {
         firstname: user.given_name || user.name.split(" ")[0] || "User",
@@ -326,19 +363,30 @@ export const Header: React.FC<ChildComponentProps> = ({
 
       console.log("User creation response:", response.data);
 
-      if (response.data && response.data.id) {
-        const customerId = Number(response.data.id);
-        setAppUser({
-          ...user,
-          role: "CUSTOMER",
-          customerid: response.data.id,
-        });
-        await getCustomerPreferences(customerId);
-      } else {
+      const created = parseCreatedCustomerResponse(response.data);
+      if (!created) {
         console.warn("Unexpected response format:", response.data);
+        return false;
       }
+
+      const custName = [created.firstname, created.lastname]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      setAppUser({
+        ...user,
+        role: "CUSTOMER",
+        customerid: created.customerId,
+        customerId: created.customerId,
+        name: custName || user.name,
+        email: created.emailid ?? user.email,
+      });
+      await getCustomerPreferences(created.customerId);
+      return true;
     } catch (error) {
       console.error("Error creating user:", error);
+      return false;
     }
   };
 

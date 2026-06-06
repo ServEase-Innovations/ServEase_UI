@@ -6,9 +6,10 @@ import "./DribbbleDateTimePicker.css";
 
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
+/** Bookable start times: 6:00 AM – 7:30 PM (excludes 5:00/5:30 AM and 8:00 PM). */
 const generateTimeSlots = () => {
   const slots: string[] = [];
-  for (let h = 5; h <= 20; h++) {
+  for (let h = 6; h <= 19; h++) {
     for (let m = 0; m < 60; m += 30) {
       const hour12 = h % 12 || 12;
       const minute = m === 0 ? "00" : m;

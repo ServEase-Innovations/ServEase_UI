@@ -16,6 +16,7 @@ import {
   Save,
   Server,
   Shield,
+  Timer,
 } from "lucide-react";
 import { cn } from "../../utils";
 import utilsInstance from "src/services/utilsInstance";
@@ -40,6 +41,16 @@ type PlatformSecurity = {
   sessionDurationMinutes: number;
 };
 
+type PlatformCancellation = {
+  onDemandMinutesBeforeStart: number;
+  shortTermDaysBeforeStart: number;
+  monthlyDaysBeforeStart: number;
+};
+
+type PlatformProviderReminders = {
+  overdueStartIntervalMinutes: number;
+};
+
 export type PlatformSettings = {
   platformName: string;
   supportEmail: string;
@@ -47,6 +58,8 @@ export type PlatformSettings = {
   features: PlatformFeatures;
   notifications: PlatformNotifications;
   security: PlatformSecurity;
+  cancellation: PlatformCancellation;
+  providerReminders: PlatformProviderReminders;
   updatedAt?: string | null;
   source?: string;
 };
@@ -71,6 +84,14 @@ const EMPTY_FORM: PlatformSettings = {
     passwordComplexity: true,
     sessionTimeout: true,
     sessionDurationMinutes: 30,
+  },
+  cancellation: {
+    onDemandMinutesBeforeStart: 30,
+    shortTermDaysBeforeStart: 2,
+    monthlyDaysBeforeStart: 2,
+  },
+  providerReminders: {
+    overdueStartIntervalMinutes: 15,
   },
 };
 
@@ -135,6 +156,8 @@ function comparableSettings(f: PlatformSettings) {
     features: f.features,
     notifications: f.notifications,
     security: f.security,
+    cancellation: f.cancellation,
+    providerReminders: f.providerReminders,
   });
 }
 
@@ -163,6 +186,8 @@ const Settings = () => {
         features: { ...p.features },
         notifications: { ...p.notifications },
         security: { ...p.security },
+        cancellation: { ...p.cancellation },
+        providerReminders: { ...p.providerReminders },
       });
     };
     const emptyBaseline = {
@@ -170,6 +195,8 @@ const Settings = () => {
       features: { ...EMPTY_FORM.features },
       notifications: { ...EMPTY_FORM.notifications },
       security: { ...EMPTY_FORM.security },
+      cancellation: { ...EMPTY_FORM.cancellation },
+      providerReminders: { ...EMPTY_FORM.providerReminders },
     };
     try {
       const res = await utilsInstance.get<{ success?: boolean; settings?: PlatformSettings; error?: string }>(
@@ -183,6 +210,8 @@ const Settings = () => {
           features: { ...EMPTY_FORM.features, ...s.features },
           notifications: { ...EMPTY_FORM.notifications, ...s.notifications },
           security: { ...EMPTY_FORM.security, ...s.security },
+          cancellation: { ...EMPTY_FORM.cancellation, ...s.cancellation },
+          providerReminders: { ...EMPTY_FORM.providerReminders, ...s.providerReminders },
         };
         applyBaseline(merged);
         return;
@@ -249,6 +278,8 @@ const Settings = () => {
         features: form.features,
         notifications: form.notifications,
         security: form.security,
+        cancellation: form.cancellation,
+        providerReminders: form.providerReminders,
       };
       const res = await utilsInstance.put<{ success?: boolean; settings?: PlatformSettings; error?: string }>(
         "/api/platform-settings",
@@ -262,6 +293,8 @@ const Settings = () => {
           features: { ...EMPTY_FORM.features, ...s.features },
           notifications: { ...EMPTY_FORM.notifications, ...s.notifications },
           security: { ...EMPTY_FORM.security, ...s.security },
+          cancellation: { ...EMPTY_FORM.cancellation, ...s.cancellation },
+          providerReminders: { ...EMPTY_FORM.providerReminders, ...s.providerReminders },
         };
         setForm(merged);
         setLastSaved({
@@ -269,6 +302,8 @@ const Settings = () => {
           features: { ...merged.features },
           notifications: { ...merged.notifications },
           security: { ...merged.security },
+          cancellation: { ...merged.cancellation },
+          providerReminders: { ...merged.providerReminders },
         });
         setSaveOk(true);
         window.setTimeout(() => setSaveOk(false), 4000);
@@ -497,6 +532,123 @@ const Settings = () => {
                   />
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200/90 shadow-sm">
+            <CardHeader>
+              <CardTitle className="!text-lg flex items-center gap-2 text-slate-900">
+                <Timer className="h-5 w-5 text-slate-500" />
+                Cancellation policy
+              </CardTitle>
+              <CardDescription>
+                Controls when customers can cancel bookings. The customer bookings page and cancel API use these values.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="cancel-on-demand-minutes">On-demand — minutes before start</Label>
+                <Input
+                  id="cancel-on-demand-minutes"
+                  type="number"
+                  min={0}
+                  max={1440}
+                  value={form.cancellation.onDemandMinutesBeforeStart}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      cancellation: {
+                        ...f.cancellation,
+                        onDemandMinutesBeforeStart: Math.min(
+                          1440,
+                          Math.max(0, parseInt(e.target.value, 10) || 0)
+                        ),
+                      },
+                    }))
+                  }
+                  className="w-full border-slate-200"
+                />
+                <p className="text-xs text-slate-500">
+                  Example: 30 means cancellation is allowed until 30 minutes before the scheduled start time.
+                </p>
+              </div>
+              <Separator className="bg-slate-200" />
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="cancel-short-term-days">Short-term — days before start date</Label>
+                <Input
+                  id="cancel-short-term-days"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={form.cancellation.shortTermDaysBeforeStart}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      cancellation: {
+                        ...f.cancellation,
+                        shortTermDaysBeforeStart: Math.min(
+                          365,
+                          Math.max(0, parseInt(e.target.value, 10) || 0)
+                        ),
+                      },
+                    }))
+                  }
+                  className="w-full border-slate-200"
+                />
+              </div>
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="cancel-monthly-days">Monthly — days before start date</Label>
+                <Input
+                  id="cancel-monthly-days"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={form.cancellation.monthlyDaysBeforeStart}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      cancellation: {
+                        ...f.cancellation,
+                        monthlyDaysBeforeStart: Math.min(
+                          365,
+                          Math.max(0, parseInt(e.target.value, 10) || 0)
+                        ),
+                      },
+                    }))
+                  }
+                  className="w-full border-slate-200"
+                />
+                <p className="text-xs text-slate-500">
+                  Example: 2 means customers can cancel until the calendar day that is 2 days before the service start date.
+                </p>
+              </div>
+              <Separator className="bg-slate-200" />
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="overdue-start-interval">Overdue start reminder interval (minutes)</Label>
+                <Input
+                  id="overdue-start-interval"
+                  type="number"
+                  min={5}
+                  max={180}
+                  value={form.providerReminders.overdueStartIntervalMinutes}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      providerReminders: {
+                        ...f.providerReminders,
+                        overdueStartIntervalMinutes: Math.min(
+                          180,
+                          Math.max(5, parseInt(e.target.value, 10) || 15)
+                        ),
+                      },
+                    }))
+                  }
+                  className="w-full border-slate-200"
+                />
+                <p className="text-xs text-slate-500">
+                  How often to remind providers when a visit&apos;s scheduled start time has passed and the task is still not started.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

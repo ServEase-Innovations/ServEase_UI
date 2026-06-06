@@ -939,13 +939,19 @@ useEffect(() => {
         {isEditing && (
           <div className="mt-8 border-t border-slate-200/90 pt-6">
             <div className="flex flex-col-reverse justify-center gap-2 sm:flex-row sm:gap-3">
-              <Button onClick={handleCancel} disabled={isSaving} className="!min-w-0 !justify-center sm:!w-auto">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSaving}
+                className="!min-w-0 !justify-center sm:!w-auto"
+              >
                 {t('cancel')}
               </Button>
               <Button
+                variant="contained"
                 onClick={handleSave}
                 disabled={isSaving || !isFormValid() || !hasChanges()}
-                className="!min-w-0 !justify-center !bg-sky-600 !text-white !border-sky-600 hover:!bg-sky-700 sm:!w-auto"
+                className="!min-w-0 !justify-center sm:!w-auto"
               >
                 {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
               </Button>

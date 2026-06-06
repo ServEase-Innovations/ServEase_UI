@@ -58,13 +58,27 @@ interface BookingDialogProps {
   setEndTime: (val: Dayjs | null) => void;
 }
 
+const WORK_START_MINUTES = 6 * 60;
+const LATEST_START_MINUTES = 19 * 60 + 30;
+const WORK_END_MINUTES = 20 * 60;
+
+function isBookingStartValid(time: Dayjs): boolean {
+  const mins = time.hour() * 60 + time.minute();
+  return mins >= WORK_START_MINUTES && mins <= LATEST_START_MINUTES;
+}
+
+function isBookingEndValid(start: Dayjs, end: Dayjs): boolean {
+  if (!end.isSame(start, "day")) return false;
+  const endMins = end.hour() * 60 + end.minute();
+  return endMins <= WORK_END_MINUTES;
+}
+
 // Check if a time is within allowed booking hours
 const isBookingValid = (time: Dayjs | null) => {
   if (!time) return false;
   const now = dayjs();
   if (time.isBefore(now.add(30, "minute").subtract(1, 'second'))) return false;
-  const hour = time.hour();
-  return hour >= 5 && hour < 22;
+  return isBookingStartValid(time);
 };
 
 const toEpochSeconds = (value: Dayjs | null): number | null => {
@@ -134,11 +148,16 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     if (newValue.isSame(today, 'day')) {
       const nowPlus30 = today.add(30, 'minute');
       if (newValue.isBefore(nowPlus30)) adjustedTime = nowPlus30;
-      if (adjustedTime.hour() < 5) adjustedTime = adjustedTime.hour(5).minute(0);
-      else if (adjustedTime.hour() >= 22) adjustedTime = adjustedTime.hour(21).minute(55);
+      if (!isBookingStartValid(adjustedTime)) {
+        const mins = adjustedTime.hour() * 60 + adjustedTime.minute();
+        adjustedTime =
+          mins < WORK_START_MINUTES
+            ? adjustedTime.hour(6).minute(0)
+            : adjustedTime.hour(19).minute(30);
+      }
     } else {
       if (isDateChanged || (newValue.hour() === 0 && newValue.minute() === 0)) {
-        adjustedTime = newValue.hour(5).minute(0);
+        adjustedTime = newValue.hour(6).minute(0);
       }
     }
     
@@ -295,7 +314,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     const canIncreaseDuration = () => {
       if (!hasStartTime) return false;
       const newEndTime = startTime!.add(currentDuration + 1, 'hour');
-      return newEndTime.hour() < 22;
+      return isBookingEndValid(startTime!, newEndTime);
     };
     const canDecreaseDuration = () => {
       return hasStartTime && currentDuration > 1;
@@ -304,7 +323,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     const handleIncreaseDuration = () => {
       if (!hasStartTime) return;
       const newEndTime = startTime!.add(currentDuration + 1, 'hour');
-      if (newEndTime.hour() >= 22) return;
+      if (!isBookingEndValid(startTime!, newEndTime)) return;
       setEndTime(newEndTime);
       if (selectedOption === "Date") setEndDate(newEndTime.toISOString());
     };
@@ -809,7 +828,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                         const selected = dayjs(selectedDateTime);
                         const now = dayjs();
                         if (selected.isBefore(now.add(30, "minute"))) { alert(t('timeMinuteRestriction')); return; }
-                        if (selected.hour() < 5 || selected.hour() > 21) { alert(t('timeHourRestriction')); return; }
+                        if (!isBookingStartValid(selected)) { alert(t('timeHourRestriction')); return; }
                         if (selected.isAfter(maxDate21Days)) { alert(t('dateExceedRestriction')); return; }
                         updateStartDate(selected);
                       }}
@@ -900,7 +919,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                         const selected = dayjs(selectedDateTime);
                         const now = dayjs();
                         if (selected.isBefore(now.add(30, "minute"))) { alert(t('timeMinuteRestriction')); return; }
-                        if (selected.hour() < 5 || selected.hour() > 21) { alert(t('timeHourRestriction')); return; }
+                        if (!isBookingStartValid(selected)) { alert(t('timeHourRestriction')); return; }
                         if (selected.isAfter(maxDate90Days, "day")) { alert(t('monthlyDateExceedRestriction')); return; }
                         if (selected.isBefore(today, "day")) { alert(t('pastDateRestriction')); return; }
                         updateStartDate(selected);

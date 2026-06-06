@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type ComponentType, type ReactNode } from "react";
 import { Button } from "../../components/Button";
 import {
   Calendar,
@@ -10,10 +10,16 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Search,
   RefreshCw,
   Play,
   Clock,
+  ListChecks,
+  AlertTriangle,
+  User,
+  Mail,
+  Palmtree,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@mui/material";
 import {
@@ -64,6 +70,7 @@ type ProviderEngagementApi = Partial<EngagementEpochFields> & {
   firstname?: string;
   lastname?: string;
   email?: string;
+  customer_email?: string;
   base_amount?: number | string;
   monthlyAmount?: number | string;
   responsibilities?: Booking["responsibilities"] | Record<string, unknown>;
@@ -73,14 +80,22 @@ type ProviderEngagementApi = Partial<EngagementEpochFields> & {
   serviceType?: string;
   created_at?: string;
   bookingDate?: string;
-  address?: string;
+  address?: string | null;
   task_status?: string;
   taskStatus?: string;
   mobileno?: string;
+  duration_minutes?: number | null;
+  assignment_status?: string;
+  engagement_status?: string;
+  vacation_start_date?: string | null;
+  vacation_end_date?: string | null;
+  leave_days?: number | null;
   today_service?: {
     service_day_id?: string | number | null;
     status?: string | null;
     can_start?: boolean;
+    can_complete?: boolean;
+    otp_active?: boolean;
   };
 };
 
@@ -138,6 +153,257 @@ const formatTimeToAMPM = (timeString: string): string => {
 const formatTimeRange = (startTime: string, endTime: string): string => {
   return `${formatTimeToAMPM(startTime)} – ${formatTimeToAMPM(endTime)}`;
 };
+
+const formatDateLabel = (ymd?: string | null): string => {
+  if (!ymd) return "—";
+  const d = dayjs(ymd);
+  return d.isValid() ? d.format("ddd, D MMM YYYY") : String(ymd);
+};
+
+const formatDuration = (minutes?: number | null): string | null => {
+  if (minutes == null || !Number.isFinite(Number(minutes)) || Number(minutes) <= 0) {
+    return null;
+  }
+  const m = Number(minutes);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+};
+
+function formatResponsibilityLines(
+  responsibilities?: Booking["responsibilities"] | Record<string, unknown>
+): string[] {
+  const raw = responsibilities as Booking["responsibilities"] | undefined;
+  const tasks = raw?.tasks ?? [];
+  const addOns = raw?.add_ons ?? [];
+  const lines: string[] = [];
+
+  for (const task of tasks) {
+    const type = String((task as { taskType?: string }).taskType || "Task");
+    const persons = (task as { persons?: number }).persons;
+    const mealType = (task as { mealType?: string }).mealType;
+    const childAge = (task as { childAge?: string | number }).childAge;
+    const extras = [
+      persons != null ? `${persons} person${persons !== 1 ? "s" : ""}` : null,
+      mealType ? `meal: ${mealType}` : null,
+      childAge != null && childAge !== "" ? `child age: ${childAge}` : null,
+    ].filter(Boolean);
+    lines.push(extras.length ? `${type} (${extras.join(", ")})` : type);
+  }
+
+  for (const addOn of addOns) {
+    const type = String((addOn as { taskType?: string }).taskType || "Add-on");
+    lines.push(type);
+  }
+
+  return lines;
+}
+
+function toDisplayName(name: string): string {
+  return String(name || "Customer")
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function DetailsSection({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
+  return (
+    <section className="px-4 py-3.5">
+      <h4 className="mb-2.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white ring-1 ring-slate-200/80">
+          <Icon className="h-3.5 w-3.5 text-sky-600" aria-hidden />
+        </span>
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  if (value == null || value === "" || value === "—") return null;
+  return (
+    <div className={`flex items-start justify-between gap-3 py-1.5 ${className}`}>
+      <span className="shrink-0 text-xs text-slate-500">{label}</span>
+      <span className="min-w-0 text-right text-sm font-medium text-slate-900 break-words">{value}</span>
+    </div>
+  );
+}
+
+/** Legacy helper kept for hot-reload safety — used by BookingDetailsPanel via DetailRow */
+function DetailCell({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  if (value == null || value === "" || value === "—") return null;
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-slate-800 break-words">{value}</p>
+    </div>
+  );
+}
+
+type BookingDetailsPanelProps = {
+  booking: Booking;
+  api: ProviderEngagementApi;
+  tab: TabKey;
+  customerEmail: string;
+  vacationLabel: string | null;
+  todayVisitStatus: string | null;
+  address?: string;
+  responsibilityLines: string[];
+  onCall: (phone: string, name: string) => void;
+  onTrack: (address: string) => void;
+};
+
+function BookingDetailsPanel({
+  booking,
+  api,
+  tab,
+  customerEmail,
+  vacationLabel,
+  todayVisitStatus,
+  address,
+  responsibilityLines,
+  onCall,
+  onTrack,
+}: BookingDetailsPanelProps) {
+  const initial = toDisplayName(booking.clientName).charAt(0) || "C";
+  const bookedOn = formatDateLabel(booking.bookingDate);
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.02]">
+      <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2">
+        <p className="text-xs font-medium text-slate-600">Booking overview</p>
+      </div>
+
+      <div className="divide-y divide-slate-100">
+        <DetailsSection title="Customer" icon={User}>
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-100 text-base font-semibold text-sky-800 ring-2 ring-white"
+              aria-hidden
+            >
+              {initial}
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="text-sm font-semibold text-slate-900">{toDisplayName(booking.clientName)}</p>
+              <div className="flex flex-wrap gap-2">
+                {api.mobileno ? (
+                  <button
+                    type="button"
+                    onClick={() => onCall(String(api.mobileno), booking.clientName)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-sky-800 ring-1 ring-slate-200 transition-colors hover:bg-sky-50"
+                  >
+                    <Phone className="h-3.5 w-3.5" aria-hidden />
+                    {String(api.mobileno)}
+                  </button>
+                ) : null}
+                {customerEmail ? (
+                  <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs text-slate-700 ring-1 ring-slate-200">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+                    <span className="truncate">{customerEmail}</span>
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </DetailsSection>
+
+        {(tab === "ongoing" && todayVisitStatus) || vacationLabel ? (
+          <DetailsSection title="Visit status" icon={Clock}>
+            {tab === "ongoing" && todayVisitStatus ? (
+              <div className="flex items-center justify-between rounded-lg bg-sky-50/70 px-3 py-2 ring-1 ring-sky-100">
+                <span className="text-xs text-slate-600">Today&apos;s visit</span>
+                <span className="text-sm font-semibold capitalize text-sky-900">{todayVisitStatus}</span>
+              </div>
+            ) : null}
+            {vacationLabel ? (
+              <div
+                className={`flex items-start gap-2 rounded-lg bg-violet-50/70 px-3 py-2 ring-1 ring-violet-100 ${tab === "ongoing" && todayVisitStatus ? "mt-2" : ""}`}
+              >
+                <Palmtree className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+                <div>
+                  <p className="text-xs font-medium text-violet-900">Customer vacation</p>
+                  <p className="mt-0.5 text-sm text-violet-800">{vacationLabel}</p>
+                </div>
+              </div>
+            ) : null}
+          </DetailsSection>
+        ) : null}
+
+        {address ? (
+          <DetailsSection title="Service location" icon={MapPin}>
+            <p className="text-sm leading-relaxed text-slate-800">{address}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2.5 h-8 gap-1.5 text-xs"
+              onClick={() => onTrack(address)}
+            >
+              <MapPin className="h-3.5 w-3.5" aria-hidden />
+              Open in Maps
+            </Button>
+          </DetailsSection>
+        ) : null}
+
+        {responsibilityLines.length > 0 ? (
+          <DetailsSection title="Service scope" icon={ListChecks}>
+            <ul className="flex flex-wrap gap-1.5">
+              {responsibilityLines.map((line, i) => (
+                <li
+                  key={i}
+                  className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 ring-1 ring-sky-100"
+                >
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </DetailsSection>
+        ) : null}
+
+        <DetailsSection title="Booking info" icon={Calendar}>
+          <div className="rounded-lg bg-slate-50/80 px-3 py-1 ring-1 ring-slate-100">
+            <DetailRow label="Booked on" value={bookedOn !== "—" ? bookedOn : null} />
+            <DetailRow
+              label="Assignment"
+              value={
+                api.assignment_status ? (
+                  <span className="capitalize">{String(api.assignment_status).toLowerCase()}</span>
+                ) : null
+              }
+            />
+            <DetailRow label="Booking ID" value={`#${booking.id}`} />
+          </div>
+        </DetailsSection>
+      </div>
+    </div>
+  );
+}
 
 function mapApiBookingToBooking(apiBooking: ProviderEngagementApi): Booking {
   let date: string;
@@ -216,17 +482,17 @@ function mapApiBookingToBooking(apiBooking: ProviderEngagementApi): Booking {
     bookingData: {
       ...apiBooking,
       mobileno: apiBooking.mobileno || "",
+      email: apiBooking.email || apiBooking.customer_email || "",
+      address: apiBooking.address || "",
+      duration_minutes: apiBooking.duration_minutes ?? null,
+      assignment_status: apiBooking.assignment_status,
+      engagement_status: apiBooking.engagement_status,
+      vacation_start_date: apiBooking.vacation_start_date,
+      vacation_end_date: apiBooking.vacation_end_date,
+      leave_days: apiBooking.leave_days,
       today_service: apiBooking.today_service,
     },
   };
-}
-
-function datePartsForBadge(dateLabel: string): { day: string; month: string } {
-  const parsed = dayjs(dateLabel.replace(/^(\w+,\s*)?/, ""), ["D MMM YYYY", "ddd, D MMM YYYY"], true);
-  if (parsed.isValid()) {
-    return { day: parsed.format("D"), month: parsed.format("MMM") };
-  }
-  return { day: "—", month: "" };
 }
 
 type BookingRowProps = {
@@ -250,7 +516,9 @@ function BookingRow({
   onStart,
   onComplete,
 }: BookingRowProps) {
+  const [expanded, setExpanded] = useState(false);
   const bookingKey = booking.id.toString();
+  const api = booking.bookingData as ProviderEngagementApi;
   const todayServiceStatus = booking.bookingData?.today_service?.status;
   const displayStatus = effectiveProviderTaskStatus(
     booking.taskStatus,
@@ -276,55 +544,106 @@ function BookingRow({
   const showStartButton = showActions && isNotStarted && canStart;
   const showCompleteButton = showActions && isInProgress;
   const showCompletedButton = showActions && isCompleted;
-  const { day, month } = datePartsForBadge(booking.date);
   const address = booking.location?.trim();
+  const bookingType = String(booking.booking_type || "").toUpperCase();
+  const isRecurring = bookingType === "MONTHLY" || bookingType === "SHORT_TERM";
+  const startDateLabel = formatDateLabel(booking.start_date);
+  const endDateLabel = formatDateLabel(booking.endDate);
+  const dateRangeLabel =
+    isRecurring && booking.endDate && booking.endDate !== booking.start_date
+      ? `${startDateLabel} – ${endDateLabel}`
+      : startDateLabel;
+  const durationLabel = formatDuration(api.duration_minutes);
+  const responsibilityLines = formatResponsibilityLines(booking.responsibilities);
+  const customerEmail = api.email || api.customer_email || "";
+  const vacationLabel =
+    api.vacation_start_date && api.vacation_end_date
+      ? `${formatDateLabel(api.vacation_start_date)} – ${formatDateLabel(api.vacation_end_date)}`
+      : null;
+  const todayVisitStatus = api.today_service?.status
+    ? String(api.today_service.status).replace(/_/g, " ")
+    : null;
+  const slotStartEpoch = coalesceStartEpoch(api.start_epoch, api.startDate || api.start_date);
+  const isOverdue =
+    tab === "ongoing" &&
+    slotStartEpoch != null &&
+    dayjs().unix() >= slotStartEpoch &&
+    !isInProgress &&
+    !isCompleted &&
+    (todayServiceStatus === "SCHEDULED" || taskStatusOriginal === "NOT_STARTED");
 
   return (
-    <article className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.03] transition-shadow hover:shadow-md">
-      <div className="flex gap-3 sm:gap-4">
-        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-sky-50 text-sky-900 ring-1 ring-sky-100">
-          <span className="text-lg font-bold leading-none tabular-nums">{day}</span>
-          {month ? (
-            <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
-              {month}
+    <article className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition-shadow hover:border-slate-300/90 hover:shadow-md">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium text-slate-500">Booking #{booking.id}</p>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {getBookingTypeBadge(booking.booking_type)}
+            {getStatusBadge(displayStatus)}
+          </div>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+              {toDisplayName(booking.clientName)}
+            </h3>
+            <p className="mt-0.5 text-sm text-slate-600">{getServiceTitle(booking.service)}</p>
+          </div>
+          {booking.amount !== "—" ? (
+            <span className="shrink-0 rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-semibold tabular-nums text-emerald-800 ring-1 ring-emerald-100">
+              {booking.amount}
             </span>
           ) : null}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                #{booking.id}
-              </p>
-              <h3 className="truncate text-base font-semibold text-slate-900">{booking.clientName}</h3>
-              <p className="mt-0.5 text-sm text-slate-600">
-                {getServiceTitle(booking.service)}
-                {booking.amount !== "—" ? (
-                  <span className="font-semibold text-slate-800"> · {booking.amount}</span>
+        <div className="mt-3 grid gap-2 rounded-lg bg-slate-50/90 px-3 py-2.5 text-sm text-slate-700 sm:grid-cols-2">
+          <div className="flex items-start gap-2 min-w-0 sm:col-span-2">
+            <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" aria-hidden />
+            <span className="leading-snug">{dateRangeLabel}</span>
+          </div>
+          {booking.time ? (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0 text-sky-600" aria-hidden />
+              <span>
+                {booking.time}
+                {durationLabel ? (
+                  <span className="ml-1 text-slate-500">({durationLabel})</span>
                 ) : null}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-              {getBookingTypeBadge(booking.booking_type)}
-              {getStatusBadge(displayStatus)}
-            </div>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-              {booking.time || booking.date}
-            </span>
-            {address ? (
-              <span className="inline-flex min-w-0 max-w-full items-center gap-1 truncate">
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-                <span className="truncate">{address}</span>
               </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
+          {address && !expanded ? (
+            <div className="flex items-start gap-2 min-w-0 sm:col-span-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" aria-hidden />
+              <span className="line-clamp-1 text-slate-600">{address}</span>
+            </div>
+          ) : null}
+        </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+        {isOverdue ? (
+          <p className="mt-2 flex items-start gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-900">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            Scheduled start time has passed — please start the visit.
+          </p>
+        ) : null}
+
+        {expanded ? (
+          <BookingDetailsPanel
+            booking={booking}
+            api={api}
+            tab={tab}
+            customerEmail={customerEmail}
+            vacationLabel={vacationLabel}
+            todayVisitStatus={todayVisitStatus}
+            address={address}
+            responsibilityLines={responsibilityLines}
+            onCall={onCall}
+            onTrack={onTrack}
+          />
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
             {booking.bookingData?.mobileno ? (
               <Button
                 type="button"
@@ -349,6 +668,19 @@ function BookingRow({
                 Directions
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 px-2 text-xs text-sky-700 hover:bg-sky-50"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+                aria-hidden
+              />
+              {expanded ? "Less" : "More details"}
+            </Button>
 
             {showActions ? (
               taskStatusUpdating[bookingKey] ? (
@@ -391,7 +723,6 @@ function BookingRow({
                 <span className="ml-auto text-xs text-slate-500">Not ready to start yet</span>
               ) : null
             ) : null}
-          </div>
         </div>
       </div>
     </article>
@@ -440,6 +771,7 @@ export function AllBookingsDialog({
     const q = searchQuery.trim().toLowerCase();
     if (!q) return rawTabData;
     return rawTabData.filter((b) => {
+      const api = b.bookingData as ProviderEngagementApi;
       const hay = [
         b.clientName,
         b.id,
@@ -447,6 +779,10 @@ export function AllBookingsDialog({
         b.booking_type,
         b.location,
         b.taskStatus,
+        api.mobileno,
+        api.email,
+        api.customer_email,
+        api.assignment_status,
       ]
         .filter(Boolean)
         .join(" ")

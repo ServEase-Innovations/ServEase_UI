@@ -1585,7 +1585,12 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
               <Button onClick={handleCancel} disabled={isSaving} variant="outline" className="px-6 py-2">
                 {t("cancel")}
               </Button>
-              <Button onClick={handleSave} disabled={isSaving || !isFormValid() || !hasChanges()}>
+              <Button
+                variant="contained"
+                onClick={handleSave}
+                disabled={isSaving || !isFormValid() || !hasChanges()}
+                className="px-6 py-2"
+              >
                 {isSaving ? <><ClipLoader size={16} color="white" className="mr-2" />{t('saving')}</> : t('saveChanges')}
               </Button>
             </div>

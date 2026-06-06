@@ -20,8 +20,10 @@ const initialField: FieldState = {
 
 type Options = { t?: (key: string) => string };
 
+const defaultT = (key: string) => key;
+
 export function useFieldValidation(options: Options = {}) {
-  const t = options.t ?? ((k: string) => k);
+  const t = options.t ?? defaultT;
   const [validationResults, setValidationResults] = useState<
     Record<FieldKey, FieldState>
   >({

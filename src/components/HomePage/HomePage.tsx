@@ -77,6 +77,7 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     };
 
     const handleClick = (data: string) => {
+        if (isServiceProvider) return;
         setOpen(true);
         setSelectedtype(data);
     };
@@ -183,7 +184,10 @@ const handleSave = () => {
 
   const { appUser } = useAppUser();
   const { showOffer, checking: checkingOffer } = useFirstBookingOfferVisible();
-  const isServiceProvider = appUser?.role === "SERVICE_PROVIDER";
+  const isLoggedIn = isAuthenticated || Boolean(appUser);
+  const isServiceProvider =
+    isLoggedIn &&
+    (appUser?.role === "SERVICE_PROVIDER" || appUser?.user_role === "SERVICE_PROVIDER");
 
 useEffect(() => {
   if (!isAuthenticated || !appUser) return;
@@ -252,15 +256,15 @@ useEffect(() => {
                                 <button
                                     key={svc.key}
                                     type="button"
-                                    disabled={appUser?.role === "SERVICE_PROVIDER"}
-                                    onClick={() => appUser?.role !== "SERVICE_PROVIDER" && handleClick(svc.key)}
+                                    disabled={isServiceProvider}
+                                    onClick={() => handleClick(svc.key)}
                                     aria-label={
-                                        appUser?.role === "SERVICE_PROVIDER"
+                                        isServiceProvider
                                             ? svc.label
                                             : `${svc.label} — ${t("bookService")}`
                                     }
                                     className={`group relative flex min-w-0 flex-col overflow-hidden rounded-2xl bg-white text-center shadow-md shadow-slate-900/[0.06] ring-1 ring-slate-200/70 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 min-h-0 ${
-                                        appUser?.role === "SERVICE_PROVIDER"
+                                        isServiceProvider
                                             ? "cursor-not-allowed opacity-50 grayscale"
                                             : "cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/[0.08] hover:ring-sky-300/50 active:translate-y-0 active:shadow-md"
                                     }`}
@@ -282,7 +286,7 @@ useEffect(() => {
                                         <span className="line-clamp-2 min-h-[2.25rem] text-[11px] font-semibold leading-tight tracking-tight text-slate-900 sm:min-h-[2.5rem] sm:text-xs">
                                             {svc.label}
                                         </span>
-                                        {appUser?.role !== "SERVICE_PROVIDER" && (
+                                        {!isServiceProvider && (
                                             <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 sm:text-[11px]">
                                                 {t("bookService")}
                                                 <ArrowRight
@@ -296,7 +300,7 @@ useEffect(() => {
                             ))}
                         </div>
 
-                        {!isAuthenticated && (
+                        {!isLoggedIn && (
                             <div className="flex flex-wrap justify-center gap-2 pt-2 sm:gap-3 md:justify-start">
                                 <Button
                                     type="button"
@@ -415,7 +419,11 @@ useEffect(() => {
                         ].map((service, index) => (
                             <Card
                                 key={index}
-                                className="border border-slate-200/90 bg-white text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-200/80 hover:shadow-md"
+                                className={`border border-slate-200/90 bg-white text-center shadow-sm transition-all duration-200 ${
+                                    isServiceProvider
+                                        ? "cursor-not-allowed opacity-50 grayscale"
+                                        : "hover:-translate-y-0.5 hover:border-sky-200/80 hover:shadow-md"
+                                }`}
                             >
                                 <CardContent className="space-y-4 p-6 sm:p-7">
                                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 text-3xl ring-1 ring-sky-100/80">
@@ -425,8 +433,12 @@ useEffect(() => {
                                     <p className="text-sm leading-relaxed text-slate-600">{service.desc}</p>
                                     <Button
                                         type="button"
-                                        className="border-transparent bg-transparent px-0 py-1 text-sm font-semibold text-sky-700 shadow-none hover:bg-transparent hover:text-sky-900"
-                                        onClick={() => setServiceDialog({ open: true, type: service.type as any })}
+                                        disabled={isServiceProvider}
+                                        className="border-transparent bg-transparent px-0 py-1 text-sm font-semibold text-sky-700 shadow-none hover:bg-transparent hover:text-sky-900 disabled:pointer-events-none disabled:opacity-60"
+                                        onClick={() => {
+                                            if (isServiceProvider) return;
+                                            setServiceDialog({ open: true, type: service.type as any });
+                                        }}
                                     >
                                         {t("learnMore")}
                                     </Button>

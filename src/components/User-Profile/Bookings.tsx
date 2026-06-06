@@ -35,6 +35,14 @@ import ChatInterface from './ChatInterface';
 import CustomerTodayTasksCard, {
   CustomerTodayBookingSlot,
 } from './CustomerTodayTasksCard';
+import utilsInstance from 'src/services/utilsInstance';
+import {
+  DEFAULT_CANCELLATION_POLICY,
+  getCancellationUnavailableMessage,
+  isCancellationTimeAllowed,
+  parseCancellationPolicy,
+  type CancellationPolicy,
+} from 'src/utils/cancellationPolicy';
 
 interface Task {
   taskType: string;
@@ -165,9 +173,20 @@ type CustomerTodaySlotApi = Partial<TodayBookingEpochFields> & {
   end_time_ist?: string;
   provider_name?: string;
   provider_phone?: string;
+  provider_firstname?: string | null;
+  provider_lastname?: string | null;
+  provider_mobileno?: string | null;
+  serviceproviderid?: number | string | null;
   service_type?: string;
   booking_type?: string;
   task_status?: string;
+  availability_status?: string | null;
+  engagement_status?: string | null;
+  assignment_status?: string | null;
+  service_day_id?: number | string | null;
+  service_day_status?: string | null;
+  today_service?: TodayService | null;
+  base_amount?: number | string | null;
   date_ist?: string;
   date?: string;
   address?: string;
@@ -471,6 +490,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
   const [todaySchedule, setTodaySchedule] = useState<CustomerTodayBookingSlot[]>([]);
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>(
+    DEFAULT_CANCELLATION_POLICY
+  );
   
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -501,6 +523,33 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     [auth0IsAuthenticated, appUser]
   );
   const resolvedCustomerId = useMemo(() => resolveCustomerId(appUser), [appUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await utilsInstance.get<{ success?: boolean; settings?: unknown }>(
+          "/api/platform-settings"
+        );
+        if (!cancelled && res.data?.settings) {
+          setCancellationPolicy(parseCancellationPolicy(res.data.settings));
+        }
+      } catch {
+        // Keep default cancellation policy when settings API is unavailable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isCancellationDisabled = (booking: Booking): boolean =>
+    !isCancellationTimeAllowed(booking, cancellationPolicy);
+
+  const getCancellationTooltip = (booking: Booking): string =>
+    isCancellationDisabled(booking)
+      ? getCancellationUnavailableMessage(booking, cancellationPolicy)
+      : "Cancel this booking";
 
   // ============= MODIFIED DEEP LINKING EFFECT =============
   useEffect(() => {
@@ -1103,6 +1152,32 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           slot.engagement_end_epoch != null && Number.isFinite(Number(slot.engagement_end_epoch))
             ? Number(slot.engagement_end_epoch)
             : null,
+        serviceproviderid:
+          slot.serviceproviderid != null && Number.isFinite(Number(slot.serviceproviderid))
+            ? Number(slot.serviceproviderid)
+            : null,
+        service_day_id:
+          slot.service_day_id != null && Number.isFinite(Number(slot.service_day_id))
+            ? Number(slot.service_day_id)
+            : null,
+        provider_firstname: slot.provider_firstname ?? null,
+        provider_lastname: slot.provider_lastname ?? null,
+        provider_mobileno: slot.provider_mobileno ?? null,
+        availability_status: slot.availability_status ?? null,
+        engagement_status: slot.engagement_status ?? null,
+        assignment_status: slot.assignment_status ?? null,
+        service_day_status: slot.service_day_status ?? null,
+        today_service: slot.today_service ?? null,
+        start_time_ist: slot.start_time_ist ?? null,
+        end_time_ist: slot.end_time_ist ?? null,
+        task_status: slot.task_status ?? "NOT_STARTED",
+        booking_type: slot.booking_type ?? "",
+        service_type: slot.service_type ?? "",
+        address: slot.address ?? null,
+        base_amount:
+          slot.base_amount != null && Number.isFinite(Number(slot.base_amount))
+            ? Number(slot.base_amount)
+            : null,
       }));
 
       setPastBookings(mapBookingData(partitioned.past));
@@ -1341,6 +1416,13 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   };
 
   const handleCancelClick = (booking: Booking) => {
+    if (isCancellationDisabled(booking)) {
+      setSnackbarMessage(getCancellationUnavailableMessage(booking, cancellationPolicy));
+      setSnackbarSeverity('warning');
+      setOpenSnackbar(true);
+      return;
+    }
+
     showConfirmation(
       'cancel',
       booking,
@@ -1491,6 +1573,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
   const renderActionButtons = (booking: Booking) => {
     const modificationDisabled = isModificationDisabled(booking);
     const modificationTooltip = getModificationTooltip(booking);
+    const cancellationDisabled = isCancellationDisabled(booking);
+    const cancellationTooltip = getCancellationTooltip(booking);
     const hasExistingVacation = hasVacation(booking);
 
     // View Details button to be included in all cases
@@ -1540,9 +1624,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               onClick={() => handleCancelClick(booking)}
+              disabled={cancellationDisabled}
+              title={cancellationTooltip}
             >
               <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Cancel Booking</span>
+              <span className="hidden sm:inline">
+                {cancellationDisabled ? "Cancel (Unavailable)" : "Cancel Booking"}
+              </span>
               <span className="sm:hidden">Cancel</span>
             </Button>
 
@@ -1624,9 +1712,13 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               onClick={() => handleCancelClick(booking)}
+              disabled={cancellationDisabled}
+              title={cancellationTooltip}
             >
               <XCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Cancel Booking</span>
+              <span className="hidden sm:inline">
+                {cancellationDisabled ? "Cancel (Unavailable)" : "Cancel Booking"}
+              </span>
               <span className="sm:hidden">Cancel</span>
             </Button>
 

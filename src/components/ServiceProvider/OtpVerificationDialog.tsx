@@ -50,11 +50,13 @@ export function OtpVerificationDialog({
 
   const handleVerify = async () => {
     if (!otpValue.trim()) return;
-    
-    // Mark that verification is starting
-    verificationCompletedRef.current = true;
-    await onVerify(otpValue.trim());
-    // The dialog will close via the useEffect above when verifying becomes false
+
+    try {
+      await onVerify(otpValue.trim());
+      verificationCompletedRef.current = true;
+    } catch {
+      verificationCompletedRef.current = false;
+    }
   };
 
   const handleClose = () => {

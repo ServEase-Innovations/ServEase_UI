@@ -38,6 +38,86 @@ dayjs.extend(customParseFormat);
 
 const DURATION_OPTIONS = [1, 2, 3, 4, 5, 6];
 
+/** Platform service window: 6:00 AM – 8:00 PM on the same calendar day. */
+const WORK_DAY_START = { hour: 6, minute: 0 };
+const WORK_DAY_END = { hour: 20, minute: 0 };
+/** Latest bookable start (7:30 PM — 8:00 PM is not offered as a start time). */
+const LATEST_START = { hour: 19, minute: 30 };
+
+function workDayStart(day: Dayjs): Dayjs {
+  return day
+    .hour(WORK_DAY_START.hour)
+    .minute(WORK_DAY_START.minute)
+    .second(0)
+    .millisecond(0);
+}
+
+function workDayEnd(day: Dayjs): Dayjs {
+  return day.hour(WORK_DAY_END.hour).minute(WORK_DAY_END.minute).second(0).millisecond(0);
+}
+
+function latestStartTime(day: Dayjs): Dayjs {
+  return day
+    .hour(LATEST_START.hour)
+    .minute(LATEST_START.minute)
+    .second(0)
+    .millisecond(0);
+}
+
+/** Latest start time that still allows at least `minHours` before end of work day. */
+function latestStartForMinDuration(day: Dayjs, minHours = 1): Dayjs {
+  const byDuration = workDayEnd(day).subtract(minHours, "hour");
+  const bySlot = latestStartTime(day);
+  return byDuration.isBefore(bySlot) ? byDuration : bySlot;
+}
+
+function isStartWithinWorkHours(time: Dayjs): boolean {
+  return !time.isBefore(workDayStart(time)) && !time.isAfter(latestStartTime(time));
+}
+
+/** True when `start` + `hours` ends on the same day and by 8:00 PM. */
+function isDurationWithinWorkHours(start: Dayjs, hours: number): boolean {
+  const end = start.add(hours, "hour");
+  if (!end.isSame(start, "day")) return false;
+  return !end.isAfter(workDayEnd(start));
+}
+
+function maxAllowedDurationHours(start: Dayjs): number {
+  let max = 0;
+  for (const h of DURATION_OPTIONS) {
+    if (isDurationWithinWorkHours(start, h)) max = h;
+  }
+  return max;
+}
+
+function clampScheduleToWorkHours(
+  start: Dayjs,
+  end: Dayjs
+): { start: Dayjs; end: Dayjs } {
+  let nextStart = start;
+  if (!isStartWithinWorkHours(nextStart)) {
+    if (nextStart.isBefore(workDayStart(nextStart))) {
+      nextStart = workDayStart(nextStart);
+    } else {
+      nextStart = latestStartForMinDuration(nextStart, 1);
+    }
+  }
+
+  let allowedHours = maxAllowedDurationHours(nextStart);
+  if (allowedHours === 0) {
+    nextStart = latestStartForMinDuration(nextStart, 1);
+    allowedHours = maxAllowedDurationHours(nextStart);
+  }
+
+  const requestedHours = Math.max(1, Math.round(end.diff(nextStart, "hour", true)));
+  const hours = Math.min(requestedHours, allowedHours || 1);
+
+  return {
+    start: nextStart,
+    end: nextStart.add(hours, "hour"),
+  };
+}
+
 function parseTimeOnDate(dateStr: string | undefined, timeStr: string | undefined): Dayjs | null {
   if (!dateStr || !timeStr) return null;
   const base = dayjs(dateStr.split("T")[0]);
@@ -49,8 +129,13 @@ function parseTimeOnDate(dateStr: string | undefined, timeStr: string | undefine
 function defaultOnDemandStart(): Dayjs {
   const now = dayjs();
   let adjusted = now.add(30, "minute");
-  if (adjusted.hour() < 5) adjusted = adjusted.hour(5).minute(0);
-  else if (adjusted.hour() >= 22) adjusted = adjusted.hour(21).minute(55);
+  if (adjusted.isBefore(workDayStart(adjusted))) {
+    adjusted = workDayStart(adjusted);
+  }
+  const latestStart = latestStartForMinDuration(adjusted, 1);
+  if (adjusted.isAfter(latestStart)) {
+    adjusted = latestStart;
+  }
   return adjusted;
 }
 
@@ -149,6 +234,14 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
       ed = et;
     }
 
+    if (pref === "Date" && st && et) {
+      const clamped = clampScheduleToWorkHours(st, et);
+      st = clamped.start;
+      et = clamped.end;
+      sd = st;
+      ed = et;
+    }
+
     setStartDate(sd);
     setEndDate(ed ?? sd);
     setStartTime(st);
@@ -240,10 +333,13 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     if (selected.isSame(now, "day")) {
       const nowPlus30 = now.add(30, "minute");
       if (adjusted.isBefore(nowPlus30)) adjusted = nowPlus30;
-      if (adjusted.hour() < 5) adjusted = adjusted.hour(5).minute(0);
-      else if (adjusted.hour() >= 22) adjusted = adjusted.hour(21).minute(55);
-    } else if (adjusted.hour() === 0 && adjusted.minute() === 0) {
-      adjusted = adjusted.hour(5).minute(0);
+    }
+    if (adjusted.isBefore(workDayStart(adjusted))) {
+      adjusted = workDayStart(adjusted);
+    }
+    const latestStart = latestStartForMinDuration(adjusted, durationHours);
+    if (adjusted.isAfter(latestStart)) {
+      adjusted = latestStart;
     }
 
     const nextEnd = adjusted.add(durationHours, "hour");
@@ -264,7 +360,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
   const setDurationHours = (hours: number) => {
     if (!startTime) return;
     const newEnd = startTime.add(hours, "hour");
-    if (newEnd.hour() >= 22) {
+    if (!isDurationWithinWorkHours(startTime, hours)) {
       setValidationMsg(t("timeHourRestriction"));
       return;
     }
@@ -295,7 +391,11 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
       setValidationMsg(t("timeMinuteRestriction"));
       return false;
     }
-    if (selected.hour() < 5 || selected.hour() > 21) {
+    if (!isStartWithinWorkHours(selected)) {
+      setValidationMsg(t("timeHourRestriction"));
+      return false;
+    }
+    if (preference === "Date" && !isDurationWithinWorkHours(selected, 1)) {
       setValidationMsg(t("timeHourRestriction"));
       return false;
     }
@@ -362,8 +462,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
             </MaidDurationHint>
             <MaidDurationChips>
               {DURATION_OPTIONS.map((h) => {
-                const disabled =
-                  !startTime || startTime.add(h, "hour").hour() >= 22;
+                const disabled = !startTime || !isDurationWithinWorkHours(startTime, h);
                 return (
                   <MaidDurationChip
                     key={h}
@@ -442,6 +541,10 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                   if (meridian === "AM" && hour === 12) hour = 0;
                   const startWithTime = start.hour(hour).minute(0);
                   if (!validateSelection(startWithTime)) return;
+                  if (!isDurationWithinWorkHours(startWithTime, durationHours)) {
+                    setValidationMsg(t("timeHourRestriction"));
+                    return;
+                  }
                   const endT = startWithTime.add(durationHours, "hour");
                   setStartDate(startWithTime);
                   setStartTime(startWithTime);

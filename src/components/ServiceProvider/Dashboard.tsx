@@ -25,6 +25,7 @@ import {
   Phone,
   MapPin,
   Play,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth0 } from '@auth0/auth0-react';
 import { AllBookingsDialog } from "./AllBookingsDialog";
@@ -40,6 +41,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import ProviderCalendarBig from "./ProviderCalendarBig";
 import PaymentInstance from "src/services/paymentInstance";
 import { useAppUser } from "src/context/AppUserContext";
+import { resolveProviderId } from "src/services/engagementService";
 import {
   epochToDisplayTime,
   toEpochOrNull,
@@ -201,6 +203,8 @@ export interface TodayBookingSlot {
   service_day_id: number | null;
   /** `service_days.status`: SCHEDULED | IN_PROGRESS | COMPLETED | … */
   service_day_status: string | null;
+  is_overdue?: boolean;
+  overdue_message?: string | null;
 }
 
 type TaskBookingData = {
@@ -312,6 +316,7 @@ type ProviderDashboardBooking = Partial<EngagementEpochFields> & {
 
 interface TodayVisitsCardProps {
   loading: boolean;
+  providerMissing?: boolean;
   todaySchedule: TodayBookingSlot[];
   taskStatusUpdating: Record<string, boolean>;
   onCallCustomer: (phone: string, name: string) => void;
@@ -321,8 +326,20 @@ interface TodayVisitsCardProps {
   onStopTask: (bookingId: string, bookingData: TaskBookingData) => void;
 }
 
+function isSlotOverdue(slot: TodayBookingSlot): boolean {
+  if (slot.is_overdue) return true;
+  const sd = String(slot.service_day_status ?? "").toUpperCase();
+  if (["IN_PROGRESS", "STARTED", "COMPLETED", "DONE", "SKIPPED"].includes(sd)) {
+    return false;
+  }
+  const startEp = toEpochOrNull(slot.slot_start_epoch) ?? toEpochOrNull(slot.engagement_start_epoch);
+  if (startEp == null) return false;
+  return dayjs().unix() >= startEp;
+}
+
 function TodayVisitsCard({
   loading,
+  providerMissing = false,
   todaySchedule,
   taskStatusUpdating,
   onCallCustomer,
@@ -330,6 +347,8 @@ function TodayVisitsCard({
   onStartTodayVisit,
   onStopTask,
 }: TodayVisitsCardProps) {
+  const overdueCount = todaySchedule.filter(isSlotOverdue).length;
+
   return (
     <Card className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
       <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-slate-100/90 bg-gradient-to-r from-sky-50/90 to-white py-3.5 sm:py-4">
@@ -346,13 +365,33 @@ function TodayVisitsCard({
         </div>
       </CardHeader>
       <CardContent className="p-4 sm:p-5">
+        {overdueCount > 0 ? (
+          <div
+            role="alert"
+            className="mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950"
+          >
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden />
+            <div>
+              <p className="font-semibold">
+                {overdueCount === 1
+                  ? "1 visit is overdue to start"
+                  : `${overdueCount} visits are overdue to start`}
+              </p>
+              <p className="mt-0.5 text-xs text-amber-900/90">
+                Scheduled start time has passed. Please start the task or update the booking status.
+              </p>
+            </div>
+          </div>
+        ) : null}
         {loading ? (
           <div className="flex min-h-[72px] items-center justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-sky-600" />
           </div>
         ) : todaySchedule.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-sm text-slate-600">
-            No visits on your calendar for today.
+            {providerMissing
+              ? "Provider profile not linked. Log out and sign in again with your service provider email."
+              : "No visits on your calendar for today."}
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -401,10 +440,18 @@ function TodayVisitsCard({
                       maximumFractionDigits: 0,
                     })}`
                   : null;
+              const overdue = isSlotOverdue(b);
+              const overdueMessage =
+                b.overdue_message ||
+                (overdue && startLabel
+                  ? `Scheduled for ${startLabel} — please start the task.`
+                  : null);
               return (
                 <li
                   key={`${b.availability_id}-${b.engagement_id}`}
-                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                  className={`flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between ${
+                    overdue ? "rounded-xl border border-amber-200/80 bg-amber-50/40 px-3 -mx-1" : ""
+                  }`}
                 >
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-sm font-bold tabular-nums text-slate-900">{timeRange}</p>
@@ -413,6 +460,12 @@ function TodayVisitsCard({
                       #{b.engagement_id} · {getServiceTitle(b.service_type || "")}
                       {amountLabel ? ` · ${amountLabel}` : ""}
                     </p>
+                    {overdue && overdueMessage ? (
+                      <p className="mt-1 flex items-start gap-1 text-xs font-medium text-amber-800">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                        <span>{overdueMessage}</span>
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     {getBookingTypeBadge(String(b.booking_type || ""))}
@@ -493,7 +546,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingHistoryResponse | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<TodayBookingSlot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [todayLoading, setTodayLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user: auth0User, isAuthenticated } = useAuth0();
   const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false);
@@ -553,61 +607,91 @@ export default function Dashboard() {
     return dayjs().format("YYYY-MM");
   };
 
-  const { appUser } = useAppUser();
-  
+  const { appUser, authSessionReady } = useAppUser();
+
   useEffect(() => {
-    if (isAuthenticated && auth0User) {
-      setUserName(appUser?.name);
-      setServiceProviderId(appUser?.serviceProviderId ? Number(appUser?.serviceProviderId) : null);
+    const pid = resolveProviderId(
+      appUser && typeof appUser === "object" ? (appUser as Record<string, unknown>) : null
+    );
+    setServiceProviderId(pid);
+    if (appUser?.name) {
+      setUserName(String(appUser.name));
+    } else if (isAuthenticated && auth0User?.name) {
+      setUserName(auth0User.name);
     }
-  }, [isAuthenticated, appUser]);
+  }, [appUser, isAuthenticated, auth0User]);
 
-  const fetchData = async () => {
-    if (!serviceProviderId) return;
+  const normalizeTodaySlots = (raw: unknown): TodayBookingSlot[] => {
+    const slots = (raw as { bookings?: TodayBookingSlot[] })?.bookings;
+    if (!Array.isArray(slots)) return [];
+    return slots.map((slot) => ({
+      ...slot,
+      slot_start_epoch: toEpochOrNull(slot.slot_start_epoch),
+      slot_end_epoch: toEpochOrNull(slot.slot_end_epoch),
+      engagement_start_epoch: toEpochOrNull(slot.engagement_start_epoch),
+      engagement_end_epoch: toEpochOrNull(slot.engagement_end_epoch),
+    }));
+  };
 
+  const fetchTodayVisits = async (pid: number) => {
+    setTodayLoading(true);
     try {
-      setLoading(true);
+      const todayRes = await PaymentInstance.get(
+        `/api/service-providers/${pid}/today-bookings`
+      );
+      setTodaySchedule(normalizeTodaySlots(todayRes.data));
+    } catch (todayErr) {
+      console.warn("Today bookings fetch failed:", todayErr);
+      setTodaySchedule([]);
+    } finally {
+      setTodayLoading(false);
+    }
+  };
+
+  const fetchDashboardData = async (pid: number) => {
+    setLoading(true);
+    try {
       const currentMonthYear = getCurrentMonthYear();
 
-      const [payoutResponse, response, todayRes] = await Promise.all([
+      const [payoutResult, monthResult] = await Promise.allSettled([
         PaymentInstance.get(
-          `/api/service-providers/${serviceProviderId}/payouts?month=${currentMonthYear}&detailed=true`
+          `/api/service-providers/${pid}/payouts?month=${currentMonthYear}&detailed=true`
         ),
         PaymentInstance.get(
-          `/api/service-providers/${serviceProviderId}/engagements?month=${currentMonthYear}`
+          `/api/service-providers/${pid}/engagements?month=${currentMonthYear}`
         ),
-        PaymentInstance.get(
-          `/api/service-providers/${serviceProviderId}/today-bookings`
-        ).catch(() => ({ data: { bookings: [] as TodayBookingSlot[] } })),
       ]);
 
-      setPayout(payoutResponse.data);
+      const partialErrors: string[] = [];
 
-      if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (payoutResult.status === "fulfilled") {
+        setPayout(payoutResult.value.data);
+      } else {
+        partialErrors.push("payouts");
+        console.warn("Payout fetch failed:", payoutResult.reason);
       }
 
-      const data: BookingHistoryResponse = response.data;
-      setBookings(data);
-      const tr = todayRes as AxiosResponse<{ bookings?: TodayBookingSlot[] }>;
-      const slots = tr?.data?.bookings;
-      const normalizedSlots = Array.isArray(slots)
-        ? slots.map((slot) => ({
-            ...slot,
-            slot_start_epoch: toEpochOrNull(slot.slot_start_epoch),
-            slot_end_epoch: toEpochOrNull(slot.slot_end_epoch),
-            engagement_start_epoch: toEpochOrNull(slot.engagement_start_epoch),
-            engagement_end_epoch: toEpochOrNull(slot.engagement_end_epoch),
-          }))
-        : [];
-      setTodaySchedule(normalizedSlots);
-      setError(null);
+      if (monthResult.status === "fulfilled") {
+        if (monthResult.value.status !== 200) {
+          partialErrors.push("monthly bookings");
+        } else {
+          setBookings(monthResult.value.data as BookingHistoryResponse);
+        }
+      } else {
+        partialErrors.push("monthly bookings");
+        console.warn("Monthly engagements fetch failed:", monthResult.reason);
+      }
+
+      if (partialErrors.length > 0) {
+        setError(`Could not load ${partialErrors.join(" and ")}`);
+      } else {
+        setError(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch data");
-      setTodaySchedule([]);
       toast({
         title: "Error",
-        description: "Failed to load data",
+        description: "Failed to load dashboard",
         variant: "destructive",
       });
     } finally {
@@ -616,10 +700,34 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (serviceProviderId) {
-      fetchData();
+    if (!authSessionReady) return;
+
+    if (!serviceProviderId) {
+      setTodayLoading(false);
+      setLoading(false);
+      setTodaySchedule([]);
+      return;
     }
-  }, [serviceProviderId, toast]);
+
+    void fetchTodayVisits(serviceProviderId);
+    void fetchDashboardData(serviceProviderId);
+  }, [serviceProviderId, authSessionReady]);
+
+  useEffect(() => {
+    if (!serviceProviderId || !authSessionReady) return;
+    const intervalId = window.setInterval(() => {
+      void fetchTodayVisits(serviceProviderId);
+    }, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [serviceProviderId, authSessionReady]);
+
+  const refreshDashboard = async () => {
+    if (!serviceProviderId) return;
+    await Promise.all([
+      fetchTodayVisits(serviceProviderId),
+      fetchDashboardData(serviceProviderId),
+    ]);
+  };
 
   const handleWithdrawalSuccess = async () => {
     if (serviceProviderId) {
@@ -713,7 +821,7 @@ const handleTrackAddress = (address: string) => {
         variant: "default",
       });
 
-      await fetchData();
+      await refreshDashboard();
     } catch (err) {
       setTaskStatus(prev => ({ ...prev, [bookingId]: previousStatus }));
       
@@ -802,7 +910,7 @@ const handleTrackAddress = (address: string) => {
       });
 
       setTaskStatus(prev => ({ ...prev, [currentBooking.bookingId]: "COMPLETED" }));
-      await fetchData();
+      await refreshDashboard();
       return Promise.resolve();
     } catch (err) {
       let errorMessage = "Failed to complete service";
@@ -939,7 +1047,8 @@ const handleTrackAddress = (address: string) => {
 
         <div className="mb-6">
           <TodayVisitsCard
-            loading={loading}
+            loading={todayLoading}
+            providerMissing={authSessionReady && serviceProviderId == null}
             todaySchedule={todaySchedule}
             taskStatusUpdating={taskStatusUpdating}
             onCallCustomer={handleCallCustomer}
