@@ -1,6 +1,7 @@
 // src/PaymentInstance.ts
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { urls } from 'src/config/urls';
+import { getAdminPushSecret, isAdminPaymentsRequest } from 'src/utils/adminApiSecret';
 
 const PaymentInstance = axios.create({
   baseURL: urls.payments,
@@ -18,9 +19,14 @@ PaymentInstance.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Add payment-specific headers if needed
     config.headers['Content-Type'] = 'application/json';
-    
+
+    const adminSecret = getAdminPushSecret();
+    const path = config.url || '';
+    if (adminSecret && isAdminPaymentsRequest(path)) {
+      config.headers['X-Admin-Push-Secret'] = adminSecret;
+    }
+
     return config;
   },
   (error: AxiosError) => {

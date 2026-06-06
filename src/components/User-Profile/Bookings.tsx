@@ -529,7 +529,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     (async () => {
       try {
         const res = await utilsInstance.get<{ success?: boolean; settings?: unknown }>(
-          "/api/platform-settings"
+          "/api/platform-settings/public"
         );
         if (!cancelled && res.data?.settings) {
           setCancellationPolicy(parseCancellationPolicy(res.data.settings));

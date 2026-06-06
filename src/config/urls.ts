@@ -10,7 +10,8 @@
  * | `REACT_APP_PROVIDER_URL`, `REACT_APP_URL` | `urls.providers` → `providerInstance` | **providers** (e.g. `POST /api/customer` registration) |
  * | (same) | `urls.providers` → `axiosInstance` (same base as `providerInstance`) | Legacy duplicate client — prefer `providerInstance` |
  * | `REACT_APP_PREFERENCES_URL` | `urls.preferences` → `preferenceInstance` | **preferences** (saved locations / `user-settings` API) |
- * | `REACT_APP_UTILS_URL`, `REACT_APP_UTLIS_URL` (typo) | `urls.utils` → `utilsInstance` | **utils** (`/customer/check-email`, `/records` pricing, `/api/platform-settings`, `/api/platform-status`) |
+ * | `REACT_APP_UTILS_URL`, `REACT_APP_UTLIS_URL` (typo) | `urls.utils` → `utilsInstance` | **utils** (`/customer/check-email`, admin `/api/platform-settings`, `/api/platform-status`; public `/api/platform-settings/public`) |
+ * | `REACT_APP_ADMIN_PUSH_SECRET` | `utilsInstance` / `paymentInstance` (admin paths only) | Header `X-Admin-Push-Secret` — must match `ADMIN_PUSH_SECRET` on utils/payments |
  * | `REACT_APP_UTILS_WS_URL` (optional) | `urls.utilsWebsocket` | Raw **WebSocket** to utils (e.g. `NotificationClient`); if unset, derived from `urls.utils` (`http` → `ws`, `https` → `wss`) |
  * | `REACT_APP_REVIEWS_URL` | `urls.reviews` → `reviewsInstance` | **reviews** |
  * | `REACT_APP_TICKETS_URL` | `urls.tickets` → `ticketsInstance` | **tickets** (complaints / support) |
