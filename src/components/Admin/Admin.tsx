@@ -1,27 +1,71 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { UserPlus, LogIn } from "lucide-react";
 import RegisterWith2FA from "./RegisterWith2FA";
 import LoginWith2FA from "./LoginWith2FA";
 import { DashboardLayout } from "./Dashboard/DashboardLayout";
 import { publicAsset } from "src/utils/publicAsset";
 import { CHROME_BAR_GRADIENT } from "src/Constants/chromeBar";
+import {
+  clearAdminSession,
+  loadAdminSession,
+  touchAdminSession,
+} from "src/utils/adminSession";
+
+function readInitialAdminState(): { view: "register" | "login" | "dashboard"; role: string } {
+  const session = loadAdminSession();
+  if (session) {
+    return { view: "dashboard", role: session.role };
+  }
+  return { view: "register", role: "" };
+}
 
 function Admin() {
-  const [view, setView] = useState<"register" | "login" | "dashboard">("register");
-  const [role, setRole] = useState("");
+  const initial = readInitialAdminState();
+  const [view, setView] = useState<"register" | "login" | "dashboard">(initial.view);
+  const [role, setRole] = useState(initial.role);
 
-  const handleLoginSuccess = (userRole: string) => {
+  useEffect(() => {
+    const session = loadAdminSession();
+    if (session) {
+      setRole(session.role);
+      setView("dashboard");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view !== "dashboard") {
+      return undefined;
+    }
+    touchAdminSession();
+    const interval = window.setInterval(() => {
+      const session = loadAdminSession();
+      if (!session) {
+        setRole("");
+        setView("login");
+        return;
+      }
+      touchAdminSession();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [view]);
+
+  const handleLoginSuccess = useCallback((userRole: string) => {
     setRole(userRole);
     setView("dashboard");
-  };
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    clearAdminSession();
+    setRole("");
+    setView("login");
+  }, []);
 
   if (view === "dashboard") {
-    return <DashboardLayout userRole={role} />;
+    return <DashboardLayout userRole={role} onLogout={handleLogout} />;
   }
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
-      {/* Branded top bar */}
       <header
         className={`shrink-0 w-full z-20 border-b border-slate-700/30 shadow-lg ${CHROME_BAR_GRADIENT}`}
       >

@@ -48,7 +48,13 @@ function roleLabel(role: string) {
   return { short: role || "—", className: "bg-slate-500/20 text-slate-200" };
 }
 
-export function DashboardLayout({ userRole }: { userRole: string }) {
+export function DashboardLayout({
+  userRole,
+  onLogout,
+}: {
+  userRole: string;
+  onLogout?: () => void;
+}) {
   const [activeSection, setActiveSection] = useState("dashboard");
 
   const sectionTitle = SECTION_LABELS[activeSection] ?? "Dashboard";
@@ -208,10 +214,10 @@ export function DashboardLayout({ userRole }: { userRole: string }) {
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 text-slate-200/90 hover:bg-white/10 hover:text-white"
-                title="Session"
+                title="Sign out"
                 type="button"
-                disabled
-                aria-label="Session menu (coming soon)"
+                onClick={() => onLogout?.()}
+                aria-label="Sign out"
               >
                 <LogOut className="h-4 w-4" />
               </Button>

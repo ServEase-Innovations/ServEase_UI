@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import utilsInstance from "src/services/utilsInstance";
 import { buildAdminLoginPayload } from "src/utils/adminAuthHashes";
+import { saveAdminSession } from "src/utils/adminSession";
 import { User, Lock, KeyRound, Loader2, Shield } from "lucide-react";
 
 type LoginWith2FAProps = {
@@ -73,9 +74,11 @@ const LoginWith2FA: React.FC<LoginWith2FAProps> = ({ onLoginSuccess }) => {
 
       if (res.data.message === "2FA verified successfully") {
         setMessage("Signed in successfully. Loading dashboard…");
-        if (usernameHash) {
-          sessionStorage.setItem("adminUsernameHash", usernameHash);
-        }
+        saveAdminSession({
+          role: res.data.role,
+          userId: res.data.userId,
+          usernameHash,
+        });
         onLoginSuccess(res.data.role);
       } else {
         setMessage("Failed to verify 2FA");
