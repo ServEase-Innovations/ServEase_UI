@@ -1219,7 +1219,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           console.error("Error fetching booking details:", error);
           if (isAuthApiError(error)) {
             setSnackbarMessage(authApiErrorMessage(error));
-            setSnackbarOpen(true);
+            setSnackbarSeverity("error");
+            setOpenSnackbar(true);
           }
         } finally {
           setIsLoading(false);
