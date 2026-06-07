@@ -59,7 +59,7 @@ interface BookingDialogProps {
 }
 
 const WORK_START_MINUTES = 6 * 60;
-const LATEST_START_MINUTES = 19 * 60 + 30;
+const LATEST_START_MINUTES = 19 * 60;
 const WORK_END_MINUTES = 20 * 60;
 
 function isBookingStartValid(time: Dayjs): boolean {
@@ -153,7 +153,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
         adjustedTime =
           mins < WORK_START_MINUTES
             ? adjustedTime.hour(6).minute(0)
-            : adjustedTime.hour(19).minute(30);
+            : adjustedTime.hour(19).minute(0);
       }
     } else {
       if (isDateChanged || (newValue.hour() === 0 && newValue.minute() === 0)) {

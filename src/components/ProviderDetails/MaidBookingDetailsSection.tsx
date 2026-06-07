@@ -41,8 +41,8 @@ const DURATION_OPTIONS = [1, 2, 3, 4, 5, 6];
 /** Platform service window: 6:00 AM – 8:00 PM on the same calendar day. */
 const WORK_DAY_START = { hour: 6, minute: 0 };
 const WORK_DAY_END = { hour: 20, minute: 0 };
-/** Latest bookable start (7:30 PM — 8:00 PM is not offered as a start time). */
-const LATEST_START = { hour: 19, minute: 30 };
+/** Latest bookable start (7:00 PM — minimum 1h service must end by 8:00 PM). */
+const LATEST_START = { hour: 19, minute: 0 };
 
 function workDayStart(day: Dayjs): Dayjs {
   return day
@@ -75,11 +75,17 @@ function isStartWithinWorkHours(time: Dayjs): boolean {
   return !time.isBefore(workDayStart(time)) && !time.isAfter(latestStartTime(time));
 }
 
-/** True when `start` + `hours` ends on the same day and by 8:00 PM. */
+/** Minutes from midnight for a time on its calendar day. */
+function timeMinutesOnDay(time: Dayjs): number {
+  return time.hour() * 60 + time.minute();
+}
+
+const WORK_END_MINUTES = WORK_DAY_END.hour * 60 + WORK_DAY_END.minute;
+
+/** True when `start` + `hours` ends on the same day and by 8:00 PM (inclusive). */
 function isDurationWithinWorkHours(start: Dayjs, hours: number): boolean {
-  const end = start.add(hours, "hour");
-  if (!end.isSame(start, "day")) return false;
-  return !end.isAfter(workDayEnd(start));
+  const endMinutes = timeMinutesOnDay(start) + hours * 60;
+  return endMinutes <= WORK_END_MINUTES;
 }
 
 function maxAllowedDurationHours(start: Dayjs): number {
@@ -297,8 +303,17 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     return "Monthly";
   }, [preference]);
 
-  const durationHours =
-    startTime && endTime ? Math.max(1, endTime.diff(startTime, "hour")) : 1;
+  const durationHours = useMemo(() => {
+    if (!startTime || !endTime) return 1;
+    const mins = endTime.diff(startTime, "minute");
+    if (mins <= 0) return 1;
+    return Math.max(1, Math.min(6, Math.round(mins / 60)));
+  }, [startTime, endTime]);
+
+  const maxDurationHours = useMemo(() => {
+    if (!startTime) return 0;
+    return maxAllowedDurationHours(startTime);
+  }, [startTime]);
 
   const handleDateOnlyChange = (date: Date) => {
     const day = dayjs(date).startOf("day");
@@ -337,12 +352,13 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     if (adjusted.isBefore(workDayStart(adjusted))) {
       adjusted = workDayStart(adjusted);
     }
-    const latestStart = latestStartForMinDuration(adjusted, durationHours);
-    if (adjusted.isAfter(latestStart)) {
-      adjusted = latestStart;
+    if (adjusted.isAfter(latestStartTime(adjusted))) {
+      adjusted = latestStartTime(adjusted);
     }
 
-    const nextEnd = adjusted.add(durationHours, "hour");
+    const allowedHours = maxAllowedDurationHours(adjusted);
+    const hours = Math.min(durationHours, allowedHours || 1);
+    const nextEnd = adjusted.add(hours, "hour");
     const monthlyEnd = adjusted.add(1, "month");
     setStartDate(adjusted);
     setStartTime(adjusted);
@@ -462,7 +478,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
             </MaidDurationHint>
             <MaidDurationChips>
               {DURATION_OPTIONS.map((h) => {
-                const disabled = !startTime || !isDurationWithinWorkHours(startTime, h);
+                const disabled = !startTime || h > maxDurationHours;
                 return (
                   <MaidDurationChip
                     key={h}
