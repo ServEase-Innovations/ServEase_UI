@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { urls } from "src/config/urls";
+import { authApiErrorMessage } from "src/utils/apiAuthError";
 
 const providerInstance = axios.create({
   baseURL: urls.providers,
@@ -20,7 +21,12 @@ providerInstance.interceptors.request.use(
 
 providerInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.error("Provider API auth error:", authApiErrorMessage(error));
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default providerInstance;

@@ -2,6 +2,7 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { urls } from 'src/config/urls';
 import { getAdminPushSecret, isAdminPaymentsRequest } from 'src/utils/adminApiSecret';
+import { authApiErrorMessage } from 'src/utils/apiAuthError';
 
 const PaymentInstance = axios.create({
   baseURL: urls.payments,
@@ -44,9 +45,8 @@ PaymentInstance.interceptors.response.use(
   },
   (error: AxiosError) => {
     // Handle payment-specific errors
-    if (error.response?.status === 401) {
-      // Handle unauthorized access for payments
-      console.error('Payment authorization failed');
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.error('Payment API auth error:', authApiErrorMessage(error));
     } else if (error.response?.status === 402) {
       // Handle payment required errors
       console.error('Payment required or failed');

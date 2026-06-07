@@ -32,6 +32,7 @@ import {
   formatBookingTimeRange,
   toEpochOrNull,
 } from 'src/services/bookingEpoch';
+import { authApiErrorMessage, isAuthApiError } from 'src/utils/apiAuthError';
 import type { EngagementEpochFields, TodayBookingEpochFields } from 'src/services/epochContract';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
@@ -1216,6 +1217,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           initialLoadDone.current = true;
         } catch (error) {
           console.error("Error fetching booking details:", error);
+          if (isAuthApiError(error)) {
+            setSnackbarMessage(authApiErrorMessage(error));
+            setSnackbarOpen(true);
+          }
         } finally {
           setIsLoading(false);
           isFetchingRef.current = false;
