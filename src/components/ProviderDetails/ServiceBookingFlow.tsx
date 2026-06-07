@@ -43,6 +43,7 @@ import { useLanguage } from "src/context/LanguageContext";
 import { useAppUser } from "src/context/AppUserContext";
 import Auth0SignInDialog from "../Auth/Auth0SignInDialog";
 import { openAuth0PopupWindow } from "src/utils/openAuth0PopupWindow";
+import { isCustomerCheckoutReady } from "src/utils/authSession";
 import {
   getBookingTypeFromPreference,
   formatInr,
@@ -153,7 +154,12 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   }, [successDialogOpen, onSuccessDialogChange]);
 
   const { appUser } = useAppUser();
-  const { isAuthenticated, loginWithPopup } = useAuth0();
+  const { isAuthenticated: auth0IsAuthenticated, loginWithPopup } = useAuth0();
+
+  const isCheckoutAuthenticated = useMemo(
+    () => isCustomerCheckoutReady(appUser, auth0IsAuthenticated),
+    [appUser, auth0IsAuthenticated]
+  );
 
   const bookingTypeCode = getBookingTypeFromPreference(
     bookingType?.bookingPreference ?? "Date"
@@ -831,7 +837,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             <MaidBtnGhost type="button" onClick={() => onClose()}>
               {isPage ? "Back" : t("close") || "Close"}
             </MaidBtnGhost>
-            {!isAuthenticated ? (
+            {!isCheckoutAuthenticated ? (
               <>
                 <Tooltip title={t("youNeedToLogin")}>
                   <IconButton

@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { IconButton } from "src/components/Button/icon-button";
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { useDispatch, useSelector } from 'react-redux';
 import { CircularProgress, Dialog, DialogContent, Tooltip, Snackbar, Alert } from '@mui/material';
@@ -64,6 +64,7 @@ import BookingSuccessDialog from '../Common/SuccessDialog/BookingSuccessDialog';
 import { BOOKINGS } from '../../Constants/pagesConstants';
 import { useLanguage } from 'src/context/LanguageContext';
 import { useAppUser } from 'src/context/AppUserContext';
+import { isCustomerCheckoutReady } from 'src/utils/authSession';
 import Auth0SignInDialog from '../Auth/Auth0SignInDialog';
 import { openAuth0PopupWindow } from 'src/utils/openAuth0PopupWindow';
 
@@ -149,7 +150,11 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
 const { appUser } = useAppUser(); 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const { isAuthenticated, user, loginWithPopup } = useAuth0();
+  const { isAuthenticated: auth0IsAuthenticated, user, loginWithPopup } = useAuth0();
+  const isCheckoutAuthenticated = useMemo(
+    () => isCustomerCheckoutReady(appUser, auth0IsAuthenticated),
+    [appUser, auth0IsAuthenticated]
+  );
   const dispatch = useDispatch();
   const allCartItems = useSelector(selectCartItems);
   const nannyCartItems = allCartItems.filter(isNannyCartItem);
@@ -797,7 +802,7 @@ const { appUser } = useAppUser();
             </div>
             
             <FooterButtons>
-              {!isAuthenticated ? (
+              {!isCheckoutAuthenticated ? (
                 <>
                   <Tooltip title={t("youNeedToLogin")}>
                     <IconButton size="small" style={{ marginRight: '8px' }}>
