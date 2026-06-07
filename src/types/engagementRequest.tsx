@@ -30,13 +30,4 @@ export type BookingDetails = {
     base_amount?: number;
   };
 
-  type Responsibility = {
-    serviceCategory: string;
-    type: string;
-    serviceType: string;
-    subCategory: string;
-    peopleRange: string;
-    frequency: number;
-    pricePerMonth: number;
-  };  
   

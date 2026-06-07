@@ -97,7 +97,8 @@
     "build:prod": "env-cmd -f .env.prod craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
-    "lint": "eslint . || true"
+    "lint": "eslint . || true",
+    "lint:ci": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings 0"
   },
   "eslintConfig": {
     "extends": [

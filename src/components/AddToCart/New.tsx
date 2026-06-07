@@ -14,7 +14,6 @@ import {
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import PaymentIcon from "@mui/icons-material/Payment";
-import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import PersonIcon from "@mui/icons-material/Person";
 import "./New.css";
 import CategoryIcon from '@mui/icons-material/Category';

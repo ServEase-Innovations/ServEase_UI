@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 import { PricingData } from '../../../types/PricingData';
 
@@ -8,7 +8,7 @@ interface UtilityCleaningProps {
 }
 
 const UtilityCleaning: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
-  const [serviceType, setServiceType] = useState<string | null>(null);
+  const [serviceType] = useState<string>('Regular');
   const [peopleSelected, setPeopleSelected] = useState<string | null>(null);
   const [frequency, setFrequency] = useState<number | null>(null);
   const [price, setPrice] = useState<number>(0);
@@ -53,11 +53,6 @@ const UtilityCleaning: React.FC<UtilityCleaningProps> = ({ onPriceChange }) => {
     } else {
       setFrequency(value as number);
     }
-  };
-
-  // Service type handler
-  const serviceTypeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setServiceType(event.target.value);
   };
 
   // Function to calculate the price and entry based on selections
