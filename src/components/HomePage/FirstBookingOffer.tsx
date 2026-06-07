@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
-import { FIRST_BOOKING_COUPON_CODE } from "src/services/couponService";
+import { FIRST_BOOKING_COUPON_CODES } from "src/services/couponService";
 
 interface FirstBookingOfferProps {
   onPress: () => void;
@@ -11,7 +11,7 @@ const FirstBookingOffer: React.FC<FirstBookingOfferProps> = ({ onPress }) => {
     <button
       type="button"
       onClick={onPress}
-      aria-label={`First booking offer, 99 rupees with code ${FIRST_BOOKING_COUPON_CODE}`}
+      aria-label={`First booking offer, 99 rupees with codes ${FIRST_BOOKING_COUPON_CODES.MAID} and ${FIRST_BOOKING_COUPON_CODES.COOK}`}
       className="group w-full rounded-2xl border border-amber-200 bg-white text-left shadow-md shadow-slate-900/[0.06] ring-1 ring-amber-100/80 transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
     >
       <div className="flex overflow-hidden rounded-2xl">
@@ -41,12 +41,15 @@ const FirstBookingOffer: React.FC<FirstBookingOfferProps> = ({ onPress }) => {
             </div>
 
             <div className="flex shrink-0 items-center gap-2.5">
-              <div className="rounded-xl bg-amber-50 px-3 py-2 text-center ring-1 ring-amber-100">
+              <div className="rounded-xl bg-amber-50 px-2.5 py-2 text-center ring-1 ring-amber-100">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                  Code
+                  Codes
                 </p>
-                <p className="text-sm font-extrabold tracking-wide text-amber-900">
-                  {FIRST_BOOKING_COUPON_CODE}
+                <p className="text-[11px] font-extrabold leading-tight tracking-wide text-amber-900">
+                  {FIRST_BOOKING_COUPON_CODES.MAID}
+                </p>
+                <p className="text-[11px] font-extrabold leading-tight tracking-wide text-amber-900">
+                  {FIRST_BOOKING_COUPON_CODES.COOK}
                 </p>
               </div>
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-orange-600 transition group-hover:bg-orange-200">

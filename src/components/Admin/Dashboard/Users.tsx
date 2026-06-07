@@ -34,6 +34,54 @@ export interface CustomerRow {
   street: string | null;
 }
 
+type ApiCustomer = Partial<CustomerRow> & {
+  customerId?: number | string;
+  firstName?: string;
+  middleName?: string | null;
+  lastName?: string;
+  emailId?: string;
+  mobileNo?: string | number | null;
+  alternateNo?: string | number | null;
+  languageKnown?: string | string[] | null;
+  enrolledDate?: string | null;
+  isActive?: boolean;
+  pinCode?: number | null;
+  profilePic?: string | null;
+  buildingName?: string | null;
+  currentLocation?: string | null;
+  idNo?: string | null;
+};
+
+function normalizeCustomerRow(row: ApiCustomer): CustomerRow {
+  const languageKnown = row.languageknown ?? row.languageKnown;
+  return {
+    customerid: Number(row.customerid ?? row.customerId ?? 0),
+    kyc: row.kyc ?? null,
+    alternateno: row.alternateno ?? row.alternateNo ?? null,
+    buildingname: row.buildingname ?? row.buildingName ?? null,
+    currentlocation: row.currentlocation ?? row.currentLocation ?? null,
+    emailid: String(row.emailid ?? row.emailId ?? ""),
+    enrolleddate: row.enrolleddate ?? row.enrolledDate ?? null,
+    firstname: String(row.firstname ?? row.firstName ?? ""),
+    idno: row.idno ?? row.idNo ?? null,
+    isactive: row.isactive ?? row.isActive ?? true,
+    languageknown: Array.isArray(languageKnown)
+      ? languageKnown.join(", ")
+      : languageKnown != null
+        ? String(languageKnown)
+        : null,
+    lastname: String(row.lastname ?? row.lastName ?? ""),
+    locality: row.locality ?? null,
+    middlename: row.middlename ?? row.middleName ?? null,
+    mobileno: row.mobileno ?? row.mobileNo ?? null,
+    pincode: row.pincode ?? row.pinCode ?? null,
+    profilepic: row.profilepic ?? row.profilePic ?? null,
+    rating: row.rating != null ? Number(row.rating) : 0,
+    speciality: row.speciality ?? null,
+    street: row.street ?? null,
+  };
+}
+
 const Users = () => {
   const [rowData, setRowData] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,24 +98,34 @@ const Users = () => {
         data: CustomerRow[] | null;
       }>("/api/customers");
 
-      const list = response.data?.data;
-      if (!Array.isArray(list)) {
+      const payload = response.data?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : payload && typeof payload === "object" && Array.isArray((payload as { results?: unknown[] }).results)
+          ? (payload as { results: ApiCustomer[] }).results
+          : null;
+
+      if (!list) {
         setError("Invalid response: expected a list of customers in data.data.");
         setRowData([]);
         return;
       }
 
-      const normalized = list.map((row) => ({
-        ...row,
-        customerid: typeof row.customerid === "string" ? Number(row.customerid) : row.customerid,
-        rating: row.rating != null ? Number(row.rating) : 0,
-      })) as CustomerRow[];
-
-      setRowData(normalized);
+      setRowData(
+        list
+          .map((row) => normalizeCustomerRow(row))
+          .filter((row) => Number.isFinite(row.customerid) && row.customerid > 0)
+      );
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const err = e as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
       const msg =
-        err?.response?.data?.message || err?.message || "Failed to load customers. Check the providers API and network.";
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to load customers. Check the providers API, admin secret, and network.";
       setError(msg);
       setRowData([]);
     } finally {

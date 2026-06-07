@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { IconButton } from "../Button/icon-button";
 import { ArrowRight, Copy, X } from "lucide-react";
-import { FIRST_BOOKING_COUPON_CODE } from "src/services/couponService";
+import { FIRST_BOOKING_COUPON_CODES } from "src/services/couponService";
 
 interface ServiceSelectionDialogProps {
   open: boolean;
@@ -23,6 +23,7 @@ const services = [
     icon: "👩‍🍳",
     description: "Professional chefs for delicious home-cooked meals",
     gradient: "from-slate-800 via-slate-700 to-cyan-900",
+    couponCode: FIRST_BOOKING_COUPON_CODES.COOK,
   },
   {
     id: "MAID",
@@ -30,6 +31,7 @@ const services = [
     icon: "🧹",
     description: "Professional cleaning services for your home",
     gradient: "from-sky-900 via-sky-800 to-teal-700",
+    couponCode: FIRST_BOOKING_COUPON_CODES.MAID,
   },
   {
     id: "NANNY",
@@ -37,6 +39,7 @@ const services = [
     icon: "👶",
     description: "Experienced caregivers for your loved ones",
     gradient: "from-purple-900 via-purple-800 to-pink-700",
+    couponCode: null,
   },
 ] as const;
 
@@ -47,10 +50,10 @@ const ServiceSelectionDialog: React.FC<ServiceSelectionDialogProps> = ({
 }) => {
   const [snackbar, setSnackbar] = React.useState<string | null>(null);
 
-  const copyCoupon = async () => {
+  const copyCoupon = async (code: string) => {
     try {
-      await navigator.clipboard.writeText(FIRST_BOOKING_COUPON_CODE);
-      setSnackbar(`Coupon "${FIRST_BOOKING_COUPON_CODE}" copied!`);
+      await navigator.clipboard.writeText(code);
+      setSnackbar(`Coupon "${code}" copied!`);
     } catch {
       setSnackbar("Could not copy coupon. Please copy it manually.");
     }
@@ -78,17 +81,24 @@ const ServiceSelectionDialog: React.FC<ServiceSelectionDialogProps> = ({
         <DialogContent className="space-y-5 px-4 py-5 sm:px-6">
           <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4 text-center">
             <p className="text-sm text-slate-700">
-              Book any service at just{" "}
-              <span className="text-xl font-extrabold text-red-600">₹99</span> only!
+              Book maid or cook at just{" "}
+              <span className="text-xl font-extrabold text-red-600">₹99</span> on your first booking!
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-sm text-slate-600">Use coupon</span>
               <button
                 type="button"
-                onClick={() => void copyCoupon()}
+                onClick={() => void copyCoupon(FIRST_BOOKING_COUPON_CODES.MAID)}
                 className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-1.5 text-sm font-bold tracking-wide text-white shadow-sm transition hover:brightness-105"
               >
-                {FIRST_BOOKING_COUPON_CODE}
+                Maid: {FIRST_BOOKING_COUPON_CODES.MAID}
+                <Copy className="h-3.5 w-3.5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => void copyCoupon(FIRST_BOOKING_COUPON_CODES.COOK)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-700 to-cyan-800 px-4 py-1.5 text-sm font-bold tracking-wide text-white shadow-sm transition hover:brightness-105"
+              >
+                Cook: {FIRST_BOOKING_COUPON_CODES.COOK}
                 <Copy className="h-3.5 w-3.5" aria-hidden />
               </button>
             </div>
@@ -112,6 +122,11 @@ const ServiceSelectionDialog: React.FC<ServiceSelectionDialogProps> = ({
                     <span className="mt-0.5 block text-xs text-white/85">
                       {service.description}
                     </span>
+                    {service.couponCode ? (
+                      <span className="mt-1 block text-[11px] font-semibold text-amber-200">
+                        First booking code: {service.couponCode}
+                      </span>
+                    ) : null}
                   </span>
                   <ArrowRight className="h-5 w-5 shrink-0 opacity-90" aria-hidden />
                 </button>
@@ -122,9 +137,9 @@ const ServiceSelectionDialog: React.FC<ServiceSelectionDialogProps> = ({
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
             <p className="font-semibold text-slate-800">How to book</p>
             <ol className="mt-2 list-decimal space-y-1 pl-4">
-              <li>Copy the {FIRST_BOOKING_COUPON_CODE} coupon</li>
+              <li>Copy {FIRST_BOOKING_COUPON_CODES.MAID} (maid) or {FIRST_BOOKING_COUPON_CODES.COOK} (cook)</li>
               <li>Select your preferred service</li>
-              <li>Apply the coupon at checkout</li>
+              <li>Apply the matching coupon at checkout</li>
             </ol>
           </div>
         </DialogContent>

@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { urls } from "src/config/urls";
+import { getAdminPushSecret, isAdminProvidersRequest } from "src/utils/adminApiSecret";
 import { authApiErrorMessage } from "src/utils/apiAuthError";
 
 const providerInstance = axios.create({
@@ -12,6 +13,11 @@ providerInstance.interceptors.request.use(
     const token = localStorage.getItem("token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    const adminSecret = getAdminPushSecret();
+    const path = config.url || "";
+    if (adminSecret && isAdminProvidersRequest(path)) {
+      config.headers["X-Admin-Push-Secret"] = adminSecret;
     }
     config.headers["Content-Type"] = "application/json";
     return config;

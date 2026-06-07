@@ -21,3 +21,9 @@ export function isAdminUtilsRequest(url?: string): boolean {
 export function isAdminPaymentsRequest(url?: string): boolean {
   return Boolean(url?.includes("/api/admin/"));
 }
+
+/** Providers admin list routes (require X-Admin-Push-Secret when JWT_PROTECT_READS is on). */
+export function isAdminProvidersRequest(url?: string): boolean {
+  if (!url) return false;
+  return url.includes("/api/customers");
+}
