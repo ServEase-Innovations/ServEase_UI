@@ -26,7 +26,12 @@ import PaymentInstance from 'src/services/paymentInstance';
 import { BookingService } from 'src/services/bookingService';
 import { useAppUser } from 'src/context/AppUserContext';
 import { resolveCustomerId } from 'src/services/couponService';
-import { coalesceStartEpoch, toEpochOrNull } from 'src/services/bookingEpoch';
+import {
+  coalesceStartEpoch,
+  formatBookingCreatedAt,
+  formatBookingTimeRange,
+  toEpochOrNull,
+} from 'src/services/bookingEpoch';
 import type { EngagementEpochFields, TodayBookingEpochFields } from 'src/services/epochContract';
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
@@ -93,6 +98,7 @@ interface Booking {
   providerRating: number;
   taskStatus: string;
   bookingDate: string;
+  created_at?: string;
   service_type: string;
   childAge: string;
   experience: string;
@@ -400,10 +406,6 @@ const formatTimeToAMPM = (timeString: string): string => {
   }
 };
 
-const formatTimeRange = (startTime: string, endTime: string): string => {
-  return `${formatTimeToAMPM(startTime)} - ${formatTimeToAMPM(endTime)}`;
-};
-
 const formatBookingDisplayDate = (booking: Booking): string => {
   const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
   if (startEpoch != null) {
@@ -414,15 +416,19 @@ const formatBookingDisplayDate = (booking: Booking): string => {
     : "—";
 };
 
-const formatBookingDisplayTimeRange = (booking: Booking): string => {
-  const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
-  const endEpoch = toEpochOrNull(booking.end_epoch);
-  if (startEpoch != null) {
-    const startLabel = dayjs.unix(startEpoch).format("h:mm A");
-    const endLabel = endEpoch != null ? dayjs.unix(endEpoch).format("h:mm A") : null;
-    return endLabel ? `${startLabel} - ${endLabel}` : startLabel;
-  }
-  return formatTimeRange(booking.start_time, booking.end_time);
+const formatServiceTimeRange = (booking: Booking): string => {
+  const label = formatBookingTimeRange({
+    start_epoch: booking.start_epoch,
+    end_epoch: booking.end_epoch,
+    start_time: booking.start_time,
+    end_time: booking.end_time,
+  });
+  return label || "";
+};
+
+const formatBookedAtLabel = (booking: Booking): string => {
+  const raw = booking.bookingDate || booking.created_at;
+  return formatBookingCreatedAt(raw) || "";
 };
 
 type BookingsViewTab = "today" | "upcoming" | "past" | "pending";
@@ -1302,10 +1308,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
           const effectiveStartDate = item.start_date;
           const effectiveEndDate = item.end_date;
-          const normalizedStartEpoch = coalesceStartEpoch(item.start_epoch, effectiveStartDate);
-
           return {
-            start_epoch: normalizedStartEpoch ?? undefined,
+            start_epoch: toEpochOrNull(item.start_epoch) ?? undefined,
             end_epoch: toEpochOrNull(item.end_epoch) ?? undefined,
             id: Number(item.engagement_id ?? 0),
             customerId: Number(item.customerId ?? 0),
@@ -1331,7 +1335,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             providerRating: providerRating,
             taskStatus: resolveTaskStatusFromEngagement(item),
             engagements: item.engagements,
-            bookingDate: item.created_at || '',
+            bookingDate: item.created_at || item.payment?.created_at || '',
+            created_at: item.created_at || item.payment?.created_at || '',
             service_type: item.service_type?.toLowerCase() || 'other',
             childAge: item.childAge || '',
             experience: item.experience || '',
@@ -2171,7 +2176,10 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
             </div>
           ) : hasActiveBookings ? (
             <div className="grid gap-3">
-              {activeBookingsList.map((booking) => (
+              {activeBookingsList.map((booking) => {
+                const bookedAtLabel = formatBookedAtLabel(booking);
+                const serviceTimeLabel = formatServiceTimeRange(booking);
+                return (
                 <Card
                   key={booking.id}
                   id={`booking-${booking.id}`}
@@ -2195,6 +2203,17 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </div>
                         <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600 sm:text-[13px]">
                           <span className="text-slate-500">Booking #{booking.id}</span>
+                          {bookedAtLabel ? (
+                            <>
+                              <span className="text-slate-300" aria-hidden>
+                                ·
+                              </span>
+                              <span className="inline-flex items-center gap-1 font-medium tabular-nums text-slate-700">
+                                <Clock className="h-3 w-3 shrink-0 text-sky-600" aria-hidden />
+                                Booked {bookedAtLabel}
+                              </span>
+                            </>
+                          ) : null}
                           <span className="text-slate-300" aria-hidden>
                             ·
                           </span>
@@ -2249,7 +2268,14 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
                         <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                          <span className="text-slate-500">Service: </span>
                           {formatBookingDisplayDate(booking)}
+                          {serviceTimeLabel ? (
+                            <>
+                              <span className="text-slate-400"> · </span>
+                              <span className="font-medium tabular-nums">{serviceTimeLabel}</span>
+                            </>
+                          ) : null}
                           {booking.taskStatus !== "CANCELLED" &&
                             booking.modifications &&
                             booking.modifications.length > 0 && (
@@ -2259,8 +2285,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       </div>
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-sky-600" />
-                        <span className="text-xs text-slate-700 sm:text-sm">
-                          {formatBookingDisplayTimeRange(booking)}
+                        <span className="text-xs font-medium tabular-nums text-slate-700 sm:text-sm">
+                          {bookedAtLabel ? `Booked ${bookedAtLabel}` : "Booking time unavailable"}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">
@@ -2309,7 +2335,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              );
+              })}
             </div>
           ) : (
             <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
@@ -2385,7 +2412,10 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
             </div>
           ) : pastBookings.length > 0 ? (
             <div className="grid gap-3">
-              {filteredPastBookings.map((booking) => (
+              {filteredPastBookings.map((booking) => {
+                const bookedAtLabel = formatBookedAtLabel(booking);
+                const serviceTimeLabel = formatServiceTimeRange(booking);
+                return (
                 <Card
                   key={booking.id}
                   id={`booking-${booking.id}`}
@@ -2409,6 +2439,17 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                         </div>
                         <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600 sm:text-[13px]">
                           <span className="text-slate-500">Booking #{booking.id}</span>
+                          {bookedAtLabel ? (
+                            <>
+                              <span className="text-slate-300" aria-hidden>
+                                ·
+                              </span>
+                              <span className="inline-flex items-center gap-1 font-medium tabular-nums text-slate-700">
+                                <Clock className="h-3 w-3 shrink-0 text-slate-500" aria-hidden />
+                                Booked {bookedAtLabel}
+                              </span>
+                            </>
+                          ) : null}
                           <span className="text-slate-300" aria-hidden>
                             ·
                           </span>
@@ -2452,7 +2493,14 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                         <span className="text-xs leading-relaxed text-slate-700 sm:text-sm">
+                          <span className="text-slate-500">Service: </span>
                           {formatBookingDisplayDate(booking)}
+                          {serviceTimeLabel ? (
+                            <>
+                              <span className="text-slate-400"> · </span>
+                              <span className="font-medium tabular-nums">{serviceTimeLabel}</span>
+                            </>
+                          ) : null}
                           {booking.taskStatus !== "CANCELLED" &&
                             booking.modifications &&
                             booking.modifications.length > 0 && (
@@ -2462,8 +2510,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       </div>
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-slate-500" />
-                        <span className="text-xs text-slate-700 sm:text-sm">
-                          {formatBookingDisplayTimeRange(booking)}
+                        <span className="text-xs font-medium tabular-nums text-slate-700 sm:text-sm">
+                          {bookedAtLabel ? `Booked ${bookedAtLabel}` : "Booking time unavailable"}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">
@@ -2512,7 +2560,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              );
+              })}
             </div>
           ) : (
             <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">

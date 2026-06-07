@@ -9,7 +9,12 @@ import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import PaymentInstance from 'src/services/paymentInstance';
 import { Button } from '../../components/Button/button';
 import Invoice from '../Invoice/Invoice';
-import { coalesceStartEpoch, toEpochOrNull } from 'src/services/bookingEpoch';
+import {
+  coalesceStartEpoch,
+  formatBookingCreatedAt,
+  formatBookingTimeRange,
+  toEpochOrNull,
+} from 'src/services/bookingEpoch';
 import type { EngagementEpochFields } from 'src/services/epochContract';
 
 interface DrawerPayment {
@@ -66,21 +71,6 @@ interface EngagementDetailsDrawerProps {
   onPaymentComplete?: () => void | Promise<void>;
 }
 
-const formatTimeToAMPM = (timeString: string): string => {
-  if (!timeString) return '';
-  try {
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours, 10);
-    const minute = parseInt(minutes, 10);
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    const displayMinute = minute.toString().padStart(2, '0');
-    return `${displayHour}:${displayMinute} ${period}`;
-  } catch (error) {
-    return timeString;
-  }
-};
-
 const formatDate = (dateString: string) => {
   return dayjs(dateString).format('MMMM D, YYYY');
 };
@@ -109,18 +99,13 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
       : booking?.endDate
         ? formatDate(booking.endDate)
         : displayStartDate;
-  const displayStartTime =
-    startEpoch != null
-      ? dayjs.unix(startEpoch).format('h:mm A')
-      : booking?.start_time
-        ? formatTimeToAMPM(booking.start_time)
-        : '—';
-  const displayEndTime =
-    endEpoch != null
-      ? dayjs.unix(endEpoch).format('h:mm A')
-      : booking?.end_time
-        ? formatTimeToAMPM(booking.end_time)
-        : '—';
+  const displayTimeRange =
+    formatBookingTimeRange({
+      start_epoch: booking?.start_epoch,
+      end_epoch: booking?.end_epoch,
+      start_time: booking?.start_time,
+      end_time: booking?.end_time,
+    }) || '—';
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
@@ -289,10 +274,10 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             </div>
 
             <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">Time Slot</p>
+              <p className="text-xs text-gray-500 mb-1">Service time</p>
               <p className="font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4 text-gray-400" />
-                {displayStartTime} - {displayEndTime}
+                {displayTimeRange}
               </p>
             </div>
           </div>
@@ -424,8 +409,11 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500">Booking Date</p>
-                <p className="text-sm font-medium">{dayjs(booking.bookingDate || '').format('MMM D, YYYY')}</p>
+                <p className="text-xs text-gray-500">Booked on</p>
+                <p className="text-sm font-medium">
+                  {formatBookingCreatedAt(booking.bookingDate) ||
+                    (booking.bookingDate ? dayjs(booking.bookingDate).format('MMM D, YYYY') : '—')}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Assignment Status</p>
