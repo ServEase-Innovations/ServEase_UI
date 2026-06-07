@@ -31,6 +31,7 @@ import axios from "axios";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
+import { urls } from "../../config/urls";
 import { Button } from "../Button/button";
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
@@ -1201,7 +1202,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         formData1.append("image", image);
 
         const imageResponse = await axios.post(
-          "https://imageuploader-5njj.onrender.com/api/images/upload",
+          `${urls.imageUploader}/api/images/upload`,
           formData1,
           {
             headers: {
@@ -1222,7 +1223,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
         uploadFormData.append("file", kycDocumentFile);
 
         const uploadResponse = await axios.post(
-          "https://imageuploader-5njj.onrender.com/api/files/upload-file",
+          `${urls.imageUploader}/api/files/upload-file`,
           uploadFormData,
           {
             headers: {
@@ -1374,7 +1375,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
           name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || "Service Provider",
         };
 
-        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+        axios.post(`${urls.utils}/authO/create-autho-user`, authPayload)
           .then((authResponse) => {
             console.log("AuthO user created successfully:", authResponse.data);
           }).catch((authError) => {

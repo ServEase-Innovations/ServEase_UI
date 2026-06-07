@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { urls } from '../config/urls';
 
 const RazorpayPayment = () => {
   const [amount, setAmount] = useState<any>();
@@ -7,7 +8,7 @@ const RazorpayPayment = () => {
   // Function to call the backend to create an order
   const createOrder = async (amount) => {
     try {
-      const response = await axios.post('http://wss://utils-ndt3.onrender.com/create-order', { amount });
+      const response = await axios.post(`${urls.utils}/create-order`, { amount });
       return response.data.orderId;
     } catch (error) {
       console.error('Error creating order:', error);

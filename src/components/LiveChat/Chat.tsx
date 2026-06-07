@@ -1,6 +1,7 @@
 /* eslint-disable */
 import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import { urls } from "../../config/urls";
 import { DefaultEventsMap } from "@socket.io/component-emitter";
 
 type ChatMessage = {
@@ -34,7 +35,7 @@ const Chat: React.FC<ChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = io("https://payments-j5id.onrender.com", { transports: ["websocket"] });
+    const socket = io(urls.payments, { transports: ["websocket"] });
     socketRef.current = socket;
   
     socket.emit("joinSession", { userName: "test", userId: "admin-001", sessionId });

@@ -4,6 +4,7 @@ import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
+import { urls } from "../../../config/urls";
 
 export interface Coupon {
   coupon_id: string;
@@ -147,7 +148,7 @@ const Coupons = () => {
     const fetchCoupons = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://coupons-o26r.onrender.com/api/coupons/all");
+        const response = await fetch(`${urls.coupons}/api/coupons/all`);
         const result = await response.json();
 
         if (result.success && Array.isArray(result.data)) {

@@ -12,7 +12,7 @@ function getRazorpayCtor(): any {
   return (window as any).Razorpay;
 }
 
-// const API_BASE = "https://payments-j5id.onrender.com"; // backend base URL
+// const API_BASE = "https://payments-vyqp.onrender.com"; // backend base URL (use urls.payments in app code)
 
 async function loadRazorpayScript(): Promise<boolean> {
   if (getRazorpayCtor()) return true;

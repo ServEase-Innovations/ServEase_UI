@@ -35,6 +35,7 @@ import { useFieldValidation } from "./useFieldValidation";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import axios from "axios";
+import { urls } from "../../config/urls";
 
 interface RegistrationProps {
   onBackToLogin: (data: boolean) => void;
@@ -270,7 +271,7 @@ const AgentRegistrationForm: React.FC<RegistrationProps> = ({
           name: `${formData.companyName}`,
         };
 
-        axios.post('https://utils-ndt3.onrender.com/authO/create-autho-user', authPayload)
+        axios.post(`${urls.utils}/authO/create-autho-user`, authPayload)
           .then((authResponse) => {
             console.log("AuthO user created successfully:", authResponse.data);
           }).catch((authError) => {

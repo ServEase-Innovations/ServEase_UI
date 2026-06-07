@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Snackbar, Alert } from "@mui/material";
 import { defaultChatSocketOptions } from "src/config/chatSocketOptions";
+import { urls } from "src/config/urls";
 
 type UserType = {
   _id: string;
@@ -94,7 +95,7 @@ function chatEnv() {
       : undefined;
 
   const url =
-    p.REACT_APP_CHAT_API_URL || vite?.VITE_CHAT_API_URL || "https://chat-b3wl.onrender.com";
+    p.REACT_APP_CHAT_API_URL || vite?.VITE_CHAT_API_URL || urls.chat;
   const admin =
     p.REACT_APP_CHAT_ADMIN_USER_ID || vite?.VITE_CHAT_ADMIN_USER_ID || "698ace8b8ea84c91bdc93678";
 

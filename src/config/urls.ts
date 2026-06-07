@@ -17,6 +17,7 @@
  * | `REACT_APP_TICKETS_URL` | `urls.tickets` → `ticketsInstance` | **tickets** (complaints / support) |
  * | `REACT_APP_COUPONS_URL` | `urls.coupons` | **coupons** (no axios file yet; reserved) |
  * | `REACT_APP_CHAT_URL` | `urls.chat` → `Chatbot` (axios + Socket.IO) | **help / live support** widget |
+ * | `REACT_APP_IMAGE_UPLOADER_URL` | `urls.imageUploader` | **image-uploader** (SP profile/KYC file uploads) |
  *
  * ## Not used by this file
  * - `REACT_APP_API_URL` — not read anywhere. A generic host (e.g. `https://servease-be-5x7f.onrender.com`) does **nothing** unless
@@ -87,9 +88,15 @@ export const urls = {
   get chat() {
     return process.env.REACT_APP_CHAT_URL || "https://chat-b3wl.onrender.com";
   },
+  /** **image-uploader** — Cloudinary-backed file uploads (SP registration). */
+  get imageUploader() {
+    return (
+      process.env.REACT_APP_IMAGE_UPLOADER_URL || "https://imageuploader-5njj.onrender.com"
+    );
+  },
 };
 
-/** Payments pricing V2 API paths (Render: https://payments-j5id.onrender.com). */
+/** Payments pricing V2 API paths (Render DEV: https://payments-vyqp.onrender.com). */
 export const paymentsPricingPaths = {
   quote: "/api/v2/pricing/quote",
   plans: "/api/v2/pricing/plans",

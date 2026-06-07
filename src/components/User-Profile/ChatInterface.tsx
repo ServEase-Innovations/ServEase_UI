@@ -5,8 +5,9 @@ import { Button } from "../../components/Button/button";
 import { useAppUser } from "../../context/AppUserContext";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
+import { urls } from "../../config/urls";
 
-const ENDPOINT = "https://chat-b3wl.onrender.com";
+const ENDPOINT = urls.chat;
 const ADMIN_ID = "698ace8b8ea84c91bdc93678";
 
 interface MessageType {

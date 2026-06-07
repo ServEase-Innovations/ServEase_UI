@@ -16,6 +16,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import axios from 'axios';
+import { urls } from '../../config/urls';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
 import { SkeletonLoader } from '../Common/SkeletonLoader/SkeletonLoader';
 import { useAppUser } from 'src/context/AppUserContext'; // Import AppUser context
@@ -81,7 +82,7 @@ export const CouponDialog: React.FC<CouponDialogProps> = ({
     setError(null);
     try {
       // Use customer-specific API endpoint with the customer ID from appUser
-      const response = await axios.get(`https://coupons-o26r.onrender.com/api/coupons/customer/${customerId}`);
+      const response = await axios.get(`${urls.coupons}/api/coupons/customer/${customerId}`);
       if (response.data.success) {
         const now = new Date();
         // Filter coupons by service type, city, active status, and date range
