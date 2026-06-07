@@ -1,37 +1,26 @@
-import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { urls } from "src/config/urls";
 
 const providerInstance = axios.create({
   baseURL: urls.providers,
+  timeout: 30000,
 });
 
-// Request Interceptor
 providerInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token'); // Or however you manage tokens
+    const token = localStorage.getItem("token");
     if (token) {
-      // Ensure headers are correctly typed
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
+    config.headers["Content-Type"] = "application/json";
     return config;
   },
-  (error: AxiosError) => {
-    // Handle request error
-    return Promise.reject(error);
-  }
+  (error: AxiosError) => Promise.reject(error)
 );
 
-// Response Interceptor
 providerInstance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-    }
-    return Promise.reject(error);
-  }
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => Promise.reject(error)
 );
 
 export default providerInstance;
