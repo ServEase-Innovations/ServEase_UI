@@ -173,7 +173,7 @@ function buildReduxBookingPatch(
     timeSlot = startTime?.format("HH:mm") || "";
   }
 
-  return {
+  const patch = {
     ...(existing ?? {}),
     startDate: startIso ? startIso.split("T")[0] : "",
     endDate: endIso ? endIso.split("T")[0] : "",
@@ -183,6 +183,15 @@ function buildReduxBookingPatch(
     endTime: endTime?.format("HH:mm") || "",
     timeSlot,
   };
+
+  if (!startTime && !endTime) {
+    patch.timeRange = "";
+    patch.timeSlot = "";
+    patch.startTime = "";
+    patch.endTime = "";
+  }
+
+  return patch;
 }
 
 interface MaidBookingDetailsSectionProps {
@@ -232,20 +241,31 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
       et = et ?? parseTimeOnDate(dateStr, endPart);
     }
 
-    if (pref === "Date" && (!st || !et)) {
-      const adjusted = defaultOnDemandStart();
-      st = adjusted;
-      et = adjusted.add(1, "hour");
-      sd = adjusted;
-      ed = et;
-    }
+    const hasReduxTimes =
+      Boolean(String(bookingType?.startTime ?? "").trim()) &&
+      Boolean(String(bookingType?.endTime ?? "").trim());
 
-    if (pref === "Date" && st && et) {
-      const clamped = clampScheduleToWorkHours(st, et);
-      st = clamped.start;
-      et = clamped.end;
-      sd = st;
-      ed = et;
+    if (pref === "Date") {
+      if (hasReduxTimes && st && et) {
+        const clamped = clampScheduleToWorkHours(st, et);
+        st = clamped.start;
+        et = clamped.end;
+        sd = st;
+        ed = et;
+      } else {
+        st = null;
+        et = null;
+        sd = bookingType?.startDate ? dayjs(dateStr) : null;
+        ed = pref === "Date" ? null : ed;
+      }
+    } else if (pref === "Short term") {
+      if (!hasReduxTimes) {
+        st = null;
+        et = null;
+      }
+    } else if (pref === "Monthly" && !String(bookingType?.startTime ?? "").trim()) {
+      st = null;
+      et = null;
     }
 
     setStartDate(sd);
@@ -304,9 +324,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
   }, [preference]);
 
   const durationHours = useMemo(() => {
-    if (!startTime || !endTime) return 1;
+    if (!startTime || !endTime) return 0;
     const mins = endTime.diff(startTime, "minute");
-    if (mins <= 0) return 1;
+    if (mins <= 0) return 0;
     return Math.max(1, Math.min(6, Math.round(mins / 60)));
   }, [startTime, endTime]);
 
@@ -322,7 +342,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     setStartTime(null);
     setEndTime(null);
     setEndDate(preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate);
-    setValidationMsg(null);
+    setValidationMsg("Select a time for this date to continue.");
     persist(
       day,
       preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate,
@@ -338,7 +358,11 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     setEndDate(end);
     setStartTime(null);
     setEndTime(null);
-    setValidationMsg(null);
+    setValidationMsg(
+      end
+        ? "Select a daily start time for your date range."
+        : "Select your date range, then choose a daily start time."
+    );
     persist(start, end, null, null);
   };
 
@@ -459,8 +483,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
           </MaidSummaryIcon>
           <MaidSummaryLabel>{t("serviceDuration")}</MaidSummaryLabel>
           <MaidSummaryValue>
-            {durationHours} {t("hourUnit")}
-            {durationHours > 1 ? "s" : ""}
+            {durationHours > 0
+              ? `${durationHours} ${t("hourUnit")}${durationHours > 1 ? "s" : ""}`
+              : "—"}
           </MaidSummaryValue>
         </MaidSummaryTile>
       </MaidSummaryGrid>

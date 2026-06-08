@@ -53,6 +53,7 @@ import MaidBookingDetailsSection from "./MaidBookingDetailsSection";
 import {
   SERVICE_BOOKING_CONFIG,
   computeDurationHours,
+  isBookingScheduleComplete,
   loadServiceQuote,
   type ServiceBookingKind,
 } from "./serviceBookingConfig";
@@ -184,11 +185,16 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     () => appendPaymentFeeRows(quotePreview.breakdown, serviceTotal),
     [quotePreview.breakdown, serviceTotal]
   );
+  const scheduleReady = isBookingScheduleComplete(bookingType, bookingTypeCode);
   const priceReady =
-    !quotePreview.loading && payableTotal > 0 && !quotePreview.error;
+    scheduleReady &&
+    !quotePreview.loading &&
+    payableTotal > 0 &&
+    !quotePreview.error;
   /** On-demand bookings can checkout without a provider (backend: UNASSIGNED). */
   const providerRequired = bookingTypeCode !== "ON_DEMAND";
-  const canCheckout = priceReady && (!providerRequired || providerId != null);
+  const canCheckout =
+    scheduleReady && priceReady && (!providerRequired || providerId != null);
   const normalizedCouponInput = couponInput.trim().toUpperCase();
   const couponCountLabel = availableCoupons.length;
   const estimateCouponSavings = React.useCallback(
@@ -228,19 +234,23 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     [eligibleCoupons, bestCoupon]
   );
   const checkoutBlockReason =
-    providerRequired && !providerId
-      ? providerDetails
-        ? "Select a provider to continue"
-        : "Choose a provider from the list, then tap Book now"
-      : quotePreview.loading
-        ? "Calculating price…"
-        : quotePreview.error
-          ? quotePreview.error
-          : payableTotal <= 0
-            ? "Pick a valid date and time to see price"
-            : !providerId && bookingTypeCode === "ON_DEMAND"
-              ? "Pay now to confirm — provider matching after payment"
-              : undefined;
+    !scheduleReady
+      ? bookingTypeCode === "SHORT_TERM"
+        ? "Select your date range and daily start time"
+        : "Select a time for your chosen date"
+      : providerRequired && !providerId
+        ? providerDetails
+          ? "Select a provider to continue"
+          : "Choose a provider from the list, then tap Book now"
+        : quotePreview.loading
+          ? "Calculating price…"
+          : quotePreview.error
+            ? quotePreview.error
+            : payableTotal <= 0
+              ? "Pick a valid date and time to see price"
+              : !providerId && bookingTypeCode === "ON_DEMAND"
+                ? "Pay now to confirm — provider matching after payment"
+                : undefined;
   const flowTitleId = `${serviceKind}-flow-title`;
 
   useEffect(() => {
@@ -337,6 +347,15 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   useEffect(() => {
     if (!active) return;
+    if (!isBookingScheduleComplete(bookingType, bookingTypeCode)) {
+      setQuotePreview({
+        total: 0,
+        loading: false,
+        error: undefined,
+        breakdown: [],
+      });
+      return;
+    }
     const customerId = appUser?.customerid;
     const start_date =
       formatDateOnly(String(bookingType?.startDate ?? "")) ||
@@ -538,6 +557,21 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   };
 
   const handleCheckout = async () => {
+    const booking_type = getBookingTypeFromPreference(
+      bookingType?.bookingPreference ?? "Date"
+    );
+
+    if (!isBookingScheduleComplete(bookingType, booking_type)) {
+      setSnackbarMessage(
+        booking_type === "SHORT_TERM"
+          ? "Please select your date range and daily start time before checkout."
+          : "Please select a time for your chosen date before checkout."
+      );
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
     if (!canCheckout) {
       setSnackbarMessage("Price is not available for this booking. Try another date or time.");
       setSnackbarSeverity("warning");
@@ -555,10 +589,6 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         setSnackbarOpen(true);
         return;
       }
-
-      const booking_type = getBookingTypeFromPreference(
-        bookingType?.bookingPreference ?? "Date"
-      );
       const spId = providerId;
       if (booking_type !== "ON_DEMAND" && !spId) {
         setSnackbarMessage("Missing provider. Please pick a provider again.");
@@ -604,12 +634,15 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         return;
       }
 
+      const startTime = String(bookingType?.startTime ?? "").trim();
+      const endTime = String(bookingType?.endTime ?? "").trim();
+
       const payload: BookingPayload = {
         customerid: customerId,
         serviceproviderid: spId ?? null,
         start_date,
         end_date: booking_type === "ON_DEMAND" ? start_date : end_date,
-        start_time: bookingType?.startTime || "",
+        start_time: startTime,
         responsibilities: { tasks: [], add_ons: [] },
         booking_type,
         taskStatus: "NOT_STARTED",
@@ -620,12 +653,12 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         pricing_snapshot: quoteRes.quote,
         coupon_code: appliedCouponCode || undefined,
         payment_mode: "razorpay",
-        end_time: bookingType?.endTime || "",
+        end_time: endTime,
       };
       const startEpoch = dayjs(`${start_date} ${payload.start_time}`).unix();
       const endEpoch =
-        booking_type === "ON_DEMAND"
-          ? startEpoch + 60 * 60
+        booking_type === "ON_DEMAND" && endTime
+          ? dayjs(`${start_date} ${endTime}`).unix()
           : payload.end_time
             ? dayjs(`${payload.end_date} ${payload.end_time}`).unix()
             : startEpoch + 60 * 60;
