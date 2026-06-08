@@ -85,6 +85,14 @@ export function normalizeSocketBookingForToast(
   if (raw.payment_pending === true) out.payment_pending = true;
   if (raw.payment_completed === true) out.payment_completed = true;
   if (raw.payment_ready === true) out.payment_ready = true;
+  const bookingType = String(raw.booking_type ?? out.booking_type ?? "").toUpperCase();
+  if (
+    !out.payment_pending &&
+    !out.payment_completed &&
+    (out.payment_ready || bookingType === "ON_DEMAND")
+  ) {
+    out.payment_ready = true;
+  }
   return out;
 }
 
@@ -507,6 +515,7 @@ export default function BookingRequestToast({
       fullWidth
       maxWidth="sm"
       keepMounted={false}
+      sx={{ zIndex: 1600 }}
       slotProps={{
         paper: {
           className: "relative w-[calc(100%-1.5rem)] max-w-md overflow-hidden rounded-2xl m-0 sm:mx-4",

@@ -60,9 +60,15 @@ export default function ProviderNotifications({ providerId }: { providerId: numb
       );
       alert(res.data.message || "Engagement accepted!");
       setNotifications((prev) => prev.filter((n) => n.engagementId !== engagementId));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error accepting engagement:", err);
-      alert("Failed to accept engagement");
+      const d = axios.isAxiosError(err) ? err.response?.data : null;
+      const msg =
+        (typeof d === "object" && d && typeof (d as { error?: string }).error === "string" && (d as { error: string }).error) ||
+        (typeof d === "object" && d && typeof (d as { message?: string }).message === "string" && (d as { message: string }).message) ||
+        (typeof d === "object" && d && typeof (d as { detail?: string }).detail === "string" && (d as { detail: string }).detail) ||
+        "Failed to accept engagement";
+      alert(msg);
     }
   };
 

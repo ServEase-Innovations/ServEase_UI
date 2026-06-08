@@ -52,6 +52,13 @@ import {
   parseEngagementId,
   resolveProviderId,
 } from "./services/engagementService";
+import { inAppToBookingRequestPayload } from "./components/Notifications/inAppToBookingRequestPayload";
+import {
+  isProviderNotificationSession,
+  resolveProviderIdNumber,
+} from "./utils/spSession";
+import PaymentInstance from "./services/paymentInstance";
+import { getBookingNotificationAction } from "./utils/bookingNotificationAction";
 import SupportTicketDetailDialog from "./components/User-Profile/SupportTicketDetailDialog";
 import type { OpenSupportTicketDetail } from "./utils/supportTicketEvents";
 
@@ -110,6 +117,88 @@ function App() {
 
   const { setAppUser, appUser, authSessionReady } = useAppUser();
   const paymentsSocketRef = useRef<Socket | null>(null);
+  const spToastEnabledRef = useRef(false);
+  const appUserRef = useRef(appUser);
+  const dismissedToastEngagementsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    appUserRef.current = appUser;
+  }, [appUser]);
+
+  const canShowProviderBookingToast = useCallback(() => {
+    const u = appUserRef.current as Record<string, unknown> | null | undefined;
+    return (
+      resolveProviderIdNumber(u) != null && isProviderNotificationSession(u)
+    );
+  }, []);
+
+  const tryShowBookingToastFromInApp = useCallback(async () => {
+    if (!canShowProviderBookingToast()) return;
+    const spId = resolveProviderIdNumber(
+      appUserRef.current as Record<string, unknown> | null | undefined
+    );
+    if (spId == null) return;
+
+    try {
+      const { data } = await PaymentInstance.get("/api/in-app-notifications", {
+        params: {
+          recipientType: "provider",
+          recipientId: String(spId),
+          unreadOnly: "true",
+          limit: 10,
+        },
+      });
+      const items = (data?.notifications || []) as Array<{
+        id: string;
+        type: string;
+        engagementId: string | null;
+        title: string;
+        body?: string;
+        metadata?: unknown;
+        readAt: string | null;
+        createdAt?: string;
+        bookingActionable?: boolean;
+        bookingClosureLabel?: string | null;
+      }>;
+
+      const newest = items.find((n) => {
+        if (n.readAt) return false;
+        const t = String(n.type || "").toUpperCase();
+        if (t !== "NEW_BOOKING_OPPORTUNITY" && t !== "NEW_BOOKING_REQUEST") {
+          return false;
+        }
+        const action = getBookingNotificationAction(n);
+        return action?.actionable !== false;
+      });
+      if (!newest) return;
+
+      const eid = parseEngagementId(newest.engagementId);
+      if (eid == null || dismissedToastEngagementsRef.current.has(eid)) return;
+
+      const mapped = inAppToBookingRequestPayload({
+        type: newest.type,
+        engagementId: newest.engagementId,
+        title: newest.title ?? "New booking",
+        body: newest.body,
+        metadata: newest.metadata,
+      });
+      if (
+        !mapped ||
+        parseEngagementId(mapped.engagement_id) == null ||
+        isBookingToastInfoOnly(mapped)
+      ) {
+        return;
+      }
+
+      setActiveToast((cur) => {
+        const curId = cur ? parseEngagementId(cur.engagement_id) : null;
+        if (curId != null) return cur;
+        return mapped;
+      });
+    } catch {
+      /* non-blocking — socket may still deliver the toast */
+    }
+  }, [canShowProviderBookingToast]);
 
   const onChatUnreadDelta = useCallback((d: number) => {
     setChatUnread((n) => Math.max(0, n + d));
@@ -341,8 +430,11 @@ function App() {
   const handleReject = async (engagementId: number) => {
     const eid = parseEngagementId(engagementId);
     const providerId = resolveProviderId(appUser as Record<string, unknown>);
-    if (eid != null && providerId != null) {
-      await dismissProviderNewBookingNotifications(eid, providerId);
+    if (eid != null) {
+      dismissedToastEngagementsRef.current.add(eid);
+      if (providerId != null) {
+        await dismissProviderNewBookingNotifications(eid, providerId);
+      }
     }
     setActiveToast(null);
     setAcceptError(null);
@@ -429,14 +521,13 @@ function App() {
       if (!appUser.role) return;
     }
 
-    const role = appUser?.role?.toUpperCase();
-    const providerIdRaw = resolveProviderId(appUser);
-    const providerId =
-      providerIdRaw != null && Number.isFinite(Number(providerIdRaw))
-        ? Number(providerIdRaw)
-        : null;
+    const providerId = resolveProviderIdNumber(
+      appUser as Record<string, unknown> | null | undefined
+    );
     const joinProviderRoom = providerId != null;
-    const showSpBookingToasts = role === "SERVICE_PROVIDER" && joinProviderRoom;
+    spToastEnabledRef.current =
+      joinProviderRoom &&
+      isProviderNotificationSession(appUser as Record<string, unknown>);
     const customerId =
       appUser.customerid != null
         ? Number(appUser.customerid)
@@ -458,46 +549,91 @@ function App() {
       }
     };
 
-    const newSocket = io(urls.payments, {
-      transports: ["websocket", "polling"],
+    const paymentsSocketUrl = urls.payments;
+    const newSocket = io(paymentsSocketUrl, {
+      // Polling first: works when raw WebSocket is blocked; upgrades when possible
+      transports: ["polling", "websocket"],
       withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 15,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     paymentsSocketRef.current = newSocket;
-    newSocket.on("connect", () => emitJoinRooms(newSocket));
+    const showSpBookingToast = (data: unknown) => {
+      if (!canShowProviderBookingToast()) return;
+      if (!data || typeof data !== "object") return;
+      const normalized = normalizeSocketBookingForToast(
+        data as Record<string, unknown>
+      );
+      const eid = parseEngagementId(normalized.engagement_id);
+      if (eid == null || dismissedToastEngagementsRef.current.has(eid)) return;
+      if (isBookingToastInfoOnly(normalized)) return;
+      setActiveToast((cur) => {
+        const curId = cur ? parseEngagementId(cur.engagement_id) : null;
+        if (curId != null) return cur;
+        return normalized;
+      });
+    };
+
+    newSocket.on("connect", () => {
+      console.log(`[socket] connected to ${paymentsSocketUrl}`);
+      emitJoinRooms(newSocket);
+    });
     newSocket.on("reconnect", () => emitJoinRooms(newSocket));
 
-    if (showSpBookingToasts) {
-      const showSpBookingToast = (data: unknown) => {
-        if (!data || typeof data !== "object") return;
-        const normalized = normalizeSocketBookingForToast(
-          data as Record<string, unknown>
-        );
-        if (isBookingToastInfoOnly(normalized)) return;
-        setActiveToast(normalized);
-      };
+    newSocket.on("new-engagement", showSpBookingToast);
+    newSocket.on("new-engagement-request", showSpBookingToast);
 
-      newSocket.on("new-engagement", showSpBookingToast);
-      newSocket.on("new-engagement-request", showSpBookingToast);
-
-      newSocket.on("booking-request-closed", (data: unknown) => {
-        if (!data || typeof data !== "object") return;
-        const closedId = parseEngagementId(
-          (data as { engagement_id?: unknown }).engagement_id
-        );
-        if (closedId == null) return;
-        setActiveToast((cur) => {
-          if (!cur) return null;
-          const curId = parseEngagementId(cur.engagement_id);
-          return curId === closedId ? null : cur;
-        });
-        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+    newSocket.on("booking-request-closed", (data: unknown) => {
+      if (!data || typeof data !== "object") return;
+      const closedId = parseEngagementId(
+        (data as { engagement_id?: unknown }).engagement_id
+      );
+      if (closedId == null) return;
+      setActiveToast((cur) => {
+        if (!cur) return null;
+        const curId = parseEngagementId(cur.engagement_id);
+        return curId === closedId ? null : cur;
       });
-    }
+      window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+    });
 
-    newSocket.on("in_app_notification", (payload: { type?: string; metadata?: unknown }) => {
+    newSocket.on("in_app_notification", (payload: {
+      type?: string;
+      metadata?: unknown;
+      engagementId?: string | null;
+      title?: string;
+      body?: string;
+    }) => {
       window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
       const t = String(payload?.type || "").toUpperCase();
+      if (
+        canShowProviderBookingToast() &&
+        (t === "NEW_BOOKING_OPPORTUNITY" || t === "NEW_BOOKING_REQUEST")
+      ) {
+        const mapped = inAppToBookingRequestPayload({
+          type: payload.type,
+          engagementId: payload.engagementId ?? null,
+          title: payload.title ?? "New booking",
+          body: payload.body,
+          metadata: payload.metadata,
+        });
+        const eid = mapped ? parseEngagementId(mapped.engagement_id) : null;
+        if (
+          mapped &&
+          eid != null &&
+          !dismissedToastEngagementsRef.current.has(eid) &&
+          !isBookingToastInfoOnly(mapped)
+        ) {
+          setActiveToast((cur) => {
+            const curId = cur ? parseEngagementId(cur.engagement_id) : null;
+            if (curId != null) return cur;
+            return mapped;
+          });
+        }
+      }
       if (isCustomer && t.includes("SUPPORT_TICKET")) {
         const meta =
           payload?.metadata && typeof payload.metadata === "object"
@@ -509,7 +645,10 @@ function App() {
     });
 
     newSocket.on("connect_error", (err) => {
-      console.error("❌ Connection error:", err.message);
+      console.warn(
+        `[socket] payments unavailable (${paymentsSocketUrl}): ${err.message}. ` +
+          "Start payments on port 4100: npm run dev (monorepo) or npm run dev:payments."
+      );
     });
 
     setSocket(newSocket);
@@ -525,20 +664,60 @@ function App() {
     appUser?.role,
     appUser?.serviceProviderId,
     appUser?.serviceproviderid,
+    appUser?.dual_role,
     appUser?.customerid,
     appUser?.customerId,
+    canShowProviderBookingToast,
   ]);
+
+  // HTTP fallback when socket events are missed (SP not in room yet, connect_error, etc.)
+  useEffect(() => {
+    if (!authSessionReady || !appUser || !canShowProviderBookingToast()) return;
+
+    void tryShowBookingToastFromInApp();
+
+    const onRefresh = () => {
+      void tryShowBookingToastFromInApp();
+    };
+    window.addEventListener("in-app-unread-refresh", onRefresh);
+
+    const poll = window.setInterval(() => {
+      void tryShowBookingToastFromInApp();
+    }, 12_000);
+
+    return () => {
+      window.removeEventListener("in-app-unread-refresh", onRefresh);
+      window.clearInterval(poll);
+    };
+  }, [
+    authSessionReady,
+    appUser,
+    appUser?.role,
+    appUser?.serviceProviderId,
+    appUser?.serviceproviderid,
+    appUser?.dual_role,
+    canShowProviderBookingToast,
+    tryShowBookingToastFromInApp,
+  ]);
+
+  // Keep toast gate in sync when appUser changes without recreating the socket
+  useEffect(() => {
+    const providerId = resolveProviderIdNumber(
+      appUser as Record<string, unknown> | null | undefined
+    );
+    spToastEnabledRef.current =
+      providerId != null &&
+      isProviderNotificationSession(appUser as Record<string, unknown>);
+  }, [appUser, appUser?.role, appUser?.dual_role, appUser?.serviceProviderId, appUser?.serviceproviderid]);
 
   // Re-join rooms when provider/customer ids arrive after connect (Auth0 post-login)
   useEffect(() => {
     const sock = paymentsSocketRef.current;
     if (!sock?.connected || !appUser) return;
 
-    const providerIdRaw = resolveProviderId(appUser);
-    const providerId =
-      providerIdRaw != null && Number.isFinite(Number(providerIdRaw))
-        ? Number(providerIdRaw)
-        : null;
+    const providerId = resolveProviderIdNumber(
+      appUser as Record<string, unknown> | null | undefined
+    );
     const customerId =
       appUser.customerid != null
         ? Number(appUser.customerid)
@@ -553,8 +732,10 @@ function App() {
       sock.emit("join", { customerId });
     }
   }, [
+    appUser,
     appUser?.serviceProviderId,
     appUser?.serviceproviderid,
+    appUser?.dual_role,
     appUser?.customerid,
     appUser?.customerId,
   ]);
@@ -693,6 +874,8 @@ function App() {
             onAccept={handleAccept}
             onReject={handleReject}
             onClose={() => {
+              const eid = parseEngagementId(activeToast.engagement_id);
+              if (eid != null) dismissedToastEngagementsRef.current.add(eid);
               setActiveToast(null);
               setAcceptError(null);
             }}

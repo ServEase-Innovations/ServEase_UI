@@ -58,6 +58,8 @@ interface DrawerBooking extends Partial<EngagementEpochFields> {
   serviceProviderName?: string;
   providerRating?: number;
   bookingDate?: string;
+  created_at?: string;
+  placed_at_label?: string;
   assignmentStatus?: string;
   leave_days?: number;
   payment?: DrawerPayment;
@@ -409,10 +411,11 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500">Booked on</p>
+                <p className="text-xs text-gray-500">Placed on</p>
                 <p className="text-sm font-medium">
-                  {formatBookingCreatedAt(booking.bookingDate) ||
-                    (booking.bookingDate ? dayjs(booking.bookingDate).format('MMM D, YYYY') : '—')}
+                  {booking.placed_at_label?.trim() ||
+                    formatBookingCreatedAt(booking.bookingDate || booking.created_at) ||
+                    '—'}
                 </p>
               </div>
               <div>

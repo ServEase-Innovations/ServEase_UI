@@ -29,6 +29,7 @@ import { resolveCustomerId } from 'src/services/couponService';
 import {
   coalesceStartEpoch,
   formatBookingCreatedAt,
+  formatBookingServiceDate,
   formatBookingTimeRange,
   toEpochOrNull,
 } from 'src/services/bookingEpoch';
@@ -100,6 +101,7 @@ interface Booking {
   taskStatus: string;
   bookingDate: string;
   created_at?: string;
+  placed_at_label?: string;
   service_type: string;
   childAge: string;
   experience: string;
@@ -150,6 +152,7 @@ type EngagementApiItem = Partial<EngagementEpochFields> & {
   booking_type?: string;
   service_type?: string;
   created_at?: string;
+  placed_at_label?: string;
   serviceproviderid?: number | string | null;
   provider?: { firstName?: string; lastName?: string; rating?: number | null };
   payment?: Payment;
@@ -407,15 +410,8 @@ const formatTimeToAMPM = (timeString: string): string => {
   }
 };
 
-const formatBookingDisplayDate = (booking: Booking): string => {
-  const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
-  if (startEpoch != null) {
-    return dayjs.unix(startEpoch).format("dddd, MMMM D, YYYY");
-  }
-  return booking.startDate
-    ? dayjs(booking.startDate).format("dddd, MMMM D, YYYY")
-    : "—";
-};
+const formatBookingDisplayDate = (booking: Booking): string =>
+  formatBookingServiceDate(booking.start_epoch, booking.startDate);
 
 const formatServiceTimeRange = (booking: Booking): string => {
   const label = formatBookingTimeRange({
@@ -428,6 +424,7 @@ const formatServiceTimeRange = (booking: Booking): string => {
 };
 
 const formatBookedAtLabel = (booking: Booking): string => {
+  if (booking.placed_at_label?.trim()) return booking.placed_at_label.trim();
   const raw = booking.bookingDate || booking.created_at;
   return formatBookingCreatedAt(raw) || "";
 };
@@ -1341,6 +1338,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             providerRating: providerRating,
             taskStatus: resolveTaskStatusFromEngagement(item),
             engagements: item.engagements,
+            placed_at_label: item.placed_at_label || '',
             bookingDate: item.created_at || item.payment?.created_at || '',
             created_at: item.created_at || item.payment?.created_at || '',
             service_type: item.service_type?.toLowerCase() || 'other',
@@ -2216,7 +2214,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                               </span>
                               <span className="inline-flex items-center gap-1 font-medium tabular-nums text-slate-700">
                                 <Clock className="h-3 w-3 shrink-0 text-sky-600" aria-hidden />
-                                Booked {bookedAtLabel}
+                                Placed {bookedAtLabel}
                               </span>
                             </>
                           ) : null}
@@ -2292,7 +2290,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-sky-600" />
                         <span className="text-xs font-medium tabular-nums text-slate-700 sm:text-sm">
-                          {bookedAtLabel ? `Booked ${bookedAtLabel}` : "Booking time unavailable"}
+                          {bookedAtLabel ? `Placed ${bookedAtLabel}` : "Order time unavailable"}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">
@@ -2452,7 +2450,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                               </span>
                               <span className="inline-flex items-center gap-1 font-medium tabular-nums text-slate-700">
                                 <Clock className="h-3 w-3 shrink-0 text-slate-500" aria-hidden />
-                                Booked {bookedAtLabel}
+                                Placed {bookedAtLabel}
                               </span>
                             </>
                           ) : null}
@@ -2517,7 +2515,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                       <div className="flex items-center gap-2.5 text-sm">
                         <Clock className="h-4 w-4 shrink-0 text-slate-500" />
                         <span className="text-xs font-medium tabular-nums text-slate-700 sm:text-sm">
-                          {bookedAtLabel ? `Booked ${bookedAtLabel}` : "Booking time unavailable"}
+                          {bookedAtLabel ? `Placed ${bookedAtLabel}` : "Order time unavailable"}
                         </span>
                       </div>
                       <div className="flex items-start gap-2.5 text-sm">

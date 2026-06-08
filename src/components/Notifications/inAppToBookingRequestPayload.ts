@@ -84,6 +84,10 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
 
   const typeUpper = String(n.type || "").toUpperCase();
   const isAssignedConfirmed = typeUpper === "ASSIGNED_BOOKING_CONFIRMED";
+  const isNewBookingOpportunity =
+    typeUpper === "NEW_BOOKING_OPPORTUNITY" || typeUpper === "NEW_BOOKING_REQUEST";
+  const paymentReady =
+    m.payment_ready === true || isNewBookingOpportunity;
 
   let endDateYmd: string | undefined;
   if (m.end_date != null && String(m.end_date).trim() !== "") {
@@ -106,5 +110,6 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
     ...(Number.isFinite(startEpoch) ? { start_epoch: startEpoch } : {}),
     ...(Number.isFinite(endEpoch) ? { end_epoch: endEpoch } : {}),
     ...(isAssignedConfirmed ? { payment_completed: true as const } : {}),
+    ...(paymentReady ? { payment_ready: true as const } : {}),
   };
 }

@@ -1,4 +1,5 @@
 import PaymentInstance from "./paymentInstance";
+import { resolveProviderIdNumber } from "src/utils/spSession";
 
 export type AcceptEngagementResult = {
   message: string;
@@ -16,14 +17,7 @@ export function parseEngagementId(raw: unknown): number | null {
 function resolveProviderId(
   appUser: Record<string, unknown> | null | undefined
 ): number | null {
-  if (!appUser) return null;
-  const raw =
-    appUser.serviceProviderId ??
-    appUser.serviceproviderId ??
-    appUser.serviceproviderid;
-  if (raw == null || raw === "") return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return resolveProviderIdNumber(appUser);
 }
 
 /** Map payments API accept errors to user-facing copy. */

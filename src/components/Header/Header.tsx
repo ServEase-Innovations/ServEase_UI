@@ -80,6 +80,10 @@ import preferenceInstance from "src/services/preferenceInstance";
 import { resolveCustomerId } from "src/services/couponService";
 import { publicAsset } from "src/utils/publicAsset";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
+import {
+  isProviderNotificationSession,
+  resolveProviderIdNumber,
+} from "src/utils/spSession";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
@@ -184,22 +188,25 @@ export const Header: React.FC<ChildComponentProps> = ({
     setShowNotifications(false);
   };
 
+  const handleInAppUnreadChange = useCallback((n: number) => {
+    setInAppUnread(n);
+  }, []);
+
   const refreshInAppUnread = useCallback(async () => {
     if (!isUserAuthenticated || !appUser) {
       setInAppUnread(0);
       return;
     }
-    const role = String(appUser.role || "").toUpperCase();
-    const recipientType: "customer" | "provider" | null =
-      role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null ? "provider" : null;
+    const spId = resolveProviderIdNumber(appUser as Record<string, unknown>);
+    const useProviderInbox = isProviderNotificationSession(appUser as Record<string, unknown>);
     const isCustomer = appUser.customerid != null;
-    if (recipientType !== "provider" && !isCustomer) {
+    if (!useProviderInbox && !isCustomer) {
       setInAppUnread(0);
       return;
     }
     const params =
-      recipientType === "provider"
-        ? { recipientType: "provider" as const, recipientId: String(appUser.serviceProviderId) }
+      useProviderInbox && spId != null
+        ? { recipientType: "provider" as const, recipientId: String(spId) }
         : { recipientType: "customer" as const, recipientId: String(appUser.customerid) };
     try {
       const { data } = await PaymentInstance.get("/api/in-app-notifications/unread-count", { params });
@@ -320,7 +327,7 @@ export const Header: React.FC<ChildComponentProps> = ({
               ? {
                   serviceProviderId: linkedSpId,
                   serviceproviderid: linkedSpId,
-                  dual_role: Boolean(response.data.dual_role),
+                  dual_role: true,
                 }
               : {}),
           });
@@ -1210,7 +1217,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
       </button>
     )}
 
-    {isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+    {isUserAuthenticated && isProviderNotificationSession(appUser as Record<string, unknown>) && (
       <button
         type="button"
         onClick={() => handleClick(DASHBOARD)}
@@ -1592,7 +1599,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                       </button>
                     )}
 
-                    {appUser?.role === "SERVICE_PROVIDER" && (
+                    {isProviderNotificationSession(appUser as Record<string, unknown>) && (
                       <button
                         type="button"
                         role="menuitem"
@@ -1733,7 +1740,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   {t("myBookings")}
                 </button>
               )}
-              {isUserAuthenticated && appUser?.role === "SERVICE_PROVIDER" && (
+              {isUserAuthenticated && isProviderNotificationSession(appUser as Record<string, unknown>) && (
                 <button
                   type="button"
                   className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-800 transition hover:bg-sky-50"
@@ -2027,7 +2034,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         open={showNotifications}
         onClose={handleCloseNotifications}
         appUser={appUser}
-        onUnreadCountChange={setInAppUnread}
+        onUnreadCountChange={handleInAppUnreadChange}
       />
 
       <Dialog

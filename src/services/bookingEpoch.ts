@@ -48,7 +48,47 @@ export function coalesceEndEpoch(
 export function epochToDisplayDate(epoch?: EpochLike): string | null {
   const ep = toEpochOrNull(epoch);
   if (ep == null) return null;
-  return dayjs.unix(ep).format("DD MMM YYYY");
+  return dayjs.unix(ep).tz(IST).format("DD MMM YYYY");
+}
+
+/** Milliseconds since epoch; naive API timestamps are treated as UTC wall clock. */
+export function toInstantMs(value?: string | number | null): number | null {
+  if (value == null || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  const s = String(value).trim();
+  if (!s) return null;
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return n < 1e12 ? n * 1000 : n;
+  }
+  const normalized = s.includes("T") ? s : s.replace(" ", "T");
+  const iso =
+    /Z$/i.test(normalized) || /[+-]\d{2}:?\d{2}$/.test(normalized)
+      ? normalized
+      : `${normalized}Z`;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function istCalendarYmd(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: IST,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
+}
+
+/**
+ * API / Postgres instants: timestamptz (Z) or naive UTC `timestamp without time zone`.
+ */
+export function parseServerInstantToIst(value?: string | number | null): dayjs.Dayjs | null {
+  const ms = toInstantMs(value);
+  if (ms == null) return null;
+  const d = dayjs(ms).tz(IST);
+  return d.isValid() ? d : null;
 }
 
 export function epochToDisplayTime(epoch?: EpochLike): string | null {
@@ -94,15 +134,43 @@ export function formatBookingTimeRange(fields: BookingTimeFields): string {
   return startTime || endTime || "";
 }
 
-/** When the customer placed the booking (IST). */
-export function formatBookingCreatedAt(value?: string | null): string {
-  if (!value?.trim()) return "";
-  const d = dayjs(value).tz(IST);
-  if (!d.isValid()) return "";
-  const now = dayjs().tz(IST);
-  const timePart = d.format("h:mm A");
-  if (d.isSame(now, "day")) return `Today at ${timePart}`;
-  if (d.isSame(now.subtract(1, "day"), "day")) return `Yesterday at ${timePart}`;
-  return d.format("MMM D, YYYY [at] h:mm A");
+/** When the customer placed the booking (IST) — uses Intl so display is correct in all browsers. */
+export function formatBookingCreatedAt(value?: string | number | null): string {
+  const ms = toInstantMs(value);
+  if (ms == null) return "";
+  const timePart = new Intl.DateTimeFormat("en-IN", {
+    timeZone: IST,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(ms));
+  const ymd = istCalendarYmd(ms);
+  const todayYmd = istCalendarYmd(Date.now());
+  if (ymd === todayYmd) return `Today at ${timePart}`;
+  const yesterdayYmd = istCalendarYmd(Date.now() - 86_400_000);
+  if (ymd === yesterdayYmd) return `Yesterday at ${timePart}`;
+  const datePart = new Intl.DateTimeFormat("en-IN", {
+    timeZone: IST,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(ms));
+  return `${datePart} at ${timePart}`;
+}
+
+/** Scheduled service calendar day from start epoch (IST). */
+export function formatBookingServiceDate(
+  startEpoch?: EpochLike,
+  startDate?: string | null
+): string {
+  const ep = coalesceStartEpoch(startEpoch, startDate);
+  if (ep != null) {
+    return dayjs.unix(ep).tz(IST).format("dddd, MMMM D, YYYY");
+  }
+  if (startDate?.trim()) {
+    const d = dayjs.tz(startDate.trim().slice(0, 10), "YYYY-MM-DD", IST);
+    return d.isValid() ? d.format("dddd, MMMM D, YYYY") : "—";
+  }
+  return "—";
 }
 

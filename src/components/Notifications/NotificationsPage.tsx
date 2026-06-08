@@ -33,6 +33,7 @@ import { openSupportTicketDialog } from "src/utils/supportTicketEvents";
 import PaymentInstance from "src/services/paymentInstance";
 import {
   acceptEngagement,
+  dismissProviderNewBookingNotifications,
   parseAcceptEngagementError,
   parseEngagementId,
 } from "src/services/engagementService";
@@ -42,6 +43,11 @@ import { Button, dialogActionsClassName } from "../Button/button";
 import { IconButton } from "../Button/icon-button";
 import { OndemandBookingRequestPanel } from "./BookingRequestToast";
 import { inAppToBookingRequestPayload } from "./inAppToBookingRequestPayload";
+import {
+  isProviderNotificationSession,
+  resolveProviderIdNumber,
+} from "src/utils/spSession";
+import { getBookingNotificationAction } from "src/utils/bookingNotificationAction";
 
 export type InAppNotification = {
   id: string;
@@ -52,6 +58,8 @@ export type InAppNotification = {
   readAt: string | null;
   createdAt: string;
   metadata?: unknown;
+  bookingActionable?: boolean;
+  bookingClosureLabel?: string | null;
 };
 
 const dialogSlotProps: {
@@ -119,13 +127,35 @@ function supportTicketIdFromNotification(n: InAppNotification): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+function isNewBookingNotificationType(type: string): boolean {
+  const t = (type || "").toUpperCase();
+  return (
+    t === "NEW_BOOKING_OPPORTUNITY" ||
+    t === "NEW_BOOKING_REQUEST" ||
+    t.includes("NEW_BOOKING") ||
+    t.includes("OPPORTUNITY")
+  );
+}
+
+function resolveNotificationEngagementId(n: InAppNotification): number | null {
+  const fromRow = parseEngagementId(n.engagementId);
+  if (fromRow != null) return fromRow;
+  const meta = asMetaRecord(n.metadata);
+  return (
+    parseEngagementId(meta?.engagement_id) ??
+    parseEngagementId(meta?.engagementId) ??
+    null
+  );
+}
+
 function recipientParams(
   appUser: any
 ): { recipientType: "customer" | "provider"; recipientId: string } | null {
   if (!appUser) return null;
+  const spId = resolveProviderIdNumber(appUser);
   const role = String(appUser.role || "").toUpperCase();
-  if (role === "SERVICE_PROVIDER" && appUser.serviceProviderId != null) {
-    return { recipientType: "provider", recipientId: String(appUser.serviceProviderId) };
+  if (spId != null && (role === "SERVICE_PROVIDER" || isProviderNotificationSession(appUser))) {
+    return { recipientType: "provider", recipientId: String(spId) };
   }
   if (appUser.customerid != null) {
     return { recipientType: "customer", recipientId: String(appUser.customerid) };
@@ -157,7 +187,14 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
   }>({ open: false, message: "", severity: "success" });
   const r = useMemo(
     () => recipientParams(appUser),
-    [appUser?.role, appUser?.customerid, appUser?.serviceProviderId]
+    [
+      appUser?.role,
+      appUser?.customerid,
+      appUser?.customerId,
+      appUser?.serviceProviderId,
+      appUser?.serviceproviderid,
+      appUser?.dual_role,
+    ]
   );
 
   const fetchList = useCallback(async () => {
@@ -175,13 +212,16 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
       const list = (data?.notifications || []) as InAppNotification[];
       setItems(list);
       setUnread(data?.unreadCount ?? 0);
-      onUnreadCountChange?.(data?.unreadCount ?? 0);
     } catch (e: any) {
       setError(e?.message || "Could not load notifications");
     } finally {
       setLoading(false);
     }
-  }, [r, onUnreadCountChange]);
+  }, [r]);
+
+  useEffect(() => {
+    onUnreadCountChange?.(unread);
+  }, [unread, onUnreadCountChange]);
 
   useEffect(() => {
     if (!open || !r) return;
@@ -192,8 +232,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
     if (!open || !r) return;
 
     const s: Socket = io(urls.payments, {
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
       withCredentials: true,
+      reconnection: true,
+      timeout: 20000,
     });
 
     s.on("connect", () => {
@@ -228,11 +270,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
       });
       if (!n.readAt) {
         setNewIds((s0) => new Set(s0).add(String(n.id)));
-        setUnread((u) => {
-          const next = u + 1;
-          onUnreadCountChange?.(next);
-          return next;
-        });
+        setUnread((u) => u + 1);
         window.setTimeout(() => {
           setNewIds((s0) => {
             const c = new Set(s0);
@@ -265,18 +303,14 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
           return x;
         })
       );
-      setUnread((u) => {
-        const next = Math.max(0, u - 1);
-        onUnreadCountChange?.(next);
-        return next;
-      });
+      setUnread((u) => Math.max(0, u - 1));
       window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
     });
 
     return () => {
       s.disconnect();
     };
-  }, [open, r, onUnreadCountChange]);
+  }, [open, r]);
 
   const markRead = useCallback(
     async (n: InAppNotification) => {
@@ -305,11 +339,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         setItems((prev) =>
           prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x))
         );
-        setUnread((u) => {
-          const next = Math.max(0, u - 1);
-          onUnreadCountChange?.(next);
-          return next;
-        });
+        setUnread((u) => Math.max(0, u - 1));
         window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
       } catch (e: any) {
         console.error(e);
@@ -320,7 +350,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         setSnack({ open: true, message: msg, severity: "error" });
       }
     },
-    [r, onUnreadCountChange]
+    [r]
   );
 
   const notInterested = useCallback(
@@ -333,27 +363,53 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
     [markRead]
   );
 
+  const declineFromList = useCallback(
+    async (n: InAppNotification) => {
+      if (!isProviderNotificationSession(appUser)) {
+        setSnack({ open: true, message: "Sign in as a provider to decline", severity: "error" });
+        return;
+      }
+      const eid = resolveNotificationEngagementId(n);
+      const spId = resolveProviderIdNumber(appUser);
+      if (eid == null) {
+        setSnack({ open: true, message: "This notification has no engagement id", severity: "error" });
+        return;
+      }
+      try {
+        if (spId != null) {
+          await dismissProviderNewBookingNotifications(eid, spId);
+        }
+        if (!n.readAt) await markRead(n);
+        setDetailFor((d) => (d?.id === n.id ? null : d));
+        setDetailError(null);
+        window.dispatchEvent(new CustomEvent("in-app-unread-refresh"));
+        await fetchList();
+      } catch (e: unknown) {
+        const msg =
+          (e as { message?: string })?.message || "Could not decline this booking";
+        setSnack({ open: true, message: msg, severity: "error" });
+      }
+    },
+    [appUser, markRead, fetchList]
+  );
+
   const handleDeclineInDetail = useCallback(
     (engagementId: number) => {
       const cur = detailFor;
       if (!cur) return;
-      if (Number(cur.engagementId) !== Number(engagementId)) return;
-      void (async () => {
-        if (!cur.readAt) await markRead(cur);
-        setDetailError(null);
-        setDetailFor(null);
-      })();
+      if (resolveNotificationEngagementId(cur) !== Number(engagementId)) return;
+      void declineFromList(cur);
     },
-    [detailFor, markRead]
+    [detailFor, declineFromList]
   );
 
   const acceptFromList = useCallback(
     async (n: InAppNotification) => {
-      if (!r || r.recipientType !== "provider" || appUser?.serviceProviderId == null) {
+      if (!isProviderNotificationSession(appUser) || resolveProviderIdNumber(appUser) == null) {
         setSnack({ open: true, message: "Sign in as a provider to accept", severity: "error" });
         return;
       }
-      const eid = parseEngagementId(n.engagementId);
+      const eid = resolveNotificationEngagementId(n);
       if (eid == null) {
         setSnack({ open: true, message: "This notification has no engagement id", severity: "error" });
         return;
@@ -390,7 +446,6 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
         prev.map((x) => ({ ...x, readAt: x.readAt || new Date().toISOString() }))
       );
       setUnread(0);
-      onUnreadCountChange?.(0);
     } catch (e) {
       console.error(e);
     }
@@ -451,6 +506,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
   }
 
   const detailPayload = detailFor ? inAppToBookingRequestPayload(detailFor) : null;
+  const detailBookingAction = detailFor ? getBookingNotificationAction(detailFor) : null;
 
   return (
     <>
@@ -542,15 +598,25 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
               const tNew = newIds.has(String(n.id));
               const metaRow = asMetaRecord(n.metadata);
               const tUpper = (n.type || "").toUpperCase();
+              const spNotificationSession = isProviderNotificationSession(appUser);
               const isSpOndemandNewBooking =
-                r?.recipientType === "provider" &&
-                (tUpper === "NEW_BOOKING_OPPORTUNITY" || tUpper === "NEW_BOOKING_REQUEST");
+                spNotificationSession && isNewBookingNotificationType(n.type);
               const isSpAssignedConfirmed =
-                r?.recipientType === "provider" && tUpper === "ASSIGNED_BOOKING_CONFIRMED";
-              const eid = parseEngagementId(n.engagementId);
+                spNotificationSession && tUpper === "ASSIGNED_BOOKING_CONFIRMED";
+              const eid = resolveNotificationEngagementId(n);
               const hasBookingDetailPanel =
                 (isSpOndemandNewBooking || isSpAssignedConfirmed) && eid != null;
-              const canQuickAct = isSpOndemandNewBooking && unreadItem && hasBookingDetailPanel;
+              const bookingAction = isSpOndemandNewBooking
+                ? getBookingNotificationAction(n)
+                : null;
+              const canActOnBooking =
+                isSpOndemandNewBooking &&
+                hasBookingDetailPanel &&
+                (bookingAction?.actionable ?? true);
+              const bookingClosedLabel =
+                bookingAction?.actionable === false
+                  ? bookingAction.label ?? "Already accepted"
+                  : null;
               const isSupportTicket = tUpper.includes("SUPPORT_TICKET");
               const supportTicketId = isSupportTicket ? supportTicketIdFromNotification(n) : null;
               const openSupportTicket = () => {
@@ -737,7 +803,16 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                 View ticket
                               </Button>
                             )}
-                            {hasBookingDetailPanel && (
+                            {isSpOndemandNewBooking && bookingClosedLabel && (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mt: 1, fontWeight: 600, fontStyle: "italic" }}
+                              >
+                                {bookingClosedLabel}
+                              </Typography>
+                            )}
+                            {isSpOndemandNewBooking && canActOnBooking && (
                               <Stack
                                 direction="row"
                                 flexWrap="wrap"
@@ -755,35 +830,63 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                                   onClick={() => {
                                     setDetailError(null);
                                     setDetailFor(n);
-                                    if (unreadItem && isSpAssignedConfirmed) void markRead(n);
                                   }}
                                 >
                                   View details
                                 </Button>
-                                {canQuickAct && (
-                                  <>
-                                    <Button
-                                      type="button"
-                                      size="small"
-                                      variant="contained"
-                                      disabled={acceptingId === n.id}
-                                      className="!bg-sky-600 hover:!bg-sky-700"
-                                      onClick={() => void acceptFromList(n)}
-                                    >
-                                      {acceptingId === n.id ? "Accepting…" : "Accept"}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="small"
-                                      variant="outlined"
-                                      color="inherit"
-                                      disabled={acceptingId === n.id}
-                                      onClick={() => void notInterested(n)}
-                                    >
-                                      Not interested
-                                    </Button>
-                                  </>
-                                )}
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="contained"
+                                  disabled={acceptingId === n.id}
+                                  className="!bg-sky-600 hover:!bg-sky-700"
+                                  onClick={() => void acceptFromList(n)}
+                                >
+                                  {acceptingId === n.id ? "Accepting…" : "Accept"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="outlined"
+                                  color="error"
+                                  disabled={acceptingId === n.id}
+                                  onClick={() => void declineFromList(n)}
+                                >
+                                  Decline
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="outlined"
+                                  color="inherit"
+                                  disabled={acceptingId === n.id}
+                                  onClick={() => void notInterested(n)}
+                                >
+                                  Not interested
+                                </Button>
+                              </Stack>
+                            )}
+                            {isSpAssignedConfirmed && hasBookingDetailPanel && (
+                              <Stack
+                                direction="row"
+                                flexWrap="wrap"
+                                gap={1}
+                                sx={{ mt: 1, width: "100%" }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button
+                                  type="button"
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => {
+                                    setDetailError(null);
+                                    setDetailFor(n);
+                                    if (unreadItem) void markRead(n);
+                                  }}
+                                >
+                                  View details
+                                </Button>
                               </Stack>
                             )}
                             <Stack
@@ -883,7 +986,24 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
           </Button>
         </DialogContent>
       ) : null}
-      {detailFor && detailPayload ? (
+      {detailFor && detailBookingAction?.actionable === false ? (
+        <DialogContent className="!p-4">
+          <Typography variant="body1" color="text.secondary" fontWeight={600}>
+            {detailBookingAction.label ?? "Already accepted"}
+          </Typography>
+          <Button
+            type="button"
+            onClick={() => {
+              setDetailFor(null);
+              setDetailError(null);
+            }}
+            className="!mt-3"
+          >
+            Close
+          </Button>
+        </DialogContent>
+      ) : null}
+      {detailFor && detailPayload && detailBookingAction?.actionable !== false ? (
         <OndemandBookingRequestPanel
           engagement={detailPayload}
           onAccept={(_eid) => {
