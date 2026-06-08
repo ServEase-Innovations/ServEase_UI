@@ -413,8 +413,8 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
               <div>
                 <p className="text-xs text-gray-500">Placed on</p>
                 <p className="text-sm font-medium">
-                  {booking.placed_at_label?.trim() ||
-                    formatBookingCreatedAt(booking.bookingDate || booking.created_at) ||
+                  {formatBookingCreatedAt(booking.created_at || booking.bookingDate) ||
+                    booking.placed_at_label?.trim() ||
                     '—'}
                 </p>
               </div>

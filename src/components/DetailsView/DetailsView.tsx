@@ -1,7 +1,6 @@
 /* eslint-disable */
 import { useEffect, useState, useCallback, useMemo } from "react";
 import "./DetailsView.css";
-import { CONFIRMATION } from "../../Constants/pagesConstants";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
 import { useSelector } from "react-redux";
 import { usePricingFilterService } from "../../utils/PricingFilter";
@@ -386,14 +385,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (selectedProvider) {
       selectedProvider(provider);
     }
-    // MAID/COOK use in-card booking dialog (ServiceBookingFlow + Razorpay).
-    // Only legacy nanny package picker uses the full Confirmation screen.
-    const role = String(
-      provider?.housekeepingRole || bookingType?.housekeepingRole || ""
-    ).toUpperCase();
-    if (role === "NANNY") {
-      sendDataToParent(CONFIRMATION);
-    }
+    // MAID/COOK/NANNY all use in-card booking dialogs on the provider card.
   };
 
   // Filter handlers

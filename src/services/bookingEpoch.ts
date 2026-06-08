@@ -81,6 +81,24 @@ function istCalendarYmd(ms: number): string {
   }).format(new Date(ms));
 }
 
+function istYesterdayYmd(nowMs = Date.now()): string {
+  return istCalendarYmd(dayjs(nowMs).tz(IST).startOf("day").subtract(1, "millisecond").valueOf());
+}
+
+const PLACED_TODAY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Format an absolute instant as h:mm am/pm in Asia/Kolkata (never browser-local). */
+function formatIstTime12h(ms: number): string {
+  const d = new Date(ms);
+  let totalMinutes = d.getUTCHours() * 60 + d.getUTCMinutes() + 330;
+  totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
+  const h24 = Math.floor(totalMinutes / 60);
+  const min = totalMinutes % 60;
+  const period = h24 >= 12 ? "pm" : "am";
+  const h12 = h24 % 12 || 12;
+  return `${h12}:${String(min).padStart(2, "0")} ${period}`;
+}
+
 /**
  * API / Postgres instants: timestamptz (Z) or naive UTC `timestamp without time zone`.
  */
@@ -134,20 +152,21 @@ export function formatBookingTimeRange(fields: BookingTimeFields): string {
   return startTime || endTime || "";
 }
 
-/** When the customer placed the booking (IST) — uses Intl so display is correct in all browsers. */
+/** When the customer placed the booking (IST). */
 export function formatBookingCreatedAt(value?: string | number | null): string {
   const ms = toInstantMs(value);
   if (ms == null) return "";
-  const timePart = new Intl.DateTimeFormat("en-IN", {
-    timeZone: IST,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(ms));
+  const nowMs = Date.now();
+  const ageMs = nowMs - ms;
+  const timePart = formatIstTime12h(ms);
+  // After IST midnight, calendar "yesterday" feels wrong for bookings placed a few hours ago.
+  if (ageMs >= 0 && ageMs < PLACED_TODAY_WINDOW_MS) {
+    return `Today at ${timePart}`;
+  }
   const ymd = istCalendarYmd(ms);
-  const todayYmd = istCalendarYmd(Date.now());
+  const todayYmd = istCalendarYmd(nowMs);
   if (ymd === todayYmd) return `Today at ${timePart}`;
-  const yesterdayYmd = istCalendarYmd(Date.now() - 86_400_000);
+  const yesterdayYmd = istYesterdayYmd(nowMs);
   if (ymd === yesterdayYmd) return `Yesterday at ${timePart}`;
   const datePart = new Intl.DateTimeFormat("en-IN", {
     timeZone: IST,

@@ -424,9 +424,8 @@ const formatServiceTimeRange = (booking: Booking): string => {
 };
 
 const formatBookedAtLabel = (booking: Booking): string => {
-  if (booking.placed_at_label?.trim()) return booking.placed_at_label.trim();
-  const raw = booking.bookingDate || booking.created_at;
-  return formatBookingCreatedAt(raw) || "";
+  const raw = booking.created_at || booking.bookingDate;
+  return formatBookingCreatedAt(raw) || booking.placed_at_label?.trim() || "";
 };
 
 type BookingsViewTab = "today" | "upcoming" | "past" | "pending";

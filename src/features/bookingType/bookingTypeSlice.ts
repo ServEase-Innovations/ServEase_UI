@@ -13,18 +13,13 @@ export const bookingTypeSlice = createSlice({
       state.value = null;
     },
     update: (state, action) => {
-      console.log("Previous State Before Update:", state.value);
-      console.log("Payload Received:", action.payload);
-    
       if (!state.value) {
-        state.value = action.payload; // Directly assign if state is null
+        state.value = action.payload;
       } else {
         Object.entries(action.payload).forEach(([key, value]) => {
-          state.value![key] = value; // Ensure immer detects change
+          state.value![key] = value;
         });
       }
-    
-      console.log("Updated Redux State:", state.value);
     }
     
     

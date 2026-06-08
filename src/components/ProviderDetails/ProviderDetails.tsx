@@ -59,7 +59,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
-import { resolveProviderId } from "src/utils/providerId";
+import { resolveEffectiveServiceRole, resolveProviderId } from "src/utils/providerId";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -180,6 +180,11 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   );
   const resolvedProviderIdStr = resolvedProviderId ?? null;
 
+  const effectiveServiceRole = resolveEffectiveServiceRole(
+    bookingType?.housekeepingRole,
+    props
+  );
+
   const handleSelection = (hour: number, isEvening: boolean, time: number) => {
     const startTime = moment({ hour: time, minute: 0 }).format("HH:mm");
     const endTime = moment({ hour: time + 1, minute: 0 }).format("HH:mm");
@@ -279,7 +284,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const syncProviderIntoBookingStore = () => {
     let booking: Bookingtype;
 
-    if (props.housekeepingRole !== "NANNY") {
+    if (effectiveServiceRole !== "NANNY") {
       booking = {
         serviceproviderId: resolvedProviderId,
         eveningSelection: eveningSelectionTime,
@@ -318,10 +323,17 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       return;
     }
     syncProviderIntoBookingStore();
-    props.selectedProvider(providerDetailsData);
+    const payload = {
+      ...providerDetailsData,
+      housekeepingRole: effectiveServiceRole,
+    };
+    props.selectedProvider(payload);
 
-    const role = String(props.housekeepingRole || "").toUpperCase();
-    if (role === "MAID" || role === "COOK") {
+    if (
+      effectiveServiceRole === "MAID" ||
+      effectiveServiceRole === "COOK" ||
+      effectiveServiceRole === "NANNY"
+    ) {
       setOpen(true);
     }
   };
@@ -853,29 +865,38 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
         provider={props}
       />
 
-      {props.housekeepingRole === "COOK" && (
+      {effectiveServiceRole === "COOK" && (
         <CookServicesDialog
           open={open}
           handleClose={handleClose}
-          providerDetails={providerDetailsData}
+          providerDetails={{
+            ...providerDetailsData,
+            housekeepingRole: effectiveServiceRole,
+          }}
           sendDataToParent={props.sendDataToParent}
         />
       )}
 
-      {props.housekeepingRole === "MAID" && (
+      {effectiveServiceRole === "MAID" && (
         <MaidServiceDialog
           open={open}
           handleClose={handleClose}
-          providerDetails={providerDetailsData}
+          providerDetails={{
+            ...providerDetailsData,
+            housekeepingRole: effectiveServiceRole,
+          }}
           sendDataToParent={props.sendDataToParent}
         />
       )}
 
-      {props.housekeepingRole === "NANNY" && (
+      {effectiveServiceRole === "NANNY" && (
         <NannyServicesDialog
           open={open}
           handleClose={handleClose}
-          providerDetails={providerDetailsData}
+          providerDetails={{
+            ...providerDetailsData,
+            housekeepingRole: effectiveServiceRole,
+          }}
           sendDataToParent={props.sendDataToParent}
         />
       )}
