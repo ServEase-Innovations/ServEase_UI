@@ -33,7 +33,13 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
   const m = asMeta(n.metadata) ?? {};
   const serviceType = String(m.service_type ?? n.title ?? "Service");
   const bookingType = String(m.booking_type ?? "ON_DEMAND");
-  const base = m.base_amount != null ? Number(m.base_amount) : 0;
+  const baseRaw =
+    m.base_amount != null
+      ? m.base_amount
+      : m.total_amount != null
+        ? m.total_amount
+        : m.refund_amount_inr;
+  const base = baseRaw != null ? Number(baseRaw) : 0;
   const duration = m.duration_minutes != null ? Number(m.duration_minutes) : undefined;
   const address = m.address != null && String(m.address).trim() !== "" ? String(m.address) : undefined;
 
@@ -84,6 +90,7 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
 
   const typeUpper = String(n.type || "").toUpperCase();
   const isAssignedConfirmed = typeUpper === "ASSIGNED_BOOKING_CONFIRMED";
+  const isAutoCancelledNoProvider = typeUpper === "BOOKING_AUTO_CANCELLED_NO_PROVIDER";
   const isNewBookingOpportunity =
     typeUpper === "NEW_BOOKING_OPPORTUNITY" || typeUpper === "NEW_BOOKING_REQUEST";
   const paymentReady =
@@ -110,6 +117,7 @@ export function inAppToBookingRequestPayload(n: InAppLike): NewBookingRequestPay
     ...(Number.isFinite(startEpoch) ? { start_epoch: startEpoch } : {}),
     ...(Number.isFinite(endEpoch) ? { end_epoch: endEpoch } : {}),
     ...(isAssignedConfirmed ? { payment_completed: true as const } : {}),
+    ...(isAutoCancelledNoProvider ? { payment_completed: true as const } : {}),
     ...(paymentReady ? { payment_ready: true as const } : {}),
   };
 }

@@ -29,7 +29,12 @@ import {
   Megaphone,
   Ticket,
   CreditCard,
+  XCircle,
 } from "lucide-react";
+import {
+  isAutoCancelledNoProviderType,
+} from "./notificationBookingSummary";
+import { AutoCancelledBookingCard } from "./AutoCancelledBookingCard";
 import { openSupportTicketDialog } from "src/utils/supportTicketEvents";
 import PaymentInstance from "src/services/paymentInstance";
 import {
@@ -120,6 +125,9 @@ function typeMeta(type: string): { label: string; Icon: React.ElementType; color
   }
   if (s === "PAYMENT_PENDING_REMINDER" || s.includes("PAYMENT_PENDING")) {
     return { label: "Payment due", Icon: CreditCard, color: "#d97706" };
+  }
+  if (s === "BOOKING_AUTO_CANCELLED_NO_PROVIDER" || s.includes("AUTO_CANCELLED")) {
+    return { label: "Cancelled", Icon: XCircle, color: "#dc2626" };
   }
   return { label: "Update", Icon: Bell, color: "#64748b" };
 }
@@ -637,6 +645,8 @@ export default function NotificationsPage({
               const supportTicketId = isSupportTicket ? supportTicketIdFromNotification(n) : null;
               const isPaymentReminder =
                 !spNotificationSession && isPaymentPendingReminderType(n.type);
+              const isCustomerAutoCancelled =
+                !spNotificationSession && isAutoCancelledNoProviderType(n.type);
               const openSupportTicket = () => {
                 if (supportTicketId == null) return;
                 if (unreadItem) void markRead(n);
@@ -674,6 +684,10 @@ export default function NotificationsPage({
                         if (unreadItem) void markRead(n);
                         return;
                       }
+                      if (isCustomerAutoCancelled) {
+                        if (unreadItem) void markRead(n);
+                        return;
+                      }
                       if (isSpOndemandNewBooking) return;
                       if (unreadItem) void markRead(n);
                     }}
@@ -690,6 +704,10 @@ export default function NotificationsPage({
                       if (isSpAssignedConfirmed && hasBookingDetailPanel) {
                         setDetailError(null);
                         setDetailFor(n);
+                        if (unreadItem) void markRead(n);
+                        return;
+                      }
+                      if (isCustomerAutoCancelled) {
                         if (unreadItem) void markRead(n);
                         return;
                       }
@@ -780,15 +798,17 @@ export default function NotificationsPage({
                             gap={0.75}
                             mb={0.25}
                           >
-                            <Typography
-                              fontWeight={unreadItem ? 800 : 600}
-                              variant="body1"
-                              component="span"
-                              lineHeight={1.35}
-                              className="text-slate-900"
-                            >
-                              {n.title}
-                            </Typography>
+                            {!isCustomerAutoCancelled ? (
+                              <Typography
+                                fontWeight={unreadItem ? 800 : 600}
+                                variant="body1"
+                                component="span"
+                                lineHeight={1.35}
+                                className="text-slate-900"
+                              >
+                                {n.title}
+                              </Typography>
+                            ) : null}
                             {unreadItem && (
                               <Chip
                                 size="small"
@@ -801,12 +821,19 @@ export default function NotificationsPage({
                         }
                         secondary={
                           <Stack component="div" alignItems="flex-start" gap={0.5} pt={0.5}>
-                            {n.body && (
+                            {isCustomerAutoCancelled ? (
+                              <AutoCancelledBookingCard
+                                metadata={n.metadata}
+                                engagementId={eid}
+                                variant="compact"
+                              />
+                            ) : null}
+                            {!isCustomerAutoCancelled && n.body && (
                               <Typography variant="body2" color="text.secondary" lineHeight={1.45}>
                                 {n.body}
                               </Typography>
                             )}
-                            {metaRow && (
+                            {!isCustomerAutoCancelled && metaRow ? (
                               <Stack gap={0.25} sx={{ width: "100%" }}>
                                 {typeof metaRow.address === "string" && metaRow.address.length > 0 && (
                                   <Typography variant="body2" color="text.secondary" lineHeight={1.4}>
@@ -827,7 +854,7 @@ export default function NotificationsPage({
                                   </Typography>
                                 )}
                               </Stack>
-                            )}
+                            ) : null}
                             {isSupportTicket && supportTicketId != null && (
                               <Button
                                 type="button"
