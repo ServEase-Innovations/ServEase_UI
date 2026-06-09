@@ -5,6 +5,22 @@ import { useLanguage } from "src/context/LanguageContext";
 
 const PAC_ZINDEX_STYLE_ID = "servase-google-places-pac-zindex";
 
+/** Google appends `.pac-container` to `body`; MUI dialog transforms break its default placement. */
+function alignPacContainerToInput(input: HTMLInputElement | null) {
+  if (!input || document.activeElement !== input) return;
+  const pac = document.querySelector<HTMLElement>(".pac-container");
+  if (!pac || pac.style.display === "none" || pac.childElementCount === 0) return;
+
+  const rect = input.getBoundingClientRect();
+  pac.style.position = "fixed";
+  pac.style.top = `${Math.round(rect.bottom + 4)}px`;
+  pac.style.left = `${Math.round(rect.left)}px`;
+  pac.style.width = `${Math.round(rect.width)}px`;
+  pac.style.right = "auto";
+  pac.style.bottom = "auto";
+  pac.style.zIndex = "2000";
+}
+
 interface GooglePlacesAutocompleteProps {
   onSelectPlace: (place: google.maps.places.PlaceResult) => void;
   placeholder: string;
@@ -26,7 +42,13 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
       const style = document.createElement("style");
       style.id = PAC_ZINDEX_STYLE_ID;
       style.textContent = `
-        .pac-container { z-index: 2000 !important; border-radius: 12px; margin-top: 4px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12) !important; }
+        .pac-container {
+          z-index: 2000 !important;
+          border-radius: 12px;
+          margin-top: 0 !important;
+          box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12) !important;
+          box-sizing: border-box;
+        }
         .pac-item { font-size: 0.875rem; padding: 0.5rem 0.75rem !important; }
         .pac-item:hover { background: #f8fafc !important; }
       `;
@@ -71,6 +93,28 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const realign = () => alignPacContainerToInput(input);
+    const observer = new MutationObserver(realign);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    input.addEventListener("focus", realign);
+    input.addEventListener("input", realign);
+    window.addEventListener("resize", realign);
+    window.addEventListener("scroll", realign, true);
+
+    return () => {
+      observer.disconnect();
+      input.removeEventListener("focus", realign);
+      input.removeEventListener("input", realign);
+      window.removeEventListener("resize", realign);
+      window.removeEventListener("scroll", realign, true);
+    };
+  }, []);
+
   const clearInput = () => {
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -82,6 +126,7 @@ const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> = ({
     <TextField
       size="small"
       fullWidth
+      className="servase-map-autocomplete-field"
       placeholder={placeholder}
       name={`map-autocomplete-${clearId}`}
       id={`map-search-${clearId}`}

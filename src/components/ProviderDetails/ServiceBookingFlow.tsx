@@ -68,7 +68,14 @@ import axios from "axios";
 import { urls } from "src/config/urls";
 import dayjs from "dayjs";
 import BookingLocationSection from "./BookingLocationSection";
-import { hasValidBookingLocation } from "src/utils/bookingLocation";
+import {
+  hasValidBookingLocation,
+  resolveLocationCoords,
+} from "src/utils/bookingLocation";
+import {
+  checkOnDemandProviderAvailability,
+  ON_DEMAND_NO_PROVIDERS_MESSAGE,
+} from "src/services/onDemandAvailability";
 
 const COUPON_FEEDBACK_MS = 2000;
 const todayYmd = () => dayjs().format("YYYY-MM-DD");
@@ -135,6 +142,12 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   const bookingType = useSelector((state: any) => state.bookingType?.value);
   const geoLocation = useSelector((state: any) => state?.geoLocation?.value);
   const bookingLocationReady = hasValidBookingLocation(geoLocation);
+  const bookingCoords = resolveLocationCoords(geoLocation);
+  const [onDemandAvailability, setOnDemandAvailability] = useState<{
+    loading: boolean;
+    available: boolean;
+    message?: string;
+  }>({ loading: false, available: true });
   const providerFullName =
     `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
 
@@ -201,10 +214,14 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     !quotePreview.error;
   /** On-demand bookings can checkout without a provider (backend: UNASSIGNED). */
   const providerRequired = bookingTypeCode !== "ON_DEMAND";
+  const onDemandProviderReady =
+    bookingTypeCode !== "ON_DEMAND" ||
+    (onDemandAvailability.available && !onDemandAvailability.loading);
   const canCheckout =
     scheduleReady &&
     priceReady &&
     bookingLocationReady &&
+    onDemandProviderReady &&
     (!providerRequired || providerId != null);
   const normalizedCouponInput = couponInput.trim().toUpperCase();
   const couponCountLabel = availableCoupons.length;
@@ -261,9 +278,15 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
               ? "Pick a valid date and time to see price"
               : !bookingLocationReady
                 ? "Select a service address before checkout"
-                : !providerId && bookingTypeCode === "ON_DEMAND"
-                  ? "Pay now to confirm — provider matching after payment"
-                  : undefined;
+                : bookingTypeCode === "ON_DEMAND" && !bookingCoords
+                  ? "Select a map location so we can check provider availability"
+                  : onDemandAvailability.loading
+                    ? "Checking provider availability in your area…"
+                    : bookingTypeCode === "ON_DEMAND" && !onDemandAvailability.available
+                      ? onDemandAvailability.message || ON_DEMAND_NO_PROVIDERS_MESSAGE
+                      : !providerId && bookingTypeCode === "ON_DEMAND"
+                        ? "Pay now to confirm — provider matching after payment"
+                        : undefined;
   const flowTitleId = `${serviceKind}-flow-title`;
 
   useEffect(() => {
@@ -495,6 +518,82 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     appUser?.customerid,
   ]);
 
+  useEffect(() => {
+    if (!active || bookingTypeCode !== "ON_DEMAND") {
+      setOnDemandAvailability({ loading: false, available: true });
+      return;
+    }
+    if (!scheduleReady || !bookingCoords) {
+      setOnDemandAvailability({
+        loading: false,
+        available: false,
+        message: bookingCoords
+          ? undefined
+          : "Select a map location so we can check provider availability.",
+      });
+      return;
+    }
+
+    const startDate =
+      formatDateOnly(String(bookingType?.startDate ?? "")) || todayYmd();
+    const startTime = String(bookingType?.startTime ?? "").trim();
+    const endTime = String(bookingType?.endTime ?? "").trim();
+    const durationHours = computeDurationHours(
+      bookingTypeCode,
+      startTime,
+      endTime,
+      startDate,
+      startDate,
+      String(bookingType?.timeRange ?? "")
+    );
+    const durationMinutes =
+      durationHours != null && durationHours > 0
+        ? Math.round(durationHours * 60)
+        : 60;
+
+    let cancelled = false;
+    setOnDemandAvailability((prev) => ({ ...prev, loading: true }));
+    checkOnDemandProviderAvailability({
+      latitude: bookingCoords.lat,
+      longitude: bookingCoords.lng,
+      serviceType: cfg.serviceType,
+      startDate,
+      startTime,
+      durationMinutes,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setOnDemandAvailability({
+          loading: false,
+          available: result.available,
+          message: result.message,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOnDemandAvailability({
+          loading: false,
+          available: false,
+          message: "Could not verify provider availability. Please try again.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    active,
+    bookingTypeCode,
+    scheduleReady,
+    bookingCoords?.lat,
+    bookingCoords?.lng,
+    bookingType?.startDate,
+    bookingType?.startTime,
+    bookingType?.endTime,
+    bookingType?.timeRange,
+    cfg.serviceType,
+  ]);
+
   const handleLoginToContinue = () => {
     const popup = openAuth0PopupWindow();
     if (!popup) {
@@ -587,6 +686,18 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
     if (!bookingLocationReady) {
       setSnackbarMessage("Please select a service address before confirming your booking.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (
+      booking_type === "ON_DEMAND" &&
+      (!onDemandAvailability.available || onDemandAvailability.loading)
+    ) {
+      setSnackbarMessage(
+        onDemandAvailability.message || ON_DEMAND_NO_PROVIDERS_MESSAGE
+      );
       setSnackbarSeverity("warning");
       setSnackbarOpen(true);
       return;
@@ -774,6 +885,27 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
           <MaidCard>
             <MaidBookingDetailsSection active={active} />
           </MaidCard>
+
+          {bookingTypeCode === "ON_DEMAND" &&
+          scheduleReady &&
+          bookingCoords &&
+          !onDemandAvailability.loading &&
+          !onDemandAvailability.available ? (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                border: "1px solid #fecaca",
+                background: "#fef2f2",
+              }}
+              role="alert"
+            >
+              <Typography sx={{ fontSize: 13, color: "#991b1b", lineHeight: 1.45 }}>
+                {onDemandAvailability.message || ON_DEMAND_NO_PROVIDERS_MESSAGE}
+              </Typography>
+            </Box>
+          ) : null}
 
           <MaidCard>
             <BookingLocationSection />
