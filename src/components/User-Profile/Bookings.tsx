@@ -38,7 +38,6 @@ import type { EngagementEpochFields, TodayBookingEpochFields } from 'src/service
 import VacationManagementDialog from './VacationManagement';
 import ServicesDialog from '../ServicesDialog/ServicesDialog';
 import EngagementDetailsDrawer from './EngagementDetailsDrawer';
-import ChatInterface from './ChatInterface';
 import CustomerTodayTasksCard, {
   CustomerTodayBookingSlot,
 } from './CustomerTodayTasksCard';
@@ -479,10 +478,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
   const [selectedBookingForVacationManagement, setSelectedBookingForVacationManagement] = useState<Booking | null>(null);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
-
-  // Chat state
-  const [chatOpen, setChatOpen] = useState(false);
-  const [selectedChatBooking, setSelectedChatBooking] = useState<Booking | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1579,12 +1574,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     setDetailsDrawerOpen(true);
   };
 
-  // Handle opening chat
-  const handleOpenChat = (booking: Booking) => {
-    setSelectedChatBooking(booking);
-    setChatOpen(true);
-  };
-
   const reportIssueButton = (booking: Booking) => (
     <Button
       variant="outline"
@@ -1634,17 +1623,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               <Phone className="h-4 w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Call Provider</span>
               <span className="sm:hidden">Call</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-              onClick={() => handleOpenChat(booking)}
-            >
-              <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Message</span>
-              <span className="sm:hidden">Msg</span>
             </Button>
 
             <Button
@@ -1722,17 +1700,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               <Phone className="h-4 w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Call Provider</span>
               <span className="sm:hidden">Call</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-              onClick={() => handleOpenChat(booking)}
-            >
-              <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Message</span>
-              <span className="sm:hidden">Msg</span>
             </Button>
 
             <Button
@@ -2611,21 +2578,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         }}
         booking={selectedBooking}
         onPaymentComplete={afterPaymentSuccess}
-      />
-
-      {/* Chat Interface */}
-      <ChatInterface
-        open={chatOpen}
-        onClose={() => {
-          setChatOpen(false);
-          setSelectedChatBooking(null);
-        }}
-        bookingDetails={selectedChatBooking ? {
-          id: selectedChatBooking.id,
-          serviceType: getServiceTitle(selectedChatBooking.service_type),
-          providerName: selectedChatBooking.serviceProviderName,
-          bookingDate: selectedChatBooking.startDate
-        } : null}
       />
 
       {/* Dialogs */}
