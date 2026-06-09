@@ -45,6 +45,7 @@ import {
   epochToDisplayTime,
 } from "src/services/bookingEpoch";
 import type { EngagementEpochFields } from "src/services/epochContract";
+import { sortProviderEngagementsByServiceDate } from "src/utils/sortProviderEngagements";
 
 interface AllBookingsDialogProps {
   bookings: BookingHistoryResponse | null;
@@ -764,7 +765,7 @@ export function AllBookingsDialog({
     if (tab === "ongoing") rows = (monthResponse.current || []) as ProviderEngagementApi[];
     else if (tab === "future") rows = (monthResponse.upcoming || []) as ProviderEngagementApi[];
     else rows = (monthResponse.past || []) as ProviderEngagementApi[];
-    return rows.map(mapApiBookingToBooking);
+    return sortProviderEngagementsByServiceDate(rows, tab).map(mapApiBookingToBooking);
   }, [monthResponse, tab]);
 
   const filteredData = useMemo(() => {
