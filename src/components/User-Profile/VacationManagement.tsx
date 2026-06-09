@@ -11,14 +11,13 @@ import {
   Chip,
   Paper,
 } from "@mui/material";
-import { X, CalendarDays, CalendarRange } from "lucide-react";
+import { CalendarDays, CalendarRange } from "lucide-react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { Button, dialogActionsClassName } from "../Button/button";
-import { IconButton } from "../Button/icon-button";
 import PaymentInstance from "src/services/paymentInstance";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage } from "src/context/LanguageContext";
+import ProfileDialogHeader from "./ProfileDialogHeader";
 
 interface VacationBooking {
   id: number;
@@ -332,35 +331,21 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
       PaperProps={{
         sx: {
           borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-        }
+          overflow: "hidden",
+          m: 2,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+        },
       }}
-    > 
-      <DialogHeader
-  style={{
-    position: "relative",
-    padding: "16px 24px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  }}
->
-  <Box className="flex items-center gap-2">
-    <CalendarDays className="h-5 w-5 text-white" aria-hidden />
-    <Typography variant="h6" fontWeight="600">{t("modifyVacation")}</Typography>
-  </Box>
+    >
+      <ProfileDialogHeader
+        subtitle="Vacation"
+        title={t("modifyVacation")}
+        icon={CalendarDays}
+        onClose={onClose}
+        closeDisabled={isLoading}
+      />
 
- <IconButton
-  onClick={onClose}
-  aria-label="Close"
-  className="absolute right-3 top-3 h-8 w-8 text-white hover:bg-white/10"
->
-    <X className="h-5 w-5" />
-  </IconButton>
-</DialogHeader>
-
-
-      <DialogContent dividers sx={{ p: 4 }}>
+      <DialogContent dividers sx={{ px: 3, py: 3 }}>
         {/* Current Vacation Info */}
         {booking?.vacation && (
           <Paper 

@@ -5042,6 +5042,72 @@ modifyVacation: {
   kn: "ರಜೆಯನ್ನು ಮಾರ್ಪಡಿಸಿ",
   bn: "ছুটি পরিবর্তন করুন"
 },
+applyVacationHoliday: {
+  en: "Apply vacation / holiday",
+  hi: "अवकाश / छुट्टी के लिए आवेदन करें",
+  kn: "ರಜೆ / ಸೆಲೆಬ್ರೇಷನ್ ಅನ್ನು ಅನ್ವಯಿಸಿ",
+  bn: "ছুটি / অবকাশের জন্য আবেদন করুন"
+},
+leaveRequestSubtitle: {
+  en: "Leave request",
+  hi: "अवकाश अनुरोध",
+  kn: "ರಜೆ ವಿನಂತಿ",
+  bn: "ছুটির অনুরোধ"
+},
+bookedPeriod: {
+  en: "Your booking",
+  hi: "आपकी बुकिंग",
+  kn: "ನಿಮ್ಮ ಬುಕಿಂಗ್",
+  bn: "আপনার বুকিং"
+},
+selectVacationDates: {
+  en: "Select vacation dates",
+  hi: "अवकाश तिथियां चुनें",
+  kn: "ರಜೆಯ ದಿನಾಂಕಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+  bn: "ছুটির তারিখ নির্বাচন করুন"
+},
+selectStartDateFirst: {
+  en: "Pick a start date first",
+  hi: "पहले प्रारंभ तिथि चुनें",
+  kn: "ಮೊದಲು ಪ್ರಾರಂಭ ದಿನಾಂಕವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+  bn: "প্রথমে শুরুর তারিখ বেছে নিন"
+},
+vacationDatesWithinBooking: {
+  en: "Vacation dates must fall within your active booking period.",
+  hi: "अवकाश तिथियां आपकी सक्रिय बुकिंग अवधि के भीतर होनी चाहिए।",
+  kn: "ರಜೆಯ ದಿನಾಂಕಗಳು ನಿಮ್ಮ ಸಕ್ರಿಯ ಬುಕಿಂಗ್ ಅವಧಿಯೊಳಗೆ ಇರಬೇಕು.",
+  bn: "ছুটির তারিখগুলি আপনার সক্রিয় বুকিং সময়ের মধ্যে হতে হবে।"
+},
+confirmVacationApplication: {
+  en: "Confirm vacation application",
+  hi: "अवकाश आवेदन की पुष्टि करें",
+  kn: "ರಜೆ ಅರ್ಜಿಯನ್ನು ದೃಢೀಕರಿಸಿ",
+  bn: "ছুটির আবেদন নিশ্চিত করুন"
+},
+confirmVacationMessage: {
+  en: "Apply vacation from {start} to {end} ({days} days) for your {service} booking?",
+  hi: "{start} से {end} ({days} दिन) तक अवकाश लागू करें — {service} बुकिंग?",
+  kn: "{start} ರಿಂದ {end} ({days} ದಿನಗಳು) ವರೆಗೆ ರಜೆ ಅನ್ವಯಿಸುವುದೇ — {service} ಬುಕಿಂಗ್?",
+  bn: "{start} থেকে {end} ({days} দিন) পর্যন্ত ছুটি প্রয়োগ করবেন — {service} বুকিং?"
+},
+yesApply: {
+  en: "Yes, apply",
+  hi: "हाँ, लागू करें",
+  kn: "ಹೌದು, ಅನ್ವಯಿಸಿ",
+  bn: "হ্যাঁ, প্রয়োগ করুন"
+},
+vacationSubmittedSuccess: {
+  en: "Vacation application submitted successfully!",
+  hi: "अवकाश आवेदन सफलतापूर्वक जमा किया गया!",
+  kn: "ರಜೆ ಅರ್ಜಿಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ!",
+  bn: "ছুটির আবেদন সফলভাবে জমা হয়েছে!"
+},
+continueLabel: {
+  en: "Continue",
+  hi: "जारी रखें",
+  kn: "ಮುಂದುವರಿಸಿ",
+  bn: "চালিয়ে যান"
+},
 currentVacationPeriod: {
   en: "Current Vacation Period",
   hi: "वर्तमान अवकाश अवधि",
