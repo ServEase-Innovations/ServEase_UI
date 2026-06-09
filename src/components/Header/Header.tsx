@@ -316,6 +316,7 @@ export const Header: React.FC<ChildComponentProps> = ({
             email: response.data.emailid ?? user.email,
             mobileno: response.data.mobileno ?? undefined,
           });
+          sendDataToParent(DASHBOARD);
         } else if (response.data.user_role === "CUSTOMER") {
           const custName = [response.data.firstname, response.data.lastname]
             .filter(Boolean)
@@ -343,6 +344,7 @@ export const Header: React.FC<ChildComponentProps> = ({
             role: "VENDOR",
             vendorId: response.data.id,
           });
+          sendDataToParent(AGENT_DASHBOARD);
         }
 
         postLoginHandledForRef.current = userKey;

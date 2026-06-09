@@ -9,7 +9,7 @@ import ForgotPassword from "./ForgotPassword";
 import axiosInstance from "../../services/axiosInstance";
 import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
-import { PROFILE } from "../../Constants/pagesConstants";
+import { DASHBOARD } from "../../Constants/pagesConstants";
 import { useAppUser } from "src/context/AppUserContext";
 
 interface ChildComponentProps {
@@ -201,7 +201,7 @@ export const Login: React.FC<ChildComponentProps> = ({
       setTimeout(() => {
         if (role === "SERVICE_PROVIDER") {
           if (sendDataToParent) {
-            sendDataToParent(PROFILE);
+            sendDataToParent(DASHBOARD);
           } else if (bookingPage) {
             bookingPage("SERVICE_PROVIDER");
           }
