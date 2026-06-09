@@ -880,16 +880,11 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                       onDateChange={handleRangeDateOnlyChange}
                       onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
                         if (!time) return;
-                        const start = dayjs(rangeStart).startOf("day");
+                        const startWithTime = dayjs(rangeStart);
                         let end = dayjs(rangeEnd).startOf("day");
-                        if (end.diff(start, "day") > SHORT_TERM_MAX_SPAN_DAYS) {
-                          end = start.add(SHORT_TERM_MAX_SPAN_DAYS, "day");
+                        if (end.diff(startWithTime.startOf("day"), "day") > SHORT_TERM_MAX_SPAN_DAYS) {
+                          end = startWithTime.startOf("day").add(SHORT_TERM_MAX_SPAN_DAYS, "day");
                         }
-                        const [timePart, meridian] = time.split(" ");
-                        let hour = Number(timePart.split(":")[0]);
-                        if (meridian === "PM" && hour !== 12) hour += 12;
-                        if (meridian === "AM" && hour === 12) hour = 0;
-                        const startWithTime = start.hour(hour).minute(0);
                         setStartDate(startWithTime.toISOString());
                         setStartTime(startWithTime);
                         setEndDate(end.toISOString());

@@ -569,19 +569,14 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                 onDateChange={handleRangeDateOnlyChange}
                 onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
                   if (!time) return;
-                  const start = dayjs(rangeStart);
-                  let end = dayjs(rangeEnd);
-                  if (end.diff(start, "day") > 14) {
-                    end = start.add(14, "day");
+                  const startWithTime = dayjs(rangeStart);
+                  let end = dayjs(rangeEnd).startOf("day");
+                  if (end.diff(startWithTime.startOf("day"), "day") > 14) {
+                    end = startWithTime.startOf("day").add(14, "day");
                     setValidationMsg("Short-term bookings are limited to 15 days.");
                   } else {
                     setValidationMsg(null);
                   }
-                  const [tPart, meridian] = time.split(" ");
-                  let hour = Number(tPart.split(":")[0]);
-                  if (meridian === "PM" && hour !== 12) hour += 12;
-                  if (meridian === "AM" && hour === 12) hour = 0;
-                  const startWithTime = start.hour(hour).minute(0);
                   if (!validateSelection(startWithTime)) return;
                   if (!isDurationWithinWorkHours(startWithTime, durationHours)) {
                     setValidationMsg(t("timeHourRestriction"));
