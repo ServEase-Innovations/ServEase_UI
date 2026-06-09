@@ -1554,7 +1554,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     setHolidayDialogOpen(false);
   } catch (error: any) {
     console.error("Error applying leave:", error);
-    const errorMsg = error.response?.data?.message || 'Failed to apply leave. Please try again.';
+    const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to apply leave. Please try again.';
     setSnackbarMessage(errorMsg);
     setSnackbarSeverity('error');
     setOpenSnackbar(true);

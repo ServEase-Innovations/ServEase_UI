@@ -12,15 +12,15 @@ import {
   Chip,
 } from "@mui/material";
 import { CalendarDays, CalendarRange, Info } from "lucide-react";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { Button, dialogActionsClassName } from "../Button/button";
 import ConfirmationDialog from "./ConfirmationDialog";
 import ProfileDialogHeader from "./ProfileDialogHeader";
+import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 import { getServiceTitle } from "../Common/Booking/BookingUtils";
 import { coalesceEndEpoch, coalesceStartEpoch } from "src/services/bookingEpoch";
 import { useLanguage } from "src/context/LanguageContext";
+import { countInclusiveDays, toCalendarDay } from "src/utils/inclusiveDayCount";
 
 interface Booking {
   id: number;
@@ -41,20 +41,16 @@ interface UserHolidayProps {
 
 const MIN_VACATION_DAYS = 10;
 
-const dateFieldSlotProps = {
-  textField: {
-    fullWidth: true,
-    size: "medium" as const,
-    sx: {
-      "& .MuiOutlinedInput-root": {
-        borderRadius: 2,
-        bgcolor: "background.paper",
-      },
-    },
-  },
-  actionBar: {
-    actions: ["today", "accept", "cancel", "clear"] as ("today" | "accept" | "cancel" | "clear")[],
-  },
+const pickerShellSx = {
+  width: "100%",
+  maxWidth: 380,
+  mx: "auto",
+  p: { xs: 1, sm: 1.5, md: 2 },
+  borderRadius: 2,
+  border: "1px solid",
+  borderColor: "divider",
+  bgcolor: "background.paper",
+  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
 };
 
 const UserHoliday: React.FC<UserHolidayProps> = ({
@@ -77,13 +73,13 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
   const bookingEndEpoch = coalesceEndEpoch(booking?.end_epoch, booking?.endDate);
 
   const bookingStart = useMemo(() => {
-    if (bookingStartEpoch != null) return dayjs.unix(bookingStartEpoch);
-    return booking?.startDate ? dayjs(booking.startDate) : null;
+    if (bookingStartEpoch != null) return dayjs.unix(bookingStartEpoch).startOf("day");
+    return booking?.startDate ? toCalendarDay(booking.startDate) : null;
   }, [booking?.startDate, bookingStartEpoch]);
 
   const bookingEnd = useMemo(() => {
-    if (bookingEndEpoch != null) return dayjs.unix(bookingEndEpoch);
-    return booking?.endDate ? dayjs(booking.endDate) : null;
+    if (bookingEndEpoch != null) return dayjs.unix(bookingEndEpoch).startOf("day");
+    return booking?.endDate ? toCalendarDay(booking.endDate) : null;
   }, [booking?.endDate, bookingEndEpoch]);
 
   useEffect(() => {
@@ -96,25 +92,33 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
 
     const startEpoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
     const endEpoch = coalesceEndEpoch(booking.end_epoch, booking.endDate);
-    const start = startEpoch != null ? dayjs.unix(startEpoch) : dayjs(booking.startDate);
-    const end = endEpoch != null ? dayjs.unix(endEpoch) : dayjs(booking.endDate);
+    const start =
+      startEpoch != null
+        ? dayjs.unix(startEpoch).startOf("day")
+        : toCalendarDay(booking.startDate)!;
+    const end =
+      endEpoch != null
+        ? dayjs.unix(endEpoch).startOf("day")
+        : toCalendarDay(booking.endDate)!;
 
     const today = dayjs().startOf("day");
     const effectiveMin = start.isBefore(today) ? today : start;
 
     setMinDate(effectiveMin);
     setMaxDate(end);
-    setLeaveStartDate(effectiveMin);
+    setLeaveStartDate(null);
     setLeaveEndDate(null);
     setFormError(null);
   }, [booking, open]);
 
   const totalDays =
     leaveStartDate && leaveEndDate
-      ? leaveEndDate.diff(leaveStartDate, "day") + 1
+      ? countInclusiveDays(leaveStartDate, leaveEndDate)
       : 0;
 
-  const earliestEndDate = leaveStartDate ? leaveStartDate.add(MIN_VACATION_DAYS - 1, "day") : null;
+  const earliestEndDate = leaveStartDate
+    ? leaveStartDate.add(MIN_VACATION_DAYS - 1, "day")
+    : null;
 
   const isWithinBookingPeriod = Boolean(
     leaveStartDate &&
@@ -127,9 +131,11 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
 
   const isValidVacationPeriod = totalDays >= MIN_VACATION_DAYS && isWithinBookingPeriod;
 
-  const disableDates = (date: Dayjs): boolean => {
-    if (!minDate || !maxDate) return false;
-    return date.isBefore(minDate, "day") || date.isAfter(maxDate, "day");
+  const handleRangeChange = (start: Date, end?: Date) => {
+    const startDay = toCalendarDay(start);
+    setLeaveStartDate(startDay);
+    setLeaveEndDate(end ? toCalendarDay(end) : null);
+    setFormError(null);
   };
 
   const validateForm = (): boolean => {
@@ -178,9 +184,11 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
       setSnackbarOpen(true);
       setShowConfirmation(false);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting leave:", error);
-      setFormError(t("updateFailed") || "Failed to submit leave application. Please try again.");
+      const apiMessage =
+        error?.response?.data?.error || error?.response?.data?.message;
+      setFormError(apiMessage || t("updateFailed") || "Failed to submit leave application. Please try again.");
       setShowConfirmation(false);
     } finally {
       setIsSubmitting(false);
@@ -231,12 +239,7 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
                 </Typography>
               </Box>
               <Box className="flex flex-wrap gap-2 items-center mb-2">
-                <Chip
-                  label={`#${booking.id}`}
-                  size="small"
-                  variant="outlined"
-                  color="info"
-                />
+                <Chip label={`#${booking.id}`} size="small" variant="outlined" color="info" />
                 <Chip
                   label={getServiceTitle(booking.service_type)}
                   size="small"
@@ -252,7 +255,7 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
           ) : null}
 
           {formError ? (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} role="alert">
               {formError}
             </Alert>
           ) : null}
@@ -263,82 +266,36 @@ const UserHoliday: React.FC<UserHolidayProps> = ({
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
               {t("minimumVacationNote")}{" "}
-              {earliestEndDate ? (
+              {earliestEndDate && leaveStartDate ? (
                 <strong>{earliestEndDate.format("MMM D, YYYY")}</strong>
               ) : (
-                "—"
+                <strong>{MIN_VACATION_DAYS} {t("days")}</strong>
               )}
             </Typography>
 
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: { xs: "column", sm: "row" },
-                  gap: 2.5,
-                  mb: 2.5,
-                }}
-              >
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    sx={{ mb: 1, color: "text.secondary" }}
-                  >
-                    {t("startDate")}
-                  </Typography>
-                  <DatePicker
-                    value={leaveStartDate}
-                    onChange={(newValue) => {
-                      setLeaveStartDate(newValue);
-                      setLeaveEndDate(null);
-                      setFormError(null);
+            {minDate && maxDate ? (
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 2.5 }}>
+                <Box sx={pickerShellSx}>
+                  <DribbbleDateTimePicker
+                    mode="range"
+                    hideTimeSelection
+                    minRangeDays={MIN_VACATION_DAYS}
+                    minDate={minDate.toDate()}
+                    maxDate={maxDate.toDate()}
+                    value={{
+                      startDate: leaveStartDate?.toDate(),
+                      endDate: leaveEndDate?.toDate(),
                     }}
-                    shouldDisableDate={disableDates}
-                    minDate={minDate}
-                    maxDate={maxDate}
-                    slotProps={{
-                      ...dateFieldSlotProps,
-                      textField: {
-                        ...dateFieldSlotProps.textField,
-                        placeholder: t("selectStartDate"),
-                      },
+                    onDateChange={({ startDate, endDate }) => {
+                      handleRangeChange(startDate, endDate);
                     }}
-                  />
-                </Box>
-
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    sx={{ mb: 1, color: "text.secondary" }}
-                  >
-                    {t("endDate")}
-                  </Typography>
-                  <DatePicker
-                    value={leaveEndDate}
-                    onChange={(newValue) => {
-                      setLeaveEndDate(newValue);
-                      setFormError(null);
-                    }}
-                    shouldDisableDate={disableDates}
-                    disabled={!leaveStartDate}
-                    minDate={earliestEndDate || minDate}
-                    maxDate={maxDate}
-                    slotProps={{
-                      ...dateFieldSlotProps,
-                      textField: {
-                        ...dateFieldSlotProps.textField,
-                        placeholder: t("selectEndDate"),
-                        helperText: !leaveStartDate
-                          ? t("selectStartDateFirst") || "Pick a start date first"
-                          : undefined,
-                      },
+                    onChange={({ startDate, endDate }) => {
+                      handleRangeChange(startDate, endDate);
                     }}
                   />
                 </Box>
               </Box>
-            </LocalizationProvider>
+            ) : null}
 
             {leaveStartDate ? (
               <Box

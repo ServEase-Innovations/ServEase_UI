@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import {
   Typography,
@@ -12,15 +12,20 @@ import {
   Paper,
 } from "@mui/material";
 import { CalendarDays, CalendarRange } from "lucide-react";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { Button, dialogActionsClassName } from "../Button/button";
 import PaymentInstance from "src/services/paymentInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import ProfileDialogHeader from "./ProfileDialogHeader";
+import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
+import { coalesceEndEpoch, coalesceStartEpoch } from "src/services/bookingEpoch";
+import { countInclusiveDays, toCalendarDay } from "src/utils/inclusiveDayCount";
 
 interface VacationBooking {
   id: number;
+  startDate?: string;
+  endDate?: string;
+  start_epoch?: number | null;
+  end_epoch?: number | null;
   vacation?: {
     start_date?: string;
     end_date?: string;
@@ -37,6 +42,20 @@ interface VacationManagementDialogProps {
   onSuccess: () => void;
 }
 
+const MIN_VACATION_DAYS = 10;
+
+const pickerShellSx = {
+  width: "100%",
+  maxWidth: 380,
+  mx: "auto",
+  p: { xs: 1, sm: 1.5, md: 2 },
+  borderRadius: 2,
+  border: "1px solid",
+  borderColor: "divider",
+  bgcolor: "background.paper",
+  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+};
+
 const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   open,
   onClose,
@@ -44,193 +63,66 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   customerId,
   onSuccess,
 }) => {
-  const { t } = useLanguage(); // Initialize the translation hook
-  const today = dayjs();
+  const { t } = useLanguage();
+  const today = dayjs().startOf("day");
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [minDate, setMinDate] = useState<Dayjs | null>(null);
+  const [maxDate, setMaxDate] = useState<Dayjs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [startDatePickerOpen, setStartDatePickerOpen] = useState(true);
-  const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
-  const [endDateCalendarMonth, setEndDateCalendarMonth] = useState<Dayjs | null>(null);
 
-  // Calculate total days between start and end date
-  const calculateTotalDays = (): number => {
-    if (!startDate || !endDate) return 0;
-    return endDate.diff(startDate, 'day') + 1;
-  };
+  const bookingStart = useMemo(() => {
+    if (!booking) return null;
+    const epoch = coalesceStartEpoch(booking.start_epoch, booking.startDate);
+    if (epoch != null) return dayjs.unix(epoch).startOf("day");
+    return booking.startDate ? toCalendarDay(booking.startDate) : null;
+  }, [booking]);
 
-  const totalDays = calculateTotalDays();
+  const bookingEnd = useMemo(() => {
+    if (!booking) return null;
+    const epoch = coalesceEndEpoch(booking.end_epoch, booking.endDate);
+    if (epoch != null) return dayjs.unix(epoch).startOf("day");
+    return booking.endDate ? toCalendarDay(booking.endDate) : null;
+  }, [booking]);
 
-  // Get the first available end date (startDate + 9 days)
-  const getFirstAvailableEndDate = (): Dayjs | null => {
-    if (!startDate) return null;
-    return startDate.add(9, 'day');
-  };
+  const totalDays =
+    startDate && endDate ? countInclusiveDays(startDate, endDate) : 0;
 
-  // Check if all dates in a month are disabled
-  const isMonthFullyDisabled = (month: Dayjs): boolean => {
-    if (!startDate) return false;
-    
-    const firstDayOfMonth = month.startOf('month');
-    const lastDayOfMonth = month.endOf('month');
-    const firstAvailableDate = getFirstAvailableEndDate();
-    
-    if (!firstAvailableDate) return false;
-    
-    // If the first available date is after the last day of this month, then all dates in this month are disabled
-    return firstAvailableDate.isAfter(lastDayOfMonth);
-  };
+  const earliestEndDate = startDate ? startDate.add(MIN_VACATION_DAYS - 1, "day") : null;
 
-  // Get the calendar month that should be shown for end date picker
-  const getEndDateCalendarMonth = (): Dayjs => {
-    if (!startDate) return today;
-    
-    const firstAvailableDate = getFirstAvailableEndDate();
-    if (!firstAvailableDate) return today;
-    
-    // Check if the start date's month is fully disabled
-    const startDateMonth = startDate.startOf('month');
-    if (isMonthFullyDisabled(startDateMonth)) {
-      // If start date's month is fully disabled, show the month of first available date
-      return firstAvailableDate.startOf('month');
-    }
-    
-    // Otherwise, check if we need to show a different month based on current view
-    if (endDateCalendarMonth) {
-      const currentViewMonth = endDateCalendarMonth.startOf('month');
-      if (isMonthFullyDisabled(currentViewMonth)) {
-        // If the current view month is fully disabled, show the month of first available date
-        return firstAvailableDate.startOf('month');
-      }
-    }
-    
-    return endDateCalendarMonth || firstAvailableDate.startOf('month');
-  };
-
-  const isEndDateDisabled = (date: Dayjs) => {
-    if (!startDate) return false;
-    
-    const firstAvailableDate = getFirstAvailableEndDate();
-    if (!firstAvailableDate) return true;
-    
-    // Disable all dates before the first available date
-    return date.isBefore(firstAvailableDate, 'day');
-  };
-
-  // Check if selected dates meet minimum 10 days requirement
   const isValidVacationPeriod = (): boolean => {
-    if (!startDate || !endDate) return false;
-    const days = calculateTotalDays();
-    return days >= 10;
+    if (!startDate || !endDate || !minDate || !maxDate) return false;
+    if (startDate.isBefore(minDate, "day") || endDate.isAfter(maxDate, "day")) return false;
+    return totalDays >= MIN_VACATION_DAYS;
   };
 
-  // Reset form when dialog opens/closes
   useEffect(() => {
-    if (open && booking && booking.vacation) {
-      // Pre-fill with existing vacation dates
-      const start = dayjs(booking.vacation?.start_date);
-      const end = dayjs(booking.vacation?.end_date);
-      setStartDate(start);
-      setEndDate(end);
-      
-      setError(null);
-      setSuccess(null);
-      setStartDatePickerOpen(true);
-      setEndDatePickerOpen(false);
-      setEndDateCalendarMonth(null);
-    }
-  }, [open, booking]);
+    if (!open || !booking) return;
 
-  // Auto-open start date picker when dialog opens
-  useEffect(() => {
-    if (open) {
-      setStartDatePickerOpen(true);
-    }
-  }, [open]);
+    const effectiveMin =
+      bookingStart && bookingStart.isBefore(today) ? today : bookingStart ?? today;
 
-  // Update end date calendar month when start date changes
-  useEffect(() => {
-    if (startDate) {
-      const calendarMonth = getEndDateCalendarMonth();
-      setEndDateCalendarMonth(calendarMonth);
-    }
-  }, [startDate]);
+    setMinDate(effectiveMin);
+    setMaxDate(bookingEnd ?? null);
 
-  const handleStartDateChange = (newValue: Dayjs | null) => {
-    setStartDate(newValue);
-    setEndDate(null); // Reset end date when start date changes
-    
-    if (newValue) {
-      const calendarMonth = getEndDateCalendarMonth();
-      setEndDateCalendarMonth(calendarMonth);
-    }
-    
-    setStartDatePickerOpen(false);
-    
-    // Auto-open end date picker after a short delay for better UX
-    setTimeout(() => {
-      setEndDatePickerOpen(true);
-    }, 300);
-  };
-
-  const handleEndDateChange = (newValue: Dayjs | null) => {
-    setEndDate(newValue);
-    setEndDatePickerOpen(false);
-  };
-
-  // Custom slot props to force the calendar to show the correct month
-  const getEndDateSlotProps = () => {
-    const slotProps: any = {
-      textField: {
-        fullWidth: true,
-        size: "medium",
-        placeholder: t("selectEndDate"),
-        sx: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            bgcolor: 'background.paper',
-          }
-        }
-      },
-      popper: {
-        placement: 'bottom-start',
-        modifiers: [
-          {
-            name: 'preventOverflow',
-            options: {
-              mainAxis: false,
-            },
-          },
-        ],
-      },
-      actionBar: {
-        actions: ['today', 'accept', 'cancel', 'clear']
-      },
-      desktopPaper: {
-        sx: {
-          '& .MuiPickersCalendarHeader-root': {
-            position: 'relative',
-          },
-        },
-      },
-    };
-
-    // Force the calendar to show the specific month where enabled dates start
-    if (endDateCalendarMonth && startDate) {
-      const firstAvailableDate = getFirstAvailableEndDate();
-      
-      if (firstAvailableDate) {
-        // Use referenceDate to control which month is displayed
-        return {
-          ...slotProps,
-          referenceDate: firstAvailableDate
-        };
-      }
+    if (booking.vacation?.start_date && booking.vacation?.end_date) {
+      setStartDate(toCalendarDay(booking.vacation.start_date));
+      setEndDate(toCalendarDay(booking.vacation.end_date));
+    } else {
+      setStartDate(null);
+      setEndDate(null);
     }
 
-    return slotProps;
+    setError(null);
+    setSuccess(null);
+  }, [open, booking, bookingStart, bookingEnd, today]);
+
+  const handleRangeChange = (start: Date, end?: Date) => {
+    setStartDate(toCalendarDay(start));
+    setEndDate(end ? toCalendarDay(end) : null);
+    setError(null);
   };
 
   const handleUpdateVacation = async () => {
@@ -239,12 +131,12 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
       return;
     }
 
-    if (startDate.isBefore(today, 'day')) {
+    if (startDate.isBefore(today, "day")) {
       setError(t("startDateCannotBePast"));
       return;
     }
 
-    if (endDate.isBefore(startDate)) {
+    if (endDate.isBefore(startDate, "day")) {
       setError(t("endDateMustBeAfterStart"));
       return;
     }
@@ -265,22 +157,19 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         modified_by_role: "CUSTOMER",
       };
 
-      console.log("📦 Updating vacation:", payload);
-
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        payload,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      await PaymentInstance.put(`/api/engagements/${booking.id}`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       setSuccess(t("vacationUpdated"));
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1500);
-    } catch (error) {
-      console.error("❌ Error updating vacation:", error);
-      setError(t("updateFailed"));
+    } catch (err: any) {
+      console.error("Error updating vacation:", err);
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message;
+      setError(apiMessage || t("updateFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -299,34 +188,28 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
         modified_by_role: "CUSTOMER",
       };
 
-      console.log("📦 Canceling vacation:", payload);
-
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        payload,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      await PaymentInstance.put(`/api/engagements/${booking.id}`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       setSuccess(t("vacationCancelled"));
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1500);
-    } catch (error) {
-      console.error("❌ Error canceling vacation:", error);
+    } catch (err) {
+      console.error("Error canceling vacation:", err);
       setError(t("cancelFailed"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const firstAvailableEndDate = getFirstAvailableEndDate();
-
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
@@ -346,17 +229,16 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
       />
 
       <DialogContent dividers sx={{ px: 3, py: 3 }}>
-        {/* Current Vacation Info */}
-        {booking?.vacation && (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              mb: 3, 
-              bgcolor: 'info.light', 
-              border: '1px solid',
-              borderColor: 'info.main',
-              borderRadius: 2
+        {booking?.vacation ? (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              mb: 3,
+              bgcolor: "info.light",
+              border: "1px solid",
+              borderColor: "info.main",
+              borderRadius: 2,
             }}
           >
             <Box className="flex items-center gap-2 mb-2">
@@ -366,160 +248,134 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
               </Typography>
             </Box>
             <Box className="flex flex-wrap gap-2 items-center">
-              <Chip 
-                label={dayjs(booking.vacation.start_date).format("MMM D, YYYY")} 
+              <Chip
+                label={dayjs(booking.vacation.start_date).format("MMM D, YYYY")}
                 variant="outlined"
                 color="info"
                 size="small"
               />
-              <Typography variant="body2" color="text.secondary">{t("to")}</Typography>
-              <Chip 
-                label={dayjs(booking.vacation.end_date).format("MMM D, YYYY")} 
+              <Typography variant="body2" color="text.secondary">
+                {t("to")}
+              </Typography>
+              <Chip
+                label={dayjs(booking.vacation.end_date).format("MMM D, YYYY")}
                 variant="outlined"
                 color="info"
                 size="small"
               />
-              <Chip 
-                label={`${booking.vacation.leave_days} ${t("days")}`} 
+              <Chip
+                label={`${booking.vacation.leave_days} ${t("days")}`}
                 color="info"
                 size="small"
               />
             </Box>
           </Paper>
-        )}
+        ) : null}
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+        {error ? (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} role="alert">
             {error}
           </Alert>
-        )}
-        {success && (
+        ) : null}
+        {success ? (
           <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
             {success}
           </Alert>
-        )}
+        ) : null}
 
-        {/* Vacation Date Selection */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" fontWeight="600" sx={{ mb: 3, color: 'text.primary' }}>
+          <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: "text.primary" }}>
             {t("updateVacationDates")}
           </Typography>
-          
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: 'text.secondary' }}>
-                  {t("startDate")}
-                </Typography>
-                <DatePicker
-                  open={startDatePickerOpen}
-                  onOpen={() => setStartDatePickerOpen(true)}
-                  onClose={() => setStartDatePickerOpen(false)}
-                  value={startDate}
-                  onChange={handleStartDateChange}
-                  minDate={today}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: "medium",
-                      placeholder: t("selectStartDate"),
-                      sx: {
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          bgcolor: 'background.paper',
-                        }
-                      }
-                    },
-                    popper: {
-                      placement: 'bottom-start',
-                    },
-                    actionBar: {
-                      actions: ['today', 'accept', 'cancel', 'clear']
-                    }
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            {t("minimumVacationNote")}{" "}
+            {earliestEndDate && startDate ? (
+              <strong>{earliestEndDate.format("MMM D, YYYY")}</strong>
+            ) : (
+              <strong>
+                {MIN_VACATION_DAYS} {t("days")}
+              </strong>
+            )}
+          </Typography>
+
+          {minDate && maxDate ? (
+            <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+              <Box sx={pickerShellSx}>
+                <DribbbleDateTimePicker
+                  mode="range"
+                  hideTimeSelection
+                  minRangeDays={MIN_VACATION_DAYS}
+                  minDate={minDate.toDate()}
+                  maxDate={maxDate.toDate()}
+                  value={{
+                    startDate: startDate?.toDate(),
+                    endDate: endDate?.toDate(),
                   }}
-                />
-              </Box>
-              
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" fontWeight="600" sx={{ mb: 1, color: 'text.secondary' }}>
-                  {t("endDate")}
-                </Typography>
-                <DatePicker
-                  open={endDatePickerOpen}
-                  onOpen={() => {
-                    // When opening, ensure we're showing the correct month
-                    if (startDate) {
-                      const calendarMonth = getEndDateCalendarMonth();
-                      setEndDateCalendarMonth(calendarMonth);
-                    }
-                    setEndDatePickerOpen(true);
+                  onDateChange={({ startDate: rangeStart, endDate: rangeEnd }) => {
+                    handleRangeChange(rangeStart, rangeEnd);
                   }}
-                  onClose={() => setEndDatePickerOpen(false)}
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  minDate={startDate || today}
-                  shouldDisableDate={isEndDateDisabled}
-                  // Force the calendar to show the month where enabled dates start
-                  {...(endDateCalendarMonth && {
-                    referenceDate: endDateCalendarMonth
-                  })}
-                  slotProps={getEndDateSlotProps()}
+                  onChange={({ startDate: rangeStart, endDate: rangeEnd }) => {
+                    handleRangeChange(rangeStart, rangeEnd);
+                  }}
                 />
               </Box>
             </Box>
-          </LocalizationProvider>
+          ) : null}
 
-          {/* Date Information */}
-          {startDate && (
-            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+          {startDate ? (
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "grey.50",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="body2" sx={{ mb: 1, color: "text.secondary" }}>
                 <strong>{t("dateInformation")}:</strong>
               </Typography>
               <Box className="flex flex-wrap gap-4">
-                {startDate && (
-                  <Typography variant="body2">
-                    {t("start")}: <strong>{startDate.format("MMM D, YYYY")}</strong>
-                  </Typography>
-                )}
-                {endDate && (
+                <Typography variant="body2">
+                  {t("start")}: <strong>{startDate.format("MMM D, YYYY")}</strong>
+                </Typography>
+                {endDate ? (
                   <Typography variant="body2">
                     {t("end")}: <strong>{endDate.format("MMM D, YYYY")}</strong>
                   </Typography>
-                )}
-                {totalDays > 0 && (
-                  <Typography variant="body2" color={totalDays >= 10 ? "primary.main" : "error.main"} fontWeight="600">
-                    {t("totalDays")}: {totalDays} {totalDays < 10 && `(${t("minimumDaysRequired")})`}
+                ) : null}
+                {totalDays > 0 ? (
+                  <Typography
+                    variant="body2"
+                    color={totalDays >= MIN_VACATION_DAYS ? "primary.main" : "error.main"}
+                    fontWeight="600"
+                  >
+                    {t("totalDays")}: {totalDays}{" "}
+                    {totalDays < MIN_VACATION_DAYS && `(${t("minimumDaysRequired")})`}
                   </Typography>
-                )}
-                {firstAvailableEndDate && (
-                  <Typography variant="body2" color="warning.main" fontSize="0.75rem">
-                    {t("minimumVacationNote")} {firstAvailableEndDate.format("MMM D, YYYY")}
-                  </Typography>
-                )}
+                ) : null}
               </Box>
             </Box>
-          )}
+          ) : null}
         </Box>
 
-        {/* Vacation Policy Info */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 2.5, 
-            bgcolor: 'background.default', 
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            bgcolor: "background.default",
             borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'divider'
+            border: "1px solid",
+            borderColor: "divider",
           }}
         >
-          <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 1, color: 'text.primary' }}>
+          <Typography variant="subtitle2" fontWeight="600" sx={{ mb: 1, color: "text.primary" }}>
             {t("vacationPolicy")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            • {t("minimumVacationPeriod")}: <strong>10 {t("days")}</strong><br/>
-            • {t("vacationPauseMessage")}<br/>
-            • {t("penaltyMessage")}
+            • {t("minimumVacationPeriod")}: <strong>10 {t("days")}</strong>
+            <br />• {t("vacationPauseMessage")}
+            <br />• {t("penaltyMessage")}
           </Typography>
         </Paper>
       </DialogContent>

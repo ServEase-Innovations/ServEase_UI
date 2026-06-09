@@ -879,6 +879,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                       }}
                       onDateChange={handleRangeDateOnlyChange}
                       onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
+                        if (!time) return;
                         const start = dayjs(rangeStart).startOf("day");
                         let end = dayjs(rangeEnd).startOf("day");
                         if (end.diff(start, "day") > SHORT_TERM_MAX_SPAN_DAYS) {

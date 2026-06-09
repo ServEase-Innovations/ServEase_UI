@@ -568,6 +568,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                 }}
                 onDateChange={handleRangeDateOnlyChange}
                 onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
+                  if (!time) return;
                   const start = dayjs(rangeStart);
                   let end = dayjs(rangeEnd);
                   if (end.diff(start, "day") > 14) {

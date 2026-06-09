@@ -46,12 +46,20 @@ type RangeProps = {
   value?: RangeValue;
   /** Max days after start date for end selection (14 = 15 calendar days inclusive). */
   maxRangeDays?: number;
+  /** Min inclusive span (10 = end must be at least 9 days after start). */
+  minRangeDays?: number;
+  /** Earliest selectable calendar day (range mode). */
+  minDate?: Date;
+  /** Latest selectable calendar day (range mode). */
+  maxDate?: Date;
+  /** Date-only range (vacation): skip time slots and complete on end-date tap. */
+  hideTimeSelection?: boolean;
   /** Fired when start/end dates change (time selection is cleared). */
   onDateChange?: (payload: { startDate: Date; endDate?: Date }) => void;
   onChange: (payload: {
     startDate: Date;
     endDate: Date;
-    time: string;
+    time?: string;
   }) => void;
 };
 
@@ -95,12 +103,20 @@ const getTimesUpToNoon = (times: string[]): string[] => {
 export default function DribbbleDateTimePicker(props: Props) {
   const mode = props.mode ?? "single";
   const value = props.value;
-  const maxDate = props.mode === "single" ? props.maxDate : undefined;
+  const singleMaxDate = props.mode === "single" ? props.maxDate : undefined;
+  const rangeProps = props.mode === "range" ? (props as RangeProps) : null;
+  const hideTimeSelection = rangeProps?.hideTimeSelection ?? false;
+  const rangeMinDate = rangeProps?.minDate ? dayjs(rangeProps.minDate).startOf("day") : null;
+  const rangeMaxDate = rangeProps?.maxDate ? dayjs(rangeProps.maxDate).startOf("day") : null;
+  const minRangeDays = Math.max(1, rangeProps?.minRangeDays ?? 1);
+  const minRangeDaysInclusive = minRangeDays;
   const maxRangeDays =
-    props.mode === "range"
-      ? Math.max(1, props.maxRangeDays ?? DEFAULT_MAX_RANGE_DAYS)
-      : DEFAULT_MAX_RANGE_DAYS;
-  const maxRangeDaysInclusive = maxRangeDays + 1;
+    rangeProps?.maxRangeDays != null
+      ? Math.max(1, rangeProps.maxRangeDays)
+      : hideTimeSelection
+        ? undefined
+        : DEFAULT_MAX_RANGE_DAYS;
+  const maxRangeDaysInclusive = maxRangeDays != null ? maxRangeDays + 1 : undefined;
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -143,8 +159,8 @@ export default function DribbbleDateTimePicker(props: Props) {
     }
     if (mode === "range" && value && typeof value === "object" && "startDate" in value) {
       const rv = value as RangeValue;
-      if (rv.startDate) setRangeStart(dayjs(rv.startDate));
-      if (rv.endDate) setRangeEnd(dayjs(rv.endDate));
+      if (rv.startDate) setRangeStart(dayjs(rv.startDate).startOf("day"));
+      if (rv.endDate) setRangeEnd(dayjs(rv.endDate).startOf("day"));
       else setRangeEnd(null);
     }
   }, [mode, value]);
@@ -242,24 +258,46 @@ export default function DribbbleDateTimePicker(props: Props) {
   };
 
   const isDisabledInRangeMode = (day: number) => {
-    const date = currentMonth.date(day);
-    if (isPastDate(date)) return true;
-    if (date.isSame(today, "day") && todayHasNoSlots) return true;
+    const date = currentMonth.date(day).startOf("day");
+    if (!hideTimeSelection && isPastDate(date)) return true;
+    if (!hideTimeSelection && date.isSame(today, "day") && todayHasNoSlots) return true;
+
+    if (hideTimeSelection && rangeMinDate && date.isBefore(rangeMinDate, "day")) return true;
+    if (hideTimeSelection && rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
 
     // For single mode (on-demand), disable dates beyond maxDate
-    if (mode === "single" && maxDate) {
-      if (date.isAfter(dayjs(maxDate), "day")) return true;
+    if (mode === "single" && singleMaxDate) {
+      if (date.isAfter(dayjs(singleMaxDate), "day")) return true;
+    }
+
+    if (mode === "range" && !rangeStart) {
+      if (rangeMinDate && date.isBefore(rangeMinDate, "day")) return true;
+      if (rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
     }
 
     if (mode === "range" && rangeStart && !rangeEnd) {
-      if (date.isBefore(rangeStart, "day")) return true;
-      if (date.isAfter(rangeStart.add(maxRangeDays, "day"), "day")) return true;
+      const earliestEnd = rangeStart.add(minRangeDays - 1, "day");
+      if (date.isBefore(earliestEnd, "day")) return true;
+      if (rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
+      if (maxRangeDays != null && date.isAfter(rangeStart.add(maxRangeDays, "day"), "day")) {
+        return true;
+      }
     }
     return false;
   };
 
   const getTimeSectionMessage = () => {
     if (mode === "range") {
+      if (hideTimeSelection) {
+        if (!rangeStart) {
+          return `Step 1: Tap your first vacation day (minimum ${minRangeDaysInclusive} days)`;
+        }
+        if (!rangeEnd) {
+          const earliest = rangeStart.add(minRangeDays - 1, "day");
+          return `Step 2: Tap your last day — earliest valid end is ${earliest.format("MMM D")}`;
+        }
+        return null;
+      }
       if (!rangeStart) return "Step 1: Tap your first service day on the calendar";
       if (!rangeEnd) {
         return `Step 2: Tap your last day (up to ${maxRangeDaysInclusive} days from the first)`;
@@ -281,13 +319,13 @@ export default function DribbbleDateTimePicker(props: Props) {
   /* -------------------- Handlers -------------------- */
 
   const selectDate = (day: number) => {
-    const date = currentMonth.date(day);
+    const date = currentMonth.date(day).startOf("day");
     if (isDisabledInRangeMode(day)) return;
-    if (date.isSame(today, "day") && todayHasNoSlots) return;
+    if (!hideTimeSelection && date.isSame(today, "day") && todayHasNoSlots) return;
 
     if (mode === "single") {
       // Check max date limit
-      if (maxDate && date.isAfter(dayjs(maxDate), "day")) {
+      if (singleMaxDate && date.isAfter(dayjs(singleMaxDate), "day")) {
         setShowTimeHint(true);
         setTimeout(() => setShowTimeHint(false), 3000);
         return;
@@ -299,19 +337,26 @@ export default function DribbbleDateTimePicker(props: Props) {
     }
 
     // RANGE MODE
-    const rangeProps = props as RangeProps;
+    const activeRangeProps = props as RangeProps;
     if (!rangeStart || rangeEnd) {
       setRangeStart(date);
       setRangeEnd(null);
       setSelectedTime(null);
       setShowAllTimes(false);
-      rangeProps.onDateChange?.({ startDate: date.toDate() });
+      activeRangeProps.onDateChange?.({ startDate: date.toDate() });
       return;
     }
 
     if (date.isSame(rangeStart, "day")) return;
 
-    if (date.diff(rangeStart, "day") > maxRangeDays) {
+    const spanDays = date.diff(rangeStart, "day") + 1;
+    if (spanDays < minRangeDays) {
+      setShowTimeHint(true);
+      setTimeout(() => setShowTimeHint(false), 3000);
+      return;
+    }
+
+    if (maxRangeDays != null && date.diff(rangeStart, "day") > maxRangeDays) {
       setShowTimeHint(true);
       setTimeout(() => setShowTimeHint(false), 3000);
       return;
@@ -320,13 +365,17 @@ export default function DribbbleDateTimePicker(props: Props) {
     if (date.isBefore(rangeStart, "day")) {
       setRangeStart(date);
       setRangeEnd(null);
-      rangeProps.onDateChange?.({ startDate: date.toDate() });
+      activeRangeProps.onDateChange?.({ startDate: date.toDate() });
     } else {
       setRangeEnd(date);
-      rangeProps.onDateChange?.({
+      const payload = {
         startDate: rangeStart.toDate(),
         endDate: date.toDate(),
-      });
+      };
+      activeRangeProps.onDateChange?.(payload);
+      if (hideTimeSelection) {
+        activeRangeProps.onChange(payload);
+      }
     }
     setSelectedTime(null);
     setShowAllTimes(false);
@@ -420,7 +469,7 @@ export default function DribbbleDateTimePicker(props: Props) {
         })}
       </div>
 
-      {todayHasNoSlots && currentMonth.isSame(today, "month") && (
+      {!hideTimeSelection && todayHasNoSlots && currentMonth.isSame(today, "month") && (
         <div className="dtp-day-unavailable-hint">
           Today has no remaining time slots. Please select a future date.
         </div>
@@ -428,8 +477,15 @@ export default function DribbbleDateTimePicker(props: Props) {
 
       {showTimeHint && (
         <div className="dtp-range-hint">
-          Short-term bookings are limited to {maxRangeDaysInclusive} days. Pick an end date within that
-          window.
+          {hideTimeSelection
+            ? `Vacation must be at least ${minRangeDaysInclusive} days. Pick a later end date.`
+            : `Short-term bookings are limited to ${maxRangeDaysInclusive} days. Pick an end date within that window.`}
+        </div>
+      )}
+
+      {hideTimeSelection && minRangeDays > 1 && (
+        <div className="dtp-day-unavailable-hint">
+          Minimum vacation length: {minRangeDaysInclusive} consecutive days.
         </div>
       )}
 
@@ -441,63 +497,71 @@ export default function DribbbleDateTimePicker(props: Props) {
         </div>
       )}
 
-      <div className="dtp-divider" />
-      <div className="dtp-time-header">
-        <h4 className="dtp-time-title">
-          {mode === "range" && (!rangeStart || !rangeEnd) ? "Time (after dates)" : "Select time"}
-        </h4>
-        {getTimeSectionMessage() && (
-          <span
-            className={
-              mode === "range" && (!rangeStart || !rangeEnd || !selectedTime)
-                ? "dtp-step-hint"
-                : "dtp-time-hint"
-            }
-          >
-            {getTimeSectionMessage()}
-          </span>
-        )}
-      </div>
-
-      {hasAvailableTimes ? (
+      {hideTimeSelection ? (
+        getTimeSectionMessage() ? (
+          <div className="dtp-step-hint dtp-vacation-step-hint">{getTimeSectionMessage()}</div>
+        ) : null
+      ) : (
         <>
-          <div className={`dtp-time-grid ${showAllTimes ? "expanded" : ""}`}>
-            {displayedTimes.map((time) => {
-              const isDisabled = isTimeSlotDisabled(time);
-              const isSelected = selectedTime === time;
-              return (
-                <button
-                  key={time}
-                  className={[
-                    "dtp-time",
-                    isSelected ? "active" : "",
-                    isDisabled || isTimeSelectionDisabled ? "disabled" : "",
-                  ].join(" ")}
-                  onClick={() => selectTime(time)}
-                  disabled={isDisabled || isTimeSelectionDisabled}
-                >
-                  {time}
-                </button>
-              );
-            })}
+          <div className="dtp-divider" />
+          <div className="dtp-time-header">
+            <h4 className="dtp-time-title">
+              {mode === "range" && (!rangeStart || !rangeEnd) ? "Time (after dates)" : "Select time"}
+            </h4>
+            {getTimeSectionMessage() && (
+              <span
+                className={
+                  mode === "range" && (!rangeStart || !rangeEnd || !selectedTime)
+                    ? "dtp-step-hint"
+                    : "dtp-time-hint"
+                }
+              >
+                {getTimeSectionMessage()}
+              </span>
+            )}
           </div>
 
-          {canExpand && (
-            <div className="dtp-more-time">
-              <button onClick={() => setShowAllTimes((prev) => !prev)}>
-                {showAllTimes ? "Less time ▲" : "More time ▼"}
-              </button>
+          {hasAvailableTimes ? (
+            <>
+              <div className={`dtp-time-grid ${showAllTimes ? "expanded" : ""}`}>
+                {displayedTimes.map((time) => {
+                  const isDisabled = isTimeSlotDisabled(time);
+                  const isSelected = selectedTime === time;
+                  return (
+                    <button
+                      key={time}
+                      className={[
+                        "dtp-time",
+                        isSelected ? "active" : "",
+                        isDisabled || isTimeSelectionDisabled ? "disabled" : "",
+                      ].join(" ")}
+                      onClick={() => selectTime(time)}
+                      disabled={isDisabled || isTimeSelectionDisabled}
+                    >
+                      {time}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {canExpand && (
+                <div className="dtp-more-time">
+                  <button onClick={() => setShowAllTimes((prev) => !prev)}>
+                    {showAllTimes ? "Less time ▲" : "More time ▼"}
+                  </button>
+                </div>
+              )}
+
+              {hasAvailableTimes && activeDate && isTodayDate(activeDate) && (
+                <div className="dtp-helper-note">Past times are hidden. Showing available slots.</div>
+              )}
+            </>
+          ) : (
+            <div className="dtp-no-times-message">
+              {getTimeSectionMessage() || "No time slots available"}
             </div>
           )}
-
-          {hasAvailableTimes && activeDate && isTodayDate(activeDate) && (
-            <div className="dtp-helper-note">Past times are hidden. Showing available slots.</div>
-          )}
         </>
-      ) : (
-        <div className="dtp-no-times-message">
-          {getTimeSectionMessage() || "No time slots available"}
-        </div>
       )}
     </div>
   );

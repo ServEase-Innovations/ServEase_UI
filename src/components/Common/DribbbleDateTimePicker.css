@@ -175,6 +175,11 @@
   border-radius: 12px;
 }
 
+.dtp-vacation-step-hint {
+  margin-top: 12px;
+  text-align: center;
+}
+
 .dtp-step-hint {
   font-size: 11px;
   color: #1d4ed8;
