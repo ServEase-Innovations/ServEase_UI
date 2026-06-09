@@ -28,6 +28,7 @@ import {
   PartyPopper,
   Megaphone,
   Ticket,
+  CreditCard,
 } from "lucide-react";
 import { openSupportTicketDialog } from "src/utils/supportTicketEvents";
 import PaymentInstance from "src/services/paymentInstance";
@@ -117,7 +118,14 @@ function typeMeta(type: string): { label: string; Icon: React.ElementType; color
   if (s.includes("SUPPORT_TICKET")) {
     return { label: "Support", Icon: Ticket, color: "#0369a1" };
   }
+  if (s === "PAYMENT_PENDING_REMINDER" || s.includes("PAYMENT_PENDING")) {
+    return { label: "Payment due", Icon: CreditCard, color: "#d97706" };
+  }
   return { label: "Update", Icon: Bell, color: "#64748b" };
+}
+
+function isPaymentPendingReminderType(type: string): boolean {
+  return (type || "").toUpperCase() === "PAYMENT_PENDING_REMINDER";
 }
 
 function supportTicketIdFromNotification(n: InAppNotification): number | null {
@@ -168,9 +176,17 @@ type Props = {
   onClose: () => void;
   appUser: any;
   onUnreadCountChange?: (n: number) => void;
+  /** Customer: open My Bookings on the pending-payment flow for this engagement. */
+  onOpenBookingPayment?: (engagementId: string) => void;
 };
 
-export default function NotificationsPage({ open, onClose, appUser, onUnreadCountChange }: Props) {
+export default function NotificationsPage({
+  open,
+  onClose,
+  appUser,
+  onUnreadCountChange,
+  onOpenBookingPayment,
+}: Props) {
   const { t } = useLanguage();
   const [items, setItems] = useState<InAppNotification[]>([]);
   const [unread, setUnread] = useState(0);
@@ -619,10 +635,19 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                   : null;
               const isSupportTicket = tUpper.includes("SUPPORT_TICKET");
               const supportTicketId = isSupportTicket ? supportTicketIdFromNotification(n) : null;
+              const isPaymentReminder =
+                !spNotificationSession && isPaymentPendingReminderType(n.type);
               const openSupportTicket = () => {
                 if (supportTicketId == null) return;
                 if (unreadItem) void markRead(n);
                 openSupportTicketDialog(supportTicketId);
+              };
+              const openPaymentReminder = () => {
+                const payEid = resolveNotificationEngagementId(n);
+                if (payEid == null || !onOpenBookingPayment) return;
+                if (unreadItem) void markRead(n);
+                onOpenBookingPayment(String(payEid));
+                onClose();
               };
               return (
                 <ListItem
@@ -635,6 +660,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                   <Paper
                     variant="outlined"
                     onClick={() => {
+                      if (isPaymentReminder && onOpenBookingPayment) {
+                        openPaymentReminder();
+                        return;
+                      }
                       if (isSupportTicket && supportTicketId != null) {
                         openSupportTicket();
                         return;
@@ -650,6 +679,10 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
+                      if (isPaymentReminder && onOpenBookingPayment) {
+                        openPaymentReminder();
+                        return;
+                      }
                       if (isSupportTicket && supportTicketId != null) {
                         openSupportTicket();
                         return;
@@ -663,6 +696,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                       if (!isSpOndemandNewBooking && unreadItem) void markRead(n);
                     }}
                     role={
+                      (isPaymentReminder && onOpenBookingPayment) ||
                       (isSupportTicket && supportTicketId != null) ||
                       (isSpAssignedConfirmed && hasBookingDetailPanel) ||
                       (unreadItem && !isSpOndemandNewBooking)
@@ -670,6 +704,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         : "article"
                     }
                     tabIndex={
+                      (isPaymentReminder && onOpenBookingPayment) ||
                       (isSupportTicket && supportTicketId != null) ||
                       (isSpAssignedConfirmed && hasBookingDetailPanel) ||
                       (unreadItem && !isSpOndemandNewBooking)
@@ -677,7 +712,9 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         : -1
                     }
                     aria-label={
-                      isSupportTicket && supportTicketId != null
+                      isPaymentReminder && onOpenBookingPayment
+                        ? `${n.title}. Complete payment.`
+                        : isSupportTicket && supportTicketId != null
                         ? `${n.title}. View support ticket.`
                         : isSpAssignedConfirmed && hasBookingDetailPanel
                           ? `${n.title}. View booking details.`
@@ -702,6 +739,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                         : "none",
                       transition: "all 0.2s ease",
                       cursor:
+                        (isPaymentReminder && onOpenBookingPayment) ||
                         (isSupportTicket && supportTicketId != null) ||
                         (isSpAssignedConfirmed && hasBookingDetailPanel) ||
                         (unreadItem && !isSpOndemandNewBooking)
@@ -709,6 +747,7 @@ export default function NotificationsPage({ open, onClose, appUser, onUnreadCoun
                           : "default",
                       borderRadius: 2,
                       "&:hover":
+                        (isPaymentReminder && onOpenBookingPayment) ||
                         (isSupportTicket && supportTicketId != null) ||
                         (isSpAssignedConfirmed && hasBookingDetailPanel) ||
                         (!isSpOndemandNewBooking && unreadItem)

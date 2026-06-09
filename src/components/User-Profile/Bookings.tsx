@@ -608,6 +608,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       // CASE 2: View specific booking
       } else if (deepLinkBookingId) {
         console.log(`🎯 OPENING SPECIFIC BOOKING #${deepLinkBookingId}`);
+
+        if (deepLinkAction === "resume_payment") {
+          setViewTab("pending");
+        }
         
         // Helper function to find and highlight booking
         const findAndHighlightBooking = (bookingId: string) => {
@@ -625,8 +629,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 element.classList.add('highlight-booking');
                 
-                // MODIFIED: Always open drawer by default, regardless of action parameter
-                const shouldOpenDrawer = deepLinkAction === 'drawer' || !deepLinkAction || deepLinkAction === 'open';
+                const shouldOpenDrawer =
+                  deepLinkAction === "resume_payment" ||
+                  deepLinkAction === "drawer" ||
+                  !deepLinkAction ||
+                  deepLinkAction === "open";
                 
                 if (shouldOpenDrawer) {
                   console.log('📂 Opening details drawer automatically (default behavior)');
@@ -673,8 +680,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   element.classList.add('highlight-booking');
                   
-                  // MODIFIED: Always open drawer by default, regardless of action parameter
-                  const shouldOpenDrawer = deepLinkAction === 'drawer' || !deepLinkAction || deepLinkAction === 'open';
+                  const shouldOpenDrawer =
+                    deepLinkAction === "resume_payment" ||
+                    deepLinkAction === "drawer" ||
+                    !deepLinkAction ||
+                    deepLinkAction === "open";
                   
                   if (shouldOpenDrawer) {
                     console.log('📂 Opening details drawer automatically (delayed)');

@@ -2045,6 +2045,13 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onClose={handleCloseNotifications}
         appUser={appUser}
         onUnreadCountChange={handleInAppUnreadChange}
+        onOpenBookingPayment={(engagementId) => {
+          sessionStorage.setItem("deepLinkBookingId", String(engagementId));
+          sessionStorage.setItem("deepLinkAction", "resume_payment");
+          sessionStorage.setItem("deepLinkTimestamp", Date.now().toString());
+          handleCloseNotifications();
+          sendDataToParent(BOOKINGS);
+        }}
       />
 
       <Dialog
