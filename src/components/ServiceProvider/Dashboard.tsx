@@ -48,6 +48,7 @@ import {
 } from "src/services/bookingEpoch";
 import type { EngagementEpochFields } from "src/services/epochContract";
 import { OtpVerificationDialog } from "./OtpVerificationDialog";
+import { getOtpVerifyErrorMessage } from "src/utils/otpVerifyError";
 import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
 import TrackAddress from "./TrackAddress";
@@ -913,14 +914,9 @@ const handleTrackAddress = (address: string) => {
       await refreshDashboard();
       return Promise.resolve();
     } catch (err) {
-      let errorMessage = "Failed to complete service";
-      if (axios.isAxiosError(err)) {
-        const d = err.response?.data as { error?: string; message?: string } | undefined;
-        errorMessage = d?.error || d?.message || err.message || errorMessage;
-      }
-      
+      const errorMessage = getOtpVerifyErrorMessage(err, "Failed to complete service");
       toast({
-        title: "Error",
+        title: "OTP verification failed",
         description: errorMessage,
         variant: "destructive",
       });

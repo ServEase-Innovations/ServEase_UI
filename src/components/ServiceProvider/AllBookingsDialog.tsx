@@ -46,6 +46,7 @@ import {
 } from "src/services/bookingEpoch";
 import type { EngagementEpochFields } from "src/services/epochContract";
 import { sortProviderEngagementsByServiceDate } from "src/utils/sortProviderEngagements";
+import { getOtpVerifyErrorMessage } from "src/utils/otpVerifyError";
 
 interface AllBookingsDialogProps {
   bookings: BookingHistoryResponse | null;
@@ -903,16 +904,13 @@ export function AllBookingsDialog({
       });
       setTaskStatus((prev) => ({ ...prev, [currentBooking.bookingId]: "COMPLETED" }));
       await fetchMonth();
+      setOtpDialogOpen(false);
     } catch (err) {
-      let errorMessage = "Failed to complete service";
-      if (axios.isAxiosError(err)) {
-        errorMessage = err.response?.data?.message || err.message || errorMessage;
-      }
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      const errorMessage = getOtpVerifyErrorMessage(err, "Failed to complete service");
+      toast({ title: "OTP verification failed", description: errorMessage, variant: "destructive" });
       throw err;
     } finally {
       setVerifyingOtp(false);
-      setOtpDialogOpen(false);
     }
   };
 
