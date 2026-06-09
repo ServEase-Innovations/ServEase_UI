@@ -28,6 +28,10 @@ import {
   type MaidPricingRow,
 } from "src/utils/maidPricingUtils";
 import { formatMonthlyHourlyRateBand } from "src/Constants/servicePricing";
+import {
+  buildLocationSearchKey,
+  resolveLocationCoords,
+} from "src/utils/bookingLocation";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -92,6 +96,11 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   );
 
   const location = useSelector((state: any) => state?.geoLocation?.value);
+  const locationUpdatedAt = useSelector((state: any) => state?.geoLocation?.updatedAt ?? 0);
+  const locationSearchKey = useMemo(
+    () => buildLocationSearchKey(location),
+    [location, locationUpdatedAt]
+  );
 
   const { appUser } = useAppUser();
   const { t } = useLanguage();
@@ -363,14 +372,14 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       setHasFetchedOnce(false);
     }
     await fetchProviders(reset ? 1 : currentPage + 1, reset);
-  }, [location, providerSearchCriteria, activeFilters, customerId, appUser]);
+  }, [location, locationSearchKey, providerSearchCriteria, activeFilters, customerId, appUser]);
 
-  // Trigger search when search-relevant booking fields change (not on provider pick).
+  // Trigger search when search-relevant booking fields or service location change.
   useEffect(() => {
-    if (selectedProviderType !== undefined && location && providerSearchKey) {
+    if (selectedProviderType !== undefined && locationSearchKey && providerSearchKey) {
       performSearch(true);
     }
-  }, [selectedProviderType, location, providerSearchKey, activeFilters, performSearch]);
+  }, [selectedProviderType, locationSearchKey, providerSearchKey, activeFilters, performSearch]);
 
   const fetchMoreData = () => {
     if (isLoadingMore || !hasMore) return;

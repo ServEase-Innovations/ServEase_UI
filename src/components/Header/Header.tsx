@@ -85,6 +85,7 @@ import {
   isProviderNotificationSession,
   resolveProviderIdNumber,
 } from "src/utils/spSession";
+import { formatServiceAddressFromGeoLocation } from "src/utils/bookingLocation";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
@@ -571,6 +572,23 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const [location, setLocation] = useState<any>("");
   const [locationAs, setLocationAs] = useState("");
+  const geoLocationFromStore = useSelector((state: any) => state?.geoLocation?.value);
+  const geoLocationUpdatedAt = useSelector(
+    (state: any) => state?.geoLocation?.updatedAt ?? 0
+  );
+
+  // Keep header label in sync when location changes elsewhere (e.g. checkout).
+  useEffect(() => {
+    if (!geoLocationUpdatedAt) return;
+    const display = formatServiceAddressFromGeoLocation(geoLocationFromStore);
+    if (!display) {
+      setLocation("");
+      userPickedLocationRef.current = false;
+      return;
+    }
+    setLocation(display);
+    userPickedLocationRef.current = true;
+  }, [geoLocationFromStore, geoLocationUpdatedAt]);
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [accountEl, setAccountEl] = useState<null | HTMLElement>(null);

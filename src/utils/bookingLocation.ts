@@ -41,22 +41,86 @@ export function formatServiceAddressFromGeoLocation(location: unknown): string {
   return "";
 }
 
-export function resolveLocationLat(location: unknown): number | null {
-  if (!location || typeof location !== "object") return null;
-  const loc = location as Record<string, unknown>;
-  const geom = loc.geometry as { location?: { lat?: number } } | undefined;
-  if (typeof geom?.location?.lat === "number") return geom.location.lat;
-  if (typeof loc.lat === "number") return loc.lat;
+function readCoordinate(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "function") {
+    try {
+      const resolved = value();
+      return typeof resolved === "number" && Number.isFinite(resolved) ? resolved : null;
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
 
-export function resolveLocationLng(location: unknown): number | null {
+/** Read lat/lng from Google JSON, saved-location blobs, or live LatLng objects. */
+export function readLatLngPoint(point: unknown): { lat: number; lng: number } | null {
+  if (!point || typeof point !== "object") return null;
+  const p = point as Record<string, unknown>;
+  const lat = readCoordinate(p.lat);
+  const lng = readCoordinate(p.lng);
+  if (lat != null && lng != null) return { lat, lng };
+  return null;
+}
+
+export function resolveLocationCoords(
+  location: unknown
+): { lat: number; lng: number } | null {
   if (!location || typeof location !== "object") return null;
   const loc = location as Record<string, unknown>;
-  const geom = loc.geometry as { location?: { lng?: number } } | undefined;
-  if (typeof geom?.location?.lng === "number") return geom.location.lng;
-  if (typeof loc.lng === "number") return loc.lng;
+
+  const fromGeometry = readLatLngPoint(
+    (loc.geometry as { location?: unknown } | undefined)?.location
+  );
+  if (fromGeometry) return fromGeometry;
+
+  const fromRoot = readLatLngPoint(loc);
+  if (fromRoot) return fromRoot;
+
+  const latitude = readCoordinate(loc.latitude);
+  const longitude = readCoordinate(loc.longitude);
+  if (latitude != null && longitude != null) {
+    return { lat: latitude, lng: longitude };
+  }
+
   return null;
+}
+
+export function resolveLocationLat(location: unknown): number | null {
+  return resolveLocationCoords(location)?.lat ?? null;
+}
+
+export function resolveLocationLng(location: unknown): number | null {
+  return resolveLocationCoords(location)?.lng ?? null;
+}
+
+/** Stable key for provider-search invalidation when coordinates change. */
+export function buildLocationSearchKey(location: unknown): string {
+  const coords = resolveLocationCoords(location);
+  if (coords) {
+    return `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
+  }
+  const address = formatServiceAddressFromGeoLocation(location);
+  return address || "";
+}
+
+/** Normalize any location payload before storing in Redux or sending to APIs. */
+export function normalizeGeoLocationPayload(
+  raw: unknown
+): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object") return null;
+  const source = raw as Record<string, unknown>;
+  const coords = resolveLocationCoords(source);
+  const formatted = formatServiceAddressFromGeoLocation(source);
+
+  return {
+    ...source,
+    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+    ...(formatted && !source.formatted_address
+      ? { formatted_address: formatted }
+      : {}),
+  };
 }
 
 export function hasValidBookingLocation(location: unknown): boolean {

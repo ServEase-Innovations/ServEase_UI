@@ -5,6 +5,10 @@ import store from "src/store/userStore";
 import PaymentInstance from "./paymentInstance";
 import dayjs from "dayjs";
 import { resolveProviderId } from "src/utils/providerId";
+import {
+  formatServiceAddressFromGeoLocation,
+  resolveLocationCoords,
+} from "src/utils/bookingLocation";
 
 /** Injected by https://checkout.razorpay.com/v1/checkout.js (do not augment `Window` — conflicts with other typings). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -270,37 +274,19 @@ export const BookingService = {
     payload = normalizeEpochFirstPayload(payload);
 
     const state = store.getState();
-    const location : any = state.geoLocation.value; 
-
-    let latitude = 0;
-    let longitude = 0;
-
+    const location: unknown = state.geoLocation.value;
+    const coords = resolveLocationCoords(location);
 
     console.log("Location from store:", location);
 
-    if(location?.geometry?.location){
-      latitude = location?.geometry?.location?.lat;
-      longitude = location?.geometry?.location?.lng;
-    } else if (location?.lat && location?.lng) {
-      latitude = location?.lat;
-      longitude = location?.lng;
-    }
-
-
-    console.log("location payload:", location);
-    
-    console.log("Current location from store:", location);
     // payload.start_time = to24Hour(payload.start_time);
     payload.serviceproviderid = payload.serviceproviderid === 0 ? null : payload.serviceproviderid;
-    payload.latitude = latitude;
-    payload.longitude = longitude;
-   payload.address =
-  location?.formatted_address ||
-  location?.address?.[0]?.formatted_address ||
-  null;
+    payload.latitude = coords?.lat ?? 0;
+    payload.longitude = coords?.lng ?? 0;
+    payload.address = formatServiceAddressFromGeoLocation(location) || null;
     console.log("Location:", location);
-console.log("Address:", location?.formatted_address);
-console.log("Payload:", payload);
+    console.log("Address:", payload.address);
+    console.log("Payload:", payload);
     const engagementData = await BookingService.createEngagement(payload);
 
     // Extract order id & amount
