@@ -37,13 +37,7 @@ interface AppUserContextType {
 const AppUserContext = createContext<AppUserContextType | undefined>(undefined);
 
 function AuthSessionBridge({ onReady }: { onReady: () => void }) {
-  const {
-    isAuthenticated,
-    isLoading,
-    getAccessTokenSilently,
-    loginWithPopup,
-    loginWithRedirect,
-  } = useAuth0();
+  const { isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup } = useAuth0();
 
   useEffect(() => {
     if (isLoading) return;
@@ -56,11 +50,7 @@ function AuthSessionBridge({ onReady }: { onReady: () => void }) {
     let cancelled = false;
     (async () => {
       try {
-        const token = await resolveAccessToken(
-          getAccessTokenSilently,
-          loginWithPopup,
-          loginWithRedirect
-        );
+        const token = await resolveAccessToken(getAccessTokenSilently, loginWithPopup);
         if (!cancelled && token) {
           localStorage.setItem("token", token);
         }
@@ -74,14 +64,7 @@ function AuthSessionBridge({ onReady }: { onReady: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [
-    isAuthenticated,
-    isLoading,
-    getAccessTokenSilently,
-    loginWithPopup,
-    loginWithRedirect,
-    onReady,
-  ]);
+  }, [isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup, onReady]);
 
   return null;
 }

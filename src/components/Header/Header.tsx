@@ -53,14 +53,8 @@ import {
 import { Button, dialogActionsClassName } from "../Button/button";
 import { IconButton } from "../Button/icon-button";
 import { useAuth0 } from "@auth0/auth0-react";
-import { resolveAccessToken } from "src/utils/auth0Token";
-import Auth0SignInDialog from "../Auth/Auth0SignInDialog";
+import { AUTH0_DEFAULT_SCOPE, resolveAccessToken } from "src/utils/auth0Token";
 import { openAuth0PopupWindow } from "src/utils/openAuth0PopupWindow";
-import {
-  auth0LoginAppState,
-  auth0LoginAuthorizationParams,
-  prefersAuth0RedirectLogin,
-} from "src/utils/auth0Login";
 import MapComponent from "../MapComponent/MapComponent";
 import { get } from "http";
 import { CartDialog } from "../AddToCart/CartDialog";
@@ -156,15 +150,7 @@ export const Header: React.FC<ChildComponentProps> = ({
   }
 };
 
-  const {
-    logout,
-    user,
-    isAuthenticated,
-    isLoading,
-    getAccessTokenSilently,
-    loginWithPopup,
-    loginWithRedirect,
-  } = useAuth0();
+  const { logout, user, isAuthenticated, isLoading, getAccessTokenSilently, loginWithPopup } = useAuth0();
 
   const { setAppUser, authSessionReady, appUser } = useAppUser();
   const dispatch = useDispatch();
@@ -286,11 +272,7 @@ export const Header: React.FC<ChildComponentProps> = ({
       }
 
       try {
-        const token = await resolveAccessToken(
-          getAccessTokenSilently,
-          loginWithPopup,
-          loginWithRedirect
-        );
+        const token = await resolveAccessToken(getAccessTokenSilently, loginWithPopup);
         if (token) localStorage.setItem("token", token);
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
@@ -1034,71 +1016,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   const [showDropdown, setShowDropdown] = useState(false);
   const locationMenuRef = useRef<HTMLDivElement>(null);
   const [authChoiceOpen, setAuthChoiceOpen] = useState(false);
-  const [auth0SignInOpen, setAuth0SignInOpen] = useState(false);
-  const auth0PopupRef = useRef<Window | null>(null);
   const [phoneLoginDialogOpen, setPhoneLoginDialogOpen] = useState(false);
-
-  const handleEmailLogin = () => {
-    setAuthChoiceOpen(false);
-
-    if (prefersAuth0RedirectLogin()) {
-      void loginWithRedirect({
-        authorizationParams: auth0LoginAuthorizationParams("login"),
-        appState: auth0LoginAppState(),
-      }).catch((err) => {
-        console.error("Auth0 redirect login failed:", err);
-        setSnackbarMessage(t("auth0SignInNote"));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      });
-      return;
-    }
-
-    const popup = openAuth0PopupWindow();
-    if (!popup) {
-      void loginWithRedirect({
-        authorizationParams: auth0LoginAuthorizationParams("login"),
-        appState: auth0LoginAppState(),
-      }).catch((err) => {
-        console.error("Auth0 redirect login failed:", err);
-      });
-      return;
-    }
-
-    auth0PopupRef.current = popup;
-    setAuth0SignInOpen(true);
-    void loginWithPopup(
-      { authorizationParams: auth0LoginAuthorizationParams("login") },
-      { popup }
-    )
-      .then(() => {
-        setAuth0SignInOpen(false);
-        auth0PopupRef.current = null;
-      })
-      .catch((err) => {
-        console.error("Auth0 login popup failed:", err);
-        setAuth0SignInOpen(false);
-        try {
-          auth0PopupRef.current?.close();
-        } catch {
-          /* ignore */
-        }
-        auth0PopupRef.current = null;
-        setSnackbarMessage(t("auth0SignInNote"));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      });
-  };
-
-  const handleAuth0DialogClose = () => {
-    try {
-      auth0PopupRef.current?.close();
-    } catch {
-      /* ignore */
-    }
-    auth0PopupRef.current = null;
-    setAuth0SignInOpen(false);
-  };
 
   useEffect(() => {
     if (!showDropdown) return;
@@ -2111,8 +2029,6 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         onUnreadCountChange={handleInAppUnreadChange}
       />
 
-      <Auth0SignInDialog open={auth0SignInOpen} onClose={handleAuth0DialogClose} />
-
       <Dialog
         open={authChoiceOpen}
         onClose={() => setAuthChoiceOpen(false)}
@@ -2129,7 +2045,12 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           <Button
             type="button"
             variant="dialogCancel"
-            onClick={handleEmailLogin}
+            onClick={() => {
+              setAuthChoiceOpen(false);
+              void loginWithPopup({
+                authorizationParams: { prompt: "login", scope: AUTH0_DEFAULT_SCOPE },
+              }).catch(() => {});
+            }}
           >
             Login with email
           </Button>

@@ -43,11 +43,6 @@ import { useLanguage } from "src/context/LanguageContext";
 import { useAppUser } from "src/context/AppUserContext";
 import Auth0SignInDialog from "../Auth/Auth0SignInDialog";
 import { openAuth0PopupWindow } from "src/utils/openAuth0PopupWindow";
-import {
-  auth0LoginAppState,
-  auth0LoginAuthorizationParams,
-  prefersAuth0RedirectLogin,
-} from "src/utils/auth0Login";
 import { isCustomerCheckoutReady } from "src/utils/authSession";
 import {
   getBookingTypeFromPreference,
@@ -492,36 +487,16 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   ]);
 
   const handleLoginToContinue = () => {
-    if (prefersAuth0RedirectLogin()) {
-      void loginWithRedirect({
-        authorizationParams: auth0LoginAuthorizationParams("login"),
-        appState: auth0LoginAppState(),
-      }).catch(() => {
-        setSnackbarMessage(t("auth0SignInNote"));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      });
-      return;
-    }
-
     const popup = openAuth0PopupWindow();
     if (!popup) {
-      void loginWithRedirect({
-        authorizationParams: auth0LoginAuthorizationParams("login"),
-        appState: auth0LoginAppState(),
-      }).catch(() => {
-        setSnackbarMessage(t("auth0SignInNote"));
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      });
+      setSnackbarMessage(t("auth0SignInNote"));
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
       return;
     }
     auth0PopupRef.current = popup;
     setAuth0SignInOpen(true);
-    void loginWithPopup(
-      { authorizationParams: auth0LoginAuthorizationParams("login") },
-      { popup }
-    )
+    void loginWithPopup({ authorizationParams: { prompt: "login" } }, { popup })
       .then(() => {
         setAuth0SignInOpen(false);
         auth0PopupRef.current = null;

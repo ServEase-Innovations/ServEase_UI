@@ -10,14 +10,33 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // I
 import Admin from "./components/Admin/Admin";
 import AppleHomeScreen from "./components/test/AppleHomeScreen";
 import StylishLayout from "./components/test/StylishLayout";
+import { Auth0Provider } from '@auth0/auth0-react';
 import TnC from "./TermsAndConditions/TnC";
-import { Auth0ProviderWithNavigate } from "./auth/Auth0ProviderWithNavigate";
 import PrivacyPolicy from "./TermsAndConditions/PrivacyPolicy";
 import KeyFactsStatement from "./TermsAndConditions/KeyFactsStatement";
 import Chat from "./components/LiveChat/Chat";
 import AdminChats from "./components/Admin/Dashboard/Chats";
 import Chats from "./components/Admin/Dashboard/Chats";
 import { AppUserProvider } from "./context/AppUserContext";
+
+const domain =
+  process.env.REACT_APP_AUTH0_DOMAIN?.trim() || "dev-plavkbiy7v55pbg4.us.auth0.com";
+const clientId =
+  process.env.REACT_APP_AUTH0_CLIENT_ID?.trim() || "FkZvRgSNTXloPOo2ZVRmt24MbTrfIusi";
+
+const auth0AuthorizationParams: {
+  redirect_uri: string;
+  scope: string;
+  audience?: string;
+} = {
+  redirect_uri: window.location.origin,
+  scope: "openid profile email offline_access",
+};
+
+const auth0Audience = process.env.REACT_APP_AUTH0_AUDIENCE?.trim();
+if (auth0Audience) {
+  auth0AuthorizationParams.audience = auth0Audience;
+}
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -46,11 +65,18 @@ if (typeof Notification === "undefined") {
 
 
 root.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <Router>
-        <Auth0ProviderWithNavigate>
-          <AppUserProvider>
+  <Auth0Provider
+    domain={domain}
+    clientId={clientId}
+    cacheLocation="localstorage"
+    useRefreshTokens={true}
+    useRefreshTokensFallback={true}
+    authorizationParams={auth0AuthorizationParams}
+  >
+    <AppUserProvider>
+      <React.StrictMode>
+        <Provider store={store}>
+          <Router>
             <Routes>
               <Route path="/" element={<App />} />
               <Route path="/admin" element={<Admin />} />
@@ -81,11 +107,11 @@ root.render(
               <Route path="/Privacy" element={<PrivacyPolicy />} />
               <Route path="/KeyFactsStatement" element={<KeyFactsStatement />} />
             </Routes>
-          </AppUserProvider>
-        </Auth0ProviderWithNavigate>
-      </Router>
-    </Provider>
-  </React.StrictMode>
+          </Router>
+        </Provider>
+      </React.StrictMode>
+    </AppUserProvider>
+  </Auth0Provider>
 );
 
 
