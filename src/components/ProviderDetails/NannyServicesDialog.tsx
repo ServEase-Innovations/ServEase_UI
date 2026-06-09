@@ -67,6 +67,11 @@ import { useAppUser } from 'src/context/AppUserContext';
 import { isCustomerCheckoutReady } from 'src/utils/authSession';
 import Auth0SignInDialog from '../Auth/Auth0SignInDialog';
 import { openAuth0PopupWindow } from 'src/utils/openAuth0PopupWindow';
+import {
+  auth0LoginAppState,
+  auth0LoginAuthorizationParams,
+  prefersAuth0RedirectLogin,
+} from 'src/utils/auth0Login';
 
 interface NannyServicesDialogProps {
   open: boolean;
@@ -150,7 +155,12 @@ const NannyServicesDialog: React.FC<NannyServicesDialogProps> = ({
 const { appUser } = useAppUser(); 
   const { getFilteredPricing } = usePricingFilterService();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
-  const { isAuthenticated: auth0IsAuthenticated, user, loginWithPopup } = useAuth0();
+  const {
+    isAuthenticated: auth0IsAuthenticated,
+    user,
+    loginWithPopup,
+    loginWithRedirect,
+  } = useAuth0();
   const isCheckoutAuthenticated = useMemo(
     () => isCustomerCheckoutReady(appUser, auth0IsAuthenticated),
     [appUser, auth0IsAuthenticated]
@@ -179,17 +189,34 @@ const { appUser } = useAppUser();
   }, [open]);
 
   const handleLoginToContinue = () => {
+    if (prefersAuth0RedirectLogin()) {
+      void loginWithRedirect({
+        authorizationParams: auth0LoginAuthorizationParams("login"),
+        appState: auth0LoginAppState(),
+      }).catch(() => {
+        setSnackbarMessage(t("auth0SignInNote"));
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+      });
+      return;
+    }
+
     const popup = openAuth0PopupWindow();
     if (!popup) {
-      setSnackbarMessage(t("auth0SignInNote"));
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
+      void loginWithRedirect({
+        authorizationParams: auth0LoginAuthorizationParams("login"),
+        appState: auth0LoginAppState(),
+      }).catch(() => {
+        setSnackbarMessage(t("auth0SignInNote"));
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+      });
       return;
     }
     auth0PopupRef.current = popup;
     setAuth0SignInOpen(true);
     void loginWithPopup(
-      { authorizationParams: { prompt: "login" } },
+      { authorizationParams: auth0LoginAuthorizationParams("login") },
       { popup }
     )
       .then(() => {

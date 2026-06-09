@@ -53,9 +53,14 @@ import {
 import { Button, dialogActionsClassName } from "../Button/button";
 import { IconButton } from "../Button/icon-button";
 import { useAuth0 } from "@auth0/auth0-react";
-import { AUTH0_DEFAULT_SCOPE, resolveAccessToken } from "src/utils/auth0Token";
+import { resolveAccessToken } from "src/utils/auth0Token";
 import Auth0SignInDialog from "../Auth/Auth0SignInDialog";
 import { openAuth0PopupWindow } from "src/utils/openAuth0PopupWindow";
+import {
+  auth0LoginAppState,
+  auth0LoginAuthorizationParams,
+  prefersAuth0RedirectLogin,
+} from "src/utils/auth0Login";
 import MapComponent from "../MapComponent/MapComponent";
 import { get } from "http";
 import { CartDialog } from "../AddToCart/CartDialog";
@@ -281,7 +286,11 @@ export const Header: React.FC<ChildComponentProps> = ({
       }
 
       try {
-        const token = await resolveAccessToken(getAccessTokenSilently, loginWithPopup);
+        const token = await resolveAccessToken(
+          getAccessTokenSilently,
+          loginWithPopup,
+          loginWithRedirect
+        );
         if (token) localStorage.setItem("token", token);
         console.log("Access Token:", token);
         console.log("User authenticated:", user);
@@ -1030,11 +1039,26 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
   const [phoneLoginDialogOpen, setPhoneLoginDialogOpen] = useState(false);
 
   const handleEmailLogin = () => {
+    setAuthChoiceOpen(false);
+
+    if (prefersAuth0RedirectLogin()) {
+      void loginWithRedirect({
+        authorizationParams: auth0LoginAuthorizationParams("login"),
+        appState: auth0LoginAppState(),
+      }).catch((err) => {
+        console.error("Auth0 redirect login failed:", err);
+        setSnackbarMessage(t("auth0SignInNote"));
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
+      });
+      return;
+    }
+
     const popup = openAuth0PopupWindow();
     if (!popup) {
-      setAuthChoiceOpen(false);
       void loginWithRedirect({
-        authorizationParams: { prompt: "login", scope: AUTH0_DEFAULT_SCOPE },
+        authorizationParams: auth0LoginAuthorizationParams("login"),
+        appState: auth0LoginAppState(),
       }).catch((err) => {
         console.error("Auth0 redirect login failed:", err);
       });
@@ -1042,10 +1066,9 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
     }
 
     auth0PopupRef.current = popup;
-    setAuthChoiceOpen(false);
     setAuth0SignInOpen(true);
     void loginWithPopup(
-      { authorizationParams: { prompt: "login", scope: AUTH0_DEFAULT_SCOPE } },
+      { authorizationParams: auth0LoginAuthorizationParams("login") },
       { popup }
     )
       .then(() => {

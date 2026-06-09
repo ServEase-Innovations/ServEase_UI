@@ -1,4 +1,13 @@
-import type { GetTokenSilentlyOptions, PopupLoginOptions } from "@auth0/auth0-react";
+import type {
+  GetTokenSilentlyOptions,
+  PopupLoginOptions,
+  RedirectLoginOptions,
+} from "@auth0/auth0-react";
+import {
+  auth0LoginAppState,
+  auth0LoginAuthorizationParams,
+  prefersAuth0RedirectLogin,
+} from "./auth0Login";
 
 export const AUTH0_DEFAULT_SCOPE = "openid profile email offline_access";
 
@@ -7,6 +16,7 @@ type GetAccessTokenSilently = (
 ) => Promise<string>;
 
 type LoginWithPopup = (options?: PopupLoginOptions) => Promise<void>;
+type LoginWithRedirect = (options?: RedirectLoginOptions) => Promise<void>;
 
 function auth0ErrorCode(err: unknown): string {
   return String((err as { error?: string })?.error ?? "");
@@ -55,18 +65,24 @@ async function runConsentPopup(loginWithPopup: LoginWithPopup): Promise<void> {
  */
 export async function resolveAccessToken(
   getAccessTokenSilently: GetAccessTokenSilently,
-  loginWithPopup?: LoginWithPopup
+  loginWithPopup?: LoginWithPopup,
+  loginWithRedirect?: LoginWithRedirect
 ): Promise<string> {
   try {
     return await getAccessTokenSilently();
   } catch (err) {
-    if (!loginWithPopup) {
-      throw err;
-    }
-
     if (isAuth0ConsentRequired(err) || isMissingRefreshTokenError(err)) {
-      await runConsentPopup(loginWithPopup);
-      return getAccessTokenSilently();
+      if (loginWithRedirect && prefersAuth0RedirectLogin()) {
+        await loginWithRedirect({
+          authorizationParams: auth0LoginAuthorizationParams("consent"),
+          appState: auth0LoginAppState(),
+        });
+        throw err;
+      }
+      if (loginWithPopup) {
+        await runConsentPopup(loginWithPopup);
+        return getAccessTokenSilently();
+      }
     }
 
     throw err;

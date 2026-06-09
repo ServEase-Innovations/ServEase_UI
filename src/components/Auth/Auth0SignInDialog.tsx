@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Button,
   Box,
@@ -22,9 +22,16 @@ const Auth0SignInDialog: React.FC<{
 }> = ({ open, onClose }) => {
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth0();
+  const wasAuthenticatedOnOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open && isAuthenticated) {
+    if (open) {
+      wasAuthenticatedOnOpenRef.current = isAuthenticated;
+    }
+  }, [open, isAuthenticated]);
+
+  useEffect(() => {
+    if (open && isAuthenticated && !wasAuthenticatedOnOpenRef.current) {
       onClose();
     }
   }, [open, isAuthenticated, onClose]);
