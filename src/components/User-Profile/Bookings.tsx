@@ -444,6 +444,11 @@ const effectiveTaskStatus = (booking: Booking): string => {
   return booking.taskStatus;
 };
 
+const isUpcomingTabBooking = (booking: Booking): boolean => {
+  const status = effectiveTaskStatus(booking);
+  return status !== "CANCELLED" && status !== "COMPLETED";
+};
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [viewTab, setViewTab] = useState<BookingsViewTab>("upcoming");
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
@@ -490,6 +495,11 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  useEffect(() => {
+    if (statusFilter === "COMPLETED") {
+      setStatusFilter("ALL");
+    }
+  }, [statusFilter]);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [servicesDialogOpen, setServicesDialogOpen] = useState(false);
   const [todaySchedule, setTodaySchedule] = useState<CustomerTodayBookingSlot[]>([]);
@@ -1839,7 +1849,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
   };
 
   const upcomingBookings = sortUpcomingBookings(
-    [...currentBookings, ...futureBookings].filter((b) => b.taskStatus !== 'CANCELLED')
+    [...currentBookings, ...futureBookings].filter(isUpcomingTabBooking)
   );
 
   const pendingPaymentBookings = sortUpcomingBookings(
@@ -1928,7 +1938,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
     { value: 'ALL', label: 'All', count: upcomingBookings.length },
     { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'NOT_STARTED').length },
     { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'IN_PROGRESS').length },
-    { value: 'COMPLETED', label: 'Completed', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'COMPLETED').length },
     { value: 'CANCELLED', label: 'Cancelled', count: cancelledBookings.length },
   ];
 

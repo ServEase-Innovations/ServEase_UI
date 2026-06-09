@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Clock, MapPin, Phone, CheckCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../Common/Card";
 import { Button } from "../Button/button";
@@ -142,24 +142,42 @@ export default function CustomerTodayTasksCard({
   );
 
   const todayFilterTabs = useMemo(() => {
-    const counts = { ALL: todaySchedule.length, UPCOMING: 0, IN_PROGRESS: 0, COMPLETED: 0 };
+    const counts = { ACTIVE: 0, UPCOMING: 0, IN_PROGRESS: 0, COMPLETED: 0 };
     slotsWithPhase.forEach(({ phase }) => {
-      if (phase === "UPCOMING") counts.UPCOMING += 1;
-      else if (phase === "IN_PROGRESS") counts.IN_PROGRESS += 1;
-      else if (phase === "COMPLETED") counts.COMPLETED += 1;
+      if (phase === "UPCOMING") {
+        counts.UPCOMING += 1;
+        counts.ACTIVE += 1;
+      } else if (phase === "IN_PROGRESS") {
+        counts.IN_PROGRESS += 1;
+        counts.ACTIVE += 1;
+      } else if (phase === "COMPLETED") {
+        counts.COMPLETED += 1;
+      }
     });
-    return [
-      { value: "ALL" as const, label: "All", count: counts.ALL },
-      { value: "UPCOMING" as const, label: "Upcoming", count: counts.UPCOMING },
-      { value: "IN_PROGRESS" as const, label: "In progress", count: counts.IN_PROGRESS },
-      { value: "COMPLETED" as const, label: "Completed", count: counts.COMPLETED },
+    const tabs: { value: TodayVisitFilter; label: string; count: number }[] = [
+      { value: "ALL", label: "All", count: counts.ACTIVE },
+      { value: "UPCOMING", label: "Upcoming", count: counts.UPCOMING },
+      { value: "IN_PROGRESS", label: "In progress", count: counts.IN_PROGRESS },
     ];
-  }, [slotsWithPhase, todaySchedule.length]);
+    if (counts.COMPLETED > 0) {
+      tabs.push({ value: "COMPLETED", label: "Completed", count: counts.COMPLETED });
+    }
+    return tabs;
+  }, [slotsWithPhase]);
 
   const filteredSlots = useMemo(() => {
-    if (todayFilter === "ALL") return slotsWithPhase;
+    if (todayFilter === "ALL") {
+      return slotsWithPhase.filter(({ phase }) => phase !== "COMPLETED");
+    }
     return slotsWithPhase.filter(({ phase }) => phase === todayFilter);
   }, [slotsWithPhase, todayFilter]);
+
+  useEffect(() => {
+    if (todayFilter === "COMPLETED") {
+      const hasCompleted = slotsWithPhase.some(({ phase }) => phase === "COMPLETED");
+      if (!hasCompleted) setTodayFilter("ALL");
+    }
+  }, [todayFilter, slotsWithPhase]);
 
   return (
     <Card className="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30 ring-1 ring-slate-900/5">
@@ -218,7 +236,22 @@ export default function CustomerTodayTasksCard({
 
             {filteredSlots.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-sm text-slate-600">
-                No visits in this category for today.
+                {todayFilter === "ALL" &&
+                slotsWithPhase.length > 0 &&
+                slotsWithPhase.every(({ phase }) => phase === "COMPLETED") ? (
+                  <>
+                    No active visits for today.{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-emerald-700 underline-offset-2 hover:underline"
+                      onClick={() => setTodayFilter("COMPLETED")}
+                    >
+                      View completed visits
+                    </button>
+                  </>
+                ) : (
+                  "No visits in this category for today."
+                )}
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
@@ -345,6 +378,15 @@ export default function CustomerTodayTasksCard({
                               <code className="text-lg font-bold tracking-wider text-slate-900">{otp}</code>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {phase === "COMPLETED" && (
+                        <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                          <div className="flex items-start gap-2 text-sm text-emerald-900">
+                            <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                            <p>Today&apos;s visit is complete.</p>
+                          </div>
                         </div>
                       )}
                     </li>
