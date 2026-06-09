@@ -188,6 +188,90 @@ export const translations: Translations = {
     kn: "ಸ್ಥಳ ಪತ್ತೆ ಮಾಡಿ",
     bn: "অবস্থান সনাক্ত করুন"
   },
+
+  bookingLocationTitle: {
+    en: "Service location",
+    hi: "सेवा स्थान",
+    kn: "ಸೇವಾ ಸ್ಥಳ",
+    bn: "সেবার অবস্থান"
+  },
+
+  bookingLocationMissing: {
+    en: "No service address selected. Choose where the provider should visit.",
+    hi: "कोई सेवा पता चयनित नहीं है। प्रदाता कहाँ आए, यह चुनें।",
+    kn: "ಯಾವುದೇ ಸೇವಾ ವಿಳಾಸ ಆಯ್ಕೆಯಾಗಿಲ್ಲ. ಪೂರೈಕೆದಾರರು ಎಲ್ಲಿಗೆ ಬರಬೇಕು ಎಂಬುದನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    bn: "কোনো সেবার ঠিকানা নির্বাচিত নেই। প্রদানকারী কোথায় আসবেন তা বেছে নিন।"
+  },
+
+  changeAddress: {
+    en: "Change address",
+    hi: "पता बदलें",
+    kn: "ವಿಳಾಸ ಬದಲಾಯಿಸಿ",
+    bn: "ঠিকানা পরিবর্তন করুন"
+  },
+
+  changeBookingAddress: {
+    en: "Change service address",
+    hi: "सेवा पता बदलें",
+    kn: "ಸೇವಾ ವಿಳಾಸ ಬದಲಾಯಿಸಿ",
+    bn: "সেবার ঠিকানা পরিবর্তন করুন"
+  },
+
+  changeBookingAddressHint: {
+    en: "Choose where you want the service provider to visit.",
+    hi: "चुनें कि सेवा प्रदाता कहाँ आना चाहिए।",
+    kn: "ಸೇವಾ ಪೂರೈಕೆದಾರರು ಎಲ್ಲಿಗೆ ಬರಬೇಕು ಎಂಬುದನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    bn: "প্রদানকারী কোথায় আসবেন তা বেছে নিন।"
+  },
+
+  detectLocationDescription: {
+    en: "Use your device's GPS to find your current address",
+    hi: "अपना वर्तमान पता खोजने के लिए GPS का उपयोग करें",
+    kn: "ನಿಮ್ಮ ಪ್ರಸ್ತುತ ವಿಳಾಸ ಹುಡುಕಲು GPS ಬಳಸಿ",
+    bn: "আপনার বর্তমান ঠিকানা খুঁজতে GPS ব্যবহার করুন"
+  },
+
+  pickOnMap: {
+    en: "Pick on map",
+    hi: "मानचित्र पर चुनें",
+    kn: "ನಕ್ಷೆಯಲ್ಲಿ ಆಯ್ಕೆಮಾಡಿ",
+    bn: "মানচিত্রে বেছে নিন"
+  },
+
+  pickOnMapDescription: {
+    en: "Search or tap the map to pin your address",
+    hi: "पता चिह्नित करने के लिए खोजें या मानचित्र पर टैप करें",
+    kn: "ವಿಳಾಸ ಪಿನ್ ಮಾಡಲು ಹುಡುಕಿ ಅಥವಾ ನಕ್ಷೆಯ ಮೇಲೆ ಟ್ಯಾಪ್ ಮಾಡಿ",
+    bn: "ঠিকানা পিন করতে খুঁজুন বা মানচিত্রে ট্যাপ করুন"
+  },
+
+  savedAddresses: {
+    en: "Saved addresses",
+    hi: "सहेजे गए पते",
+    kn: "ಉಳಿಸಿದ ವಿಳಾಸಗಳು",
+    bn: "সংরক্ষিত ঠিকানা"
+  },
+
+  noSavedAddresses: {
+    en: "You haven't saved any addresses yet. Use GPS or the map above.",
+    hi: "अभी तक कोई पता सहेजा नहीं गया। ऊपर GPS या मानचित्र का उपयोग करें।",
+    kn: "ಇನ್ನೂ ಯಾವುದೇ ವಿಳಾಸ ಉಳಿಸಿಲ್ಲ. ಮೇಲೆ GPS ಅಥವಾ ನಕ್ಷೆ ಬಳಸಿ.",
+    bn: "এখনও কোনো ঠিকানা সংরক্ষিত নেই। উপরে GPS বা মানচিত্র ব্যবহার করুন।"
+  },
+
+  useThisAddress: {
+    en: "Use this address",
+    hi: "यह पता उपयोग करें",
+    kn: "ಈ ವಿಳಾಸ ಬಳಸಿ",
+    bn: "এই ঠিকানা ব্যবহার করুন"
+  },
+
+  currentlySelectedAddress: {
+    en: "Currently selected",
+    hi: "वर्तमान में चयनित",
+    kn: "ಪ್ರಸ್ತುತ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ",
+    bn: "বর্তমানে নির্বাচিত"
+  },
   
   addAddress: {
     en: "Add Address",

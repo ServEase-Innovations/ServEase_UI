@@ -17,6 +17,8 @@ import { RootState } from '../../store/userStore';
 import { setHasMobileNumber } from '../../features/customer/customerSlice';
 import { useLanguage } from 'src/context/LanguageContext';
 import { CouponDialog, Coupon } from '../Coupons/CouponDialog';
+import BookingLocationSection from '../ProviderDetails/BookingLocationSection';
+import { hasValidBookingLocation } from 'src/utils/bookingLocation';
 
 
 interface CartDialogProps {
@@ -77,6 +79,8 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const maidCartTotal = maidCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const nannyCartTotal = nannyCartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const totalPrice = mealCartTotal + maidCartTotal + nannyCartTotal;
+  const geoLocation = useSelector((state: RootState) => (state as any)?.geoLocation?.value);
+  const bookingLocationReady = hasValidBookingLocation(geoLocation);
   
   // Determine service type based on cart items
   const getServiceType = (): string => {
@@ -151,6 +155,10 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const checkMobileNumberAndProceed = async () => {
     if (!appUser?.customerid) {
       console.error('No customer ID found');
+      return;
+    }
+
+    if (!bookingLocationReady) {
       return;
     }
 
@@ -290,6 +298,10 @@ export const CartDialog: React.FC<CartDialogProps> = ({
           ) : (
             <>
               <Box sx={{ p: 3, backgroundColor: '#ffffff' }}>
+                <Box sx={{ mb: 3 }}>
+                  <BookingLocationSection />
+                </Box>
+                <Divider sx={{ mb: 3 }} />
                 {/* Meal Cart Items */}
                 {mealCartItems.length > 0 && (
                   <>
@@ -528,7 +540,7 @@ export const CartDialog: React.FC<CartDialogProps> = ({
             <Button
               variant="contained"
               onClick={checkMobileNumberAndProceed}
-              disabled={allCartItems.length === 0 || !allTermsAccepted || !isCheckoutAvailable() || checkoutLoading || loadingCustomer}
+              disabled={allCartItems.length === 0 || !allTermsAccepted || !isCheckoutAvailable() || !bookingLocationReady || checkoutLoading || loadingCustomer}
               sx={{
                 minWidth: '200px',
                 position: 'relative'

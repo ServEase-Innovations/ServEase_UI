@@ -67,6 +67,8 @@ import type { PricingQuoteResponse } from "src/services/pricingService";
 import axios from "axios";
 import { urls } from "src/config/urls";
 import dayjs from "dayjs";
+import BookingLocationSection from "./BookingLocationSection";
+import { hasValidBookingLocation } from "src/utils/bookingLocation";
 
 const COUPON_FEEDBACK_MS = 2000;
 const todayYmd = () => dayjs().format("YYYY-MM-DD");
@@ -131,6 +133,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   });
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
+  const geoLocation = useSelector((state: any) => state?.geoLocation?.value);
+  const bookingLocationReady = hasValidBookingLocation(geoLocation);
   const providerFullName =
     `${providerDetails?.firstName || ""} ${providerDetails?.lastName || ""}`.trim();
 
@@ -198,7 +202,10 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   /** On-demand bookings can checkout without a provider (backend: UNASSIGNED). */
   const providerRequired = bookingTypeCode !== "ON_DEMAND";
   const canCheckout =
-    scheduleReady && priceReady && (!providerRequired || providerId != null);
+    scheduleReady &&
+    priceReady &&
+    bookingLocationReady &&
+    (!providerRequired || providerId != null);
   const normalizedCouponInput = couponInput.trim().toUpperCase();
   const couponCountLabel = availableCoupons.length;
   const estimateCouponSavings = React.useCallback(
@@ -252,9 +259,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             ? quotePreview.error
             : payableTotal <= 0
               ? "Pick a valid date and time to see price"
-              : !providerId && bookingTypeCode === "ON_DEMAND"
-                ? "Pay now to confirm — provider matching after payment"
-                : undefined;
+              : !bookingLocationReady
+                ? "Select a service address before checkout"
+                : !providerId && bookingTypeCode === "ON_DEMAND"
+                  ? "Pay now to confirm — provider matching after payment"
+                  : undefined;
   const flowTitleId = `${serviceKind}-flow-title`;
 
   useEffect(() => {
@@ -576,6 +585,13 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       return;
     }
 
+    if (!bookingLocationReady) {
+      setSnackbarMessage("Please select a service address before confirming your booking.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
     if (!canCheckout) {
       setSnackbarMessage("Price is not available for this booking. Try another date or time.");
       setSnackbarSeverity("warning");
@@ -757,6 +773,10 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         <MaidScroll>
           <MaidCard>
             <MaidBookingDetailsSection active={active} />
+          </MaidCard>
+
+          <MaidCard>
+            <BookingLocationSection />
           </MaidCard>
 
           <MaidCard>
