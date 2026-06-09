@@ -134,6 +134,9 @@ export const Header: React.FC<ChildComponentProps> = ({
  const handleClick = (e: any) => {
   if (e === "sign_out") {
     dispatch(remove());
+    dispatch(clearGeoLocation());
+    clearStoredAuthSession();
+    setAppUser(null);
     sendDataToParent("");
   } else if (e === "ABOUT") {
     onAboutClick();
@@ -157,9 +160,10 @@ export const Header: React.FC<ChildComponentProps> = ({
   const cart = useSelector((state: any) => state.cart?.value);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const loadedPreferencesForRef = useRef<number | null>(null);
-  const appliedSavedLocationRef = useRef(false);
+  const userPickedLocationRef = useRef(false);
   const triedGpsForCustomerRef = useRef(false);
   const guestGpsStartedRef = useRef(false);
+  const prevCustomerIdRef = useRef<number | null>(null);
   const postLoginHandledForRef = useRef<string | null>(null);
   const [dropDownOpen, setdropDownOpen] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(false);
@@ -522,6 +526,10 @@ export const Header: React.FC<ChildComponentProps> = ({
     await new Promise<void>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          if (userPickedLocationRef.current) {
+            resolve();
+            return;
+          }
           const { latitude, longitude } = position.coords;
           try {
             const response = await axios.get(
@@ -533,6 +541,10 @@ export const Header: React.FC<ChildComponentProps> = ({
                 },
               }
             );
+            if (userPickedLocationRef.current) {
+              resolve();
+              return;
+            }
             const address = response.data.results[0]?.formatted_address;
             setLocation(address || t("locationNotFound"));
             if (response.data.results[0]) {
@@ -627,70 +639,23 @@ export const Header: React.FC<ChildComponentProps> = ({
         return;
       }
 
-      const savedLocations =
-        Array.isArray(userPreference) && userPreference[0]?.savedLocations
-          ? userPreference[0].savedLocations
-          : userPreference?.savedLocations || [];
-
-      if (savedLocations.length > 0) {
-        if (appliedSavedLocationRef.current) {
-          return;
-        }
-
-        const preferred =
-          savedLocations.find((loc: any) => loc.name === "Home") ||
-          savedLocations.find((loc: any) => String(loc.name || "").toLowerCase() === "home") ||
-          savedLocations[0];
-
-        if (!preferred?.location) {
-          return;
-        }
-
-        let displayAddress = "";
-        const locationData = preferred.location;
-
-        if (locationData.address && Array.isArray(locationData.address) && locationData.address[0]?.formatted_address) {
-          displayAddress = locationData.address[0].formatted_address;
-        } else if (locationData.formatted_address) {
-          displayAddress = locationData.formatted_address;
-        }
-
-        if (!displayAddress) {
-          if (preferred.name) {
-            displayAddress = String(preferred.name);
-          } else if (locationData.lat != null && locationData.lng != null) {
-            displayAddress = t("location");
-          }
-        }
-
-        if (displayAddress) {
-          appliedSavedLocationRef.current = true;
-          setLocation(displayAddress);
-          dispatch(add(locationData));
-          return;
-        }
-      }
-
-      if (!triedGpsForCustomerRef.current) {
+      if (!triedGpsForCustomerRef.current && !userPickedLocationRef.current) {
         triedGpsForCustomerRef.current = true;
         void getLocation();
       }
       return;
     }
 
-    if (!guestGpsStartedRef.current) {
+    if (!guestGpsStartedRef.current && !userPickedLocationRef.current) {
       guestGpsStartedRef.current = true;
       void getLocation();
     }
   }, [
     appUser,
     authSessionReady,
-    dispatch,
     getLocation,
     isLoading,
     locationPreferencesReady,
-    t,
-    userPreference,
   ]);
 
   const [suggestions, setSuggestions] = useState([
@@ -703,7 +668,7 @@ export const Header: React.FC<ChildComponentProps> = ({
     setLocation("");
     setUserPreference([]);
     loadedPreferencesForRef.current = null;
-    appliedSavedLocationRef.current = false;
+    userPickedLocationRef.current = false;
     triedGpsForCustomerRef.current = false;
     guestGpsStartedRef.current = false;
     setLocationPreferencesReady(false);
@@ -716,7 +681,27 @@ export const Header: React.FC<ChildComponentProps> = ({
 
   const resetAuthSession = useCallback(() => {
     postLoginHandledForRef.current = null;
+    prevCustomerIdRef.current = null;
     resetHeaderLocationSession();
+  }, [resetHeaderLocationSession]);
+
+  useEffect(() => {
+    const customerId = resolveCustomerId(appUser);
+    const idNum =
+      customerId && Number.isFinite(Number(customerId)) ? Number(customerId) : null;
+    if (prevCustomerIdRef.current !== null && idNum !== prevCustomerIdRef.current) {
+      resetHeaderLocationSession();
+    }
+    prevCustomerIdRef.current = idNum;
+  }, [appUser, resetHeaderLocationSession]);
+
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      resetHeaderLocationSession();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, [resetHeaderLocationSession]);
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -743,6 +728,9 @@ export const Header: React.FC<ChildComponentProps> = ({
     if (newValue === t('addAddress')) {
       setOpen(true);
     } else if (newValue === t('detectLocation')) {
+      userPickedLocationRef.current = false;
+      triedGpsForCustomerRef.current = true;
+      guestGpsStartedRef.current = true;
       getLocation();
     } else {
       console.log("➡️ Selected Saved Location:", newValue);
@@ -784,6 +772,7 @@ export const Header: React.FC<ChildComponentProps> = ({
           displayAddress = `${savedLocation.name} location`;
         }
         
+        userPickedLocationRef.current = true;
         setLocation(displayAddress);
         dispatch(add(savedLocation.location));
         
@@ -894,6 +883,8 @@ export const Header: React.FC<ChildComponentProps> = ({
       displayAddress = dataFromMap.formatted_address;
     }
     
+    userPickedLocationRef.current = true;
+    dispatch(add(dataFromMap));
     setLocation(displayAddress);
 
     setOpen(false);
