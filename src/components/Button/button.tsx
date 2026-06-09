@@ -140,14 +140,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button";
     const v = resolveVariant(variant, _color);
     const s = normalizeSize(size);
+    const classes = cn(buttonVariants({ variant: v, size: s, className }), fullWidth && "w-full");
+
+    if (asChild) {
+      return (
+        <Slot ref={ref} className={classes} {...props}>
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         ref={ref}
-        type={asChild ? undefined : type}
-        className={cn(buttonVariants({ variant: v, size: s, className }), fullWidth && "w-full")}
+        type={type}
+        className={classes}
         disabled={disabled || loading}
         {...props}
       >
@@ -158,7 +167,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {children}
         {endIcon && !loading && <span className="shrink-0">{endIcon}</span>}
-      </Comp>
+      </button>
     );
   }
 );

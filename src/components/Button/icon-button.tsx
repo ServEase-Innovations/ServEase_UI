@@ -16,6 +16,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
     {
       className,
       variant = "ghost",
+      asChild,
       sx: _sx,
       edge: _edge,
       size: _size,
@@ -26,7 +27,8 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   ) => (
   <Button
     ref={ref}
-    type="button"
+    type={asChild ? undefined : "button"}
+    asChild={asChild}
     variant={variant}
     size="icon"
     className={cn("rounded-lg", className)}

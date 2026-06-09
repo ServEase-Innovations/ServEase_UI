@@ -780,7 +780,7 @@ function App() {
   } else if (selection === BOOKINGS) {
     return <Booking handleDataFromChild={handleDataFromChild} />;
   } else if (selection === DASHBOARD) {
-    return <Dashboard />;
+    return <Dashboard onNavigate={handleDataFromChild} />;
   } else if (selection === AGENT_DASHBOARD) {  
     return <AgentDashboard />; 
   } else if (selection === PROFILE) {

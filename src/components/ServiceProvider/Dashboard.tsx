@@ -12,11 +12,8 @@ import {
   IndianRupee,
   Calendar,
   Star,
-  TrendingUp,
   Users,
   Clock,
-  Home,
-  Bell,
   Loader2,
   Shield,
   CreditCard,
@@ -57,6 +54,8 @@ import {
   ProviderUnavailabilityDialog,
 } from "./ProviderScheduleDialogs";
 import { useLanguage } from "src/context/LanguageContext";
+import providerInstance from "src/services/providerInstance";
+import { PROFILE } from "src/Constants/pagesConstants";
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBWoIIAX-gE7fvfAkiquz70WFgDaL7YXSk';
@@ -327,6 +326,47 @@ interface TodayVisitsCardProps {
   onStopTask: (bookingId: string, bookingData: TaskBookingData) => void;
 }
 
+interface ProviderProfileSummary {
+  firstName?: string;
+  lastName?: string;
+  emailId?: string;
+  emailid?: string;
+  mobileNo?: string;
+  mobileno?: string;
+  housekeepingRoles?: string | string[];
+  cookingSpeciality?: string;
+  nannyCareType?: string;
+  rating?: number;
+  locality?: string;
+  currentLocation?: string;
+  location?: string;
+  timeslot?: string | null;
+}
+
+interface DashboardProps {
+  onNavigate?: (page: string) => void;
+}
+
+function formatProviderRoles(profile: ProviderProfileSummary | null): string[] {
+  if (!profile) return [];
+  const roles: string[] = [];
+  const hk = profile.housekeepingRoles;
+  if (Array.isArray(hk)) {
+    hk.forEach((role) => {
+      const label = getServiceTitle(String(role));
+      if (label) roles.push(label);
+    });
+  } else if (typeof hk === "string" && hk.trim()) {
+    hk.split(",").forEach((role) => {
+      const label = getServiceTitle(role.trim());
+      if (label) roles.push(label);
+    });
+  }
+  if (profile.cookingSpeciality) roles.push(`Cook · ${profile.cookingSpeciality}`);
+  if (profile.nannyCareType) roles.push(`Care · ${profile.nannyCareType}`);
+  return Array.from(new Set(roles));
+}
+
 function isSlotOverdue(slot: TodayBookingSlot): boolean {
   if (slot.is_overdue) return true;
   const sd = String(slot.service_day_status ?? "").toUpperCase();
@@ -543,7 +583,7 @@ function TodayVisitsCard({
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }: DashboardProps = {}) {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingHistoryResponse | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<TodayBookingSlot[]>([]);
@@ -572,6 +612,8 @@ export default function Dashboard() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [unavailDialogOpen, setUnavailDialogOpen] = useState(false);
   const [calendarRefresh, setCalendarRefresh] = useState(0);
+  const [providerProfile, setProviderProfile] = useState<ProviderProfileSummary | null>(null);
+  const [providerProfileLoading, setProviderProfileLoading] = useState(false);
 
   const metrics = [
     {
@@ -621,6 +663,34 @@ export default function Dashboard() {
       setUserName(auth0User.name);
     }
   }, [appUser, isAuthenticated, auth0User]);
+
+  useEffect(() => {
+    if (!serviceProviderId) {
+      setProviderProfile(null);
+      return;
+    }
+    let cancelled = false;
+    const loadProfile = async () => {
+      setProviderProfileLoading(true);
+      try {
+        const response = await providerInstance.get(
+          `/api/service-providers/serviceprovider/${serviceProviderId}`
+        );
+        if (!cancelled) {
+          setProviderProfile(response.data?.data ?? response.data ?? null);
+        }
+      } catch (err) {
+        console.warn("Provider profile fetch failed:", err);
+        if (!cancelled) setProviderProfile(null);
+      } finally {
+        if (!cancelled) setProviderProfileLoading(false);
+      }
+    };
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceProviderId]);
 
   const normalizeTodaySlots = (raw: unknown): TodayBookingSlot[] => {
     const slots = (raw as { bookings?: TodayBookingSlot[] })?.bookings;
@@ -952,8 +1022,22 @@ const handleTrackAddress = (address: string) => {
 
   const bumpCalendar = () => setCalendarRefresh((c) => c + 1);
 
-  const userDisplayName = userName || auth0User?.name || "Guest";
-  const userEmail = appUser?.email || auth0User?.email;
+  const profileName = providerProfile
+    ? [providerProfile.firstName, providerProfile.lastName].filter(Boolean).join(" ").trim()
+    : "";
+  const userDisplayName = profileName || userName || auth0User?.name || "Guest";
+  const userEmail =
+    providerProfile?.emailId ||
+    providerProfile?.emailid ||
+    appUser?.email ||
+    auth0User?.email;
+  const userPhone = providerProfile?.mobileNo || providerProfile?.mobileno || null;
+  const userLocation =
+    providerProfile?.locality ||
+    providerProfile?.currentLocation ||
+    providerProfile?.location ||
+    null;
+  const serviceRoles = formatProviderRoles(providerProfile);
   const avatarUrl = (appUser?.picture as string) || (auth0User?.picture as string) || null;
   const userInitials = userDisplayName
     .split(/\s+/)
@@ -963,85 +1047,92 @@ const handleTrackAddress = (address: string) => {
     .slice(0, 2) || "SP";
 
   return (
-    <div className="min-h-screen bg-slate-50/80">
-      <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-white/90 shadow-sm shadow-slate-200/30 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-3 sm:h-[4.25rem]">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-600 to-slate-800 text-white shadow-md ring-1 ring-slate-900/10">
-                <Home className="h-5 w-5" aria-hidden />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-900 sm:text-base">Serveaso Provider</p>
-                <p className="truncate text-[10px] font-medium uppercase tracking-wider text-slate-500 sm:text-xs">
-                  Service dashboard
+    <div className="min-h-screen bg-slate-50/80 pt-11 sm:pt-12 md:pt-14">
+      <div className="border-b border-slate-200/60 bg-gradient-to-b from-sky-100/50 via-white to-slate-50/40">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-7 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-white shadow-md sm:h-16 sm:w-16"
+                />
+              ) : (
+                <div
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-800 ring-2 ring-white shadow-md sm:h-16 sm:w-16 sm:text-base"
+                  aria-hidden
+                >
+                  {userInitials}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  Welcome back, {userDisplayName}
+                </h1>
+                <p className="mt-1 text-sm text-slate-600 sm:max-w-2xl">
+                  Here&apos;s what&apos;s happening with your services today.
                 </p>
+                <div className="mt-3 space-y-1.5 text-sm text-slate-700">
+                  {userEmail ? (
+                    <p className="flex min-w-0 items-center gap-2 break-all">
+                      <span className="font-medium text-slate-500">Email</span>
+                      <span className="min-w-0">{userEmail}</span>
+                    </p>
+                  ) : null}
+                  {userPhone ? (
+                    <p className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+                      <span>{userPhone}</span>
+                    </p>
+                  ) : null}
+                  {userLocation ? (
+                    <p className="flex min-w-0 items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+                      <span className="min-w-0 break-words">{userLocation}</span>
+                    </p>
+                  ) : null}
+                  {providerProfile?.rating != null && providerProfile.rating > 0 ? (
+                    <p className="flex items-center gap-2">
+                      <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" aria-hidden />
+                      <span>{Number(providerProfile.rating).toFixed(1)} rating</span>
+                    </p>
+                  ) : null}
+                </div>
+                {serviceRoles.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {serviceRoles.map((role) => (
+                      <Badge
+                        key={role}
+                        className="border-0 bg-sky-100 text-[11px] font-medium text-sky-900 sm:text-xs"
+                      >
+                        {role}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+                {providerProfileLoading ? (
+                  <p className="mt-2 text-xs text-slate-500">Loading profile details…</p>
+                ) : null}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-3">
+            {onNavigate ? (
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-                aria-label="Notifications"
+                variant="outline"
+                size="sm"
+                className="w-full shrink-0 sm:w-auto"
+                onClick={() => onNavigate(PROFILE)}
               >
-                <Bell className="h-5 w-5" />
+                View full profile
               </Button>
-              <div className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden />
-              <div className="flex min-w-0 max-w-[10rem] items-center gap-2.5 sm:max-w-xs">
-                <div className="min-w-0 text-right sm:block">
-                  <p className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
-                    {userDisplayName}
-                  </p>
-                  {userEmail && (
-                    <p className="hidden truncate text-[11px] text-slate-500 sm:block sm:text-xs">
-                      {userEmail}
-                    </p>
-                  )}
-                </div>
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt=""
-                    className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-slate-200/80"
-                  />
-                ) : (
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-800 ring-2 ring-slate-200/60"
-                    aria-hidden
-                  >
-                    {userInitials}
-                  </div>
-                )}
-              </div>
-            </div>
+            ) : null}
           </div>
-        </div>
-      </header>
-
-      <div className="border-b border-slate-200/60 bg-gradient-to-b from-sky-100/50 via-white to-slate-50/40">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-800/80 sm:text-xs">
-            Today
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Welcome back, {userDisplayName}
-          </h1>
-          <p className="mt-1.5 text-sm text-slate-600 sm:max-w-2xl">
-            {`Here's what's happening with your services today. Bookings, payouts, and quick actions in one place.`}
-          </p>
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {metrics.map((metric, index) => (
-            <DashboardMetricCard key={index} {...metric} />
-          ))}
-        </div>
-
-        <div className="mb-6">
+        <div className="mb-6 order-1">
           <TodayVisitsCard
             loading={todayLoading}
             providerMissing={authSessionReady && serviceProviderId == null}
@@ -1052,6 +1143,12 @@ const handleTrackAddress = (address: string) => {
             onStartTodayVisit={handleStartTodayVisit}
             onStopTask={handleStopTask}
           />
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {metrics.map((metric, index) => (
+            <DashboardMetricCard key={index} {...metric} />
+          ))}
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5">
