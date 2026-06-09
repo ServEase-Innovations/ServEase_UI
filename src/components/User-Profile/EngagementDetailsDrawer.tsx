@@ -6,8 +6,11 @@ import { Separator } from '../../components/Common/Separator/Separator';
 import { getServiceTitle, getBookingTypeBadge, getStatusBadge } from '../Common/Booking/BookingUtils';
 import dayjs from 'dayjs';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
-import PaymentInstance from 'src/services/paymentInstance';
 import { Button } from '../../components/Button/button';
+import {
+  BookingService,
+  isPaymentCancelledError,
+} from 'src/services/bookingService';
 import Invoice from '../Invoice/Invoice';
 import {
   coalesceStartEpoch,
@@ -26,24 +29,6 @@ interface DrawerPayment {
   payment_mode?: string;
   status?: string;
 }
-
-interface RazorpaySuccessResponse {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-interface RazorpayInstance {
-  open: () => void;
-}
-
-interface RazorpayConstructor {
-  new (options: Record<string, unknown>): RazorpayInstance;
-}
-
-type WindowWithRazorpay = Window & {
-  Razorpay?: RazorpayConstructor;
-};
 
 interface DrawerBooking extends Partial<EngagementEpochFields> {
   id: number;
@@ -119,77 +104,32 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
   };
 
   const handleCompletePayment = async () => {
+    const engagementId = booking.payment?.engagement_id ?? booking.id;
+    if (!engagementId) {
+      alert("Cannot resume payment: booking id missing.");
+      return;
+    }
+
     try {
       setIsProcessingPayment(true);
-      
-      const engagementId = booking.payment?.engagement_id ?? booking.id;
-      const resumeRes = await PaymentInstance.post(
-        `/api/v2/createEngagements/resume-payment`,
-        { engagementId }
-      );
-
-      const {
-        razorpay_order_id,
-        razorpay_key_id,
-        amount,
-        amount_inr,
-        currency,
-        engagementId: engagement_id_camel,
-        engagement_id,
-        customer
-      } = resumeRes.data;
-      const resolvedEngagementId = engagement_id_camel ?? engagement_id ?? engagementId;
-
-      let amountPaise = Number(amount);
-      if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
-        amountPaise = Math.round(Number(amount_inr) * 100);
+      await BookingService.payPendingEngagement(engagementId, {
+        name: booking.customerName,
+      });
+      if (onPaymentComplete) {
+        await onPaymentComplete();
       }
-
-      const options = {
-        key: razorpay_key_id || process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_lTdgjtSRlEwreA",
-        amount: amountPaise,
-        currency,
-        order_id: razorpay_order_id,
-        name: "Serveaso",
-        description: "Complete your payment",
-        prefill: {
-          name: customer?.firstname || booking.customerName,
-          contact: customer?.contact || '9999999999',
-        },
-        handler: async function (response: RazorpaySuccessResponse) {
-          try {
-            await PaymentInstance.post("/api/v2/createEngagements/verify", {
-              engagementId: resolvedEngagementId,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            
-            if (onPaymentComplete) {
-              await onPaymentComplete();
-            }
-            onClose();
-          } catch (verifyError) {
-            console.error("Payment verification error:", verifyError);
-            alert("Payment verification failed. Please contact support.");
-          }
-        },
-        theme: {
-          color: "#0A7CFF",
-        },
-      };
-
-      const razorpayCtor = (window as WindowWithRazorpay).Razorpay;
-      if (!razorpayCtor) {
-        alert("Payment SDK not loaded. Please refresh and try again.");
+      onClose();
+    } catch (err: unknown) {
+      if (isPaymentCancelledError(err)) {
         return;
       }
-      const razorpay = new razorpayCtor(options);
-      razorpay.open();
-
-    } catch (err: unknown) {
       console.error("Complete payment error:", err);
-      alert("Unable to resume payment. Please try again.");
+      const ax = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(
+        ax.response?.data?.error ||
+          ax.message ||
+          "Unable to resume payment. Please try again."
+      );
     } finally {
       setIsProcessingPayment(false);
     }

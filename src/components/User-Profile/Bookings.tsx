@@ -23,7 +23,11 @@ import MyTicketsDialog from './MyTicketsDialog';
 import WalletDialog from './Wallet';
 import axios from 'axios';
 import PaymentInstance from 'src/services/paymentInstance';
-import { BookingService } from 'src/services/bookingService';
+import {
+  BookingService,
+  isPaymentCancelledError,
+  PAYMENT_CANCELLED_MESSAGE,
+} from 'src/services/bookingService';
 import { useAppUser } from 'src/context/AppUserContext';
 import { resolveCustomerId } from 'src/services/couponService';
 import {
@@ -892,6 +896,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
       await afterPaymentSuccess();
     } catch (err: any) {
+      if (isPaymentCancelledError(err)) {
+        setSnackbarMessage(PAYMENT_CANCELLED_MESSAGE);
+        setSnackbarSeverity("info");
+        setOpenSnackbar(true);
+        return;
+      }
       console.error("Complete payment error:", err);
       const msg =
         err?.response?.data?.error ||

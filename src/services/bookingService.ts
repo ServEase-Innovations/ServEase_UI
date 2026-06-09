@@ -73,6 +73,29 @@ export interface RazorpayPaymentResponse {
   engagementId : number;
 }
 
+export const PAYMENT_CANCELLED_MESSAGE = "Payment cancelled";
+
+export class PaymentCancelledError extends Error {
+  constructor(message = PAYMENT_CANCELLED_MESSAGE) {
+    super(message);
+    this.name = "PaymentCancelledError";
+  }
+}
+
+export function isPaymentCancelledError(err: unknown): boolean {
+  if (err instanceof PaymentCancelledError) return true;
+  if (err && typeof err === "object") {
+    const e = err as { name?: string; message?: string; description?: string };
+    const msg = String(e.message || e.description || "").toLowerCase();
+    return (
+      e.name === "PaymentCancelledError" ||
+      msg.includes("payment cancelled") ||
+      msg.includes("user closed")
+    );
+  }
+  return false;
+}
+
 function toEpochSeconds(dateYmd?: string, timeHm?: string): number | null {
   if (!dateYmd || !timeHm) return null;
   const dt = dayjs(`${dateYmd} ${timeHm}`);
@@ -169,6 +192,20 @@ export const BookingService = {
         process.env.REACT_APP_RAZORPAY_KEY ||
         "rzp_test_lTdgjtSRlEwreA";
 
+      let settled = false;
+      const finish = (
+        settle: "resolve" | "reject",
+        value: RazorpayPaymentResponse | unknown
+      ) => {
+        if (settled) return;
+        settled = true;
+        if (settle === "resolve") {
+          resolve(value as RazorpayPaymentResponse);
+        } else {
+          reject(value);
+        }
+      };
+
       const rzp = new Razorpay({
         key: checkoutKey,
         amount: amountPaise,
@@ -177,7 +214,7 @@ export const BookingService = {
         name: "Serveaso",
         description: "Booking Payment",
         handler: function (resp: RazorpayPaymentResponse) {
-          resolve(resp);
+          finish("resolve", resp);
         },
         prefill: {
           name: prefill?.name || "Test User",
@@ -185,9 +222,14 @@ export const BookingService = {
           contact: prefill?.contact || "9999999999",
         },
         theme: { color: "#0ea5e9" },
+        modal: {
+          ondismiss: function () {
+            finish("reject", new PaymentCancelledError());
+          },
+        },
       });
       rzp.on("payment.failed", (resp: any) => {
-        reject(resp.error);
+        finish("reject", resp?.error || new Error("Payment failed"));
       });
       rzp.open();
     });
