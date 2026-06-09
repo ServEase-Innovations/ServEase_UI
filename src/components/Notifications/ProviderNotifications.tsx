@@ -58,7 +58,7 @@ export default function ProviderNotifications({ providerId }: { providerId: numb
         `/api/engagements/${engagementId}/accept`,
         { providerId }
       );
-      alert(res.data.message || "Engagement accepted!");
+      alert(res.data.message || "Booking accepted successfully");
       setNotifications((prev) => prev.filter((n) => n.engagementId !== engagementId));
     } catch (err: unknown) {
       console.error("Error accepting engagement:", err);
