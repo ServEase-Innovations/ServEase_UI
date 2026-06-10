@@ -1611,6 +1611,97 @@ export const translations: Translations = {
     bn: "এজেন্ট নিবন্ধন"
   },
 
+  agentRegistrationSubtitle: {
+    en: "Register your agency to onboard and manage service providers on ServEaso.",
+    hi: "ServEaso पर सेवा प्रदाताओं को जोड़ने और प्रबंधित करने के लिए अपनी एजेंसी पंजीकृत करें।",
+    kn: "ServEaso ನಲ್ಲಿ ಸೇವಾ ಒದಗಿಸುವವರನ್ನು ಸೇರಿಸಲು ಮತ್ತು ನಿರ್ವಹಿಸಲು ನಿಮ್ಮ ಏಜೆನ್ಸಿಯನ್ನು ನೋಂದಾಯಿಸಿ.",
+    bn: "ServEaso-তে সেবা প্রদানকারীদের যোগ ও পরিচালনার জন্য আপনার এজেন্সি নিবন্ধন করুন।",
+  },
+
+  agentRegistrationSectionAgency: {
+    en: "Agency details",
+    hi: "एजेंसी विवरण",
+    kn: "ಏಜೆನ್ಸಿ ವಿವರಗಳು",
+    bn: "এজেন্সির বিবরণ",
+  },
+
+  agentRegistrationSectionContact: {
+    en: "Contact information",
+    hi: "संपर्क जानकारी",
+    kn: "ಸಂಪರ್ಕ ಮಾಹಿತಿ",
+    bn: "যোগাযোগের তথ্য",
+  },
+
+  agentRegistrationSectionSecurity: {
+    en: "Login credentials",
+    hi: "लॉगिन क्रेडेंशियल",
+    kn: "ಲಾಗಿನ್ ರುಜುವಾತುಗಳು",
+    bn: "লগইন শংসাপত্র",
+  },
+
+  registrationIdHint: {
+    en: "Government-issued company registration number (10–20 alphanumeric characters).",
+    hi: "सरकार द्वारा जारी कंपनी पंजीकरण संख्या (10–20 अक्षरांकीय अक्षर)।",
+    kn: "ಸರ್ಕಾರ ನೀಡಿದ ಕಂಪನಿ ನೋಂದಣಿ ಸಂಖ್ಯೆ (10–20 ಅಕ್ಷರಸಂಖ್ಯಾತ್ಮಕ ಅಕ್ಷರಗಳು).",
+    bn: "সরকারি কোম্পানি নিবন্ধন নম্বর (১০–২০ অক্ষরসংখ্যাসূচক অক্ষর)।",
+  },
+
+  agentRegistrationSuccessTitle: {
+    en: "Registration successful",
+    hi: "पंजीकरण सफल",
+    kn: "ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ",
+    bn: "নিবন্ধন সফল",
+  },
+
+  agentRegistrationSuccessMessage: {
+    en: "Your agency has been registered. Save your registration ID — you'll need it for reference.",
+    hi: "आपकी एजेंसी पंजीकृत हो गई है। अपनी पंजीकरण आईडी सहेजें — संदर्भ के लिए आपको इसकी आवश्यकता होगी।",
+    kn: "ನಿಮ್ಮ ಏಜೆನ್ಸಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ನೋಂದಣಿ ಐಡಿಯನ್ನು ಉಳಿಸಿ — ಉಲ್ಲೇಖಕ್ಕಾಗಿ ಇದು ಅಗತ್ಯ.",
+    bn: "আপনার এজেন্সি নিবন্ধিত হয়েছে। আপনার নিবন্ধন আইডি সংরক্ষণ করুন — রেফারেন্সের জন্য এটি প্রয়োজন হবে।",
+  },
+
+  agentRegistrationContinueLogin: {
+    en: "Continue to login",
+    hi: "लॉगिन पर जाएं",
+    kn: "ಲಾಗಿನ್‌ಗೆ ಮುಂದುವರಿಯಿರಿ",
+    bn: "লগইনে যান",
+  },
+
+  passwordReqMinLength: {
+    en: "At least 8 characters",
+    hi: "कम से कम 8 अक्षर",
+    kn: "ಕನಿಷ್ಠ 8 ಅಕ್ಷರಗಳು",
+    bn: "কমপক্ষে ৮টি অক্ষর",
+  },
+
+  passwordReqLetter: {
+    en: "One letter",
+    hi: "एक अक्षर",
+    kn: "ಒಂದು ಅಕ್ಷರ",
+    bn: "একটি অক্ষর",
+  },
+
+  passwordReqNumber: {
+    en: "One number",
+    hi: "एक संख्या",
+    kn: "ಒಂದು ಸಂಖ್ಯೆ",
+    bn: "একটি সংখ্যা",
+  },
+
+  passwordReqSpecial: {
+    en: "One special character (@$!%*?&)",
+    hi: "एक विशेष वर्ण (@$!%*?&)",
+    kn: "ಒಂದು ವಿಶೇಷ ಅಕ್ಷರ (@$!%*?&)",
+    bn: "একটি বিশেষ অক্ষর (@$!%*?&)",
+  },
+
+  agentRegistrationFieldsProgress: {
+    en: "{filled} of {total} fields completed",
+    hi: "{filled} में से {total} फ़ील्ड पूर्ण",
+    kn: "{total} ಕ್ಷೇತ್ರಗಳಲ್ಲಿ {filled} ಪೂರ್ಣಗೊಂಡಿದೆ",
+    bn: "{total}টি ক্ষেত্রের মধ্যে {filled}টি সম্পন্ন",
+  },
+
   companyName: {
     en: "Company Name *",
     hi: "कंपनी का नाम *",

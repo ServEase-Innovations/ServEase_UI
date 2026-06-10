@@ -545,14 +545,13 @@ useEffect(() => {
             ) : null}
             <Chatbot open={chatbotOpen} onClose={() => setChatbotOpen(false)} />
               {isAgentRegistrationOpen && (
-  <AgentRegistrationForm 
-    onBackToLogin={(shouldClose) => {
-      if (shouldClose) {
-     setIsAgentRegistrationOpen(false);
-      }
-    }} 
-  />
-)}
+                <AgentRegistrationForm
+                  onBackToLogin={(shouldClose) => {
+                    if (shouldClose) setIsAgentRegistrationOpen(false);
+                  }}
+                  onClose={() => setIsAgentRegistrationOpen(false)}
+                />
+              )}
         </main>
     );
 }
