@@ -1,9 +1,9 @@
 /* eslint-disable */
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, Alert, Snackbar } from "@mui/material";
+import { AlertTriangle, Clock, X } from "lucide-react";
+import { Dialog, DialogContent, Alert, Snackbar } from "@mui/material";
 import { Button } from "../Button/button";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
+import { BOOKING_HEADER_GRADIENT } from "../ProviderDetails/MaidServiceDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import {
   createSupportTicket,
@@ -56,7 +56,8 @@ const RaiseComplaintDialog: React.FC<RaiseComplaintDialogProps> = ({
         ? Number(appUser.customerid)
         : undefined;
 
-  const engagementId = booking ? getEngagementIdFromBooking(booking) : null;
+  const bookingReference = booking ? getEngagementIdFromBooking(booking) : null;
+  const engagementId = bookingReference;
 
   useEffect(() => {
     if (!open) return;
@@ -129,25 +130,57 @@ const RaiseComplaintDialog: React.FC<RaiseComplaintDialogProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogHeader>
-          <DialogTitle>Raise a complaint</DialogTitle>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100">
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "16px",
+            overflow: "hidden",
+          },
+        }}
+      >
+        <header
+          className="relative px-5 pb-4 pt-5 pr-12 text-white"
+          style={{ background: BOOKING_HEADER_GRADIENT }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3 top-3 rounded-full p-1.5 text-white/90 transition-colors hover:bg-white/15"
+            aria-label="Close"
+          >
             <X className="h-5 w-5" />
           </button>
-        </DialogHeader>
-        <DialogContent>
-          <p className="text-sm text-gray-600 mb-4">
-            Our support team will review your complaint. Default response target:{" "}
-            <strong>{defaultSla} hours</strong>.
-            {engagementId ? (
-              <>
-                {" "}
-                Linked to booking <strong>#{engagementId}</strong>.
-              </>
-            ) : null}
-          </p>
 
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+              <AlertTriangle className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-bold leading-tight tracking-tight">
+                Raise a Complaint
+              </h2>
+              {bookingReference != null ? (
+                <p className="mt-1 text-sm font-semibold text-white/95">
+                  Booking #{bookingReference}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-1 border-t border-white/15 pt-3 text-sm leading-relaxed text-white/90">
+            <p>Our support team will review your complaint.</p>
+            <p className="flex items-center gap-1.5 font-medium text-white">
+              <Clock className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+              Expected response time: {defaultSla} hours
+            </p>
+          </div>
+        </header>
+
+        <DialogContent sx={{ pt: 2.5, px: 2.5, pb: 2.5 }}>
           <label className="block text-sm font-medium mb-1">Category</label>
           <select
             className="w-full border rounded-md p-2 mb-3 text-sm"
