@@ -30,6 +30,10 @@ export function isAutoCancelledNoProviderType(type: string): boolean {
   return (type || "").toUpperCase() === "BOOKING_AUTO_CANCELLED_NO_PROVIDER";
 }
 
+export function isAutoCancelledPaymentTimeoutType(type: string): boolean {
+  return (type || "").toUpperCase() === "BOOKING_AUTO_CANCELLED_PAYMENT_TIMEOUT";
+}
+
 export type NotificationBookingLine = { label: string; value: string };
 
 export function notificationBookingLines(
