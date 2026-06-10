@@ -35,8 +35,9 @@ const MaidServiceDialog: React.FC<MaidServiceDialogProps> = ({
       onClose={handleDialogClose}
       fullWidth
       aria-labelledby="maid-flow-title"
+      $successOverlay={successShowing}
     >
-      <MaidStyledContent>
+      <MaidStyledContent $successOverlay={successShowing}>
         <ServiceBookingFlow
           serviceKind="maid"
           active={open}

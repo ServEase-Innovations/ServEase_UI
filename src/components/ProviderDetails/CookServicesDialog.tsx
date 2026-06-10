@@ -35,8 +35,9 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
       onClose={handleDialogClose}
       fullWidth
       aria-labelledby="cook-flow-title"
+      $successOverlay={successShowing}
     >
-      <MaidStyledContent>
+      <MaidStyledContent $successOverlay={successShowing}>
         <ServiceBookingFlow
           serviceKind="cook"
           active={open}

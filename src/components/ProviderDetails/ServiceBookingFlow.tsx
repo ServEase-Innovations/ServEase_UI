@@ -916,7 +916,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   return (
     <>
-      <MaidRoot $page={isPage} style={successDialogOpen ? { visibility: "hidden" as const } : undefined}>
+      <MaidRoot $page={isPage} style={successDialogOpen ? { display: "none" } : undefined}>
         <MaidHeader style={{ background: cfg.headerGradient }}>
           {isPage ? (
             <MaidCloseBtn

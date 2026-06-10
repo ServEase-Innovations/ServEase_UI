@@ -331,6 +331,15 @@ const BookingSuccessDialog: React.FC<BookingSuccessDialogProps> = ({
           numberOfPieces={200}
           gravity={0.3}
           colors={['#667eea', '#764ba2', '#FFD700', '#4CAF50', '#FF6B6B', '#4ECDC4']}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+            zIndex: 1601,
+          }}
         />
       )}
       

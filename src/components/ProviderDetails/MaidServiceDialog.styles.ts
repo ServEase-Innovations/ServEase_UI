@@ -18,23 +18,25 @@ const radiusSm = "12px";
 export const BOOKING_HEADER_GRADIENT =
   "linear-gradient(135deg, #0c1e3d 0%, #0b5bd3 48%, #4f8ff7 100%)";
 
-export const MaidStyledDialog = styled(Dialog)`
+export const MaidStyledDialog = styled(Dialog)<{ $successOverlay?: boolean }>`
   .MuiPaper-root {
     width: min(100vw - 16px, 440px);
     max-height: min(94vh, 820px);
     border-radius: ${radius};
-    overflow: hidden;
+    overflow: ${(p) => (p.$successOverlay ? "visible" : "hidden")};
     margin: 8px;
-    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+    box-shadow: ${(p) => (p.$successOverlay ? "none" : "0 24px 48px rgba(15, 23, 42, 0.18)")};
+    background: ${(p) => (p.$successOverlay ? "transparent" : undefined)};
   }
 `;
 
-export const MaidStyledContent = styled(DialogContent)`
+
+export const MaidStyledContent = styled(DialogContent)<{ $successOverlay?: boolean }>`
   padding: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: ${canvas};
+  background: ${(p) => (p.$successOverlay ? "transparent" : canvas)};
 `;
 
 export const MaidPageShell = styled.div`
