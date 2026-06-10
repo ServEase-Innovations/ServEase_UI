@@ -6,9 +6,22 @@ export type TicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
   | "WAITING_CUSTOMER"
+  | "RESOLUTION_PROVIDED"
+  | "PENDING_CUSTOMER_CONFIRMATION"
+  | "REOPENED"
   | "RESOLVED"
   | "CLOSED"
   | "CANCELLED";
+
+const AWAITING_CUSTOMER_CONFIRMATION: TicketStatus[] = [
+  "RESOLUTION_PROVIDED",
+  "PENDING_CUSTOMER_CONFIRMATION",
+  "RESOLVED",
+];
+
+export function isAwaitingCustomerConfirmation(status: TicketStatus | string): boolean {
+  return AWAITING_CUSTOMER_CONFIRMATION.includes(status as TicketStatus);
+}
 
 export type TicketCategory =
   | "GENERAL"
@@ -59,6 +72,8 @@ export interface TicketStats {
   open: number;
   in_progress: number;
   waiting_customer: number;
+  pending_customer_confirmation?: number;
+  reopened?: number;
   resolved: number;
   overdue: number;
   high_priority_open: number;
@@ -130,6 +145,28 @@ export async function addCustomerTicketComment(
   return data.ticket;
 }
 
+export async function acceptTicketResolution(ticketId: number, customerId: number) {
+  const { data } = await ticketsInstance.post<{ success: boolean; ticket: SupportTicket }>(
+    `/api/tickets/${ticketId}/accept-resolution`,
+    {},
+    { headers: { "x-customer-id": String(customerId) } }
+  );
+  return data.ticket;
+}
+
+export async function reopenSupportTicket(
+  ticketId: number,
+  customerId: number,
+  body?: string
+) {
+  const { data } = await ticketsInstance.post<{ success: boolean; ticket: SupportTicket }>(
+    `/api/tickets/${ticketId}/reopen`,
+    { body },
+    { headers: { "x-customer-id": String(customerId) } }
+  );
+  return data.ticket;
+}
+
 export async function fetchAdminTicketStats() {
   const { data } = await adminTicketsInstance.get<{
     success: boolean;
@@ -189,12 +226,30 @@ export async function addAdminTicketComment(
   return data.ticket;
 }
 
+export async function provideAdminTicketResolution(
+  ticketId: number,
+  resolutionNotes: string
+) {
+  const { data } = await adminTicketsInstance.post<{ success: boolean; ticket: SupportTicket }>(
+    `/api/admin/tickets/${ticketId}/provide-resolution`,
+    { resolution_notes: resolutionNotes }
+  );
+  return data.ticket;
+}
+
 const TICKET_ERROR_MESSAGES: Record<string, string> = {
   CUSTOMER_ID_REQUIRED: "Please sign in again to submit a complaint.",
   ENGAGEMENT_NOT_FOUND: "This booking could not be found.",
   CUSTOMER_MISMATCH: "This booking does not belong to your account.",
   MISSING_REQUIRED_FIELDS: "Please enter a subject and description.",
   INVALID_CATEGORY: "Please choose a valid category.",
+  ADMIN_STATUS_FORBIDDEN:
+    "This status must be set through the resolution workflow. Provide resolution and let the customer confirm before closing.",
+  RESOLUTION_NOTES_REQUIRED: "Please enter resolution notes before requesting customer confirmation.",
+  NOT_AWAITING_CONFIRMATION: "This ticket is not waiting for your confirmation.",
+  USE_REOPEN_ACTION: "Use “Still need help” to reopen this ticket instead of adding a comment.",
+  AWAITING_CUSTOMER_CONFIRMATION:
+    "This ticket is waiting for the customer to accept or reopen the resolution.",
 };
 
 export function ticketErrorMessage(code?: string, fallback = "Something went wrong.") {

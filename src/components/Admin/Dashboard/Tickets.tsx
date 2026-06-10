@@ -9,7 +9,9 @@ import {
   fetchAdminTicketById,
   fetchAdminTickets,
   fetchAdminTicketStats,
+  provideAdminTicketResolution,
   updateAdminTicket,
+  isAwaitingCustomerConfirmation,
   type SupportTicket,
   type TicketPriority,
   type TicketStatus,
@@ -21,12 +23,24 @@ import {
   type AdminTicketActivityDetail,
 } from "src/utils/supportTicketEvents";
 
-const STATUS_OPTIONS: TicketStatus[] = [
+const ALL_STATUS_OPTIONS: TicketStatus[] = [
   "OPEN",
   "IN_PROGRESS",
   "WAITING_CUSTOMER",
+  "RESOLUTION_PROVIDED",
+  "PENDING_CUSTOMER_CONFIRMATION",
+  "REOPENED",
   "RESOLVED",
   "CLOSED",
+  "CANCELLED",
+];
+
+/** Admin may not set CLOSED or resolution/confirmation states via the status dropdown. */
+const EDIT_STATUS_OPTIONS: TicketStatus[] = [
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_CUSTOMER",
+  "REOPENED",
   "CANCELLED",
 ];
 
@@ -42,6 +56,10 @@ function priorityClass(p: string) {
 function statusClass(s: string) {
   if (s === "OPEN") return "bg-sky-100 text-sky-800 ring-1 ring-sky-300/50";
   if (s === "IN_PROGRESS") return "bg-violet-100 text-violet-800 ring-1 ring-violet-300/50";
+  if (s === "REOPENED") return "bg-orange-100 text-orange-900 ring-1 ring-orange-300/50";
+  if (s === "PENDING_CUSTOMER_CONFIRMATION" || s === "RESOLUTION_PROVIDED") {
+    return "bg-amber-100 text-amber-900 ring-1 ring-amber-300/50";
+  }
   if (s === "RESOLVED" || s === "CLOSED") return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300/50";
   if (s === "CANCELLED") return "bg-slate-100 text-slate-600 ring-1 ring-slate-300/50";
   return "bg-amber-100 text-amber-900 ring-1 ring-amber-300/50";
@@ -196,6 +214,21 @@ const Tickets = () => {
     }
   };
 
+  const handleProvideResolution = async () => {
+    if (!selectedId || !edit.resolution_notes.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await provideAdminTicketResolution(selectedId, edit.resolution_notes.trim());
+      await openDetail(selectedId, { silent: true });
+    } catch (e) {
+      const err = e as { response?: { data?: { error?: string } } };
+      setError(err?.response?.data?.error || "Could not send resolution for confirmation");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleComment = async () => {
     if (!selectedId || !comment.trim()) return;
     setSaving(true);
@@ -215,6 +248,11 @@ const Tickets = () => {
       { label: "In progress", value: stats?.in_progress ?? 0, icon: Clock },
       { label: "Overdue", value: stats?.overdue ?? 0, icon: AlertTriangle },
       { label: "High priority", value: stats?.high_priority_open ?? 0, icon: AlertTriangle },
+      {
+        label: "Awaiting customer",
+        value: stats?.pending_customer_confirmation ?? 0,
+        icon: Clock,
+      },
     ],
     [stats]
   );
@@ -234,7 +272,7 @@ const Tickets = () => {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {statCards.map((s) => (
           <Card key={s.label}>
             <CardContent className="flex items-center gap-3 p-4">
@@ -267,7 +305,7 @@ const Tickets = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">All statuses</option>
-              {STATUS_OPTIONS.map((s) => (
+              {ALL_STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s.replace(/_/g, " ")}
                 </option>
@@ -410,14 +448,19 @@ const Tickets = () => {
                         Status
                         <select
                           className="mt-1 flex h-9 w-full rounded-md border px-2 text-sm"
-                          value={edit.status}
+                          value={
+                            EDIT_STATUS_OPTIONS.includes(edit.status)
+                              ? edit.status
+                              : detail.status
+                          }
                           onChange={(e) =>
                             setEdit((p) => ({ ...p, status: e.target.value as TicketStatus }))
                           }
+                          disabled={detail ? isAwaitingCustomerConfirmation(detail.status) : false}
                         >
-                          {STATUS_OPTIONS.map((s) => (
+                          {EDIT_STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s}>
-                              {s}
+                              {s.replace(/_/g, " ")}
                             </option>
                           ))}
                         </select>
@@ -464,6 +507,13 @@ const Tickets = () => {
                       </label>
                     </div>
 
+                    {detail && isAwaitingCustomerConfirmation(detail.status) ? (
+                      <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        Waiting for the customer to accept the resolution or reopen the ticket.
+                        Tickets close only after customer confirmation.
+                      </p>
+                    ) : null}
+
                     <label className="block text-xs font-medium">
                       Resolution notes
                       <textarea
@@ -472,12 +522,28 @@ const Tickets = () => {
                         onChange={(e) =>
                           setEdit((p) => ({ ...p, resolution_notes: e.target.value }))
                         }
+                        placeholder="Summarize the fix or outcome for the customer…"
+                        disabled={detail ? isAwaitingCustomerConfirmation(detail.status) : false}
                       />
                     </label>
 
-                    <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
-                      {saving ? "Saving…" : "Save changes"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
+                        {saving ? "Saving…" : "Save changes"}
+                      </Button>
+                      {detail &&
+                      !isAwaitingCustomerConfirmation(detail.status) &&
+                      !["CLOSED", "CANCELLED"].includes(detail.status) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleProvideResolution()}
+                          disabled={saving || !edit.resolution_notes.trim()}
+                        >
+                          Provide resolution &amp; request confirmation
+                        </Button>
+                      ) : null}
+                    </div>
 
                     <div className="border-t pt-3">
                       <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">

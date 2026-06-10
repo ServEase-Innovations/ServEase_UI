@@ -1,10 +1,10 @@
 /* eslint-disable */
 import React, { useEffect, useMemo, useState } from "react";
 import { X, Clock, AlertCircle, LifeBuoy, ChevronRight, Plus, Inbox } from "lucide-react";
-import { Dialog, DialogContent } from "@mui/material";
+import { Dialog, DialogContent, DialogTitle } from "@mui/material";
 import { Button } from "../Button/button";
+import { IconButton } from "../Button/icon-button";
 import { ClipLoader } from "react-spinners";
-import { BOOKING_HEADER_GRADIENT } from "../ProviderDetails/MaidServiceDialog.styles";
 import { useAppUser } from "src/context/AppUserContext";
 import {
   fetchMyTickets,
@@ -29,6 +29,10 @@ function statusBadgeClass(status: TicketStatus) {
   if (status === "OPEN") return "bg-sky-100 text-sky-800";
   if (status === "IN_PROGRESS") return "bg-indigo-100 text-indigo-800";
   if (status === "WAITING_CUSTOMER") return "bg-amber-100 text-amber-900";
+  if (status === "PENDING_CUSTOMER_CONFIRMATION" || status === "RESOLUTION_PROVIDED") {
+    return "bg-amber-100 text-amber-900 ring-1 ring-amber-300/60";
+  }
+  if (status === "REOPENED") return "bg-orange-100 text-orange-900";
   if (status === "RESOLVED") return "bg-emerald-100 text-emerald-800";
   if (status === "CLOSED") return "bg-slate-100 text-slate-600";
   return "bg-slate-100 text-slate-700";
@@ -74,7 +78,7 @@ const MyTicketsDialog: React.FC<MyTicketsDialogProps> = ({ open, onClose, onRais
   }, [open, customerId]);
 
   const openTicketCount = useMemo(
-    () => tickets.filter((t) => !["CLOSED", "CANCELLED", "RESOLVED"].includes(t.status)).length,
+    () => tickets.filter((t) => !["CLOSED", "CANCELLED"].includes(t.status)).length,
     [tickets]
   );
 
@@ -92,38 +96,47 @@ const MyTicketsDialog: React.FC<MyTicketsDialogProps> = ({ open, onClose, onRais
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "16px",
-          overflow: "hidden",
+      scroll="body"
+      aria-labelledby="my-tickets-title"
+      slotProps={{
+        paper: {
+          className:
+            "relative w-[calc(100%-1.5rem)] max-w-lg overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
         },
+        backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
       }}
+      disableEnforceFocus
     >
-      <header
-        className="relative px-5 pb-4 pt-5 pr-12 text-white"
-        style={{ background: BOOKING_HEADER_GRADIENT }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-3 top-3 rounded-full p-1.5 text-white/90 transition-colors hover:bg-white/15"
-          aria-label="Close"
+      <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+          Support
+        </p>
+        <DialogTitle
+          className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+          component="div"
+          id="my-tickets-title"
         >
-          <X className="h-5 w-5" />
-        </button>
+          My Support Tickets
+        </DialogTitle>
+      </div>
+      <IconButton
+        aria-label="Close"
+        onClick={onClose}
+        className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
+      >
+        <X className="h-5 w-5" />
+      </IconButton>
 
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
-            <LifeBuoy className="h-5 w-5" aria-hidden />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold leading-tight tracking-tight">My Support Tickets</h2>
-            <p className="mt-1 text-sm leading-snug text-white/90">{headerSubtitle}</p>
-          </div>
-        </div>
-      </header>
+      <DialogContent className="!p-0">
+        <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+          <LifeBuoy
+            className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+            aria-hidden
+          />
+          {headerSubtitle}
+        </p>
 
-      <DialogContent sx={{ pt: 2, px: 2.5, pb: 2.5, bgcolor: "#f8fafc" }}>
+        <div className="bg-[#f8fafc] px-2.5 pb-2.5 pt-2 sm:px-3">
         {onRaiseNew ? (
           <Button
             variant="dialogPrimary"
@@ -226,6 +239,7 @@ const MyTicketsDialog: React.FC<MyTicketsDialogProps> = ({ open, onClose, onRais
             ))}
           </ul>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

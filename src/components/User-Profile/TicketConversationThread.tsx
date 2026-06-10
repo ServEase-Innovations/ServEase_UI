@@ -5,10 +5,23 @@ import type { TicketComment, SupportTicket } from "src/services/ticketsService";
 type Props = {
   comments: TicketComment[] | undefined;
   /** Include resolution_notes in thread when missing from comments (older tickets). */
-  ticket?: Pick<SupportTicket, "resolution_notes" | "resolved_at" | "updated_at">;
+  ticket?: Pick<SupportTicket, "resolution_notes" | "resolved_at" | "updated_at"> | null;
   emptyLabel?: string;
   className?: string;
 };
+
+function formatWhen(iso: string) {
+  try {
+    return new Date(iso).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export function TicketConversationThread({
   comments,
@@ -43,30 +56,44 @@ export function TicketConversationThread({
   }, [comments, ticket?.resolution_notes, ticket?.resolved_at, ticket?.updated_at]);
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-3", className)}>
       {list.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+        <p className="py-6 text-center text-sm text-slate-500">{emptyLabel}</p>
       ) : (
         list.map((c) => {
           const isAdmin = String(c.author_type).toUpperCase() === "ADMIN";
           const isInternal = Boolean(c.is_internal);
+          const isSystem = String(c.author_type).toUpperCase() === "SYSTEM";
+
           return (
             <div
               key={c.comment_id}
-              className={cn(
-                "rounded-lg border p-2.5 text-sm",
-                isInternal && "bg-amber-50 border-amber-200",
-                !isInternal && isAdmin && "bg-violet-50 border-violet-200",
-                !isInternal && !isAdmin && "bg-slate-50 border-slate-200"
-              )}
+              className={cn("flex", isAdmin || isSystem ? "justify-start" : "justify-end")}
             >
-              <p className="text-xs font-medium text-slate-600 mb-1">
-                {isAdmin ? (isInternal ? "Support (internal)" : "Support team") : "Customer"}
-                {c.author_name ? ` · ${c.author_name}` : ""}
-                {" · "}
-                {new Date(c.created_at).toLocaleString()}
-              </p>
-              <p className="text-slate-900 whitespace-pre-wrap leading-relaxed">{c.body}</p>
+              <div
+                className={cn(
+                  "max-w-[92%] rounded-2xl px-3 py-2.5 text-sm shadow-sm sm:max-w-[85%]",
+                  isInternal && "rounded-lg border border-amber-200 bg-amber-50",
+                  !isInternal && isAdmin && "rounded-bl-md border border-violet-100 bg-violet-50",
+                  !isInternal && !isAdmin && "rounded-br-md border border-sky-100 bg-sky-50"
+                )}
+              >
+                <p
+                  className={cn(
+                    "mb-1 text-[11px] font-medium",
+                    isAdmin ? "text-violet-700" : "text-sky-700"
+                  )}
+                >
+                  {isAdmin
+                    ? isInternal
+                      ? "Support (internal)"
+                      : "Support team"
+                    : "You"}
+                  {c.author_name && !isAdmin ? "" : c.author_name ? ` · ${c.author_name}` : ""}
+                  <span className="font-normal text-slate-400"> · {formatWhen(c.created_at)}</span>
+                </p>
+                <p className="leading-relaxed text-slate-900 whitespace-pre-wrap">{c.body}</p>
+              </div>
             </div>
           );
         })
