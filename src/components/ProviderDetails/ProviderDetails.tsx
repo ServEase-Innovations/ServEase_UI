@@ -65,6 +65,11 @@ import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
 import { resolveEffectiveServiceRole, resolveProviderId } from "src/utils/providerId";
+import {
+  formatProviderDisplayName,
+  providerInitials,
+  trimNamePart,
+} from "src/utils/providerDisplayName";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -477,9 +482,12 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const age = getAge();
   const gender = props.gender === "MALE" ? "M" : "F";
   
-  const getInitials = () => {
-    return `${props.firstName?.[0] || ''}${props.lastName?.[0] || ''}`.toUpperCase();
-  };
+  const displayName = formatProviderDisplayName(props);
+  const avatarInitials = providerInitials(props);
+  const avatarImage =
+    typeof props.profilePic === "string" && props.profilePic.trim()
+      ? props.profilePic.trim()
+      : null;
 
   // Helper function to get all languages as array
   const getAllLanguages = (): string[] => {
@@ -564,6 +572,8 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
             >
               <Stack direction="row" spacing={2} alignItems="flex-start" flex={1} minWidth={0}>
                 <Avatar
+                  src={avatarImage ?? undefined}
+                  alt={displayName || "Service provider"}
                   sx={{
                     width: { xs: 52, md: 56 },
                     height: { xs: 52, md: 56 },
@@ -575,7 +585,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     boxShadow: '0 4px 16px -4px rgba(14, 165, 233, 0.45)',
                   }}
                 >
-                  {getInitials()}
+                  {avatarInitials}
                 </Avatar>
                 <Box flex={1} minWidth={0}>
                   <Stack
@@ -593,7 +603,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                         fontSize: { xs: '1.05rem', md: '1.2rem' },
                       }}
                     >
-                      {props.firstName} {props.lastName}
+                      {displayName || `${trimNamePart(props.firstName)} ${trimNamePart(props.lastName)}`.trim()}
                     </Typography>
                     <Chip
                       label={`${gender}, ${age}`}

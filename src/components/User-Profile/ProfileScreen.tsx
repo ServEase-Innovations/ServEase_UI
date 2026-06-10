@@ -5,6 +5,10 @@ import { useAppUser } from "src/context/AppUserContext";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import MobileNumberDialog from "../User-Profile/MobileNumberDialog";
 import providerInstance from "src/services/providerInstance";
+import {
+  formatProviderDisplayName,
+  providerInitials,
+} from "src/utils/providerDisplayName";
 
 // Import sections
 import CustomerProfileSection from "./CustomerProfileSection";
@@ -27,6 +31,11 @@ const ProfileScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogShownInSession, setDialogShownInSession] = useState(false);
   const [hasMobileNumber, setHasMobileNumber] = useState<boolean | null>(null);
+  const [spProfileHeader, setSpProfileHeader] = useState<{
+    displayName: string;
+    profilePic: string | null;
+    initials: string;
+  } | null>(null);
 
   const checkMobileNumber = useCallback(async (customerId: number) => {
     try {
@@ -83,6 +92,42 @@ const ProfileScreen = () => {
 
     initializeProfile();
   }, [appUser, checkMobileNumber]);
+
+  useEffect(() => {
+    if (userRole !== "SERVICE_PROVIDER" || !userId) {
+      setSpProfileHeader(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await providerInstance.get(
+          `/api/service-providers/serviceprovider/${userId}`
+        );
+        const data = response.data?.data ?? response.data;
+        if (cancelled || !data) return;
+        const displayName = formatProviderDisplayName(data);
+        const profilePicRaw = data.profilePic ?? data.profilepic;
+        const profilePic =
+          typeof profilePicRaw === "string" && profilePicRaw.trim()
+            ? profilePicRaw.trim()
+            : null;
+        setSpProfileHeader({
+          displayName,
+          profilePic,
+          initials: providerInitials(data),
+        });
+      } catch (error) {
+        console.error("Failed to load service provider profile header:", error);
+        if (!cancelled) setSpProfileHeader(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userRole, userId]);
 
   const getRoleDisplay = () => {
     switch (userRole) {
@@ -206,8 +251,18 @@ const ProfileScreen = () => {
     );
   }
 
-  // Determine profile picture: from appUser, Auth0, or default
-  const profilePicture = appUser?.picture || auth0User?.picture || "https://via.placeholder.com/80";
+  const headerDisplayName =
+    userRole === "SERVICE_PROVIDER" && spProfileHeader?.displayName
+      ? spProfileHeader.displayName
+      : userName || t("user");
+
+  const profilePicture =
+    userRole === "SERVICE_PROVIDER"
+      ? spProfileHeader?.profilePic ?? null
+      : appUser?.picture || auth0User?.picture || null;
+
+  const profileInitials =
+    userRole === "SERVICE_PROVIDER" ? spProfileHeader?.initials ?? "?" : null;
 
   return (
     <div className="w-full min-h-screen bg-slate-50/80">
@@ -238,18 +293,27 @@ const ProfileScreen = () => {
           <div className="flex min-w-0 items-center gap-4 sm:gap-5">
             <div className="relative shrink-0">
               <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-sky-400/30 to-violet-400/20 opacity-80 blur-sm" />
-              <img
-                src={profilePicture}
-                alt={userName || t("user")}
-                className="relative h-20 w-20 rounded-full border-2 border-white/20 object-cover shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24"
-              />
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt={headerDisplayName}
+                  className="relative h-20 w-20 rounded-full border-2 border-white/20 object-cover shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24"
+                />
+              ) : (
+                <div
+                  className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/20 bg-sky-600 text-xl font-bold text-white shadow-2xl ring-4 ring-white/10 sm:h-24 sm:w-24 sm:text-2xl"
+                  aria-label={headerDisplayName}
+                >
+                  {profileInitials || headerDisplayName.charAt(0).toUpperCase() || "?"}
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-200/90 sm:text-xs">
                 {t("profile")}
               </p>
               <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
-                {t("hello")}, {userName || t("user")}
+                {t("hello")}, {headerDisplayName}
               </h1>
               <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-slate-200/90">
                 <span className="inline-flex max-w-full items-center rounded-full bg-white/10 px-3 py-0.5 text-xs font-medium text-slate-100 ring-1 ring-white/10">

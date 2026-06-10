@@ -86,6 +86,7 @@ import {
   resolveProviderIdNumber,
 } from "src/utils/spSession";
 import { formatServiceAddressFromGeoLocation } from "src/utils/bookingLocation";
+import { formatProviderDisplayName } from "src/utils/providerDisplayName";
 import { SERVICE_MENU_ITEMS, type ServiceMenuItem } from "src/Constants/serviceMenu";
 
 interface ChildComponentProps {
@@ -157,7 +158,10 @@ export const Header: React.FC<ChildComponentProps> = ({
   const { setAppUser, authSessionReady, appUser } = useAppUser();
   const dispatch = useDispatch();
   const isUserAuthenticated = Boolean(isAuthenticated || (appUser?.role && localStorage.getItem("token")));
-  const displayName = user?.name || appUser?.name || "User";
+  const displayName =
+    appUser?.role === "SERVICE_PROVIDER"
+      ? formatProviderDisplayName(appUser) || appUser?.name || user?.name || "User"
+      : appUser?.name || user?.name || "User";
   const displayEmail = user?.email || appUser?.email || null;
 
   const cart = useSelector((state: any) => state.cart?.value);
@@ -304,16 +308,18 @@ export const Header: React.FC<ChildComponentProps> = ({
         } else if (response.data.user_role === "SERVICE_PROVIDER") {
           const spId = Number(response.data.service_provider_id ?? response.data.id);
           const spName = [response.data.firstname, response.data.lastname]
+            .map((part: string | null | undefined) => String(part ?? "").trim())
             .filter(Boolean)
-            .join(" ")
-            .trim();
+            .join(" ");
           const resolvedSpId = Number.isFinite(spId) ? spId : Number(response.data.id);
           setAppUser({
-            ...user,
+            sub: user.sub,
             role: "SERVICE_PROVIDER",
             serviceProviderId: resolvedSpId,
             serviceproviderid: resolvedSpId,
             name: spName || user.name,
+            firstname: String(response.data.firstname ?? "").trim(),
+            lastname: String(response.data.lastname ?? "").trim(),
             email: response.data.emailid ?? user.email,
             mobileno: response.data.mobileno ?? undefined,
           });

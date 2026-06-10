@@ -58,6 +58,7 @@ import {
   isPaymentTimeoutCancellation,
   type BookingCancellationInfo,
 } from 'src/utils/bookingCancellation';
+import { formatProviderDisplayName } from 'src/utils/providerDisplayName';
 
 interface Task {
   taskType: string;
@@ -1421,7 +1422,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
           let serviceProviderName = "Not Assigned";
           let providerRating = 0;
-          if (item?.provider?.firstName && item?.provider?.lastName) {
+          const providerDisplay = formatProviderDisplayName(item?.provider);
+          if (providerDisplay) {
+            serviceProviderName = providerDisplay;
+          } else if (item?.provider?.firstName && item?.provider?.lastName) {
             serviceProviderName = `${item.provider.firstName} ${item.provider.lastName}`;
 
             providerRating = item.provider.rating || 0;

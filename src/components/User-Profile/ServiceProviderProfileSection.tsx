@@ -28,7 +28,9 @@ import {
   CreditCard
 } from "lucide-react";
 import providerInstance from "src/services/providerInstance";
+import { useAppUser } from "src/context/AppUserContext";
 import { useLanguage } from "src/context/LanguageContext";
+import { formatProviderDisplayName } from "src/utils/providerDisplayName";
 import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 
 import { 
@@ -110,6 +112,7 @@ interface ServiceProviderData {
 
 const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps> = ({ userId, userEmail }) => {
   const { t } = useLanguage();
+  const { setAppUser } = useAppUser();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -484,6 +487,21 @@ const ServiceProviderProfileSection: React.FC<ServiceProviderProfileSectionProps
       setOriginalData(updatedUserData);
       setContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
       setAltContactValidation({ loading: false, error: '', isAvailable: null, formatError: false });
+
+      const displayName = formatProviderDisplayName(data);
+      const profilePicRaw = data.profilePic ?? data.profilepic;
+      setAppUser((prev: Record<string, unknown> | null) => ({
+        ...(prev ?? {}),
+        name: displayName || (prev as { name?: string } | null)?.name,
+        firstname: updatedUserData.firstName,
+        lastname: updatedUserData.lastName,
+        firstName: updatedUserData.firstName,
+        lastName: updatedUserData.lastName,
+        profilePic:
+          typeof profilePicRaw === "string" && profilePicRaw.trim()
+            ? profilePicRaw.trim()
+            : null,
+      }));
     } catch (error) {
       console.error("Failed to fetch service provider data:", error);
     } finally {

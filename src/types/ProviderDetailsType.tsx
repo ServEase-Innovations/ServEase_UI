@@ -42,6 +42,8 @@ export interface ServiceProviderDTO {
   serviceproviderId?: string | number;
   firstName: string;
   lastName: string;
+  middleName?: string | null;
+  profilePic?: string | null;
   gender: "MALE" | "FEMALE" | "OTHER";
   experience: number;
   rating: number;
