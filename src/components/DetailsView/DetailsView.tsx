@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import "./DetailsView.css";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
 import { useSelector } from "react-redux";
@@ -27,6 +27,7 @@ import {
   filterMaidRowsForBooking,
   type MaidPricingRow,
 } from "src/utils/maidPricingUtils";
+import { isBookingScheduleComplete } from "src/components/ProviderDetails/serviceBookingConfig";
 import { formatMonthlyHourlyRateBand } from "src/Constants/servicePricing";
 import {
   buildLocationSearchKey,
@@ -93,6 +94,37 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const providerSearchKey = useMemo(
     () => JSON.stringify(providerSearchCriteria),
     [providerSearchCriteria]
+  );
+
+  const canSearchProviders = useMemo(() => {
+    const bookingTypeCode = getBookingTypeFromPreference(
+      providerSearchCriteria.bookingPreference
+    );
+    return isBookingScheduleComplete(
+      providerSearchCriteria as Record<string, unknown>,
+      bookingTypeCode
+    );
+  }, [providerSearchCriteria]);
+
+  const scheduleRevision = useSelector(
+    (state: { bookingType?: { scheduleRevision?: number } }) =>
+      state.bookingType?.scheduleRevision ?? 0
+  );
+  const verifiedProviderSchedule = useSelector(
+    (state: {
+      bookingType?: {
+        verifiedProviderSchedule?: {
+          providerId: string;
+          scheduleRevision: number;
+        } | null;
+      };
+    }) => state.bookingType?.verifiedProviderSchedule ?? null
+  );
+
+  const providerSearchTriggerKey = useMemo(
+    () =>
+      canSearchProviders ? `${providerSearchKey}:${scheduleRevision}` : "",
+    [canSearchProviders, providerSearchKey, scheduleRevision]
   );
 
   const location = useSelector((state: any) => state?.geoLocation?.value);
@@ -231,11 +263,17 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   };
 
   // Core fetch function with pagination + filter parameters (transformed to backend format)
-  const fetchProviders = async (page: number, reset: boolean = false) => {
+  const fetchProviders = async (
+    page: number,
+    reset: boolean = false,
+    preserveList: boolean = false
+  ) => {
     try {
       if (reset) {
         setIsLoadingMore(false);
-        setLoading(true);
+        if (!preserveList) {
+          setLoading(true);
+        }
       } else {
         setIsLoadingMore(true);
       }
@@ -265,9 +303,12 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
           formatDateOnly(providerSearchCriteria.endDate) ||
           formatDateOnly(providerSearchCriteria.startDate) ||
           dayjs().format("YYYY-MM-DD"),
-        preferredStartTime: providerSearchCriteria.timeRange
-          ? providerSearchCriteria.timeRange.split("-")[0]
-          : "16:37",
+        preferredStartTime:
+          String(providerSearchCriteria.startTime || "").trim() ||
+          (providerSearchCriteria.timeRange
+            ? providerSearchCriteria.timeRange.split("-")[0]?.trim()
+            : "") ||
+          "09:00",
         role: providerSearchCriteria.housekeepingRole || "COOK",
         serviceDurationMinutes: serviceDurationMinutes
       };
@@ -363,23 +404,56 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     }
   };
 
+  const lastLocationSearchKeyRef = useRef("");
+
   // Perform search – resets pagination when reset=true
   const performSearch = useCallback(async (reset: boolean = true) => {
+    const preserveList =
+      reset &&
+      allProviders.length > 0 &&
+      lastLocationSearchKeyRef.current === locationSearchKey;
+
     if (reset) {
       setCurrentPage(1);
       setHasMore(true);
-      setAllProviders([]);
-      setHasFetchedOnce(false);
+      if (!preserveList) {
+        setAllProviders([]);
+        setHasFetchedOnce(false);
+      }
     }
-    await fetchProviders(reset ? 1 : currentPage + 1, reset);
-  }, [location, locationSearchKey, providerSearchCriteria, activeFilters, customerId, appUser]);
 
-  // Trigger search when search-relevant booking fields or service location change.
+    lastLocationSearchKeyRef.current = locationSearchKey;
+
+    await fetchProviders(reset ? 1 : currentPage + 1, reset, preserveList);
+  }, [
+    allProviders.length,
+    locationSearchKey,
+    location,
+    providerSearchCriteria,
+    activeFilters,
+    customerId,
+    appUser,
+    currentPage,
+  ]);
+
+  // Trigger search only when date + time are complete (not on date-only edits).
   useEffect(() => {
-    if (selectedProviderType !== undefined && locationSearchKey && providerSearchKey) {
+    if (
+      selectedProviderType !== undefined &&
+      locationSearchKey &&
+      canSearchProviders &&
+      providerSearchTriggerKey
+    ) {
       performSearch(true);
     }
-  }, [selectedProviderType, locationSearchKey, providerSearchKey, activeFilters, performSearch]);
+  }, [
+    selectedProviderType,
+    locationSearchKey,
+    canSearchProviders,
+    providerSearchTriggerKey,
+    activeFilters,
+    performSearch,
+  ]);
 
   const fetchMoreData = () => {
     if (isLoadingMore || !hasMore) return;
@@ -470,12 +544,53 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const showResultsHeader =
     totalCount > 0 || activeFilters || (hasFetchedOnce && Boolean(searchContextLine));
 
+  const selectedProviderId = Number(
+    bookingType?.serviceproviderId ?? bookingType?.serviceProviderId ?? 0
+  );
+
+  const selectedProviderUnavailable = useMemo(() => {
+    if (!Number.isFinite(selectedProviderId) || selectedProviderId < 1) return false;
+    if (!hasFetchedOnce || loading) return false;
+
+    const selectedIdStr = String(selectedProviderId);
+    if (
+      verifiedProviderSchedule &&
+      verifiedProviderSchedule.providerId === selectedIdStr &&
+      verifiedProviderSchedule.scheduleRevision === scheduleRevision
+    ) {
+      return false;
+    }
+
+    const match = allProviders.find((p) => {
+      const id = p.serviceproviderid ?? p.serviceProviderId ?? p.serviceproviderId;
+      return id != null && String(id) === selectedIdStr;
+    });
+    if (!match) return false;
+    return match.monthlyAvailability?.fullyAvailable === false;
+  }, [
+    allProviders,
+    hasFetchedOnce,
+    loading,
+    scheduleRevision,
+    selectedProviderId,
+    verifiedProviderSchedule,
+  ]);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100/80">
       {loading && allProviders.length === 0 ? (
         renderLoadingSkeleton()
       ) : (
         <main className="mx-auto max-w-5xl px-4 pb-12 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] md:pt-[calc(5.75rem+env(safe-area-inset-top,0px))]">
+          {selectedProviderUnavailable ? (
+            <div
+              className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+              role="alert"
+            >
+              Your selected provider is not available for the dates and time you chose. Adjust your
+              schedule or choose another provider from the list.
+            </div>
+          ) : null}
           {showResultsHeader ? (
             <div
               className={`relative mb-6 flex items-center rounded-2xl border border-slate-200/90 bg-white/90 px-2 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] backdrop-blur-sm sm:px-4 ${

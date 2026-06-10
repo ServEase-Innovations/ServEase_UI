@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs, { Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
@@ -10,9 +10,25 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import TimelapseOutlinedIcon from "@mui/icons-material/TimelapseOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { update } from "../../features/bookingType/bookingTypeSlice";
+import {
+  commitSchedule,
+  confirmProviderScheduleVerified,
+  openBookingDialog,
+  setScheduleDirty,
+  setScheduleIncomplete,
+  setScheduleDraft,
+} from "../../features/bookingType/bookingTypeSlice";
+import { checkSelectedProviderAvailability } from "src/services/providerScheduleAvailability";
+import { computeDurationHours } from "./serviceBookingConfig";
 import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 import { useLanguage } from "src/context/LanguageContext";
+import { getBookingTypeFromPreference } from "src/utils/maidPricingUtils";
+import { isBookingScheduleComplete } from "./serviceBookingConfig";
+import {
+  buildReduxBookingPatch,
+  schedulePatchKey,
+} from "src/utils/bookingSchedulePatch";
+import { formatDateOnly } from "src/utils/maidPricingUtils";
 import {
   MaidBadge,
   MaidCardSub,
@@ -124,6 +140,13 @@ function clampScheduleToWorkHours(
   };
 }
 
+function durationHoursFromTimes(start: Dayjs | null, end: Dayjs | null): number {
+  if (!start || !end) return 0;
+  const mins = end.diff(start, "minute");
+  if (mins <= 0) return 0;
+  return Math.max(1, Math.min(6, Math.round(mins / 60)));
+}
+
 function parseTimeOnDate(dateStr: string | undefined, timeStr: string | undefined): Dayjs | null {
   if (!dateStr || !timeStr) return null;
   const base = dayjs(dateStr.split("T")[0]);
@@ -145,60 +168,32 @@ function defaultOnDemandStart(): Dayjs {
   return adjusted;
 }
 
-function buildReduxBookingPatch(
-  preference: string,
-  startDate: Dayjs | null,
-  endDate: Dayjs | null,
-  startTime: Dayjs | null,
-  endTime: Dayjs | null,
-  existing: Record<string, unknown> | null
-) {
-  const startIso = startDate?.toISOString() ?? startTime?.toISOString() ?? "";
-  const endIso =
-    endDate?.toISOString() ??
-    (preference === "Monthly" && startDate
-      ? startDate.add(1, "month").toISOString()
-      : startIso);
-
-  let timeRange = "";
-  let timeSlot = "";
-  if (preference === "Date") {
-    timeRange = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-    timeSlot = timeRange;
-  } else if (preference === "Short term") {
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
-  } else {
-    timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = startTime?.format("HH:mm") || "";
-  }
-
-  const patch = {
-    ...(existing ?? {}),
-    startDate: startIso ? startIso.split("T")[0] : "",
-    endDate: endIso ? endIso.split("T")[0] : "",
-    timeRange,
-    bookingPreference: preference,
-    startTime: startTime?.format("HH:mm") || "",
-    endTime: endTime?.format("HH:mm") || "",
-    timeSlot,
-  };
-
-  if (!startTime && !endTime) {
-    patch.timeRange = "";
-    patch.timeSlot = "";
-    patch.startTime = "";
-    patch.endTime = "";
-  }
-
-  return patch;
-}
+export type MaidBookingDetailsSectionHandle = {
+  checkAvailability: () => Promise<void>;
+};
 
 interface MaidBookingDetailsSectionProps {
   active: boolean;
+  providerId?: number | string | null;
+  bookingCoords?: { lat: number; lng: number } | null;
+  role?: string;
+  customerId?: number | null;
+  onApplyingScheduleChange?: (loading: boolean) => void;
+  onScheduleActionsReady?: (actions: MaidBookingDetailsSectionHandle) => void;
+  /** Fired when an availability check fails until the user edits the schedule again. */
+  onAvailabilityCheckBlockedChange?: (blocked: boolean, message?: string) => void;
 }
 
-const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ active }) => {
+const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
+  active,
+  providerId,
+  bookingCoords,
+  role = "COOK",
+  customerId,
+  onApplyingScheduleChange,
+  onScheduleActionsReady,
+  onAvailabilityCheckBlockedChange,
+}) => {
   const { t } = useLanguage();
   const dispatch = useDispatch();
   const bookingType = useSelector((state: { bookingType?: { value?: Record<string, unknown> } }) =>
@@ -216,6 +211,17 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
   const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [validationMsg, setValidationMsg] = useState<string | null>(null);
+  const [isApplyingSchedule, setIsApplyingSchedule] = useState(false);
+  const [userTouchedSchedule, setUserTouchedSchedule] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  /** User's duration choice — kept when date/time is cleared so chips stay highlighted. */
+  const [selectedDurationHours, setSelectedDurationHours] = useState(1);
+  const scheduleBaselineRef = useRef("");
+
+  const markScheduleTouched = useCallback(() => {
+    setUserTouchedSchedule(true);
+    onAvailabilityCheckBlockedChange?.(false);
+  }, [onAvailabilityCheckBlockedChange]);
 
   const hydrateFromRedux = useCallback(() => {
     const pref = String(bookingType?.bookingPreference ?? "Date");
@@ -272,49 +278,26 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     setEndDate(ed ?? sd);
     setStartTime(st);
     setEndTime(et);
+    const hydratedDuration = durationHoursFromTimes(st, et);
+    setSelectedDurationHours(hydratedDuration > 0 ? hydratedDuration : 1);
     setValidationMsg(null);
   }, [bookingType]);
 
   useEffect(() => {
     if (active) {
       hydrateFromRedux();
+      setUserTouchedSchedule(false);
+      setHydrated(true);
       setScheduleOpen(false);
+      return;
     }
+    setHydrated(false);
+    dispatch(setScheduleDirty(false));
+    dispatch(setScheduleDraft(null));
+    dispatch(setScheduleIncomplete(false));
+    onAvailabilityCheckBlockedChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
-
-  const persist = useCallback(
-    (
-      nextStartDate: Dayjs | null,
-      nextEndDate: Dayjs | null,
-      nextStartTime: Dayjs | null,
-      nextEndTime: Dayjs | null
-    ) => {
-      dispatch(
-        update(
-          buildReduxBookingPatch(
-            preference,
-            nextStartDate,
-            nextEndDate,
-            nextStartTime,
-            nextEndTime,
-            bookingType
-          )
-        )
-      );
-      setValidationMsg(null);
-    },
-    [bookingType, dispatch, preference]
-  );
-
-  /** Push hydrated schedule into Redux so pricing / checkout see the same times. */
-  useEffect(() => {
-    if (!active || !startTime || !endTime) return;
-    const reduxStart = String(bookingType?.startTime ?? "");
-    const reduxEnd = String(bookingType?.endTime ?? "");
-    if (reduxStart && reduxEnd) return;
-    persist(startDate, endDate, startTime, endTime);
-  }, [active, bookingType, startDate, endDate, startTime, endTime, persist]);
 
   const planLabel = useMemo(() => {
     const pref = preference.toLowerCase();
@@ -323,35 +306,208 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     return "Monthly";
   }, [preference]);
 
-  const durationHours = useMemo(() => {
-    if (!startTime || !endTime) return 0;
-    const mins = endTime.diff(startTime, "minute");
-    if (mins <= 0) return 0;
-    return Math.max(1, Math.min(6, Math.round(mins / 60)));
-  }, [startTime, endTime]);
+  const durationFromTimes = useMemo(
+    () => durationHoursFromTimes(startTime, endTime),
+    [startTime, endTime]
+  );
+  const durationHours =
+    durationFromTimes > 0 ? durationFromTimes : selectedDurationHours;
+
+  useEffect(() => {
+    if (durationFromTimes > 0) {
+      setSelectedDurationHours(durationFromTimes);
+    }
+  }, [durationFromTimes]);
 
   const maxDurationHours = useMemo(() => {
     if (!startTime) return 0;
     return maxAllowedDurationHours(startTime);
   }, [startTime]);
 
+  const localSchedulePatch = useMemo(
+    () =>
+      buildReduxBookingPatch(preference, startDate, endDate, startTime, endTime, null),
+    [preference, startDate, endDate, startTime, endTime]
+  );
+
+  const isLocalScheduleComplete = useMemo(() => {
+    const bookingTypeCode = getBookingTypeFromPreference(preference);
+    return isBookingScheduleComplete(
+      localSchedulePatch as Record<string, unknown>,
+      bookingTypeCode
+    );
+  }, [localSchedulePatch, preference]);
+
+  useEffect(() => {
+    if (!active || !hydrated) return;
+
+    if (!isLocalScheduleComplete) {
+      if (userTouchedSchedule) {
+        dispatch(setScheduleDirty(true));
+        dispatch(setScheduleIncomplete(true));
+        dispatch(setScheduleDraft(null));
+      } else {
+        dispatch(setScheduleDirty(false));
+        dispatch(setScheduleIncomplete(false));
+        dispatch(setScheduleDraft(null));
+      }
+      return;
+    }
+
+    dispatch(setScheduleIncomplete(false));
+
+    const localKey = schedulePatchKey(localSchedulePatch);
+
+    if (!userTouchedSchedule) {
+      scheduleBaselineRef.current = localKey;
+      dispatch(setScheduleDirty(false));
+      dispatch(setScheduleDraft(null));
+      return;
+    }
+
+    const dirty = localKey !== scheduleBaselineRef.current;
+    dispatch(setScheduleDirty(dirty));
+    dispatch(setScheduleDraft(dirty ? localSchedulePatch : null));
+  }, [
+    active,
+    dispatch,
+    hydrated,
+    isLocalScheduleComplete,
+    localSchedulePatch,
+    userTouchedSchedule,
+  ]);
+
+  const applySchedule = useCallback(
+    async (options?: { closePicker?: boolean }) => {
+      if (!isLocalScheduleComplete) {
+        setValidationMsg("Select your date and time before checking availability.");
+        return;
+      }
+
+      setIsApplyingSchedule(true);
+      onApplyingScheduleChange?.(true);
+      try {
+        const patch = buildReduxBookingPatch(
+          preference,
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          bookingType
+        );
+        const bookingTypeCode = getBookingTypeFromPreference(preference);
+        const resolvedProviderId = Number(providerId);
+        const hasProvider =
+          Number.isFinite(resolvedProviderId) && resolvedProviderId > 0;
+
+        if (
+          hasProvider &&
+          bookingCoords &&
+          bookingTypeCode !== "ON_DEMAND"
+        ) {
+          const startDateYmd =
+            formatDateOnly(String(patch.startDate ?? "")) ||
+            dayjs().format("YYYY-MM-DD");
+          const endDateYmd =
+            formatDateOnly(String(patch.endDate ?? "")) || startDateYmd;
+          const startTimeStr = String(patch.startTime ?? "").trim();
+          const endTimeStr = String(patch.endTime ?? "").trim();
+          const durationHours = computeDurationHours(
+            bookingTypeCode,
+            startTimeStr,
+            endTimeStr,
+            startDateYmd,
+            endDateYmd,
+            String(patch.timeRange ?? "")
+          );
+          const durationMinutes =
+            durationHours != null && durationHours > 0
+              ? Math.round(durationHours * 60)
+              : 60;
+
+          const availability = await checkSelectedProviderAvailability({
+            providerId: resolvedProviderId,
+            latitude: bookingCoords.lat,
+            longitude: bookingCoords.lng,
+            role: String(bookingType?.housekeepingRole || role),
+            startDate: startDateYmd,
+            endDate: endDateYmd,
+            preferredStartTime: startTimeStr,
+            serviceDurationMinutes: durationMinutes,
+            customerId,
+          });
+
+          if (!availability.available) {
+            const message =
+              availability.message ||
+              "This provider is not available for your selected schedule.";
+            setValidationMsg(message);
+            onAvailabilityCheckBlockedChange?.(true, message);
+            return;
+          }
+        }
+
+        const ranProviderAvailabilityCheck =
+          hasProvider &&
+          Boolean(bookingCoords) &&
+          bookingTypeCode !== "ON_DEMAND";
+
+        dispatch(commitSchedule(patch));
+        scheduleBaselineRef.current = schedulePatchKey(patch);
+        setUserTouchedSchedule(false);
+        setValidationMsg(null);
+        onAvailabilityCheckBlockedChange?.(false);
+        if (options?.closePicker) setScheduleOpen(false);
+
+        if (ranProviderAvailabilityCheck) {
+          dispatch(confirmProviderScheduleVerified(String(resolvedProviderId)));
+        }
+
+        if (hasProvider) {
+          dispatch(openBookingDialog(String(resolvedProviderId)));
+        }
+      } finally {
+        setIsApplyingSchedule(false);
+        onApplyingScheduleChange?.(false);
+      }
+    },
+    [
+      bookingCoords,
+      bookingType,
+      customerId,
+      dispatch,
+      endDate,
+      endTime,
+      isLocalScheduleComplete,
+      onApplyingScheduleChange,
+      onAvailabilityCheckBlockedChange,
+      preference,
+      providerId,
+      role,
+      startDate,
+      startTime,
+    ]
+  );
+
+  useEffect(() => {
+    onScheduleActionsReady?.({
+      checkAvailability: () => applySchedule({ closePicker: true }),
+    });
+  }, [applySchedule, onScheduleActionsReady]);
+
   const handleDateOnlyChange = (date: Date) => {
+    markScheduleTouched();
     const day = dayjs(date).startOf("day");
     const monthlyEnd = day.add(1, "month");
     setStartDate(day);
     setStartTime(null);
     setEndTime(null);
     setEndDate(preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate);
-    setValidationMsg("Select a time for this date to continue.");
-    persist(
-      day,
-      preference === "Monthly" ? monthlyEnd : preference === "Date" ? null : endDate,
-      null,
-      null
-    );
+    setValidationMsg("Select a time for this date to update provider availability.");
   };
 
   const handleRangeDateOnlyChange = (payload: { startDate: Date; endDate?: Date }) => {
+    markScheduleTouched();
     const start = dayjs(payload.startDate).startOf("day");
     const end = payload.endDate ? dayjs(payload.endDate).startOf("day") : null;
     setStartDate(start);
@@ -363,10 +519,10 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
         ? "Select a daily start time for your date range."
         : "Select your date range, then choose a daily start time."
     );
-    persist(start, end, null, null);
   };
 
   const applyStartDateTime = (selected: Dayjs) => {
+    markScheduleTouched();
     const now = dayjs();
     let adjusted = selected;
     if (selected.isSame(now, "day")) {
@@ -389,15 +545,12 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     setEndTime(nextEnd);
     if (preference === "Date") setEndDate(nextEnd);
     if (preference === "Monthly") setEndDate(monthlyEnd);
-    persist(
-      adjusted,
-      preference === "Monthly" ? monthlyEnd : preference === "Date" ? nextEnd : endDate,
-      adjusted,
-      nextEnd
-    );
+    setValidationMsg("Tap Check availability to search providers for this schedule.");
   };
 
   const setDurationHours = (hours: number) => {
+    markScheduleTouched();
+    setSelectedDurationHours(hours);
     if (!startTime) return;
     const newEnd = startTime.add(hours, "hour");
     if (!isDurationWithinWorkHours(startTime, hours)) {
@@ -406,7 +559,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
     }
     setEndTime(newEnd);
     if (preference === "Date") setEndDate(newEnd);
-    persist(startDate, preference === "Date" ? newEnd : endDate, startTime, newEnd);
+    setValidationMsg("Tap Check availability to search providers for this duration.");
   };
 
   const dateSummary = useMemo(() => {
@@ -503,7 +656,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
             </MaidDurationHint>
             <MaidDurationChips>
               {DURATION_OPTIONS.map((h) => {
-                const disabled = !startTime || h > maxDurationHours;
+                const disabled = Boolean(startTime) && h > maxDurationHours;
                 return (
                   <MaidDurationChip
                     key={h}
@@ -569,6 +722,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                 onDateChange={handleRangeDateOnlyChange}
                 onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
                   if (!time) return;
+                  markScheduleTouched();
                   const startWithTime = dayjs(rangeStart);
                   let end = dayjs(rangeEnd).startOf("day");
                   if (end.diff(startWithTime.startOf("day"), "day") > 14) {
@@ -587,7 +741,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({ a
                   setStartTime(startWithTime);
                   setEndDate(end);
                   setEndTime(endT);
-                  persist(startWithTime, end, startWithTime, endT);
+                  setValidationMsg(
+                    "Tap Check availability to search providers for this schedule."
+                  );
                 }}
               />
             </MaidPickerShell>

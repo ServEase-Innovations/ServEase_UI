@@ -50,6 +50,7 @@ import {
   formatDateOnly,
 } from "src/utils/maidPricingUtils";
 import MaidBookingDetailsSection from "./MaidBookingDetailsSection";
+import type { MaidBookingDetailsSectionHandle } from "./MaidBookingDetailsSection";
 import {
   SERVICE_BOOKING_CONFIG,
   computeDurationHours,
@@ -76,6 +77,7 @@ import {
   checkOnDemandProviderAvailability,
   ON_DEMAND_NO_PROVIDERS_MESSAGE,
 } from "src/services/onDemandAvailability";
+import { useBookingScheduleFlow } from "src/hooks/useBookingScheduleFlow";
 
 const COUPON_FEEDBACK_MS = 2000;
 const todayYmd = () => dayjs().format("YYYY-MM-DD");
@@ -140,6 +142,22 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   });
 
   const bookingType = useSelector((state: any) => state.bookingType?.value);
+  const schedulePendingCommit = useSelector(
+    (state: { bookingType?: { scheduleDirty?: boolean } }) =>
+      Boolean(state.bookingType?.scheduleDirty)
+  );
+  const scheduleIncomplete = useSelector(
+    (state: { bookingType?: { scheduleIncomplete?: boolean } }) =>
+      Boolean(state.bookingType?.scheduleIncomplete)
+  );
+  const scheduleDraft = useSelector(
+    (state: { bookingType?: { scheduleDraft?: Record<string, unknown> | null } }) =>
+      state.bookingType?.scheduleDraft ?? null
+  );
+  const effectiveBookingType = useMemo(() => {
+    if (!schedulePendingCommit || !scheduleDraft) return bookingType;
+    return { ...(bookingType ?? {}), ...scheduleDraft };
+  }, [bookingType, scheduleDraft, schedulePendingCommit]);
   const geoLocation = useSelector((state: any) => state?.geoLocation?.value);
   const bookingLocationReady = hasValidBookingLocation(geoLocation);
   const bookingCoords = resolveLocationCoords(geoLocation);
@@ -166,6 +184,11 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   const [couponLoading, setCouponLoading] = useState(false);
   const lastPayableTotalRef = useRef<number>(0);
   const couponSnackbarKeyRef = useRef<string | null>(null);
+  const scheduleActionsRef = useRef<MaidBookingDetailsSectionHandle | null>(null);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [availabilityCheckBlocked, setAvailabilityCheckBlocked] = useState(false);
+  const [availabilityCheckBlockedMessage, setAvailabilityCheckBlockedMessage] =
+    useState<string | undefined>();
 
   useEffect(() => {
     onSuccessDialogChange?.(successDialogOpen);
@@ -193,6 +216,18 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         bookingType?.serviceproviderId ?? bookingType?.serviceProviderId,
       serviceproviderid: bookingType?.serviceproviderId,
     });
+  const {
+    scheduleReady,
+    selectedProviderAvailability,
+    selectedProviderReady,
+  } = useBookingScheduleFlow({
+    active,
+    providerId,
+    role: cfg.serviceType,
+    latitude: bookingCoords?.lat ?? null,
+    longitude: bookingCoords?.lng ?? null,
+    customerId: appUser?.customerid,
+  });
   const serviceTotal = quotePreview.total || 0;
   const paymentTotals = useMemo(
     () => computePaymentTotals(serviceTotal),
@@ -206,7 +241,6 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     () => appendPaymentFeeRows(quotePreview.breakdown, serviceTotal),
     [quotePreview.breakdown, serviceTotal]
   );
-  const scheduleReady = isBookingScheduleComplete(bookingType, bookingTypeCode);
   const priceReady =
     scheduleReady &&
     !quotePreview.loading &&
@@ -219,9 +253,12 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     (onDemandAvailability.available && !onDemandAvailability.loading);
   const canCheckout =
     scheduleReady &&
+    !schedulePendingCommit &&
+    !scheduleIncomplete &&
     priceReady &&
     bookingLocationReady &&
     onDemandProviderReady &&
+    selectedProviderReady &&
     (!providerRequired || providerId != null);
   const normalizedCouponInput = couponInput.trim().toUpperCase();
   const couponCountLabel = availableCoupons.length;
@@ -262,7 +299,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     [eligibleCoupons, bestCoupon]
   );
   const checkoutBlockReason =
-    !scheduleReady
+    !scheduleReady || scheduleIncomplete
       ? bookingTypeCode === "SHORT_TERM"
         ? "Select your date range and daily start time"
         : "Select a time for your chosen date"
@@ -284,9 +321,19 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                     ? "Checking provider availability in your area…"
                     : bookingTypeCode === "ON_DEMAND" && !onDemandAvailability.available
                       ? onDemandAvailability.message || ON_DEMAND_NO_PROVIDERS_MESSAGE
-                      : !providerId && bookingTypeCode === "ON_DEMAND"
-                        ? "Pay now to confirm — provider matching after payment"
-                        : undefined;
+                      : providerRequired &&
+                          providerId &&
+                          bookingTypeCode !== "ON_DEMAND" &&
+                          selectedProviderAvailability.loading
+                        ? "Checking if your provider is available for this schedule…"
+                        : providerRequired &&
+                            providerId &&
+                            bookingTypeCode !== "ON_DEMAND" &&
+                            !selectedProviderAvailability.available
+                          ? selectedProviderAvailability.message
+                          : !providerId && bookingTypeCode === "ON_DEMAND"
+                            ? "Pay now to confirm — provider matching after payment"
+                            : undefined;
   const flowTitleId = `${serviceKind}-flow-title`;
 
   useEffect(() => {
@@ -383,7 +430,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   useEffect(() => {
     if (!active) return;
-    if (!isBookingScheduleComplete(bookingType, bookingTypeCode)) {
+    if (!isBookingScheduleComplete(effectiveBookingType, bookingTypeCode)) {
       setQuotePreview({
         total: 0,
         loading: false,
@@ -394,17 +441,18 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     }
     const customerId = appUser?.customerid;
     const start_date =
-      formatDateOnly(String(bookingType?.startDate ?? "")) ||
+      formatDateOnly(String(effectiveBookingType?.startDate ?? "")) ||
       todayYmd();
-    const raw_end_date = formatDateOnly(String(bookingType?.endDate ?? "")) || start_date;
+    const raw_end_date =
+      formatDateOnly(String(effectiveBookingType?.endDate ?? "")) || start_date;
     const end_date = bookingTypeCode === "ON_DEMAND" ? start_date : raw_end_date;
     const durationHours = computeDurationHours(
       bookingTypeCode,
-      String(bookingType?.startTime ?? ""),
-      String(bookingType?.endTime ?? ""),
+      String(effectiveBookingType?.startTime ?? ""),
+      String(effectiveBookingType?.endTime ?? ""),
       start_date,
       end_date,
-      String(bookingType?.timeRange ?? "")
+      String(effectiveBookingType?.timeRange ?? "")
     );
 
     setQuotePreview((p) => ({ ...p, loading: true, error: undefined, breakdown: [] }));
@@ -508,12 +556,13 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     active,
     serviceKind,
     bookingTypeCode,
-    bookingType?.startDate,
-    bookingType?.endDate,
-    bookingType?.startTime,
-    bookingType?.endTime,
-    bookingType?.timeRange,
-    bookingType?.bookingPreference,
+    effectiveBookingType?.startDate,
+    effectiveBookingType?.endDate,
+    effectiveBookingType?.startTime,
+    effectiveBookingType?.endTime,
+    effectiveBookingType?.timeRange,
+    effectiveBookingType?.bookingPreference,
+    schedulePendingCommit,
     appliedCouponCode,
     appUser?.customerid,
   ]);
@@ -703,6 +752,24 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       return;
     }
 
+    if (scheduleIncomplete) {
+      setSnackbarMessage(
+        bookingTypeCode === "SHORT_TERM"
+          ? "Select your date range and daily start time before checkout."
+          : "Select a time for your chosen date before checkout."
+      );
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (schedulePendingCommit) {
+      setSnackbarMessage("Tap Check availability to confirm your schedule changes.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
     if (!canCheckout) {
       setSnackbarMessage("Price is not available for this booking. Try another date or time.");
       setSnackbarSeverity("warning");
@@ -883,8 +950,45 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
         <MaidScroll>
           <MaidCard>
-            <MaidBookingDetailsSection active={active} />
+            <MaidBookingDetailsSection
+              active={active}
+              providerId={providerId}
+              bookingCoords={bookingCoords}
+              role={cfg.serviceType}
+              customerId={appUser?.customerid}
+              onApplyingScheduleChange={setIsCheckingAvailability}
+              onScheduleActionsReady={(actions) => {
+                scheduleActionsRef.current = actions;
+              }}
+              onAvailabilityCheckBlockedChange={(blocked, message) => {
+                setAvailabilityCheckBlocked(blocked);
+                setAvailabilityCheckBlockedMessage(message);
+              }}
+            />
           </MaidCard>
+
+          {providerRequired &&
+          providerId &&
+          bookingTypeCode !== "ON_DEMAND" &&
+          scheduleReady &&
+          bookingCoords &&
+          !selectedProviderAvailability.loading &&
+          !selectedProviderAvailability.available ? (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                border: "1px solid #fecaca",
+                background: "#fef2f2",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#991b1b", lineHeight: 1.5 }}>
+                {selectedProviderAvailability.message ||
+                  "This provider is not available for your selected dates and time. Please adjust your schedule or choose another provider."}
+              </Typography>
+            </Box>
+          ) : null}
 
           {bookingTypeCode === "ON_DEMAND" &&
           scheduleReady &&
@@ -1040,6 +1144,38 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                   {t("loginToContinue")}
                 </MaidBtnPrimary>
               </>
+            ) : scheduleIncomplete ? (
+              <MaidBtnPrimary
+                type="button"
+                disabled
+                title={
+                  bookingTypeCode === "SHORT_TERM"
+                    ? "Select your date range and daily start time"
+                    : "Select a time for your chosen date"
+                }
+              >
+                {t("checkout") || "Pay now"}
+              </MaidBtnPrimary>
+            ) : schedulePendingCommit ? (
+              <MaidBtnPrimary
+                type="button"
+                disabled={
+                  isCheckingAvailability || loading || availabilityCheckBlocked
+                }
+                title={
+                  availabilityCheckBlocked
+                    ? availabilityCheckBlockedMessage ||
+                      "Adjust your schedule, then check availability again"
+                    : "Confirm your schedule changes before checkout"
+                }
+                onClick={() => void scheduleActionsRef.current?.checkAvailability()}
+              >
+                {isCheckingAvailability ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Check availability"
+                )}
+              </MaidBtnPrimary>
             ) : (
               <MaidBtnPrimary
                 type="button"

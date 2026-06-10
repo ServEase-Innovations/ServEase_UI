@@ -34,7 +34,12 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { Bookingtype } from "../../types/bookingTypeData";
 import { useDispatch, useSelector } from "react-redux";
-import { add, update } from "../../features/bookingType/bookingTypeSlice";
+import {
+  add,
+  update,
+  openBookingDialog,
+  closeBookingDialog,
+} from "../../features/bookingType/bookingTypeSlice";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Login from "../Login/Login";
 import axiosInstance from "../../services/axiosInstance";
@@ -152,7 +157,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [eveningSelectionTime, setEveningSelectionTime] = useState<string | null>(null);
   const [morningSelectionTime, setMorningSelectionTime] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState();
-  const [open, setOpen] = useState(false);
   const [engagementData, setEngagementData] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [missingTimeSlots, setMissingTimeSlots] = useState<string[]>([]);
@@ -173,12 +177,19 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const dispatch = useDispatch();
   const bookingType = useSelector((state: any) => state.bookingType?.value);
+  const activeBookingDialogProviderId = useSelector(
+    (state: { bookingType?: { activeBookingDialogProviderId?: string | null } }) =>
+      state.bookingType?.activeBookingDialogProviderId ?? null
+  );
   const user = useSelector((state: any) => state.user?.value);
 
   const resolvedProviderId = resolveProviderId(
     props as unknown as Record<string, unknown>
   );
   const resolvedProviderIdStr = resolvedProviderId ?? null;
+  const open =
+    resolvedProviderIdStr != null &&
+    activeBookingDialogProviderId === resolvedProviderIdStr;
 
   const effectiveServiceRole = resolveEffectiveServiceRole(
     bookingType?.housekeepingRole,
@@ -334,16 +345,16 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       effectiveServiceRole === "COOK" ||
       effectiveServiceRole === "NANNY"
     ) {
-      setOpen(true);
+      dispatch(openBookingDialog(resolvedProviderIdStr));
     }
   };
 
   const handleClose = () => {
-    setOpen(false);
+    dispatch(closeBookingDialog());
   };
 
   const handleBookingPage = (e: string | undefined) => {
-    setOpen(false);
+    dispatch(closeBookingDialog());
   };
 
   const handleStartTimeChange = (newStartTime: string) => {
