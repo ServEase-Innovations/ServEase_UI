@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogTitle,
   Divider,
   Typography,
 } from "@mui/material";
@@ -18,10 +19,10 @@ import {
   Building2,
   MapPinned,
   Check,
+  X,
 } from "lucide-react";
 import { Button, dialogActionsClassName } from "../Button/button";
 import { IconButton } from "../Button/icon-button";
-import CloseIcon from "@mui/icons-material/Close";
 import { add } from "../../features/geoLocation/geoLocationSlice";
 import { useAppUser } from "src/context/AppUserContext";
 import { useLanguage } from "src/context/LanguageContext";
@@ -57,6 +58,22 @@ function savedLocationIcon(name: string) {
   if (key === "office") return Building2;
   return MapPinned;
 }
+
+const bookingDialogSlotProps = {
+  paper: {
+    className:
+      "relative w-[calc(100%-1.5rem)] max-w-lg overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
+  },
+  backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+} as const;
+
+const bookingMapDialogSlotProps = {
+  paper: {
+    className:
+      "relative w-[calc(100%-1.5rem)] max-w-2xl overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 sm:mx-4",
+  },
+  backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+} as const;
 
 const BookingLocationSection: React.FC<BookingLocationSectionProps> = ({
   allowChange = true,
@@ -263,39 +280,36 @@ const BookingLocationSection: React.FC<BookingLocationSectionProps> = ({
         onClose={() => setChangeOpen(false)}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
+        slotProps={bookingDialogSlotProps}
       >
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #0f766e 0%, #0369a1 100%)",
-            color: "#fff",
-            px: 2.5,
-            py: 2,
-          }}
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+            {t("bookingLocationTitle")}
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
+          >
+            {t("changeBookingAddress")}
+          </DialogTitle>
+        </div>
+        <IconButton
+          aria-label="close"
+          onClick={() => setChangeOpen(false)}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
         >
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.85 }}>
-                {t("bookingLocationTitle")}
-              </Typography>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, mt: 0.25, lineHeight: 1.3 }}>
-                {t("changeBookingAddress")}
-              </Typography>
-              <Typography sx={{ fontSize: 13, mt: 0.75, opacity: 0.9, lineHeight: 1.45 }}>
-                {t("changeBookingAddressHint")}
-              </Typography>
-            </Box>
-            <IconButton
-              aria-label="close"
-              onClick={() => setChangeOpen(false)}
-              className="!shrink-0 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
+          <X className="h-5 w-5" />
+        </IconButton>
 
-        <DialogContent sx={{ pt: 2.5, pb: 2 }}>
+        <DialogContent className="!p-0">
+          <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+            <MapPin
+              className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+              aria-hidden
+            />
+            {t("changeBookingAddressHint")}
+          </p>
+          <Box sx={{ px: 2.5, pt: 2.5, pb: 2 }}>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.25, mb: 2.5 }}>
             <button
               type="button"
@@ -401,6 +415,7 @@ const BookingLocationSection: React.FC<BookingLocationSectionProps> = ({
               })}
             </Box>
           )}
+          </Box>
         </DialogContent>
 
         <DialogActions className={dialogActionsClassName}>
@@ -415,36 +430,35 @@ const BookingLocationSection: React.FC<BookingLocationSectionProps> = ({
         onClose={handleCloseMap}
         fullWidth
         maxWidth="md"
-        PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
+        slotProps={bookingMapDialogSlotProps}
       >
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #4c1d95 0%, #0369a1 100%)",
-            color: "#fff",
-            px: 2.5,
-            py: 2,
-          }}
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
+            {t("bookingLocationTitle")}
+          </p>
+          <DialogTitle
+            className="!m-0 !p-0 !pt-0.5 !text-base !font-semibold !leading-tight !text-white sm:!text-lg"
+            component="div"
+          >
+            {t("pickOnMap")}
+          </DialogTitle>
+        </div>
+        <IconButton
+          aria-label="close"
+          onClick={handleCloseMap}
+          className="!absolute !right-2 !top-2 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10 sm:!right-3 sm:!top-3"
         >
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3 }}>
-                {t("pickOnMap")}
-              </Typography>
-              <Typography sx={{ fontSize: 13, mt: 0.5, opacity: 0.9 }}>
-                {t("pickOnMapDescription")}
-              </Typography>
-            </Box>
-            <IconButton
-              aria-label="close"
-              onClick={handleCloseMap}
-              className="!shrink-0 h-9 w-9 !rounded-lg !text-white hover:!bg-white/10"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
+          <X className="h-5 w-5" />
+        </IconButton>
 
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent className="!p-0">
+          <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-left text-xs leading-snug text-slate-600 sm:px-5 sm:text-sm">
+            <Navigation
+              className="mr-1.5 -mt-0.5 inline h-3.5 w-3.5 text-sky-600 sm:h-4 sm:w-4"
+              aria-hidden
+            />
+            {t("pickOnMapDescription")}
+          </p>
           <MapComponent
             style={{ width: "100%", height: 420 }}
             onLocationSelect={handleMapSelect}

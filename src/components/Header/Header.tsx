@@ -1922,8 +1922,8 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
           backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
         }}
       >
-        <div className="border-b border-white/10 bg-gradient-to-r from-emerald-700/95 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-200/90 sm:text-xs">
+        <div className="border-b border-white/10 bg-gradient-to-r from-sky-700 via-slate-800 to-slate-900 px-4 py-3.5 pr-12 text-white sm:px-5 sm:py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/90 sm:text-xs">
             {t("saveAs")}
           </p>
           <DialogTitle
