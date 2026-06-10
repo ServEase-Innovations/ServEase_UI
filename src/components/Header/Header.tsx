@@ -86,6 +86,7 @@ import {
   resolveProviderIdNumber,
 } from "src/utils/spSession";
 import { formatServiceAddressFromGeoLocation } from "src/utils/bookingLocation";
+import { SERVICE_MENU_ITEMS, type ServiceMenuItem } from "src/Constants/serviceMenu";
 
 interface ChildComponentProps {
   sendDataToParent: (data: string, type?: string) => void;
@@ -832,14 +833,11 @@ export const Header: React.FC<ChildComponentProps> = ({
     setShowInput(false);
   };
   
-  const handleServiceClick = (service: string) => {
-    let serviceType = "";
-    if (service === t('homeCook')) serviceType = "COOK";
-    if (service === t('cleaningHelp')) serviceType = "MAID";
-    if (service === t('caregiver')) serviceType = "NANNY";
-
-    setSelectedType(serviceType);
-    setDialogService(service);
+  const handleServiceMenuSelect = (item: ServiceMenuItem) => {
+    const label = t(item.labelKey);
+    setSelectedType(item.type);
+    setSelectedService(label);
+    setDialogService(label);
     setDialogOpen(true);
   };
 
@@ -1198,22 +1196,33 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
         </button>
 
         {serviceDropdownOpen && (
-          <ul className="absolute left-0 z-[100] mt-2 w-56 overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1.5 text-slate-800 shadow-2xl shadow-slate-900/25 ring-1 ring-black/5">
-            {[t('homeCook'), t('cleaningHelp'), t('caregiver')].map(
-              (service, idx) => (
-                <li
-                  key={idx}
-                  className="cursor-pointer px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-sky-50 hover:text-sky-950"
+          <ul className="absolute left-0 z-[100] mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1.5 text-slate-800 shadow-2xl shadow-slate-900/25 ring-1 ring-black/5">
+            {SERVICE_MENU_ITEMS.map((item) => (
+              <li key={item.type}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-sky-50"
                   onClick={() => {
-                    setSelectedService(service);
                     setServiceDropdownOpen(false);
-                    handleServiceClick(service);
+                    handleServiceMenuSelect(item);
                   }}
                 >
-                  {service}
-                </li>
-              )
-            )}
+                  <img
+                    src={item.icon}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-xl object-cover object-center ring-1 ring-slate-200/80"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {t(item.labelKey)}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-snug text-slate-500 line-clamp-2">
+                      {t(item.descriptionKey)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </div>
@@ -1723,19 +1732,30 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                   <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     {t("ourServices")}
                   </p>
-                  {[t("homeCook"), t("cleaningHelp"), t("caregiver")].map((service, idx) => (
+                  {SERVICE_MENU_ITEMS.map((item) => (
                     <button
                       type="button"
-                      key={idx}
-                      className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-950"
+                      key={item.type}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-sky-50"
                       onClick={() => {
-                        setSelectedService(service);
                         setServiceDropdownOpen(false);
-                        handleServiceClick(service);
+                        handleServiceMenuSelect(item);
                         closeMobileNav();
                       }}
                     >
-                      {service}
+                      <img
+                        src={item.icon}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover object-center ring-1 ring-slate-200/80"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-slate-900">
+                          {t(item.labelKey)}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-snug text-slate-500 line-clamp-2">
+                          {t(item.descriptionKey)}
+                        </span>
+                      </span>
                     </button>
                   ))}
                 </div>
