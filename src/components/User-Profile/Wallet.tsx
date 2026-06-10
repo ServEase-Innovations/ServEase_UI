@@ -1,69 +1,59 @@
 /* eslint-disable */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent } from "@mui/material";
-import { Button } from "../../components/Button/button";
-import { useAuth0 } from "@auth0/auth0-react";
-import axios from "axios";
-import PaymentInstance from "src/services/paymentInstance";
+import dayjs from "dayjs";
 import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import { useLanguage } from "src/context/LanguageContext";
+import { useAppUser } from "src/context/AppUserContext";
+import { resolveCustomerId } from "src/services/couponService";
+import {
+  CustomerWallet,
+  fetchCustomerWallet,
+  formatWalletTransactionLabel,
+  isCreditTransaction,
+} from "src/services/walletService";
 interface WalletDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
 const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
-  const { t } = useLanguage(); // Initialize the translation hook
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("transactions");
-  const { user: auth0User, isAuthenticated } = useAuth0();
+  const { appUser } = useAppUser();
+  const customerId = resolveCustomerId(appUser);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [wallet, setWallet] = useState<CustomerWallet | null>(null);
 
-  interface Wallet {
-    balance: number;
-    transactions: {
-      transaction_id: number;
-      transaction_type: string;
-      amount: number;
-      description: string;
-      created_at: string;
-      status: string;
-    }[];
-    rewards: number;
-  }
-
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-
-  useEffect(() => {
-    if (open && isAuthenticated && auth0User?.customerid) {
-      console.log("Fetching wallet for user:", auth0User.customerid);
-      setIsLoading(true);
-      setHasError(false);
-      
-      PaymentInstance
-        .get(`/api/wallets/${auth0User.customerid}`)
-        .then((response) => {
-          console.log("Wallet API Response:", response.data);
-          setWallet(response.data);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Wallet fetch error:", error);
-          // Check if error is "Wallet not found for this customer"
-          if (error.response?.data?.error === "Wallet not found for this customer" || 
-              error.message?.includes("Wallet not found")) {
-            setHasError(true);
-          }
-          setIsLoading(false);
-        });
-    } else if (open && (!isAuthenticated || !auth0User?.customerid)) {
-      // If not authenticated or no customerid, show error
+  const loadWallet = useCallback(async () => {
+    if (!customerId) {
       setHasError(true);
+      setWallet(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const data = await fetchCustomerWallet(customerId);
+      setWallet(data);
+    } catch (error) {
+      console.error("Wallet fetch error:", error);
+      setHasError(true);
+      setWallet(null);
+    } finally {
       setIsLoading(false);
     }
-  }, [open, isAuthenticated, auth0User]);
+  }, [customerId]);
 
-  // Reset states when dialog closes
+  useEffect(() => {
+    if (open) {
+      void loadWallet();
+    }
+  }, [open, loadWallet]);
+
   useEffect(() => {
     if (!open) {
       setIsLoading(false);
@@ -71,16 +61,6 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
       setWallet(null);
     }
   }, [open]);
-
-  // fallback dummy wallet
-  const walletData = {
-    balance: 5420,
-    transactions: [
-      { id: 1, type: "credit", amount: 2000, description: "Home Cook Service", date: "Aug 28, 2025", status: "Completed" },
-      { id: 2, type: "debit", amount: 1500, description: "Maid Service", date: "Aug 25, 2025", status: "Completed" },
-    ],
-    rewards: 450,
-  };
 
   // Render loading state
   if (isLoading) {
@@ -143,24 +123,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
             <p className="text-gray-500 mb-6">{t("noWalletMessage")}</p>
             <div className="flex gap-3 justify-center">
               <button 
-                onClick={() => {
-                  // Reset and retry
-                  setIsLoading(true);
-                  setHasError(false);
-                  if (isAuthenticated && auth0User?.customerid) {
-                    PaymentInstance
-                      .get(`/api/wallets/${auth0User.customerid}`)
-                      .then((response) => {
-                        setWallet(response.data);
-                        setIsLoading(false);
-                      })
-                      .catch((error) => {
-                        console.error("Retry error:", error);
-                        setHasError(true);
-                        setIsLoading(false);
-                      });
-                  }
-                }}
+                onClick={() => void loadWallet()}
                 className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 {t("tryAgain")}
@@ -203,7 +166,12 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
         {/* Balance Card */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-xl shadow-lg mb-5">
           <p className="text-blue-100 text-sm">{t("currentBalance")}</p>
-          <p className="text-3xl font-bold my-2">₹{wallet ? wallet.balance : walletData.balance}</p>
+          <p className="text-3xl font-bold my-2">
+            ₹{Number(wallet?.balance ?? 0).toLocaleString("en-IN", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2,
+            })}
+          </p>
           <div className="flex gap-3 mt-4">
             <button className="flex-1 bg-white text-blue-600 font-semibold py-2.5 rounded-lg hover:bg-blue-50 transition-colors">
               ➕ {t("addMoney")}
@@ -245,32 +213,46 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
           <div>
             <h3 className="font-semibold text-gray-800 mb-4">{t("recentTransactions")}</h3>
             <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-              {(wallet?.transactions || []).map((transaction) => (
-                <div key={transaction.transaction_id} className="flex items-center">
-                  <div
-                    className={`flex items-center justify-center h-10 w-10 rounded-full ${
-                      transaction.transaction_type === "credit"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
-                    }`}
-                  >
-                    {transaction.transaction_type === "credit" ? "⬆" : "⬇"}
-                  </div>
-                  <div className="ml-4 flex-1">
-                    <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {transaction.created_at} • {transaction.status}
-                    </p>
-                  </div>
-                  <div
-                    className={`font-semibold ${
-                      transaction.transaction_type === "credit" ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {transaction.transaction_type === "credit" ? "+" : "-"}₹{transaction.amount}
-                  </div>
-                </div>
-              ))}
+              {(wallet?.transactions ?? []).length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  No transactions yet. Refunds and credits will appear here.
+                </p>
+              ) : (
+                (wallet?.transactions ?? []).map((transaction) => {
+                  const isCredit = isCreditTransaction(transaction.transaction_type);
+                  const dateLabel = transaction.created_at
+                    ? dayjs(transaction.created_at).format("MMM D, YYYY")
+                    : "";
+                  return (
+                    <div key={transaction.transaction_id} className="flex items-center">
+                      <div
+                        className={`flex items-center justify-center h-10 w-10 rounded-full ${
+                          isCredit ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {isCredit ? "⬆" : "⬇"}
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <p className="font-medium text-gray-900">
+                          {formatWalletTransactionLabel(transaction)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {dateLabel}
+                          {transaction.status ? ` • ${transaction.status}` : ""}
+                        </p>
+                      </div>
+                      <div
+                        className={`font-semibold ${
+                          isCredit ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {isCredit ? "+" : "-"}₹
+                        {Number(transaction.amount).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         ) : (
@@ -278,7 +260,7 @@ const WalletDialog: React.FC<WalletDialogProps> = ({ open, onClose }) => {
             <h3 className="font-semibold text-gray-800 mb-4">{t("yourRewards")}</h3>
             <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-white p-5 rounded-xl shadow">
               <div className="flex items-center justify-center gap-3 mb-3">
-                ⭐ <span className="text-2xl font-bold">{wallet?.rewards ?? walletData.rewards} {t("points")}</span>
+                ⭐ <span className="text-2xl font-bold">{wallet?.rewards ?? 0} {t("points")}</span>
               </div>
               <p className="text-amber-100 text-center text-sm mb-4">
                 {t("earnMorePoints")}
