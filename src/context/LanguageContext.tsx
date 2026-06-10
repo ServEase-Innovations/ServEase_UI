@@ -1401,6 +1401,27 @@ export const translations: Translations = {
     bn: "আপনার অনুরোধ জমা দেওয়া হয়েছে!"
   },
 
+  contactSubmitError: {
+    en: "We could not send your message. Please try again or email support@serveaso.com directly.",
+    hi: "हम आपका संदेश नहीं भेज सके। कृपया पुनः प्रयास करें या सीधे support@serveaso.com पर ईमेल करें।",
+    kn: "ನಿಮ್ಮ ಸಂದೇಶವನ್ನು ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ support@serveaso.com ಗೆ ನೇರವಾಗಿ ಇಮೇಲ್ ಮಾಡಿ.",
+    bn: "আমরা আপনার বার্তা পাঠাতে পারিনি। অনুগ্রহ করে আবার চেষ্টা করুন বা সরাসরি support@serveaso.com-এ ইমেইল করুন।"
+  },
+
+  contactTermsRequired: {
+    en: "Please agree to the Terms and Conditions before submitting.",
+    hi: "सबमिट करने से पहले कृपया नियम और शर्तों से सहमत हों।",
+    kn: "ಸಲ್ಲಿಸುವ ಮೊದಲು ದಯವಿಟ್ಟು ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳಿಗೆ ಒಪ್ಪಿಗೆ ನೀಡಿ.",
+    bn: "জমা দেওয়ার আগে অনুগ্রহ করে শর্তাবলীতে সম্মত হন।"
+  },
+
+  contactSubmitting: {
+    en: "Sending…",
+    hi: "भेजा जा रहा है…",
+    kn: "ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…",
+    bn: "পাঠানো হচ্ছে…"
+  },
+
   back: {
     en: "Back",
     hi: "वापस",

@@ -1,20 +1,24 @@
 /* ContactUs.tsx */
 /* eslint-disable */
 import { IconButton } from "src/components/Button/icon-button";
-import React from "react";
+import React, { useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
   Container,
   Divider,
   FormControlLabel,
-  Grid,  Link,
+  Grid,
+  Link,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import utilsInstance from "src/services/utilsInstance";
 import { useTheme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -39,10 +43,68 @@ interface ContactUsProps {
 const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
   const { t } = useLanguage();
   const theme = useTheme();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isAgreed, setIsAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(t("requestSubmitted"));
+
+    if (!isAgreed) {
+      setSnackbar({
+        open: true,
+        message: t("contactTermsRequired"),
+        severity: "error",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await utilsInstance.post("/api/contact-us", {
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        source: "web",
+      });
+      setSnackbar({
+        open: true,
+        message: t("requestSubmitted"),
+        severity: "success",
+      });
+      setName("");
+      setEmail("");
+      setMessage("");
+      setIsAgreed(false);
+    } catch (err: unknown) {
+      const apiMessage =
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        err.response &&
+        typeof err.response === "object" &&
+        "data" in err.response &&
+        err.response.data &&
+        typeof err.response.data === "object" &&
+        "error" in err.response.data &&
+        typeof err.response.data.error === "string"
+          ? err.response.data.error
+          : null;
+      setSnackbar({
+        open: true,
+        message: apiMessage || t("contactSubmitError"),
+        severity: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleBack = () => {
@@ -164,6 +226,9 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                     fullWidth
                     variant="outlined"
                     autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={submitting}
                   />
                   <TextField
                     name="email"
@@ -174,6 +239,9 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                     fullWidth
                     variant="outlined"
                     autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={submitting}
                   />
                   <TextField
                     name="message"
@@ -184,11 +252,21 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                     multiline
                     minRows={4}
                     variant="outlined"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    disabled={submitting}
                   />
 
                   <FormControlLabel
                     required
-                    control={<Checkbox color="primary" />}
+                    control={
+                      <Checkbox
+                        color="primary"
+                        checked={isAgreed}
+                        onChange={(e) => setIsAgreed(e.target.checked)}
+                        disabled={submitting}
+                      />
+                    }
                     label={
                       <Typography variant="body2" color="text.secondary" component="span">
                         {t("iAgreeWith")}{" "}
@@ -209,6 +287,7 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                     variant="contained"
                     size="large"
                     fullWidth
+                    disabled={submitting}
                     sx={{
                       mt: 1,
                       py: 1.35,
@@ -223,7 +302,7 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
                       },
                     }}
                   >
-                    {t("sendRequest")}
+                    {submitting ? t("contactSubmitting") : t("sendRequest")}
                   </Button>
                 </Stack>
               </Box>
@@ -394,6 +473,22 @@ const ContactUs: React.FC<ContactUsProps> = ({ onBack }) => {
           </Grid>
         </Paper>
       </Container>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
