@@ -53,6 +53,11 @@ import {
   parseCancellationPolicy,
   type CancellationPolicy,
 } from 'src/utils/cancellationPolicy';
+import {
+  getPaymentTimeoutCancellationMessage,
+  isPaymentTimeoutCancellation,
+  type BookingCancellationInfo,
+} from 'src/utils/bookingCancellation';
 
 interface Task {
   taskType: string;
@@ -147,6 +152,7 @@ interface Booking {
   }>;
   today_service?: TodayService;
   payment?: Payment;
+  cancellation?: BookingCancellationInfo | null;
 }
 
 type EngagementApiItem = Partial<EngagementEpochFields> & {
@@ -166,6 +172,7 @@ type EngagementApiItem = Partial<EngagementEpochFields> & {
   serviceproviderid?: number | string | null;
   provider?: { firstName?: string; lastName?: string; rating?: number | null };
   payment?: Payment;
+  cancellation?: BookingCancellationInfo | null;
   modifications?: any[];
   vacations?: Array<{
     start_date?: string;
@@ -934,6 +941,31 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     }
   };
 
+  const renderPaymentTimeoutCancellationNotice = (booking: Booking) => {
+    if (!isPaymentTimeoutCancellation(booking)) return null;
+
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-amber-300/90 bg-gradient-to-r from-amber-50 via-orange-50/80 to-amber-50 p-3.5 sm:p-4"
+      >
+        <div className="flex gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 ring-1 ring-amber-200/80">
+            <XCircle className="h-5 w-5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-950">
+              Booking cancelled — payment not received
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900/90 sm:text-sm">
+              {getPaymentTimeoutCancellationMessage(booking)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderScheduledMessage = (booking: Booking) => {
     if (booking.today_service && booking.today_service.status === "SCHEDULED") {
       return (
@@ -1457,7 +1489,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               : undefined,
             modifications: modifications,
             today_service: item.today_service,
-            payment: item.payment
+            payment: item.payment,
+            cancellation: item.cancellation ?? null,
           };
         })
       : [];
@@ -2335,6 +2368,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
+                    {renderPaymentTimeoutCancellationNotice(booking)}
+
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
@@ -2560,6 +2595,8 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
+                    {renderPaymentTimeoutCancellationNotice(booking)}
+
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
                       <div className="flex items-start gap-2.5 text-sm">
                         <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
