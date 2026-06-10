@@ -117,12 +117,19 @@ interface Booking {
   start_epoch?: number;
   end_epoch?: number;
   leave_days?: number;
+  vacation?: {
+    start_date?: string;
+    end_date?: string;
+    leave_days?: number;
+  };
   vacationDetails?: {
     leave_type?: string;
     total_days?: number;
     refund_amount?: number;
     end_date?: string;
     start_date?: string;
+    leave_start_date?: string;
+    leave_end_date?: string;
   };
   modifications: Array<{
     date: string;
@@ -160,8 +167,19 @@ type EngagementApiItem = Partial<EngagementEpochFields> & {
   provider?: { firstName?: string; lastName?: string; rating?: number | null };
   payment?: Payment;
   modifications?: any[];
-  vacations?: any[];
-  vacation?: { leave_days?: number };
+  vacations?: Array<{
+    start_date?: string;
+    end_date?: string;
+    leave_days?: number;
+    refund?: number;
+  }>;
+  vacation_start_date?: string;
+  vacation_end_date?: string;
+  vacation?: {
+    start_date?: string;
+    end_date?: string;
+    leave_days?: number;
+  } | null;
   responsibilities?: Responsibilities;
   address?: string;
   customerName?: string;
@@ -1314,10 +1332,58 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     };
   };
 
+  const toVacationYmd = (value?: string | null) =>
+    value ? String(value).trim().slice(0, 10) : undefined;
+
+  const resolveLeaveDays = (...candidates: Array<number | undefined | null>) => {
+    for (const candidate of candidates) {
+      const days = Number(candidate ?? 0);
+      if (days > 0) return days;
+    }
+    return undefined;
+  };
+
+  const resolveVacationFromEngagement = (item: EngagementApiItem) => {
+    if (item.vacation?.start_date && item.vacation?.end_date) {
+      return {
+        start_date: toVacationYmd(item.vacation.start_date)!,
+        end_date: toVacationYmd(item.vacation.end_date)!,
+        leave_days: resolveLeaveDays(item.vacation.leave_days, item.leave_days),
+      };
+    }
+
+    const startFromRow = toVacationYmd(item.vacation_start_date);
+    const endFromRow = toVacationYmd(item.vacation_end_date);
+    if (startFromRow && endFromRow) {
+      return {
+        start_date: startFromRow,
+        end_date: endFromRow,
+        leave_days: resolveLeaveDays(item.leave_days),
+      };
+    }
+
+    const latestVacation = item.vacations?.[0];
+    const startFromHistory = toVacationYmd(latestVacation?.start_date);
+    const endFromHistory = toVacationYmd(latestVacation?.end_date);
+    if (startFromHistory && endFromHistory) {
+      return {
+        start_date: startFromHistory,
+        end_date: endFromHistory,
+        leave_days: resolveLeaveDays(latestVacation?.leave_days, item.leave_days),
+      };
+    }
+
+    return undefined;
+  };
+
   const mapBookingData = (data: EngagementApiItem[]) => {
     return Array.isArray(data)
       ? data.map((item) => {
-          const hasVacation = (item?.vacations?.length ?? 0) > 0;
+          const vacation = resolveVacationFromEngagement(item);
+          const hasVacation =
+            Boolean(vacation) ||
+            Number(item.leave_days ?? 0) > 0 ||
+            (item?.vacations?.length ?? 0) > 0;
           const modifications = item.modifications || [];
           const hasModifications = modifications.length > 0;
 
@@ -1377,10 +1443,16 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             customerHolidays: item.customerHolidays || [],
             hasVacation: hasVacation,
             assignmentStatus: item.assignment_status || "ASSIGNED",
-            leave_days: item.leave_days || 0,
-            vacationDetails: hasVacation && (item.vacation?.leave_days ?? 0) > 0
+            leave_days: vacation?.leave_days ?? item.leave_days ?? 0,
+            vacation,
+            vacationDetails: vacation
               ? {
-                  total_days: item.vacation?.leave_days,
+                  leave_type: "VACATION",
+                  total_days: vacation.leave_days,
+                  start_date: vacation.start_date,
+                  end_date: vacation.end_date,
+                  leave_start_date: vacation.start_date,
+                  leave_end_date: vacation.end_date,
                 }
               : undefined,
             modifications: modifications,
@@ -1512,8 +1584,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setVacationManagementDialogOpen(true);
   };
 
-  const handleVacationSuccess = async () => {
-    setSnackbarMessage('Vacation applied successfully!');
+  const handleVacationSuccess = async (message = 'Vacation updated successfully!') => {
+    setSnackbarMessage(message);
     setSnackbarSeverity('success');
     setOpenSnackbar(true);
     await refreshBookings();

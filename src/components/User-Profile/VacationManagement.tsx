@@ -39,7 +39,7 @@ interface VacationManagementDialogProps {
   onClose: () => void;
   booking: VacationBooking | null;
   customerId: number | null;
-  onSuccess: () => void;
+  onSuccess: (message?: string) => void;
 }
 
 const MIN_VACATION_DAYS = 10;
@@ -126,7 +126,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   };
 
   const handleUpdateVacation = async () => {
-    if (!startDate || !endDate || !booking) {
+    if (!startDate || !endDate || !booking || !customerId) {
       setError(t("selectBothDates"));
       return;
     }
@@ -150,20 +150,21 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
     setError(null);
 
     try {
-      const payload = {
-        vacation_start_date: startDate.format("YYYY-MM-DD"),
-        vacation_end_date: endDate.format("YYYY-MM-DD"),
-        modified_by_id: customerId,
-        modified_by_role: "CUSTOMER",
-      };
-
-      await PaymentInstance.put(`/api/engagements/${booking.id}`, payload, {
-        headers: { "Content-Type": "application/json" },
-      });
+      await PaymentInstance.post(
+        `api/v2/createEngagements/${booking.id}/vacation`,
+        {
+          customerid: customerId,
+          vacation_start_date: startDate.format("YYYY-MM-DD"),
+          vacation_end_date: endDate.format("YYYY-MM-DD"),
+          leave_type: "VACATION",
+          modified_by_id: customerId,
+          modified_by_role: "CUSTOMER",
+        }
+      );
 
       setSuccess(t("vacationUpdated"));
       setTimeout(() => {
-        onSuccess();
+        onSuccess(t("vacationUpdated"));
         onClose();
       }, 1500);
     } catch (err: any) {
@@ -194,12 +195,13 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
 
       setSuccess(t("vacationCancelled"));
       setTimeout(() => {
-        onSuccess();
+        onSuccess(t("vacationCancelled"));
         onClose();
       }, 1500);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error canceling vacation:", err);
-      setError(t("cancelFailed"));
+      const apiMessage = err?.response?.data?.error || err?.response?.data?.message;
+      setError(apiMessage || t("cancelFailed"));
     } finally {
       setIsLoading(false);
     }
