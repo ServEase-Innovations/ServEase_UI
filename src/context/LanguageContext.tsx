@@ -1477,6 +1477,96 @@ export const translations: Translations = {
     kn: "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ",
     bn: "ফিল্টার মুছুন"
   },
+  filterProviders: {
+    en: "Filter providers",
+    hi: "प्रदाता फ़िल्टर करें",
+    kn: "ಪ್ರದಾತರನ್ನು ಫಿಲ್ಟರ್ ಮಾಡಿ",
+    bn: "প্রদানকারী ফিল্টার করুন"
+  },
+  filterExperienceYears: {
+    en: "Experience (years)",
+    hi: "अनुभव (वर्ष)",
+    kn: "ಅನುಭವ (ವರ್ಷಗಳು)",
+    bn: "অভিজ্ঞতা (বছর)"
+  },
+  filterRangeSummary: {
+    en: "{min} – {max} {unit}",
+    hi: "{min} – {max} {unit}",
+    kn: "{min} – {max} {unit}",
+    bn: "{min} – {max} {unit}"
+  },
+  filterYearsUnit: {
+    en: "years",
+    hi: "वर्ष",
+    kn: "ವರ್ಷಗಳು",
+    bn: "বছর"
+  },
+  filterKmUnit: {
+    en: "km",
+    hi: "किमी",
+    kn: "ಕಿ.ಮೀ",
+    bn: "কিমি"
+  },
+  filterMinimumRating: {
+    en: "Minimum rating",
+    hi: "न्यूनतम रेटिंग",
+    kn: "ಕನಿಷ್ಠ ರೇಟಿಂಗ್",
+    bn: "সর্বনিম্ন রেটিং"
+  },
+  filterRatingAny: {
+    en: "Any rating",
+    hi: "कोई भी रेटिंग",
+    kn: "ಯಾವುದೇ ರೇಟಿಂಗ್",
+    bn: "যেকোনো রেটিং"
+  },
+  filterRatingSelected: {
+    en: "{rating}+ stars",
+    hi: "{rating}+ सितारे",
+    kn: "{rating}+ ನಕ್ಷತ್ರಗಳು",
+    bn: "{rating}+ তারা"
+  },
+  filterDistanceKm: {
+    en: "Distance (km)",
+    hi: "दूरी (किमी)",
+    kn: "ದೂರ (ಕಿ.ಮೀ)",
+    bn: "দূরত্ব (কিমি)"
+  },
+  filterAvailabilityStatus: {
+    en: "Availability",
+    hi: "उपलब्धता",
+    kn: "ಲಭ್ಯತೆ",
+    bn: "উপলব্ধতা"
+  },
+  filterLimited: {
+    en: "Limited",
+    hi: "सीमित",
+    kn: "ಸೀಮಿತ",
+    bn: "সীমিত"
+  },
+  filterResetAll: {
+    en: "Reset all",
+    hi: "सब रीसेट करें",
+    kn: "ಎಲ್ಲವನ್ನೂ ಮರುಹೊಂದಿಸಿ",
+    bn: "সব রিসেট করুন"
+  },
+  filterApplyFilters: {
+    en: "Apply filters",
+    hi: "फ़िल्टर लागू करें",
+    kn: "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಅನ್ವಯಿಸಿ",
+    bn: "ফিল্টার প্রয়োগ করুন"
+  },
+  filterSelectLanguages: {
+    en: "Select languages",
+    hi: "भाषाएँ चुनें",
+    kn: "ಭಾಷೆಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    bn: "ভাষা নির্বাচন করুন"
+  },
+  filterClearLanguages: {
+    en: "Clear languages",
+    hi: "भाषाएँ साफ़ करें",
+    kn: "ಭಾಷೆಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ",
+    bn: "ভাষা মুছুন"
+  },
   detailsEndOfList: {
     en: "You've reached the end of the list",
     hi: "आप सूची के अंत तक पहुँच गए",
