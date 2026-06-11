@@ -59,6 +59,14 @@ import {
   type BookingCancellationInfo,
 } from 'src/utils/bookingCancellation';
 import { formatProviderDisplayName } from 'src/utils/providerDisplayName';
+import { useDispatch } from 'react-redux';
+import { commitSchedule } from '../../features/bookingType/bookingTypeSlice';
+import { add as setGeoLocation } from '../../features/geoLocation/geoLocationSlice';
+import { DETAILS } from 'src/Constants/pagesConstants';
+import {
+  buildRebookGeoLocation,
+  buildRebookPayload,
+} from 'src/utils/rebookFromBooking';
 
 interface Task {
   taskType: string;
@@ -112,6 +120,8 @@ interface Booking {
   created_at?: string;
   placed_at_label?: string;
   service_type: string;
+  latitude?: number | null;
+  longitude?: number | null;
   childAge: string;
   experience: string;
   noOfPersons: string;
@@ -190,6 +200,8 @@ type EngagementApiItem = Partial<EngagementEpochFields> & {
   } | null;
   responsibilities?: Responsibilities;
   address?: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   customerName?: string;
   paymentMode?: string;
   serviceProviderName?: string;
@@ -555,6 +567,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
   const { user: auth0User, isAuthenticated: auth0IsAuthenticated } = useAuth0();
   const { appUser, authSessionReady } = useAppUser();
+  const dispatch = useDispatch();
 
   const isAuthenticated = useMemo(
     () => auth0IsAuthenticated || !!(appUser && localStorage.getItem("token")),
@@ -1468,6 +1481,14 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             bookingDate: item.created_at || item.payment?.created_at || '',
             created_at: item.created_at || item.payment?.created_at || '',
             service_type: item.service_type?.toLowerCase() || 'other',
+            latitude:
+              item.latitude != null && item.latitude !== ""
+                ? Number(item.latitude)
+                : undefined,
+            longitude:
+              item.longitude != null && item.longitude !== ""
+                ? Number(item.longitude)
+                : undefined,
             childAge: item.childAge || '',
             experience: item.experience || '',
             noOfPersons: item.noOfPersons || '',
@@ -1604,6 +1625,29 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const handleReportIssueClick = (booking: Booking) => {
     setSelectedComplaintBooking(booking);
     setComplaintDialogOpen(true);
+  };
+
+  const handleBookAgain = (booking: Booking) => {
+    const payload = buildRebookPayload(booking);
+    if (!payload) {
+      setSnackbarMessage(
+        "This service type cannot be rebooked automatically. Please book from the home page."
+      );
+      setSnackbarSeverity("info");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    dispatch(commitSchedule(payload));
+
+    const geo = buildRebookGeoLocation(booking);
+    if (geo) {
+      dispatch(setGeoLocation(geo));
+    }
+
+    if (typeof handleDataFromChild === "function") {
+      handleDataFromChild(DETAILS);
+    }
   };
 
   const handleModifyClick = (booking: Booking) => {
@@ -1901,6 +1945,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               variant="outline"
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+              onClick={() => handleBookAgain(booking)}
             >
               <span className="hidden sm:inline">Book Again</span>
               <span className="sm:hidden">Book</span>
@@ -1917,6 +1962,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               variant="outline"
               size="sm"
               className="w-full sm:w-auto justify-center text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+              onClick={() => handleBookAgain(booking)}
             >
               <span className="hidden sm:inline">Book Again</span>
               <span className="sm:hidden">Book</span>

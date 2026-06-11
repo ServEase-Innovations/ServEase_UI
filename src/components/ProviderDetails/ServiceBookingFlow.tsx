@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BOOKINGS } from "../../Constants/pagesConstants";
 import { Tooltip, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, CircularProgress, Checkbox, FormControlLabel } from "@mui/material";
@@ -82,6 +82,7 @@ import {
 import { useBookingScheduleFlow } from "src/hooks/useBookingScheduleFlow";
 
 const COUPON_FEEDBACK_MS = 2000;
+const AVAILABILITY_ERROR_SNACKBAR_MS = 9000;
 const todayYmd = () => dayjs().format("YYYY-MM-DD");
 
 type CouponOption = {
@@ -187,6 +188,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   const lastPayableTotalRef = useRef<number>(0);
   const couponSnackbarKeyRef = useRef<string | null>(null);
   const scheduleActionsRef = useRef<MaidBookingDetailsSectionHandle | null>(null);
+  const providerAvailabilityLoadingRef = useRef(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [availabilityCheckBlocked, setAvailabilityCheckBlocked] = useState(false);
   const [availabilityCheckBlockedMessage, setAvailabilityCheckBlockedMessage] =
@@ -381,6 +383,52 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                             ? "Pay now to confirm — provider matching after payment"
                             : undefined;
   const flowTitleId = `${serviceKind}-flow-title`;
+
+  const showAvailabilityErrorSnackbar = useCallback((message?: string) => {
+    const text = String(message || "").trim();
+    if (!text) return;
+    setSnackbarMessage(text);
+    setSnackbarSeverity("error");
+    setSnackbarOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (
+      !active ||
+      !providerRequired ||
+      !providerId ||
+      bookingTypeCode === "ON_DEMAND" ||
+      !scheduleReady ||
+      !bookingCoords
+    ) {
+      providerAvailabilityLoadingRef.current = selectedProviderAvailability.loading;
+      return;
+    }
+
+    const wasLoading = providerAvailabilityLoadingRef.current;
+    const isLoading = selectedProviderAvailability.loading;
+    providerAvailabilityLoadingRef.current = isLoading;
+
+    if (
+      wasLoading &&
+      !isLoading &&
+      !selectedProviderAvailability.available &&
+      selectedProviderAvailability.message
+    ) {
+      showAvailabilityErrorSnackbar(selectedProviderAvailability.message);
+    }
+  }, [
+    active,
+    bookingCoords,
+    bookingTypeCode,
+    providerId,
+    providerRequired,
+    scheduleReady,
+    selectedProviderAvailability.available,
+    selectedProviderAvailability.loading,
+    selectedProviderAvailability.message,
+    showAvailabilityErrorSnackbar,
+  ]);
 
   useEffect(() => {
     if (!active) {
@@ -1010,6 +1058,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
               onAvailabilityCheckBlockedChange={(blocked, message) => {
                 setAvailabilityCheckBlocked(blocked);
                 setAvailabilityCheckBlockedMessage(message);
+                if (blocked) {
+                  showAvailabilityErrorSnackbar(message);
+                }
               }}
             />
           </MaidCard>
@@ -1310,11 +1361,24 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={COUPON_FEEDBACK_MS}
+        autoHideDuration={
+          snackbarSeverity === "error" ? AVAILABILITY_ERROR_SNACKBAR_MS : COUPON_FEEDBACK_MS
+        }
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{ mt: { xs: 7, sm: 8 } }}
       >
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            maxWidth: { xs: "min(100vw - 24px, 520px)", sm: 520 },
+            alignItems: "flex-start",
+            "& .MuiAlert-message": { lineHeight: 1.5 },
+          }}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>

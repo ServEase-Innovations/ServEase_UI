@@ -419,29 +419,34 @@ useEffect(() => {
                         ].map((service, index) => (
                             <Card
                                 key={index}
-                                className={`border border-slate-200/90 bg-white text-center shadow-sm transition-all duration-200 ${
+                                className={`group border border-slate-200/90 bg-white text-center shadow-sm transition-all duration-200 ${
                                     isServiceProvider
                                         ? "cursor-not-allowed opacity-50 grayscale"
                                         : "hover:-translate-y-0.5 hover:border-sky-200/80 hover:shadow-md"
                                 }`}
                             >
-                                <CardContent className="space-y-4 p-6 sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 text-3xl ring-1 ring-sky-100/80">
+                                <CardContent className="flex h-full flex-col space-y-4 p-6 sm:p-7">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 text-3xl ring-1 ring-sky-100/80 transition-transform duration-200 group-hover:scale-105">
                                         {service.icon}
                                     </div>
                                     <h3 className="text-lg font-semibold text-slate-900">{service.title}</h3>
-                                    <p className="text-sm leading-relaxed text-slate-600">{service.desc}</p>
-                                    <Button
+                                    <p className="flex-1 text-sm leading-relaxed text-slate-600">{service.desc}</p>
+                                    <button
                                         type="button"
                                         disabled={isServiceProvider}
-                                        className="border-transparent bg-transparent px-0 py-1 text-sm font-semibold text-sky-700 shadow-none hover:bg-transparent hover:text-sky-900 disabled:pointer-events-none disabled:opacity-60"
+                                        aria-label={`${t("learnMore")} — ${service.title}`}
                                         onClick={() => {
                                             if (isServiceProvider) return;
-                                            setServiceDialog({ open: true, type: service.type as any });
+                                            setServiceDialog({ open: true, type: service.type as "cook" | "maid" | "babycare" });
                                         }}
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50/90 to-white px-4 py-2.5 text-sm font-semibold text-sky-800 shadow-sm ring-1 ring-sky-100/60 transition-all duration-200 hover:border-sky-400 hover:from-sky-100 hover:to-sky-50 hover:text-sky-900 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-hover:border-sky-300"
                                     >
-                                        {t("learnMore")}
-                                    </Button>
+                                        <span>{t("learnMore")}</span>
+                                        <ArrowRight
+                                            className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                                            aria-hidden
+                                        />
+                                    </button>
                                 </CardContent>
                             </Card>
                         ))}
@@ -493,6 +498,17 @@ useEffect(() => {
   open={serviceDialog.open}
   onClose={() => setServiceDialog({ open: false, type: null })}
   serviceType={serviceDialog.type as "cook" | "maid" | "babycare"}
+  onBookNow={() => {
+    const roleByType: Record<"cook" | "maid" | "babycare", string> = {
+      cook: "COOK",
+      maid: "MAID",
+      babycare: "NANNY",
+    };
+    const type = serviceDialog.type;
+    if (!type || isServiceProvider) return;
+    setServiceDialog({ open: false, type: null });
+    handleClick(roleByType[type]);
+  }}
 />
 {selectedType === "COOK" && (
     <CookServicesDialog

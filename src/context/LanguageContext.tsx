@@ -5283,6 +5283,102 @@ myWallet: {
   kn: "ನನ್ನ ವ್ಯಾಲೆಟ್",
   bn: "আমার ওয়ালেট"
 },
+walletHeaderCaption: {
+  en: "Account",
+  hi: "खाता",
+  kn: "ಖಾತೆ",
+  bn: "অ্যাকাউন্ট"
+},
+walletSubtitle: {
+  en: "Balance, top-ups, and transaction history",
+  hi: "शेष राशि, टॉप-अप और लेनदेन इतिहास",
+  kn: "ಬ್ಯಾಲೆನ್ಸ್, ಟಾಪ್-ಅಪ್ ಮತ್ತು ವಹಿವಾಟು ಇತಿಹಾಸ",
+  bn: "ব্যালেন্স, টপ-আপ এবং লেনদেনের ইতিহাস"
+},
+refreshWallet: {
+  en: "Refresh wallet",
+  hi: "वॉलेट रीफ़्रेश करें",
+  kn: "ವ್ಯಾಲೆಟ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ",
+  bn: "ওয়ালেট রিফ্রেশ করুন"
+},
+noTransactionsYet: {
+  en: "No transactions yet",
+  hi: "अभी तक कोई लेनदेन नहीं",
+  kn: "ಇನ್ನೂ ಯಾವುದೇ ವಹಿವಾಟುಗಳಿಲ್ಲ",
+  bn: "এখনও কোনো লেনদেন নেই"
+},
+noTransactionsHint: {
+  en: "Top up your wallet or complete a booking — activity will show up here.",
+  hi: "वॉलेट में पैसे जोड़ें या बुकिंग पूरी करें — गतिविधि यहाँ दिखेगी।",
+  kn: "ನಿಮ್ಮ ವಾಲೆಟ್‌ಗೆ ಹಣ ಸೇರಿಸಿ ಅಥವಾ ಬುಕಿಂಗ್ ಪೂರ್ಣಗೊಳಿಸಿ — ಚಟುವಟಿಕೆ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
+  bn: "ওয়ালেটে টাকা যোগ করুন বা বুকিং সম্পন্ন করুন — কার্যকলাপ এখানে দেখা যাবে।"
+},
+walletToday: {
+  en: "Today",
+  hi: "आज",
+  kn: "ಇಂದು",
+  bn: "আজ"
+},
+walletYesterday: {
+  en: "Yesterday",
+  hi: "कल",
+  kn: "ನಿನ್ನೆ",
+  bn: "গতকাল"
+},
+walletEarlier: {
+  en: "Earlier",
+  hi: "पहले",
+  kn: "ಹಿಂದೆ",
+  bn: "আগে"
+},
+walletTxTopUp: {
+  en: "Top-up",
+  hi: "टॉप-अप",
+  kn: "ಟಾಪ್-ಅಪ್",
+  bn: "টপ-আপ"
+},
+walletTxRefund: {
+  en: "Refund",
+  hi: "रिफंड",
+  kn: "ಮರುಪಾವತಿ",
+  bn: "রিফান্ড"
+},
+walletTxBooking: {
+  en: "Booking",
+  hi: "बुकिंग",
+  kn: "ಬುಕಿಂಗ್",
+  bn: "বুকিং"
+},
+walletTxOther: {
+  en: "Wallet",
+  hi: "वॉलेट",
+  kn: "ವಾಲೆಟ್",
+  bn: "ওয়ালেট"
+},
+securePaymentNote: {
+  en: "Secured by Razorpay",
+  hi: "Razorpay द्वारा सुरक्षित",
+  kn: "Razorpay ಮೂಲಕ ಸುರಕ್ಷಿತ",
+  bn: "Razorpay দ্বারা সুরক্ষিত"
+},
+rewardsComingSoon: {
+  en: "Rewards catalog coming soon",
+  hi: "पुरस्कार कैटलॉग जल्द आ रहा है",
+  kn: "ಬಹುಮಾನ ಕ್ಯಾಟಲಾಗ್ ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ",
+  bn: "রিওয়ার্ড ক্যাটালগ শীঘ্রই আসছে"
+},
+closeAddMoney: {
+  en: "Close",
+  hi: "बंद करें",
+  kn: "ಮುಚ್ಚಿ",
+  bn: "বন্ধ করুন"
+},
+addMoneyTapHint: {
+  en: "Tap to choose amount and pay",
+  hi: "राशि चुनने और भुगतान के लिए टैप करें",
+  kn: "ಮೊತ್ತ ಆಯ್ಕೆ ಮಾಡಲು ಮತ್ತು ಪಾವತಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ",
+  bn: "পরিমাণ বেছে নিতে এবং পেমেন্ট করতে ট্যাপ করুন"
+},
 useWalletBalance: {
   en: "Use wallet balance",
   hi: "वॉलेट बैलेंस का उपयोग करें",
@@ -5354,6 +5450,60 @@ addMoney: {
   hi: "पैसे जोड़ें",
   kn: "ಹಣ ಸೇರಿಸಿ",
   bn: "টাকা যোগ করুন"
+},
+addMoneyToWallet: {
+  en: "Add money to wallet",
+  hi: "वॉलेट में पैसे जोड़ें",
+  kn: "ವಾಲೆಟ್‌ಗೆ ಹಣ ಸೇರಿಸಿ",
+  bn: "ওয়ালেটে টাকা যোগ করুন"
+},
+enterAmount: {
+  en: "Enter amount (₹)",
+  hi: "राशि दर्ज करें (₹)",
+  kn: "ಮೊತ್ತ ನಮೂದಿಸಿ (₹)",
+  bn: "পরিমাণ লিখুন (₹)"
+},
+walletTopUpHint: {
+  en: "Choose an amount or enter your own. Payment is processed securely via Razorpay.",
+  hi: "राशि चुनें या अपनी राशि दर्ज करें। भुगतान Razorpay के माध्यम से सुरक्षित रूप से किया जाता है।",
+  kn: "ಮೊತ್ತವನ್ನು ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ನಿಮ್ಮದೇ ಆದ ಮೊತ್ತವನ್ನು ನಮೂದಿಸಿ. ಪಾವತಿಯನ್ನು Razorpay ಮೂಲಕ ಸುರಕ್ಷಿತವಾಗಿ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತದೆ.",
+  bn: "একটি পরিমাণ বেছে নিন বা নিজের পরিমাণ লিখুন। Razorpay-এর মাধ্যমে নিরাপদে পেমেন্ট করা হয়।"
+},
+walletTopUpLimits: {
+  en: "Minimum ₹{min}, maximum ₹{max}",
+  hi: "न्यूनतम ₹{min}, अधिकतम ₹{max}",
+  kn: "ಕನಿಷ್ಠ ₹{min}, ಗರಿಷ್ಠ ₹{max}",
+  bn: "সর্বনিম্ন ₹{min}, সর্বোচ্চ ₹{max}"
+},
+proceedToPay: {
+  en: "Proceed to pay",
+  hi: "भुगतान करें",
+  kn: "ಪಾವತಿಗೆ ಮುಂದುವರಿಯಿರಿ",
+  bn: "পেমেন্ট করুন"
+},
+walletTopUpSuccess: {
+  en: "₹{amount} added to your wallet successfully.",
+  hi: "₹{amount} आपके वॉलेट में सफलतापूर्वक जोड़ा गया।",
+  kn: "₹{amount} ನಿಮ್ಮ ವಾಲೆಟ್‌ಗೆ ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ.",
+  bn: "₹{amount} সফলভাবে আপনার ওয়ালেটে যোগ হয়েছে।"
+},
+walletTopUpFailed: {
+  en: "Could not add money to your wallet. Please try again.",
+  hi: "वॉलेट में पैसे नहीं जोड़े जा सके। कृपया पुनः प्रयास करें।",
+  kn: "ವಾಲೆಟ್‌ಗೆ ಹಣ ಸೇರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  bn: "ওয়ালেটে টাকা যোগ করা যায়নি। আবার চেষ্টা করুন।"
+},
+walletTopUpCancelled: {
+  en: "Payment cancelled. No amount was added.",
+  hi: "भुगतान रद्द किया गया। कोई राशि नहीं जोड़ी गई।",
+  kn: "ಪಾವತಿ ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ. ಯಾವುದೇ ಮೊತ್ತ ಸೇರಿಸಲಾಗಿಲ್ಲ.",
+  bn: "পেমেন্ট বাতিল হয়েছে। কোনো টাকা যোগ হয়নি।"
+},
+walletTopUpAlreadyDone: {
+  en: "This top-up was already processed.",
+  hi: "यह टॉप-अप पहले ही संसाधित हो चुका है।",
+  kn: "ಈ ಟಾಪ್-ಅಪ್ ಈಗಾಗಲೇ ಪ್ರಕ್ರಿಯೆಗೊಂಡಿದೆ.",
+  bn: "এই টপ-আপ ইতিমধ্যে প্রক্রিয়া করা হয়েছে।"
 },
 transfer: {
   en: "Transfer",
