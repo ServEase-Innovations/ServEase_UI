@@ -17,7 +17,7 @@ import { SkeletonLoader } from "../Common/SkeletonLoader/SkeletonLoader";
 import { useAppUser } from "src/context/AppUserContext";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useLanguage } from "src/context/LanguageContext";
-import { ArrowLeft, CalendarDays, MapPinOff, SlidersHorizontal, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, MapPinOff, SlidersHorizontal, Users } from "lucide-react";
 import {
   formatDateOnly,
   formatInr,
@@ -528,21 +528,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const resultsLabel =
     totalCount === 1 ? t("detailsOneProviderFound") : t("detailsManyProvidersFound", { count: totalCount });
 
-  const searchContextLine = useMemo(() => {
-    if (!searchContextSummary) return "";
-    return [
-      searchContextSummary.serviceLabel,
-      searchContextSummary.modeLabel,
-      searchContextSummary.dateLine,
-      searchContextSummary.timeLine,
-      searchContextSummary.rateLine,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-  }, [searchContextSummary]);
-
   const showResultsHeader =
-    totalCount > 0 || activeFilters || (hasFetchedOnce && Boolean(searchContextLine));
+    totalCount > 0 || activeFilters || (hasFetchedOnce && Boolean(searchContextSummary));
 
   const selectedProviderId = Number(
     bookingType?.serviceproviderId ?? bookingType?.serviceProviderId ?? 0
@@ -592,66 +579,95 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
             </div>
           ) : null}
           {showResultsHeader ? (
-            <div
-              className={`relative mb-6 flex items-center rounded-2xl border border-slate-200/90 bg-white/90 px-2 shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03] backdrop-blur-sm sm:px-4 ${
-                searchContextLine ? "min-h-[3.75rem] py-2 sm:min-h-[4rem] sm:py-2.5" : "min-h-[2.75rem] py-2.5 sm:min-h-[3rem] sm:py-3.5"
-              }`}
+            <header
+              className="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm shadow-slate-900/[0.04] ring-1 ring-slate-900/[0.03]"
+              role="status"
+              aria-live="polite"
             >
-              {/* Equal halves so left/right chrome balances; label is centered on the full bar */}
-              <div className="relative z-[1] flex min-h-[2.25rem] min-w-0 flex-1 items-center justify-start">
+              <div
+                className={`grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-gradient-to-r from-sky-50/80 to-white px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 ${
+                  searchContextSummary ? "border-b border-slate-100" : ""
+                }`}
+              >
                 <button
                   type="button"
                   onClick={handleBackClick}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/90 bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-sky-50/80 sm:gap-2 sm:px-3 sm:text-sm"
+                  className="inline-flex w-fit items-center justify-center gap-1.5 justify-self-start rounded-xl border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-semibold text-slate-800 transition hover:border-sky-200 hover:bg-sky-50/80 sm:gap-2 sm:px-3 sm:text-sm"
                 >
                   <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-                  {t("back")}
+                  <span className="hidden sm:inline">{t("back")}</span>
                 </button>
-              </div>
 
-              <div className="relative z-[1] flex min-h-[2.25rem] min-w-0 flex-1 items-center justify-end gap-1.5 sm:gap-2">
-                <Badge badgeContent={activeFilterCount} color="primary" invisible={activeFilterCount === 0}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    startIcon={<Filter className="h-4 w-4" />}
-                    onClick={() => setFilterOpen(true)}
-                    className="rounded-xl font-semibold bg-white/95"
-                  >
-                    {t("detailsFilters")}
-                  </Button>
-                </Badge>
-                {activeFilterCount > 0 ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="rounded-lg font-semibold text-slate-600"
-                  >
-                    {t("clearAll")}
-                  </Button>
-                ) : null}
-              </div>
-
-              <div
-                className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[26%] sm:px-[24%]"
-                role="status"
-                aria-live="polite"
-              >
-                <p className="w-full min-w-0 truncate text-center text-xs font-medium tabular-nums leading-tight text-slate-600 sm:text-sm">
+                <p className="min-w-0 max-w-[10.5rem] truncate text-center text-xs font-semibold tabular-nums tracking-tight text-slate-800 sm:max-w-none sm:text-sm md:text-base">
                   {resultsLabel}
                 </p>
-                {searchContextLine ? (
-                  <p
-                    className="mt-0.5 flex w-full min-w-0 items-center justify-center gap-1 truncate text-center text-[10px] leading-tight text-slate-500 sm:text-[11px]"
-                    title={searchContextLine}
-                  >
-                    <CalendarDays className="hidden h-3 w-3 shrink-0 sm:inline" aria-hidden />
-                    <span className="min-w-0 truncate">{searchContextLine}</span>
-                  </p>
-                ) : null}
+
+                <div className="flex min-w-0 items-center justify-end justify-self-end gap-1 sm:gap-1.5">
+                  <Badge badgeContent={activeFilterCount} color="primary" invisible={activeFilterCount === 0}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      startIcon={<Filter className="h-4 w-4" />}
+                      onClick={() => setFilterOpen(true)}
+                      className="rounded-xl bg-white font-semibold"
+                    >
+                      <span className="hidden sm:inline">{t("detailsFilters")}</span>
+                      <span className="sm:hidden sr-only">{t("detailsFilters")}</span>
+                    </Button>
+                  </Badge>
+                  {activeFilterCount > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="hidden rounded-lg font-semibold text-slate-600 md:inline-flex"
+                    >
+                      {t("clearAll")}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
+
+              {searchContextSummary ? (
+                <div className="px-3 py-3 text-center sm:px-4 sm:py-3.5">
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    <span className="inline-flex items-center rounded-lg bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 ring-1 ring-sky-100">
+                      {searchContextSummary.serviceLabel}
+                    </span>
+                    <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200/80">
+                      {searchContextSummary.modeLabel}
+                    </span>
+                    {searchContextSummary.dateLine ? (
+                      <span className="inline-flex max-w-full items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200/80">
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="min-w-0">{searchContextSummary.dateLine}</span>
+                      </span>
+                    ) : null}
+                    {searchContextSummary.timeLine ? (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200/80">
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                        {searchContextSummary.timeLine}
+                      </span>
+                    ) : null}
+                    {searchContextSummary.rateLine ? (
+                      <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900 ring-1 ring-emerald-100">
+                        {searchContextSummary.rateLine}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {activeFilterCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      className="mx-auto mt-2.5 block text-xs font-semibold text-sky-700 underline-offset-2 hover:underline md:hidden"
+                    >
+                      {t("detailsClearFilters")} ({activeFilterCount})
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </header>
           ) : null}
 
           {hasFetchedOnce && filteredProviders.length === 0 && !loading ? (
