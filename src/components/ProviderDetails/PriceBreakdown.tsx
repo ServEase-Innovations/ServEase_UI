@@ -17,12 +17,20 @@ export interface PriceBreakdownProps {
   rows: QuoteBreakdownRow[];
   loading?: boolean;
   paymentTotals?: PaymentTotals | null;
+  walletApplied?: number;
+  amountPayable?: number;
+  walletAppliedLabel?: string;
+  walletPayableLabel?: string;
 }
 
 const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
   rows,
   loading,
   paymentTotals,
+  walletApplied = 0,
+  amountPayable,
+  walletAppliedLabel = "Wallet applied",
+  walletPayableLabel = "Amount payable",
 }) => {
   const [infoAnchor, setInfoAnchor] = useState<HTMLElement | null>(null);
 
@@ -135,6 +143,17 @@ const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
         </Box>
       </Popover>
 
+      {walletApplied > 0 ? (
+        <MaidMetricRow style={{ marginBottom: 8 }}>
+          <MaidMetricLabel style={{ color: "#15803d", fontWeight: 600 }}>
+            {walletAppliedLabel}
+          </MaidMetricLabel>
+          <MaidMetricValue style={{ color: "#15803d", fontWeight: 600 }}>
+            −{formatInr(walletApplied)}
+          </MaidMetricValue>
+        </MaidMetricRow>
+      ) : null}
+
       {totalRow ? (
         <MaidMetricRow
           style={{
@@ -144,10 +163,14 @@ const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
           }}
         >
           <MaidMetricLabel style={{ fontWeight: 700, color: "#0f172a" }}>
-            {totalRow.label}
+            {walletApplied > 0 ? walletPayableLabel : totalRow.label}
           </MaidMetricLabel>
           <MaidMetricValue style={{ fontWeight: 700, color: "#0b5bd3", fontSize: "1.05rem" }}>
-            {formatInr(totalRow.amount)}
+            {formatInr(
+              walletApplied > 0 && amountPayable != null
+                ? amountPayable
+                : totalRow.amount
+            )}
           </MaidMetricValue>
         </MaidMetricRow>
       ) : null}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { BOOKINGS } from "../../Constants/pagesConstants";
-import { Tooltip, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, CircularProgress } from "@mui/material";
+import { Tooltip, Snackbar, Alert, Box, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, CircularProgress, Checkbox, FormControlLabel } from "@mui/material";
 import { Button, dialogActionsClassName } from "../Button/button";
 import { IconButton } from "../Button/icon-button";
 import { Info } from "lucide-react";
@@ -61,8 +61,10 @@ import {
 import { buildQuoteBreakdown, type QuoteBreakdownRow } from "src/utils/quoteBreakdown";
 import {
   appendPaymentFeeRows,
+  computeCheckoutWithWallet,
   computePaymentTotals,
 } from "src/utils/paymentTotals";
+import { fetchCustomerWallet } from "src/services/walletService";
 import PriceBreakdown from "./PriceBreakdown";
 import type { PricingQuoteResponse } from "src/services/pricingService";
 import axios from "axios";
@@ -189,6 +191,9 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
   const [availabilityCheckBlocked, setAvailabilityCheckBlocked] = useState(false);
   const [availabilityCheckBlockedMessage, setAvailabilityCheckBlockedMessage] =
     useState<string | undefined>();
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   useEffect(() => {
     onSuccessDialogChange?.(successDialogOpen);
@@ -234,9 +239,50 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     [serviceTotal]
   );
   const payableTotal = paymentTotals.total_amount || 0;
+  const walletSplit = useMemo(
+    () =>
+      computeCheckoutWithWallet(
+        paymentTotals,
+        walletBalance,
+        useWalletBalance && walletBalance > 0
+      ),
+    [paymentTotals, walletBalance, useWalletBalance]
+  );
+  const payableViaGateway = walletSplit.razorpay_amount;
   useEffect(() => {
-    lastPayableTotalRef.current = payableTotal;
-  }, [payableTotal]);
+    lastPayableTotalRef.current = payableViaGateway;
+  }, [payableViaGateway]);
+
+  useEffect(() => {
+    if (!active || !isCheckoutAuthenticated || !appUser?.customerid) {
+      setWalletBalance(0);
+      setUseWalletBalance(false);
+      return;
+    }
+
+    let cancelled = false;
+    setWalletLoading(true);
+    void fetchCustomerWallet(appUser.customerid)
+      .then((wallet) => {
+        if (cancelled) return;
+        const balance = Math.max(0, Number(wallet.balance ?? 0));
+        setWalletBalance(balance);
+        setUseWalletBalance(balance > 0);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWalletBalance(0);
+          setUseWalletBalance(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setWalletLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [active, appUser?.customerid, isCheckoutAuthenticated]);
   const displayBreakdown = useMemo(
     () => appendPaymentFeeRows(quotePreview.breakdown, serviceTotal),
     [quotePreview.breakdown, serviceTotal]
@@ -851,6 +897,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         pricing_snapshot: quoteRes.quote,
         coupon_code: appliedCouponCode || undefined,
         payment_mode: "razorpay",
+        use_wallet: useWalletBalance && walletBalance > 0,
         end_time: endTime,
       };
       const startEpoch = dayjs(`${start_date} ${payload.start_time}`).unix();
@@ -1109,10 +1156,55 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                 ) : null}
               </Box>
             </Box>
+            {isCheckoutAuthenticated && walletBalance > 0 ? (
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: "1px solid #dbeafe",
+                  bgcolor: "#f8fbff",
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={useWalletBalance}
+                      onChange={(e) => setUseWalletBalance(e.target.checked)}
+                      disabled={walletLoading || loading}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                        {t("useWalletBalance")}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                        {t("walletBalanceAvailable", {
+                          amount: formatInr(walletBalance),
+                        })}
+                      </Typography>
+                    </Box>
+                  }
+                />
+                {useWalletBalance && walletSplit.wallet_applied > 0 ? (
+                  <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: "#0369a1" }}>
+                    {walletSplit.razorpay_amount <= 0
+                      ? t("walletCoversFullAmount")
+                      : `${t("walletAppliedLabel")}: ${formatInr(walletSplit.wallet_applied)} · ${t("payViaRazorpay")}: ${formatInr(walletSplit.razorpay_amount)}`}
+                  </Typography>
+                ) : null}
+              </Box>
+            ) : null}
             <PriceBreakdown
               rows={displayBreakdown}
               loading={quotePreview.loading}
               paymentTotals={paymentTotals}
+              walletApplied={walletSplit.wallet_applied}
+              amountPayable={walletSplit.razorpay_amount}
+              walletAppliedLabel={t("walletAppliedLabel")}
+              walletPayableLabel={t("payViaRazorpay")}
             />
           </MaidCard>
         </MaidScroll>
@@ -1120,9 +1212,21 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         <MaidFooter>
           <MaidFooterTop>
             <div>
-              <MaidFooterMuted>Amount payable</MaidFooterMuted>
+              <MaidFooterMuted>
+                {walletSplit.wallet_applied > 0
+                  ? walletSplit.razorpay_amount <= 0
+                    ? t("walletAppliedLabel")
+                    : t("payViaRazorpay")
+                  : "Amount payable"}
+              </MaidFooterMuted>
               <MaidFooterPrice>
-                {quotePreview.loading ? "…" : formatInr(payableTotal)}
+                {quotePreview.loading
+                  ? "…"
+                  : formatInr(
+                      walletSplit.wallet_applied > 0
+                        ? walletSplit.razorpay_amount
+                        : payableTotal
+                    )}
               </MaidFooterPrice>
             </div>
           </MaidFooterTop>

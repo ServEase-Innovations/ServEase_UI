@@ -44,6 +44,7 @@ export interface BookingPayload {
   service_type: string;
   base_amount: number;
   payment_mode?: "razorpay" | "UPI" | "CASH";
+  use_wallet?: boolean;
   [key: string]: any;
 }
 
@@ -331,14 +332,24 @@ export const BookingService = {
     console.log("Payload:", payload);
     const engagementData = await BookingService.createEngagement(payload);
 
-    // Extract order id & amount
-    const orderId =
-      engagementData?.razorpay_order_id;
+    if (engagementData?.wallet_only) {
+      return {
+        engagementData,
+        paymentResponse: null,
+        verifyResult: {
+          success: true,
+          message: "Booking paid from wallet balance",
+        },
+      };
+    }
 
+    const orderId = engagementData?.razorpay_order_id;
     if (!orderId) throw new Error("Razorpay order id not found in response");
 
     let amountPaise: number;
-    if (engagementData?.razorpayOrder?.amount) {
+    if (engagementData?.razorpay_amount != null) {
+      amountPaise = Math.round(Number(engagementData.razorpay_amount) * 100);
+    } else if (engagementData?.razorpayOrder?.amount) {
       amountPaise = Number(engagementData.razorpayOrder.amount);
     } else if (engagementData?.total_amount != null) {
       amountPaise = Math.round(Number(engagementData.total_amount) * 100);
@@ -348,7 +359,6 @@ export const BookingService = {
       amountPaise = Math.round(payload.base_amount * 100);
     }
 
-    // Open Razorpay
     const paymentResponse = await BookingService.openRazorpay(
       orderId,
       amountPaise,
@@ -359,7 +369,6 @@ export const BookingService = {
 
     paymentResponse.engagementId = engagementData?.engagement_id;
 
-    // Verify payment on backend
     const verifyResult = await BookingService.verifyPayment(paymentResponse);
 
     return { engagementData, paymentResponse, verifyResult };

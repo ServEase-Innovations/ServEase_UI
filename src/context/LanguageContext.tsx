@@ -5283,6 +5283,36 @@ myWallet: {
   kn: "ನನ್ನ ವ್ಯಾಲೆಟ್",
   bn: "আমার ওয়ালেট"
 },
+useWalletBalance: {
+  en: "Use wallet balance",
+  hi: "वॉलेट बैलेंस का उपयोग करें",
+  kn: "ವ್ಯಾಲೆಟ್ ಬ್ಯಾಲೆನ್ಸ್ ಬಳಸಿ",
+  bn: "ওয়ালেট ব্যালেন্স ব্যবহার করুন"
+},
+walletBalanceAvailable: {
+  en: "Available: {amount}",
+  hi: "उपलब्ध: {amount}",
+  kn: "ಲಭ್ಯ: {amount}",
+  bn: "উপলব্ধ: {amount}"
+},
+walletAppliedLabel: {
+  en: "Wallet applied",
+  hi: "वॉलेट लागू",
+  kn: "ವ್ಯಾಲೆಟ್ ಬಳಸಲಾಗಿದೆ",
+  bn: "ওয়ালেট প্রয়োগ হয়েছে"
+},
+payViaRazorpay: {
+  en: "Pay via Razorpay",
+  hi: "Razorpay से भुगतान करें",
+  kn: "Razorpay ಮೂಲಕ ಪಾವತಿ",
+  bn: "Razorpay দিয়ে পেমেন্ট"
+},
+walletCoversFullAmount: {
+  en: "Wallet covers the full amount — no card payment needed",
+  hi: "वॉलेट पूरी राशि कवर करता है — कार्ड भुगतान की आवश्यकता नहीं",
+  kn: "ವ್ಯಾಲೆಟ್ ಪೂರ್ಣ ಮೊತ್ತವನ್ನು ಒಳಗೊಂಡಿದೆ — ಕಾರ್ಡ್ ಪಾವತಿ ಅಗತ್ಯವಿಲ್ಲ",
+  bn: "ওয়ালেট পুরো পরিমাণ কভার করে — কার্ড পেমেন্টের প্রয়োজন নেই"
+},
 loadingWallet: {
   en: "Loading Wallet",
   hi: "वॉलेट लोड हो रहा है",
