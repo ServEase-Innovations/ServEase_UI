@@ -558,7 +558,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                 {props.previouslyBooked && (
                   <PreviouslyBookedBadge>
                     <HistoryIcon sx={{ fontSize: 18 }} />
-                    <span>{t('PreviouslyBooked')}</span>
+                    <span>{t('previouslyBooked')}</span>
                   </PreviouslyBookedBadge>
                 )}
               </Stack>
