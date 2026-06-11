@@ -5,15 +5,20 @@ import {
   dispatchAdminTicketActivity,
   type AdminTicketActivityDetail,
 } from "src/utils/supportTicketEvents";
+import {
+  dispatchAdminOnDemandEscalation,
+  type AdminOnDemandEscalationDetail,
+} from "src/utils/onDemandEscalationEvents";
 
-/** Connect to payments Socket.IO and forward support-ticket events to the admin UI. */
-export function useAdminTicketSocket(enabled: boolean) {
+/** Connect to payments Socket.IO and forward admin ops events to the UI. */
+export function useAdminOpsSocket(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
 
     const socket = io(urls.payments, {
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
       withCredentials: true,
+      reconnection: true,
     });
 
     socket.on("connect", () => {
@@ -29,6 +34,15 @@ export function useAdminTicketSocket(enabled: boolean) {
       });
     });
 
+    socket.on("on_demand_crm_escalation", (payload: AdminOnDemandEscalationDetail) => {
+      const engagementId = Number(payload?.engagementId);
+      if (!Number.isFinite(engagementId) || engagementId < 1) return;
+      dispatchAdminOnDemandEscalation({
+        ...payload,
+        engagementId,
+      });
+    });
+
     socket.on("connect_error", (err) => {
       console.warn("[admin-tickets] socket:", err?.message);
     });
@@ -38,3 +52,6 @@ export function useAdminTicketSocket(enabled: boolean) {
     };
   }, [enabled]);
 }
+
+/** @deprecated Use useAdminOpsSocket */
+export const useAdminTicketSocket = useAdminOpsSocket;
