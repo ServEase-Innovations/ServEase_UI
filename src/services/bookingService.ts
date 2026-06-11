@@ -277,6 +277,92 @@ export const BookingService = {
   /**
    * Open Razorpay for an existing PENDING payment and verify on success.
    */
+  getModificationFee: async (engagementId: number | string) => {
+    const id = Number(engagementId);
+    if (!Number.isFinite(id) || id < 1) {
+      throw new Error("Invalid engagement id");
+    }
+    const res = await PaymentInstance.get(`/api/engagements/${id}/modification-fee`);
+    const data = res.data;
+    if (data?.success === false) {
+      throw new Error(data.error || "Could not load modification fee");
+    }
+    return data as {
+      engagement_id: number;
+      booking_base: number;
+      platform_fee: number;
+      gst: number;
+      taxes_and_fees: number;
+      total_amount: number;
+      platform_fee_rate: number;
+      gst_rate: number;
+    };
+  },
+
+  modifyScheduleWithPayment: async (payload: {
+    engagementId: number | string;
+    start_date: string;
+    end_date: string;
+    start_time: string;
+    end_time?: string;
+    modified_by_id: number | null;
+    modified_by_role: "CUSTOMER";
+    use_wallet?: boolean;
+  }) => {
+    const id = Number(payload.engagementId);
+    const res = await PaymentInstance.post(
+      `/api/v2/createEngagements/${id}/modify-schedule`,
+      {
+        start_date: payload.start_date,
+        end_date: payload.end_date,
+        start_time: payload.start_time,
+        end_time: payload.end_time,
+        modified_by_id: payload.modified_by_id,
+        modified_by_role: payload.modified_by_role,
+        use_wallet: payload.use_wallet,
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    const data = res.data;
+    if (data?.success === false) {
+      throw new Error(data.error || "Failed to modify schedule");
+    }
+    return data as {
+      success: boolean;
+      applied?: boolean;
+      requires_payment?: boolean;
+      wallet_only?: boolean;
+      engagement?: Record<string, unknown>;
+      fee?: {
+        booking_base: number;
+        platform_fee: number;
+        gst: number;
+        total_amount: number;
+      };
+      razorpay_order_id?: string;
+      razorpay_key_id?: string;
+      amount?: number;
+      amount_inr?: number;
+      total_amount_inr?: number;
+      wallet_amount_inr?: number;
+      currency?: string;
+      engagement_id?: number;
+    };
+  },
+
+  verifyModifySchedulePayment: async (paymentData: RazorpayPaymentResponse) => {
+    const res = await PaymentInstance.post(
+      `/api/v2/createEngagements/modify-schedule/verify`,
+      paymentData,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    const data = res.data;
+    if (data?.success === false) {
+      throw new Error(data.error || "Failed to verify modification payment");
+    }
+    return data;
+  },
+
   payPendingEngagement: async (
     engagementId: number | string,
     prefill?: { name?: string; email?: string; contact?: string }

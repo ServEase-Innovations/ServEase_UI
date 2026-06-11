@@ -373,22 +373,21 @@ const isModificationTimeAllowed = (startEpoch: any): boolean => {
   return now < cutoff;
 };
 
+const isCompletedScheduleModification = (action?: string): boolean => {
+  const value = String(action || "");
+  return (
+    value === "Schedule Rescheduled" ||
+    value === "Date Rescheduled" ||
+    value === "Time Rescheduled" ||
+    value === "Rescheduled"
+  );
+};
+
 const isBookingAlreadyModified = (booking: Booking | null): boolean => {
   if (!booking) return false;
-  
-  const hasExplicitModifications = booking.modifications && 
-    booking.modifications.length > 0 && 
-    booking.modifications.some(mod => 
-      mod.action === "Date Rescheduled" || 
-      mod.action === "Time Rescheduled" ||
-      mod.action === "Modified" || 
-      mod.action?.includes("Modified") ||
-      mod.action?.includes("modified") ||
-      mod.action === "Rescheduled" ||
-      mod.action?.includes("Reschedule")
-    );
-  
-  return !!hasExplicitModifications;
+  return (
+    booking.modifications?.some((mod) => isCompletedScheduleModification(mod.action)) ?? false
+  );
 };
 
 const isModificationDisabled = (booking: Booking | null): boolean => {
@@ -1686,12 +1685,16 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setOpenSnackbar(true);
   };
 
-  const handleSaveModifiedBooking = async (updatedData: {
+  const handleSaveModifiedBooking = (updatedData: {
     startDate: string;
     endDate: string;
     timeSlot: string;
   }) => {
+    setSnackbarMessage("Booking updated successfully!");
+    setSnackbarSeverity("success");
+    setOpenSnackbar(true);
     setModifyDialogOpen(false);
+    setSelectedBooking(null);
   };
 
 const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
@@ -1803,7 +1806,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
               <span className="sm:hidden">Cancel</span>
             </Button>
 
-            {booking.bookingType === "MONTHLY" && (
+            {(booking.bookingType === "MONTHLY" || booking.bookingType === "SHORT_TERM") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -2777,7 +2780,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
         onSave={handleSaveModifiedBooking}
         customerId={customerId}
         refreshBookings={refreshBookings}
-        setOpenSnackbar={setOpenSnackbar}
       />
 
       <ConfirmationDialog

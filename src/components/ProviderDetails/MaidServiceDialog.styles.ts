@@ -18,14 +18,23 @@ const radiusSm = "12px";
 export const BOOKING_HEADER_GRADIENT =
   "linear-gradient(135deg, #0c1e3d 0%, #0b5bd3 48%, #4f8ff7 100%)";
 
+export const BOOKING_DIALOG_WIDTH_CLASS = "w-[500px] max-w-[calc(100vw-1rem)]";
+
+export const bookingDialogSlotProps = {
+  paper: {
+    className: `relative ${BOOKING_DIALOG_WIDTH_CLASS} overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-900/10 m-0 max-h-[min(94vh,820px)]`,
+  },
+  backdrop: { className: "bg-slate-900/40 backdrop-blur-[2px]" },
+} as const;
+
 export const MaidStyledDialog = styled(Dialog)<{ $successOverlay?: boolean }>`
   .MuiPaper-root {
-    width: min(100vw - 16px, 440px);
+    width: min(100vw - 16px, 500px);
     max-height: min(94vh, 820px);
-    border-radius: ${radius};
+    border-radius: 1rem;
     overflow: ${(p) => (p.$successOverlay ? "visible" : "hidden")};
     margin: 8px;
-    box-shadow: ${(p) => (p.$successOverlay ? "none" : "0 24px 48px rgba(15, 23, 42, 0.18)")};
+    box-shadow: ${(p) => (p.$successOverlay ? "none" : "0 25px 50px -12px rgba(15, 23, 42, 0.25)")};
     background: ${(p) => (p.$successOverlay ? "transparent" : undefined)};
   }
 `;
@@ -35,8 +44,10 @@ export const MaidStyledContent = styled(DialogContent)<{ $successOverlay?: boole
   padding: 0;
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  background: ${(p) => (p.$successOverlay ? "transparent" : canvas)};
+  overflow: hidden;
+  background: ${(p) => (p.$successOverlay ? "transparent" : surface)};
 `;
 
 export const MaidPageShell = styled.div`
@@ -60,7 +71,9 @@ export const MaidPageInner = styled.div`
 export const MaidRoot = styled.div<{ $page?: boolean }>`
   display: flex;
   flex-direction: column;
-  min-height: ${(p) => (p.$page ? "calc(100vh - 88px)" : "min(520px, 80vh)")};
+  flex: ${(p) => (p.$page ? "none" : "1")};
+  height: ${(p) => (p.$page ? "auto" : "100%")};
+  min-height: ${(p) => (p.$page ? "calc(100vh - 88px)" : "min(480px, 80vh)")};
   max-height: ${(p) => (p.$page ? "none" : "min(94vh, 820px)")};
   font-family:
     "Inter",
@@ -313,6 +326,106 @@ export const MaidInlineNote = styled.p`
   color: ${textMuted};
   background: #fffbeb;
   border: 1px solid #fde68a;
+`;
+
+export const MaidStepRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+`;
+
+export const MaidStepPill = styled.span<{ $active?: boolean; $done?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid
+    ${(p) => (p.$done ? "#86efac" : p.$active ? accent : line)};
+  background: ${(p) => (p.$done ? "#ecfdf5" : p.$active ? accentSoft : surface)};
+  color: ${(p) => (p.$done ? "#047857" : p.$active ? accentDark : textMuted)};
+`;
+
+export const MaidStatusBanner = styled.div<{ $variant?: "info" | "success" | "warning" | "error" }>`
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: ${radiusSm};
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  font-weight: 500;
+  border: 1px solid
+    ${(p) =>
+      p.$variant === "success"
+        ? "#86efac"
+        : p.$variant === "warning"
+          ? "#fde68a"
+          : p.$variant === "error"
+            ? "#fecaca"
+            : "#bfdbfe"};
+  background: ${(p) =>
+    p.$variant === "success"
+      ? "#ecfdf5"
+      : p.$variant === "warning"
+        ? "#fffbeb"
+        : p.$variant === "error"
+          ? "#fef2f2"
+          : "#eff6ff"};
+  color: ${(p) =>
+    p.$variant === "success"
+      ? "#047857"
+      : p.$variant === "warning"
+        ? "#92400e"
+        : p.$variant === "error"
+          ? "#b91c1c"
+          : "#1e40af"};
+`;
+
+export const MaidCompareGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+`;
+
+export const MaidCompareCard = styled.div<{ $highlight?: boolean }>`
+  padding: 10px 12px;
+  border-radius: ${radiusSm};
+  border: 1px solid ${(p) => (p.$highlight ? "#93c5fd" : line)};
+  background: ${(p) => (p.$highlight ? "#f0f9ff" : "#f8fafc")};
+`;
+
+export const MaidCompareLabel = styled.div`
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: ${textMuted};
+  margin-bottom: 4px;
+`;
+
+export const MaidCompareValue = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${text};
+  line-height: 1.35;
+`;
+
+export const MaidTimeChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+`;
+
+export const MaidPickerCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  width: 100%;
 `;
 
 export const MaidMetricRow = styled.div`

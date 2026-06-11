@@ -288,6 +288,76 @@
   border: 1px solid #ffe0db;
 }
 
+/* Compact embed (modify booking, tight dialogs) */
+.dtp-card.dtp-compact {
+  width: 100%;
+  max-width: none;
+  padding: 14px 12px 12px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dtp-card.dtp-compact .dtp-header {
+  margin-bottom: 8px;
+}
+
+.dtp-card.dtp-compact .dtp-header h3 {
+  font-size: 18px;
+}
+
+.dtp-card.dtp-compact .dtp-header button {
+  font-size: 24px;
+  padding: 0 10px;
+}
+
+.dtp-card.dtp-compact .dtp-week {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.dtp-card.dtp-compact .dtp-grid {
+  margin-top: 8px;
+  gap: 4px;
+}
+
+.dtp-card.dtp-compact .dtp-day {
+  aspect-ratio: auto;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto;
+  font-size: 15px;
+}
+
+.dtp-card.dtp-compact .dtp-range-summary {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.dtp-card.dtp-compact .dtp-day-unavailable-hint,
+.dtp-card.dtp-compact .dtp-range-hint {
+  margin: 4px 0 0;
+  padding: 4px 6px;
+  font-size: 10px;
+}
+
+.dtp-card.dtp-compact .dtp-divider {
+  margin: 10px 0 8px;
+}
+
+.dtp-card.dtp-compact .dtp-time-header {
+  margin-bottom: 8px;
+}
+
+.dtp-card.dtp-compact .dtp-time-grid {
+  gap: 6px;
+}
+
+.dtp-card.dtp-compact .dtp-time {
+  padding: 6px 2px;
+  font-size: 11px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
   .dtp-card {

@@ -1,25 +1,49 @@
 /* eslint-disable */
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
+import { Snackbar, Alert, CircularProgress, Checkbox, FormControlLabel, Typography, Box } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { CalendarClock } from "lucide-react";
+import { coalesceStartEpoch } from "src/services/bookingEpoch";
 import {
-  Typography,
-  Dialog,
-  DialogContent,
-  DialogActions,
-} from "@mui/material";
-import { X } from "lucide-react";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+  BookingService,
+  isPaymentCancelledError,
+} from "src/services/bookingService";
+import { formatInr } from "src/utils/maidPricingUtils";
+import { computeCheckoutWithWallet } from "src/utils/paymentTotals";
+import { fetchCustomerWallet } from "src/services/walletService";
+import { useLanguage } from "src/context/LanguageContext";
+import ModifyBookingScheduleSection, {
+  type ModifyBookingScheduleHandle,
+  type ModifyWizardState,
+} from "./ModifyBookingScheduleSection";
 import {
-  LocalizationProvider,
-  DateTimePicker,
-  TimePicker,
-} from "@mui/x-date-pickers";
-import { Button, dialogActionsClassName } from "../Button/button";
-import { IconButton } from "../Button/icon-button";
-import PaymentInstance from "src/services/paymentInstance";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
-import VacationManagementDialog from "./VacationManagement";
-import { coalesceStartEpoch, coalesceEndEpoch } from "src/services/bookingEpoch";
+  MaidStyledDialog,
+  MaidStyledContent,
+  bookingDialogSlotProps,
+  MaidRoot,
+  MaidHeader,
+  MaidHeaderTitle,
+  MaidHeaderSub,
+  MaidCloseBtn,
+  MaidScroll,
+  MaidCard,
+  MaidCardTitle,
+  MaidCardSub,
+  MaidPriceHero,
+  MaidPriceBlock,
+  MaidPriceLabel,
+  MaidReviewTotal,
+  MaidPriceMeta,
+  MaidQuotePulse,
+  MaidFooter,
+  MaidFooterTop,
+  MaidFooterMuted,
+  MaidFooterPrice,
+  MaidFooterActions,
+  MaidBtnGhost,
+  MaidBtnPrimary,
+} from "../ProviderDetails/MaidServiceDialog.styles";
 
 interface Booking {
   bookingType: string;
@@ -28,17 +52,17 @@ interface Booking {
   endDate: string;
   start_epoch?: number | null;
   end_epoch?: number | null;
+  start_time?: string;
+  end_time?: string;
   timeSlot: string;
   service_type: string;
+  serviceProviderId?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   customerId?: number;
   modifiedDate: string;
   bookingDate: string;
   hasVacation?: boolean;
-  vacationDetails?: {
-    start_date?: string;
-    end_date?: string;
-    leave_days?: number;
-  };
   modifications?: Array<{
     date: string;
     action: string;
@@ -53,7 +77,23 @@ interface Booking {
     refund?: number;
     penalty?: number;
   }>;
+  payment?: {
+    base_amount?: string | number;
+    platform_fee?: string | number;
+    gst?: string | number;
+    total_amount?: string | number;
+    status?: string;
+  };
+  base_amount?: number;
 }
+
+type ModificationFeeQuote = {
+  booking_base: number;
+  platform_fee: number;
+  gst: number;
+  taxes_and_fees: number;
+  total_amount: number;
+};
 
 interface ModifyBookingDialogProps {
   open: boolean;
@@ -67,129 +107,114 @@ interface ModifyBookingDialogProps {
   }) => void;
   customerId: number | null;
   refreshBookings: () => Promise<void>;
-  setOpenSnackbar: React.Dispatch<React.SetStateAction<boolean>>;
 }
-
-type BookingUpdatePayload = {
-  modified_by_id: number | null;
-  modified_by_role: "CUSTOMER";
-  start_date?: string;
-  end_date?: string;
-  start_time?: string;
-  end_time?: string;
-};
 
 const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   open,
   onClose,
   booking,
-  timeSlots,
   onSave,
   customerId,
   refreshBookings,
-  setOpenSnackbar,
 }) => {
+  const { t } = useLanguage();
+  const scheduleRef = useRef<ModifyBookingScheduleHandle>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [availabilityVerified, setAvailabilityVerified] = useState(false);
+  const [availabilityCheckBlocked, setAvailabilityCheckBlocked] = useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [wizardState, setWizardState] = useState<ModifyWizardState>({
+    step: "schedule",
+    canGoNext: false,
+    canGoBack: false,
+    canSubmit: false,
+  });
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"error" | "success" | "warning">(
+    "error"
+  );
+  const [modificationFee, setModificationFee] = useState<ModificationFeeQuote | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(true);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   const resolveBookingStart = (value: Booking | null): Dayjs | null => {
     if (!value) return null;
     const startEpoch = coalesceStartEpoch(value.start_epoch, value.startDate);
     return startEpoch != null ? dayjs.unix(startEpoch) : dayjs(value.startDate);
   };
-  const resolveBookingEnd = (value: Booking | null): Dayjs | null => {
-    if (!value) return null;
-    const endEpoch = coalesceEndEpoch(value.end_epoch, value.endDate);
-    return endEpoch != null ? dayjs.unix(endEpoch) : dayjs(value.endDate);
+
+  const parseTimeSlot = (booking: Booking): { start?: string; end?: string } => {
+    if (booking.start_time) {
+      return {
+        start: booking.start_time,
+        end: booking.end_time || undefined,
+      };
+    }
+    const slot = String(booking.timeSlot || "").trim();
+    if (slot.includes("-")) {
+      const [a, b] = slot.split("-").map((s) => s.trim());
+      return { start: a, end: b };
+    }
+    return { start: slot || undefined };
   };
 
-  const today = dayjs();
-  const maxDate90Days = dayjs().add(90, "day");
-
-  const [startDate, setStartDate] = useState<Dayjs | null>(
-    resolveBookingStart(booking)
-  );
-  const [endDate, setEndDate] = useState<Dayjs | null>(
-    resolveBookingEnd(booking)
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isVacationDialogOpen, setIsVacationDialogOpen] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<
-    "OPTIONS" | "BOOKING_DATE" | "BOOKING_TIME" | "VACATION"
-  >("OPTIONS");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
-  const shouldDisableStartDate = (date: Dayjs) => date.isBefore(today, "day");
-
-  const shouldDisableEndDate = (date: Dayjs) => {
-    if (!startDate) return true;
-    const min = startDate.add(1, "day");
-    const max = startDate.add(20, "day");
-    return date.isBefore(min, "day") || date.isAfter(max, "day");
+  const getBookedTime = (value: Booking | null) => {
+    if (!value) return dayjs();
+    const base = resolveBookingStart(value) || dayjs();
+    const { start } = parseTimeSlot(value);
+    if (!start) return base;
+    const parsed = dayjs(start, ["HH:mm", "H:mm", "h:mm A", "hh:mm A"], true);
+    if (parsed.isValid()) {
+      return base.hour(parsed.hour()).minute(parsed.minute()).second(0);
+    }
+    return base;
   };
 
-  const getBookedTime = () => {
-    if (!booking) return dayjs();
-    const [time, period] = booking.timeSlot.split(" ");
-    const [hoursStr, minutesStr] = time.split(":");
-    let hours = parseInt(hoursStr, 10);
-    const minutes = parseInt(minutesStr, 10);
-    if (period === "PM" && hours !== 12) hours += 12;
-    if (period === "AM" && hours === 12) hours = 0;
-    return resolveBookingStart(booking)
-      ? (resolveBookingStart(booking) as Dayjs)
-      .set("hour", hours)
-      .set("minute", minutes)
-      .set("second", 0)
-      : dayjs();
+  const isModificationTimeAllowed = (value: Booking | null): boolean => {
+    if (!value) return false;
+    const base = resolveBookingStart(value);
+    if (!base) return false;
+    const bookedTime = getBookedTime(value);
+    return dayjs().isBefore(bookedTime.subtract(30, "minute"));
   };
 
-  const isModificationTimeAllowed = (baseDate: Dayjs, timeSlot: string): boolean => {
-    const now = dayjs();
-    const [time, period] = timeSlot.split(" ");
-    const [hoursStr, minutesStr] = time.split(":");
-    let hours = parseInt(hoursStr, 10);
-    const minutes = parseInt(minutesStr, 10);
-    if (period === "PM" && hours !== 12) hours += 12;
-    if (period === "AM" && hours === 12) hours = 0;
-    const bookingDateTime = baseDate
-      .set("hour", hours)
-      .set("minute", minutes)
-      .set("second", 0);
-    return now.isBefore(bookingDateTime.subtract(30, "minute"));
+  const isBookingAlreadyModified = (value: Booking | null): boolean => {
+    if (!value) return false;
+    const modifications = value.modifications ?? [];
+    return modifications.some((mod) => {
+      const action = String(mod.action || "");
+      return (
+        action === "Schedule Rescheduled" ||
+        action === "Date Rescheduled" ||
+        action === "Time Rescheduled" ||
+        action === "Rescheduled"
+      );
+    });
   };
 
-  const isBookingAlreadyModified = (booking: Booking | null): boolean => {
-    if (!booking) return false;
-    const modifications = booking.modifications ?? [];
-    return modifications.some((mod) =>
-      ["Date Rescheduled", "Time Rescheduled", "Modified", "Rescheduled"].some(
-        (kw) => mod.action?.includes(kw)
-      )
-    );
-  };
-
-  const getModificationStatusMessage = (booking: Booking | null): string => {
-    if (!booking) return "";
-    if (isBookingAlreadyModified(booking))
+  const getModificationStatusMessage = (value: Booking | null): string => {
+    if (!value) return "";
+    if (isBookingAlreadyModified(value)) {
       return "This booking has already been modified and cannot be modified again.";
-    const base = resolveBookingStart(booking);
-    if (!base || !isModificationTimeAllowed(base, booking.timeSlot))
+    }
+    if (!isModificationTimeAllowed(value)) {
       return "Modification is only allowed at least 30 minutes before the scheduled time.";
+    }
     return "";
   };
 
-  const isModificationDisabled = (booking: Booking | null): boolean => {
-    if (!booking) return true;
-    return (
-      !resolveBookingStart(booking) ||
-      !isModificationTimeAllowed(resolveBookingStart(booking) as Dayjs, booking.timeSlot) ||
-      isBookingAlreadyModified(booking)
-    );
+  const isModificationDisabled = (value: Booking | null): boolean => {
+    if (!value) return true;
+    return !isModificationTimeAllowed(value) || isBookingAlreadyModified(value);
   };
 
-  const getTimeUntilBooking = (booking: Booking | null): string => {
-    if (!booking) return "";
-    const bookedTime = getBookedTime();
+  const getTimeUntilBooking = (value: Booking | null): string => {
+    if (!value) return "";
+    const bookedTime = getBookedTime(value);
     const now = dayjs();
     const diffMinutes = bookedTime.diff(now, "minute");
     if (diffMinutes <= 0) return "Booking has already started or passed";
@@ -200,23 +225,69 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
       : `${minutes}m until booking starts`;
   };
 
-  const getLastModificationDetails = (booking: Booking | null): string => {
-    const modifications = booking?.modifications ?? [];
+  const getLastModificationDetails = (value: Booking | null): string => {
+    const modifications = value?.modifications ?? [];
     if (modifications.length === 0) return "";
     const lastMod = modifications[modifications.length - 1];
-    if (lastMod.changes?.start_date)
+    if (lastMod.changes?.start_date) {
       return `Last rescheduled from ${lastMod.changes.start_date.from} to ${lastMod.changes.start_date.to}`;
-    if (lastMod.changes?.start_time)
+    }
+    if (lastMod.changes?.start_time) {
       return `Last time changed from ${lastMod.changes.start_time.from} to ${lastMod.changes.start_time.to}`;
+    }
     return `Last modified: ${lastMod.action}`;
   };
 
-  /** ✅ handleSubmit — sends correct payload depending on modification type **/
+  const showToast = useCallback((message: string, severity: "error" | "success" | "warning") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }, []);
+
+  const handleAvailabilityVerifiedChange = useCallback(
+    (verified: boolean, message?: string) => {
+      setAvailabilityVerified(verified);
+      if (!verified && message) {
+        showToast(message, "error");
+      }
+    },
+    [showToast]
+  );
+
+  const handleScheduleChange = useCallback(() => {
+    setAvailabilityVerified(false);
+    setAvailabilityCheckBlocked(false);
+  }, []);
+
+  const handleCheckAvailability = async () => {
+    setError(null);
+    setIsCheckingAvailability(true);
+    try {
+      const ok = await scheduleRef.current?.checkAvailability();
+      if (ok) {
+        setAvailabilityVerified(true);
+        setAvailabilityCheckBlocked(false);
+        showToast("Your service provider is available for this schedule.", "success");
+      } else {
+        setAvailabilityVerified(false);
+        setAvailabilityCheckBlocked(true);
+      }
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!startDate || !booking) return;
+    if (!booking) return;
 
     if (isModificationDisabled(booking)) {
       setError(getModificationStatusMessage(booking));
+      return;
+    }
+
+    const snapshot = scheduleRef.current?.getScheduleSnapshot();
+    if (!snapshot) {
+      setError("Select your dates and daily start time before saving.");
       return;
     }
 
@@ -224,87 +295,147 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     setError(null);
 
     try {
-      const isDateModification = selectedSection === "BOOKING_DATE";
-      const isTimeModification = selectedSection === "BOOKING_TIME";
-
-      // Base payload (common)
-      let updatePayload: BookingUpdatePayload = {
-        modified_by_id: customerId,
-        modified_by_role: "CUSTOMER", // change if admin modifies
-      };
-
-      if (isDateModification) {
-        updatePayload = {
-          ...updatePayload,
-          start_date: startDate.format("YYYY-MM-DD"),
-          end_date:
-            booking.bookingType === "MONTHLY"
-              ? startDate.add(1, "month").format("YYYY-MM-DD")
-              : endDate
-              ? endDate.format("YYYY-MM-DD")
-              : startDate.add(1, "day").format("YYYY-MM-DD"),
-        };
+      if (!availabilityVerified) {
+        setError("Check provider availability before updating your schedule.");
+        setIsLoading(false);
+        return;
       }
+      const result = await BookingService.modifyScheduleWithPayment({
+        engagementId: booking.id,
+        start_date: snapshot.startDate,
+        end_date: snapshot.endDate,
+        start_time: snapshot.startTime,
+        end_time: snapshot.endTime || undefined,
+        modified_by_id: customerId,
+        modified_by_role: "CUSTOMER",
+        use_wallet: useWalletBalance && walletBalance > 0,
+      });
 
-       if (isTimeModification) {
-      updatePayload = {
-        ...updatePayload,
-        start_time: startDate.format("HH:mm:ss"),
-        end_time: startDate.add(1, "hour").format("HH:mm:ss"), // 👈 automatically +1 hour
-      };
-    }
-
-      console.log("📦 Sending Payload:", updatePayload);
-
-      const response = await PaymentInstance.put(
-        `/api/engagements/${booking.id}`,
-        updatePayload,
-        { headers: { "Content-Type": "application/json" } }
-      );
+      if (result.requires_payment && result.razorpay_order_id) {
+        const amountPaise =
+          result.amount != null && Number.isFinite(Number(result.amount))
+            ? Number(result.amount)
+            : Math.round(Number(result.amount_inr || 0) * 100);
+        if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+          throw new Error("Invalid modification payment amount");
+        }
+        const paymentResponse = await BookingService.openRazorpay(
+          result.razorpay_order_id,
+          amountPaise,
+          result.currency || "INR",
+          undefined,
+          result.razorpay_key_id
+        );
+        paymentResponse.engagementId = booking.id;
+        await BookingService.verifyModifySchedulePayment(paymentResponse);
+      }
 
       if (customerId !== null) await refreshBookings();
 
-      onSave({
-        startDate: updatePayload.start_date || booking.startDate,
-        endDate: updatePayload.end_date || booking.endDate,
-        timeSlot:
-          updatePayload.start_time
-            ? dayjs().set("hour", startDate.hour()).set("minute", startDate.minute()).format("hh:mm A")
-            : booking.timeSlot,
-      });
+      const displayTime = dayjs(snapshot.startTime, "HH:mm").isValid()
+        ? dayjs(snapshot.startTime, "HH:mm").format("hh:mm A")
+        : booking.timeSlot;
 
-      setSuccess(
-        isDateModification
-          ? "Booking date rescheduled successfully!"
-          : "Booking time rescheduled successfully!"
-      );
-      setOpenSnackbar(true);
-      setTimeout(() => onClose(), 1500);
-    } catch (error) {
-      console.error("❌ Error modifying booking:", error);
-      setError("Failed to modify booking. Please try again.");
+      onSave({
+        startDate: snapshot.startDate,
+        endDate: snapshot.endDate,
+        timeSlot: displayTime,
+      });
+    } catch (err: unknown) {
+      if (isPaymentCancelledError(err)) {
+        setError("Payment cancelled. Your schedule was not updated.");
+        return;
+      }
+      const apiMessage =
+        (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data
+          ?.error ||
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const message = apiMessage || "Failed to modify booking. Please try again.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  /** Reset states on open **/
   useEffect(() => {
     if (open && booking) {
-      const bookedTime = getBookedTime();
-      setStartDate(bookedTime);
-      setEndDate(resolveBookingEnd(booking));
       setError(null);
-      setSuccess(null);
-      setSelectedSection("OPTIONS");
-      setIsCalendarOpen(false);
+      setAvailabilityVerified(false);
+      setAvailabilityCheckBlocked(false);
+      setModificationFee(null);
+      setWizardState({
+        step: "schedule",
+        canGoNext: false,
+        canGoBack: false,
+        canSubmit: false,
+      });
     }
   }, [open, booking]);
 
   useEffect(() => {
-    if (selectedSection === "BOOKING_DATE" && open)
-      setTimeout(() => setIsCalendarOpen(true), 100);
-  }, [selectedSection, open]);
+    if (!open || !booking?.id || !availabilityVerified) {
+      setModificationFee(null);
+      return;
+    }
+    let cancelled = false;
+    setFeeLoading(true);
+    void BookingService.getModificationFee(booking.id)
+      .then((quote) => {
+        if (!cancelled) {
+          setModificationFee({
+            booking_base: quote.booking_base,
+            platform_fee: quote.platform_fee,
+            gst: quote.gst,
+            taxes_and_fees: quote.taxes_and_fees,
+            total_amount: quote.total_amount,
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setModificationFee(null);
+      })
+      .finally(() => {
+        if (!cancelled) setFeeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, booking?.id, availabilityVerified]);
+
+  useEffect(() => {
+    if (!open || customerId == null) return;
+    let cancelled = false;
+    setWalletLoading(true);
+    void fetchCustomerWallet(customerId)
+      .then((wallet) => {
+        if (!cancelled) {
+          const balance = Math.max(0, Number(wallet.balance ?? 0));
+          setWalletBalance(balance);
+          setUseWalletBalance(balance > 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWalletBalance(0);
+          setUseWalletBalance(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setWalletLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, customerId]);
+
+  const handleWizardContinue = () => {
+    scheduleRef.current?.goNext();
+  };
+
+  const handleWizardBack = () => {
+    scheduleRef.current?.goBack();
+  };
 
   if (!open || !booking) return null;
 
@@ -312,173 +443,384 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const statusMessage = getModificationStatusMessage(booking);
   const timeUntilBooking = getTimeUntilBooking(booking);
   const lastModificationDetails = getLastModificationDetails(booking);
+  const times = parseTimeSlot(booking);
+
+  const bookingCoords =
+    booking.latitude != null &&
+    booking.longitude != null &&
+    Number.isFinite(Number(booking.latitude)) &&
+    Number.isFinite(Number(booking.longitude))
+      ? { lat: Number(booking.latitude), lng: Number(booking.longitude) }
+      : null;
+
+  const canModifyType =
+    booking.bookingType === "MONTHLY" || booking.bookingType === "SHORT_TERM";
+
+  const bookingTypeLabel = booking.bookingType.replace(/_/g, " ");
+  const currentScheduleLabel = `${(resolveBookingStart(booking) || dayjs()).format("MMM D, YYYY")}${
+    booking.endDate && booking.bookingType === "SHORT_TERM"
+      ? ` – ${dayjs(booking.endDate).format("MMM D, YYYY")}`
+      : ""
+  } · ${booking.timeSlot}`;
+
+  const modificationWalletSplit =
+    modificationFee != null
+      ? computeCheckoutWithWallet(
+          {
+            base_amount: modificationFee.booking_base,
+            platform_fee: modificationFee.platform_fee,
+            gst: modificationFee.gst,
+            taxes_and_fees: modificationFee.taxes_and_fees,
+            total_amount: modificationFee.total_amount,
+          },
+          walletBalance,
+          useWalletBalance
+        )
+      : { wallet_applied: 0, razorpay_amount: 0, remaining_wallet: walletBalance };
+
+  const modificationPayable =
+    modificationFee != null ? modificationWalletSplit.razorpay_amount : 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogHeader className="flex justify-between items-center">
-        <Typography variant="h6">Modify Booking</Typography>
-        <IconButton onClick={onClose} aria-label="Close" className="h-8 w-8">
-          <X className="h-5 w-5" />
-        </IconButton>
-      </DialogHeader>
+    <>
+      <MaidStyledDialog
+        open={open}
+        onClose={onClose}
+        maxWidth={false}
+        scroll="body"
+        aria-labelledby="modify-booking-title"
+        slotProps={bookingDialogSlotProps}
+        disableEnforceFocus
+      >
+        <MaidStyledContent>
+          <MaidRoot>
+            <MaidHeader>
+              <MaidCloseBtn aria-label="close" onClick={onClose} size="small">
+                <CloseIcon fontSize="small" sx={{ color: "#fff" }} />
+              </MaidCloseBtn>
+              <MaidHeaderTitle id="modify-booking-title">Modify Booking</MaidHeaderTitle>
+              <MaidHeaderSub>
+                {bookingTypeLabel} · Booking #{booking.id} · {timeUntilBooking}
+              </MaidHeaderSub>
+            </MaidHeader>
 
-      <DialogContent dividers>
-        <div className="mb-4 p-3 bg-blue-50 rounded-md">
-          <Typography variant="body2" className="font-medium text-gray-700">
-            Booking #{booking.id} - {booking.service_type}
-          </Typography>
-          <Typography variant="body2" className="text-gray-600">
-            Scheduled: {(resolveBookingStart(booking) || dayjs()).format("MMM D, YYYY")} at{" "}
-            {booking.timeSlot}
-          </Typography>
-          <Typography variant="body2" className="text-gray-600">
-            {timeUntilBooking}
-          </Typography>
+            <MaidScroll>
+              <MaidCard>
+                <MaidCardTitle>Current schedule</MaidCardTitle>
+                <MaidCardSub>{booking.service_type}</MaidCardSub>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: "0.8125rem",
+                    color: "#334155",
+                  }}
+                >
+                  <CalendarClock size={16} style={{ color: "#0b5bd3", flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600 }}>{currentScheduleLabel}</span>
+                </div>
+                {(booking.modifications?.length ?? 0) > 0 ? (
+                  <p
+                    style={{
+                      margin: "10px 0 0",
+                      fontSize: "0.75rem",
+                      lineHeight: 1.45,
+                      color: "#b45309",
+                    }}
+                  >
+                    {lastModificationDetails}
+                  </p>
+                ) : null}
+              </MaidCard>
 
-          {(booking.modifications?.length ?? 0) > 0 && (
-            <div className="mt-2">
-              <Typography variant="body2" className="text-amber-600 font-medium">
-                This booking has been modified {(booking.modifications?.length ?? 0)} time(s)
-              </Typography>
-              <Typography variant="body2" className="text-amber-600 text-sm">
-                {lastModificationDetails}
-              </Typography>
-            </div>
-          )}
-        </div>
+              {error ? (
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid #fecaca",
+                    background: "#fef2f2",
+                    fontSize: "0.75rem",
+                    color: "#b91c1c",
+                  }}
+                >
+                  {error}
+                </div>
+              ) : null}
+              {modificationDisabled ? (
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid #fde68a",
+                    background: "#fffbeb",
+                    fontSize: "0.75rem",
+                    color: "#b45309",
+                    textAlign: "center",
+                  }}
+                >
+                  {statusMessage}
+                </div>
+              ) : null}
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md mb-4">
-            <p className="text-red-700 text-sm">{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md mb-4">
-            <p className="text-green-700 text-sm">{success}</p>
-          </div>
-        )}
+              {!modificationDisabled && canModifyType ? (
+                <MaidCard>
+                  <ModifyBookingScheduleSection
+                    ref={scheduleRef}
+                    bookingType={booking.bookingType}
+                    serviceType={booking.service_type}
+                    engagementId={booking.id}
+                    providerId={booking.serviceProviderId}
+                    customerId={customerId}
+                    bookingCoords={bookingCoords}
+                    initialStartDate={booking.startDate}
+                    initialEndDate={booking.endDate}
+                    initialStartTime={times.start}
+                    initialEndTime={times.end}
+                    onAvailabilityVerifiedChange={handleAvailabilityVerifiedChange}
+                    onScheduleChange={handleScheduleChange}
+                    onWizardStateChange={setWizardState}
+                    availabilityVerified={availabilityVerified}
+                    isCheckingAvailability={isCheckingAvailability}
+                  />
+                </MaidCard>
+              ) : !canModifyType ? (
+                <MaidCard>
+                  <p style={{ margin: 0, fontSize: "0.875rem", color: "#64748b" }}>
+                    Only monthly and short-term bookings can be rescheduled here.
+                  </p>
+                </MaidCard>
+              ) : null}
 
-        {selectedSection === "OPTIONS" && (
-          <div className="flex flex-col gap-3">
-            {/* {booking?.hasVacation && (
-              <Button
-                onClick={() => setIsVacationDialogOpen(true)}
-                variant="outlined"
-                color="secondary"
-                className="w-full"
-              >
-                Manage Vacation
-              </Button>
-            )} */}
+              {!modificationDisabled &&
+              canModifyType &&
+              wizardState.step === "review" &&
+              availabilityVerified &&
+              feeLoading ? (
+                <MaidCard>
+                  <MaidPriceHero>
+                    <MaidPriceBlock>
+                      <MaidPriceLabel>
+                        <MaidQuotePulse />
+                        Loading modification charge…
+                      </MaidPriceLabel>
+                    </MaidPriceBlock>
+                  </MaidPriceHero>
+                </MaidCard>
+              ) : null}
+              {!modificationDisabled &&
+              canModifyType &&
+              wizardState.step === "review" &&
+              availabilityVerified &&
+              modificationFee ? (
+                <MaidCard>
+                  <MaidPriceHero>
+                    <MaidPriceBlock>
+                      <MaidPriceLabel>Modification charge</MaidPriceLabel>
+                      <MaidReviewTotal $loading={false}>
+                        {formatInr(modificationFee.total_amount)}
+                      </MaidReviewTotal>
+                    </MaidPriceBlock>
+                    <MaidPriceMeta>
+                      6% platform fee on booking cost ({formatInr(modificationFee.booking_base)})
+                    </MaidPriceMeta>
+                  </MaidPriceHero>
+                  <Box
+                    sx={{
+                      mt: 1.25,
+                      p: 1.5,
+                      borderRadius: 2,
+                      border: "1px solid #e2e8f0",
+                      bgcolor: "#f8fafc",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.25 }}>
+                      <Typography sx={{ fontSize: 12, color: "#64748b" }}>Platform fee (6%)</Typography>
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                        {formatInr(modificationFee.platform_fee)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {walletBalance > 0 ? (
+                    <Box
+                      sx={{
+                        mt: 2,
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: "1px solid #dbeafe",
+                        bgcolor: "#f8fbff",
+                      }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={useWalletBalance}
+                            onChange={(e) => setUseWalletBalance(e.target.checked)}
+                            disabled={walletLoading || isLoading}
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                              {t("useWalletBalance")}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#64748b" }}>
+                              {t("walletBalanceAvailable", {
+                                amount: formatInr(walletBalance),
+                              })}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      {useWalletBalance && modificationWalletSplit.wallet_applied > 0 ? (
+                        <Typography
+                          variant="caption"
+                          sx={{ display: "block", mt: 0.5, color: "#0369a1" }}
+                        >
+                          {modificationWalletSplit.razorpay_amount <= 0
+                            ? t("walletCoversFullAmount")
+                            : `${t("walletAppliedLabel")}: ${formatInr(modificationWalletSplit.wallet_applied)} · ${t("payViaRazorpay")}: ${formatInr(modificationWalletSplit.razorpay_amount)}`}
+                        </Typography>
+                      ) : null}
+                    </Box>
+                  ) : null}
+                </MaidCard>
+              ) : null}
+            </MaidScroll>
 
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => setSelectedSection("BOOKING_DATE")}
-              disabled={modificationDisabled || isLoading}
-              title={modificationDisabled ? statusMessage : "Reschedule Date"}
-            >
-              Reschedule Date
-            </Button>
+            {!modificationDisabled && canModifyType ? (
+              <MaidFooter>
+                {wizardState.step === "review" ? (
+                  <>
+                    {availabilityVerified && modificationFee ? (
+                      <MaidFooterTop>
+                        <div>
+                          <MaidFooterMuted>
+                            {modificationWalletSplit.wallet_applied > 0
+                              ? modificationPayable <= 0
+                                ? t("walletAppliedLabel")
+                                : t("payViaRazorpay")
+                              : "Amount payable"}
+                          </MaidFooterMuted>
+                          <MaidFooterPrice>
+                            {feeLoading ? "…" : formatInr(modificationPayable)}
+                          </MaidFooterPrice>
+                        </div>
+                      </MaidFooterTop>
+                    ) : null}
+                    <MaidFooterActions style={{ marginBottom: 8 }}>
+                      <MaidBtnGhost
+                        type="button"
+                        onClick={onClose}
+                        disabled={isLoading || isCheckingAvailability}
+                        style={{ flex: 1 }}
+                      >
+                        Cancel
+                      </MaidBtnGhost>
+                      <MaidBtnGhost
+                        type="button"
+                        onClick={handleWizardBack}
+                        disabled={isLoading || isCheckingAvailability}
+                        style={{ flex: 1 }}
+                      >
+                        Back
+                      </MaidBtnGhost>
+                    </MaidFooterActions>
+                    {availabilityVerified ? (
+                      <MaidBtnPrimary
+                        type="button"
+                        onClick={() => void handleSubmit()}
+                        disabled={
+                          isLoading ||
+                          isCheckingAvailability ||
+                          !wizardState.canSubmit ||
+                          feeLoading ||
+                          !modificationFee
+                        }
+                        style={{ width: "100%" }}
+                      >
+                        {isLoading ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : modificationPayable > 0 ? (
+                          `Pay ${formatInr(modificationPayable)} & update`
+                        ) : (
+                          "Update schedule"
+                        )}
+                      </MaidBtnPrimary>
+                    ) : (
+                      <MaidBtnPrimary
+                        type="button"
+                        onClick={() => void handleCheckAvailability()}
+                        disabled={
+                          isLoading ||
+                          isCheckingAvailability ||
+                          !wizardState.canSubmit ||
+                          availabilityCheckBlocked
+                        }
+                        title={
+                          availabilityCheckBlocked
+                            ? "Adjust your dates or time, then check availability again"
+                            : undefined
+                        }
+                        style={{ width: "100%" }}
+                      >
+                        {isCheckingAvailability ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          "Check provider availability"
+                        )}
+                      </MaidBtnPrimary>
+                    )}
+                  </>
+                ) : (
+                  <MaidFooterActions>
+                    <MaidBtnGhost type="button" onClick={onClose} disabled={isLoading}>
+                      Cancel
+                    </MaidBtnGhost>
+                    <MaidBtnPrimary
+                      type="button"
+                      onClick={handleWizardContinue}
+                      disabled={isLoading || !wizardState.canGoNext}
+                    >
+                      Continue
+                    </MaidBtnPrimary>
+                  </MaidFooterActions>
+                )}
+              </MaidFooter>
+            ) : null}
+          </MaidRoot>
+        </MaidStyledContent>
+      </MaidStyledDialog>
 
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => setSelectedSection("BOOKING_TIME")}
-              disabled={modificationDisabled || isLoading}
-              title={modificationDisabled ? statusMessage : "Reschedule Time"}
-            >
-              Reschedule Time
-            </Button>
-
-            {modificationDisabled && (
-              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
-                <p className="text-sm text-amber-700 text-center">{statusMessage}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {selectedSection === "BOOKING_DATE" && (
-          <div className="space-y-4">
-            <Typography variant="body2" className="text-gray-600">
-              Select a new date for your booking.
-            </Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DateTimePicker
-                label="Select New Date"
-                value={startDate}
-                onChange={(newValue) => {
-                  if (newValue) {
-                    const originalTime = resolveBookingStart(booking) || dayjs();
-                    const updated = newValue
-                      .set("hour", originalTime.hour())
-                      .set("minute", originalTime.minute());
-                    setStartDate(updated);
-                  }
-                }}
-                onClose={() => setIsCalendarOpen(false)}
-                open={isCalendarOpen}
-                views={["year", "month", "day"]}
-                minDate={today}
-                maxDate={maxDate90Days}
-                shouldDisableDate={shouldDisableStartDate}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: "small",
-                    onClick: () => setIsCalendarOpen(true),
-                  },
-                }}
-              />
-            </LocalizationProvider>
-          </div>
-        )}
-
-        {selectedSection === "BOOKING_TIME" && (
-          <div className="p-4 space-y-4">
-            <Typography variant="body2" className="text-gray-600">
-              Current Time: <strong>{booking.timeSlot}</strong>
-            </Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <TimePicker
-                label="Select New Time"
-                value={startDate}
-                onChange={(newValue) => {
-                  if (newValue) {
-                    const updated = (resolveBookingStart(booking) || dayjs())
-                      .set("hour", newValue.hour())
-                      .set("minute", newValue.minute());
-                    setStartDate(updated);
-                  }
-                }}
-                ampm
-                slotProps={{
-                  textField: { fullWidth: true, size: "small" },
-                }}
-              />
-            </LocalizationProvider>
-          </div>
-        )}
-      </DialogContent>
-
-      {(selectedSection === "BOOKING_DATE" || selectedSection === "BOOKING_TIME") && (
-        <DialogActions className={`${dialogActionsClassName} sm:!justify-between`}>
-          <Button variant="dialogCancel" onClick={() => setSelectedSection("OPTIONS")}>
-            Back
-          </Button>
-          <Button
-            variant="dialogPrimary"
-            onClick={handleSubmit}
-            disabled={isLoading || modificationDisabled}
-            loading={isLoading}
-          >
-            {selectedSection === "BOOKING_DATE" ? "Save Date" : "Save Time"}
-          </Button>
-        </DialogActions>
-      )}
-
-    </Dialog>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={
+          snackbarSeverity === "error"
+            ? 9000
+            : snackbarMessage.includes("provider is available")
+              ? 5000
+              : 4000
+        }
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{ mt: { xs: 7, sm: 8 } }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            maxWidth: { xs: "min(100vw - 24px, 520px)", sm: 520 },
+            "& .MuiAlert-message": { lineHeight: 1.5 },
+          }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

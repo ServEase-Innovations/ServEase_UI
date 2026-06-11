@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import {
   Typography,
@@ -64,7 +64,7 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   onSuccess,
 }) => {
   const { t } = useLanguage();
-  const today = dayjs().startOf("day");
+  const today = useMemo(() => dayjs().startOf("day"), []);
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [minDate, setMinDate] = useState<Dayjs | null>(null);
@@ -92,6 +92,25 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
 
   const earliestEndDate = startDate ? startDate.add(MIN_VACATION_DAYS - 1, "day") : null;
 
+  const startDateKey = startDate?.format("YYYY-MM-DD") ?? "";
+  const endDateKey = endDate?.format("YYYY-MM-DD") ?? "";
+  const bookingId = booking?.id ?? null;
+  const vacationStartKey = booking?.vacation?.start_date ?? "";
+  const vacationEndKey = booking?.vacation?.end_date ?? "";
+  const bookingStartKey = bookingStart?.format("YYYY-MM-DD") ?? "";
+  const bookingEndKey = bookingEnd?.format("YYYY-MM-DD") ?? "";
+
+  const pickerRangeValue = useMemo(
+    () => ({
+      startDate: startDate?.toDate(),
+      endDate: endDate?.toDate(),
+    }),
+    [startDateKey, endDateKey, startDate, endDate]
+  );
+
+  const pickerMinDate = useMemo(() => minDate?.toDate(), [minDate]);
+  const pickerMaxDate = useMemo(() => maxDate?.toDate(), [maxDate]);
+
   const isValidVacationPeriod = (): boolean => {
     if (!startDate || !endDate || !minDate || !maxDate) return false;
     if (startDate.isBefore(minDate, "day") || endDate.isAfter(maxDate, "day")) return false;
@@ -99,31 +118,61 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
   };
 
   useEffect(() => {
-    if (!open || !booking) return;
+    if (!open || bookingId == null) return;
 
+    const startBound = bookingStartKey ? toCalendarDay(bookingStartKey) : null;
+    const endBound = bookingEndKey ? toCalendarDay(bookingEndKey) : null;
     const effectiveMin =
-      bookingStart && bookingStart.isBefore(today) ? today : bookingStart ?? today;
+      startBound && startBound.isBefore(today) ? today : startBound ?? today;
 
-    setMinDate(effectiveMin);
-    setMaxDate(bookingEnd ?? null);
+    setMinDate((prev) => (prev?.isSame(effectiveMin, "day") ? prev : effectiveMin));
+    setMaxDate((prev) => {
+      const next = endBound ?? null;
+      if (prev === null && next === null) return prev;
+      if (prev && next && prev.isSame(next, "day")) return prev;
+      if (prev && next === null) return null;
+      return next;
+    });
 
-    if (booking.vacation?.start_date && booking.vacation?.end_date) {
-      setStartDate(toCalendarDay(booking.vacation.start_date));
-      setEndDate(toCalendarDay(booking.vacation.end_date));
+    if (vacationStartKey && vacationEndKey) {
+      const nextStart = toCalendarDay(vacationStartKey);
+      const nextEnd = toCalendarDay(vacationEndKey);
+      setStartDate((prev) =>
+        prev && nextStart && prev.isSame(nextStart, "day") ? prev : nextStart
+      );
+      setEndDate((prev) =>
+        prev && nextEnd && prev.isSame(nextEnd, "day") ? prev : nextEnd
+      );
     } else {
-      setStartDate(null);
-      setEndDate(null);
+      setStartDate((prev) => (prev === null ? prev : null));
+      setEndDate((prev) => (prev === null ? prev : null));
     }
 
     setError(null);
     setSuccess(null);
-  }, [open, booking, bookingStart, bookingEnd, today]);
+  }, [
+    open,
+    bookingId,
+    bookingStartKey,
+    bookingEndKey,
+    today,
+    vacationEndKey,
+    vacationStartKey,
+  ]);
 
-  const handleRangeChange = (start: Date, end?: Date) => {
-    setStartDate(toCalendarDay(start));
-    setEndDate(end ? toCalendarDay(end) : null);
+  const handleRangeChange = useCallback((start: Date, end?: Date) => {
+    const nextStart = toCalendarDay(start);
+    const nextEnd = end ? toCalendarDay(end) : null;
+    setStartDate((prev) =>
+      prev && nextStart && prev.isSame(nextStart, "day") ? prev : nextStart
+    );
+    setEndDate((prev) => {
+      if (prev === null && nextEnd === null) return prev;
+      if (prev && nextEnd && prev.isSame(nextEnd, "day")) return prev;
+      return nextEnd;
+    });
     setError(null);
-  };
+  }, []);
 
   const handleUpdateVacation = async () => {
     if (!startDate || !endDate || !booking || !customerId) {
@@ -307,12 +356,9 @@ const VacationManagementDialog: React.FC<VacationManagementDialogProps> = ({
                   mode="range"
                   hideTimeSelection
                   minRangeDays={MIN_VACATION_DAYS}
-                  minDate={minDate.toDate()}
-                  maxDate={maxDate.toDate()}
-                  value={{
-                    startDate: startDate?.toDate(),
-                    endDate: endDate?.toDate(),
-                  }}
+                  minDate={pickerMinDate}
+                  maxDate={pickerMaxDate}
+                  value={pickerRangeValue}
                   onDateChange={({ startDate: rangeStart, endDate: rangeEnd }) => {
                     handleRangeChange(rangeStart, rangeEnd);
                   }}

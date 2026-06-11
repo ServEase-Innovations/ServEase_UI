@@ -11,6 +11,8 @@ export type ProviderScheduleCheckParams = {
   preferredStartTime: string;
   serviceDurationMinutes: number;
   customerId?: number | null;
+  /** When modifying a booking, exclude its current allocation from conflict checks. */
+  excludeEngagementId?: number | string | null;
 };
 
 export type ProviderScheduleCheckResult = {
@@ -35,6 +37,7 @@ export async function checkSelectedProviderAvailability(
     preferredStartTime,
     serviceDurationMinutes,
     customerId,
+    excludeEngagementId,
   } = params;
 
   if (!Number.isFinite(providerId) || providerId < 1) {
@@ -54,6 +57,13 @@ export async function checkSelectedProviderAvailability(
 
   if (customerId != null && Number.isFinite(Number(customerId)) && Number(customerId) > 0) {
     payload.customerID = Number(customerId);
+  }
+
+  if (
+    excludeEngagementId != null &&
+    String(excludeEngagementId).trim() !== ""
+  ) {
+    payload.excludeEngagementId = String(excludeEngagementId).trim();
   }
 
   const { data } = await providerInstance.post(

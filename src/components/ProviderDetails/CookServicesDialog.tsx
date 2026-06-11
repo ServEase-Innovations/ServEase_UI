@@ -1,7 +1,11 @@
 /* eslint-disable */
 import React, { useState } from "react";
 import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
-import { MaidStyledDialog, MaidStyledContent } from "./MaidServiceDialog.styles";
+import {
+  MaidStyledDialog,
+  MaidStyledContent,
+  bookingDialogSlotProps,
+} from "./MaidServiceDialog.styles";
 import ServiceBookingFlow from "./ServiceBookingFlow";
 
 interface CookServicesDialogProps {
@@ -33,8 +37,11 @@ const CookServicesDialog: React.FC<CookServicesDialogProps> = ({
     <MaidStyledDialog
       open={open}
       onClose={handleDialogClose}
-      fullWidth
+      maxWidth={false}
+      scroll="body"
       aria-labelledby="cook-flow-title"
+      slotProps={bookingDialogSlotProps}
+      disableEnforceFocus
       $successOverlay={successShowing}
     >
       <MaidStyledContent $successOverlay={successShowing}>

@@ -1013,30 +1013,21 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     <>
       <MaidRoot $page={isPage} style={successDialogOpen ? { display: "none" } : undefined}>
         <MaidHeader style={{ background: cfg.headerGradient }}>
-          {isPage ? (
-            <MaidCloseBtn
-              aria-label="back"
-              onClick={() => {
-                setLoading(false);
-                onClose();
-              }}
-              size="small"
-              sx={{ left: 8, right: "auto" }}
-            >
+          <MaidCloseBtn
+            aria-label={isPage ? "back" : "close"}
+            onClick={() => {
+              setLoading(false);
+              onClose();
+            }}
+            size="small"
+            sx={isPage ? { left: 8, right: "auto" } : undefined}
+          >
+            {isPage ? (
               <ArrowBackIcon fontSize="small" sx={{ color: "#fff" }} />
-            </MaidCloseBtn>
-          ) : (
-            <MaidCloseBtn
-              aria-label="close"
-              onClick={() => {
-                setLoading(false);
-                onClose();
-              }}
-              size="small"
-            >
+            ) : (
               <CloseIcon fontSize="small" sx={{ color: "#fff" }} />
-            </MaidCloseBtn>
-          )}
+            )}
+          </MaidCloseBtn>
           <MaidHeaderTitle id={flowTitleId}>{t(cfg.titleKey)}</MaidHeaderTitle>
           <MaidHeaderSub>
             {providerFullName || (isPage ? "Choose a provider from the list" : "")}

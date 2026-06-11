@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import "./DribbbleDateTimePicker.css";
 
@@ -36,6 +36,8 @@ type SingleProps = {
   mode?: "single";
   value?: Date;
   maxDate?: Date;
+  /** Date-only mode: hide time slots (time chosen elsewhere). */
+  hideTimeSelection?: boolean;
   /** Fired when the calendar date changes (time selection is cleared). */
   onDateChange?: (date: Date) => void;
   onChange: (date: Date) => void;
@@ -63,7 +65,10 @@ type RangeProps = {
   }) => void;
 };
 
-type Props = SingleProps | RangeProps;
+type Props = (SingleProps | RangeProps) & {
+  /** Tighter layout for dialogs and embedded pickers. */
+  compact?: boolean;
+};
 
 /* -------------------- Helper: get available times for a given date -------------------- */
 const getAvailableTimes = (date: Dayjs | null): string[] => {
@@ -101,11 +106,14 @@ const getTimesUpToNoon = (times: string[]): string[] => {
 /* -------------------- Component -------------------- */
 
 export default function DribbbleDateTimePicker(props: Props) {
+  const compact = props.compact ?? false;
   const mode = props.mode ?? "single";
   const value = props.value;
   const singleMaxDate = props.mode === "single" ? props.maxDate : undefined;
   const rangeProps = props.mode === "range" ? (props as RangeProps) : null;
-  const hideTimeSelection = rangeProps?.hideTimeSelection ?? false;
+  const singleProps = props.mode !== "range" ? (props as SingleProps) : null;
+  const hideTimeSelection =
+    rangeProps?.hideTimeSelection ?? singleProps?.hideTimeSelection ?? false;
   const rangeMinDate = rangeProps?.minDate ? dayjs(rangeProps.minDate).startOf("day") : null;
   const rangeMaxDate = rangeProps?.maxDate ? dayjs(rangeProps.maxDate).startOf("day") : null;
   const minRangeDays = Math.max(1, rangeProps?.minRangeDays ?? 1);
@@ -150,20 +158,76 @@ export default function DribbbleDateTimePicker(props: Props) {
     return match ?? null;
   };
 
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
+  const singleValueTs =
+    mode === "single" && value instanceof Date ? value.getTime() : null;
+  const rangeStartTs =
+    mode === "range" &&
+    value &&
+    typeof value === "object" &&
+    "startDate" in value
+      ? (value as RangeValue).startDate?.getTime() ?? null
+      : null;
+  const rangeEndTs =
+    mode === "range" &&
+    value &&
+    typeof value === "object" &&
+    "startDate" in value
+      ? (value as RangeValue).endDate?.getTime() ?? null
+      : null;
+
+  /** Primitive key only — never depend on the `value` object reference. */
+  const externalValueKey = useMemo(() => {
+    if (mode === "single") {
+      return singleValueTs != null ? `single:${singleValueTs}` : "single:";
+    }
+    if (mode === "range") {
+      return `range:${rangeStartTs ?? "none"}|${rangeEndTs ?? "none"}`;
+    }
+    return `${mode}:empty`;
+  }, [mode, singleValueTs, rangeStartTs, rangeEndTs]);
+
   useEffect(() => {
-    if (mode === "single" && value instanceof Date) {
-      const d = dayjs(value);
-      setSelectedDate(d);
-      setSelectedTime(formatTimeSlot(d));
+    const currentValue = valueRef.current;
+
+    if (mode === "single" && currentValue instanceof Date) {
+      const d = dayjs(currentValue);
+      setSelectedDate((prev) => (prev.isSame(d) ? prev : d));
+      const nextTime = formatTimeSlot(d);
+      setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
       return;
     }
-    if (mode === "range" && value && typeof value === "object" && "startDate" in value) {
-      const rv = value as RangeValue;
-      if (rv.startDate) setRangeStart(dayjs(rv.startDate).startOf("day"));
-      if (rv.endDate) setRangeEnd(dayjs(rv.endDate).startOf("day"));
-      else setRangeEnd(null);
+
+    if (
+      mode === "range" &&
+      currentValue &&
+      typeof currentValue === "object" &&
+      "startDate" in currentValue
+    ) {
+      const rv = currentValue as RangeValue;
+      if (rv.startDate) {
+        const nextStart = dayjs(rv.startDate).startOf("day");
+        setRangeStart((prev) => (prev?.isSame(nextStart, "day") ? prev : nextStart));
+      } else {
+        setRangeStart((prev) => (prev === null ? prev : null));
+      }
+      if (rv.endDate) {
+        const nextEnd = dayjs(rv.endDate).startOf("day");
+        setRangeEnd((prev) => (prev?.isSame(nextEnd, "day") ? prev : nextEnd));
+      } else {
+        setRangeEnd((prev) => (prev === null ? prev : null));
+      }
+      if (rv.startDate && rv.endDate) {
+        const startWithTime = dayjs(rv.startDate);
+        const nextTime = formatTimeSlot(startWithTime);
+        if (nextTime) {
+          setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
+        }
+      }
     }
-  }, [mode, value]);
+  }, [mode, externalValueKey]);
 
   /* -------------------- Calendar Setup -------------------- */
 
@@ -259,8 +323,11 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   const isDisabledInRangeMode = (day: number) => {
     const date = currentMonth.date(day).startOf("day");
-    if (!hideTimeSelection && isPastDate(date)) return true;
-    if (!hideTimeSelection && date.isSame(today, "day") && todayHasNoSlots) return true;
+    if (mode === "single" && isPastDate(date)) return true;
+    if (mode === "range" && !hideTimeSelection && isPastDate(date)) return true;
+    if (mode === "range" && !hideTimeSelection && date.isSame(today, "day") && todayHasNoSlots) {
+      return true;
+    }
 
     if (hideTimeSelection && rangeMinDate && date.isBefore(rangeMinDate, "day")) return true;
     if (hideTimeSelection && rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
@@ -420,7 +487,7 @@ export default function DribbbleDateTimePicker(props: Props) {
   /* -------------------- Render -------------------- */
 
   return (
-    <div className="dtp-card">
+    <div className={compact ? "dtp-card dtp-compact" : "dtp-card"}>
       <div className="dtp-header">
         <button
           onClick={() => setCurrentMonth((m) => m.subtract(1, "month"))}
