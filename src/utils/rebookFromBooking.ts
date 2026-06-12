@@ -52,18 +52,18 @@ function computeRebookDates(
   originalStart?: string,
   originalEnd?: string
 ): { startDate: string; endDate: string } {
-  const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
+  const today = dayjs().format("YYYY-MM-DD");
 
   if (bookingTypeCode === "ON_DEMAND") {
-    return { startDate: tomorrow, endDate: tomorrow };
+    return { startDate: today, endDate: today };
   }
 
   const durationDays = computeDurationDays(originalStart, originalEnd);
-  const endDate = dayjs(tomorrow)
+  const endDate = dayjs(today)
     .add(Math.max(0, durationDays - 1), "day")
     .format("YYYY-MM-DD");
 
-  return { startDate: tomorrow, endDate };
+  return { startDate: today, endDate };
 }
 
 function normalizeHm(value?: string): string {
@@ -108,9 +108,14 @@ function buildTimeFields(
   };
 }
 
+export function isOnDemandBookingType(bookingType?: string): boolean {
+  return String(bookingType || "").toUpperCase() === "ON_DEMAND";
+}
+
 /** Build Redux booking criteria from a prior engagement for "Book Again". */
 export function buildRebookPayload(
-  booking: RebookSourceBooking
+  booking: RebookSourceBooking,
+  options?: { serviceProviderId?: number | null }
 ): RebookReduxPayload | null {
   const housekeepingRole = housekeepingRoleFromServiceType(booking.service_type);
   if (!housekeepingRole) return null;
@@ -131,13 +136,22 @@ export function buildRebookPayload(
   );
   const timeFields = buildTimeFields(bookingPreference, startTime, endTime);
 
-  const payload: RebookReduxPayload = {
+  const payload: RebookReduxPayload & {
+    serviceproviderId?: number;
+    serviceProviderId?: number;
+  } = {
     startDate,
     endDate,
     bookingPreference,
     housekeepingRole,
     ...timeFields,
   };
+
+  const spId = Number(options?.serviceProviderId ?? 0);
+  if (Number.isFinite(spId) && spId > 0) {
+    payload.serviceproviderId = spId;
+    payload.serviceProviderId = spId;
+  }
 
   if (booking.responsibilities?.tasks?.length || booking.responsibilities?.add_ons?.length) {
     payload.responsibilities = booking.responsibilities;

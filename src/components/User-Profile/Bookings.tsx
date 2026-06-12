@@ -59,13 +59,26 @@ import {
 } from 'src/utils/bookingCancellation';
 import { formatProviderDisplayName } from 'src/utils/providerDisplayName';
 import { useDispatch } from 'react-redux';
-import { commitSchedule } from '../../features/bookingType/bookingTypeSlice';
+import {
+  closeBookingDialog,
+  commitSchedule,
+  openBookingDialog,
+} from '../../features/bookingType/bookingTypeSlice';
 import { add as setGeoLocation } from '../../features/geoLocation/geoLocationSlice';
 import { DETAILS } from 'src/Constants/pagesConstants';
 import {
   buildRebookGeoLocation,
   buildRebookPayload,
+  isOnDemandBookingType,
+  type RebookSourceBooking,
 } from 'src/utils/rebookFromBooking';
+import { checkOnDemandProviderAvailability } from 'src/services/onDemandAvailability';
+import OnDemandRebookDialog from './OnDemandRebookDialog';
+import MaidServiceDialog from '../ProviderDetails/MaidServiceDialog';
+import CookServicesDialog from '../ProviderDetails/CookServicesDialog';
+import NannyServicesDialog from '../ProviderDetails/NannyServicesDialog';
+import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
+import { buildRebookProviderDetails } from 'src/utils/rebookProviderDetails';
 
 interface Task {
   taskType: string;
@@ -502,6 +515,48 @@ const isUpcomingTabBooking = (booking: Booking): boolean => {
   return status !== "CANCELLED" && status !== "COMPLETED";
 };
 
+function toRebookSource(booking: Booking): RebookSourceBooking {
+  return {
+    service_type: booking.service_type,
+    bookingType: booking.bookingType,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    start_time: booking.start_time,
+    end_time: booking.end_time,
+    address: booking.address,
+    latitude: booking.latitude,
+    longitude: booking.longitude,
+    responsibilities: booking.responsibilities,
+  };
+}
+
+function serviceTypeForOnDemandApi(serviceType: string): string {
+  const normalized = String(serviceType || "").toLowerCase();
+  if (normalized === "cook") return "COOK";
+  if (normalized === "nanny") return "NANNY";
+  return "MAID";
+}
+
+function rebookServiceKind(
+  serviceType: string
+): "maid" | "cook" | "nanny" | null {
+  const normalized = String(serviceType || "").toLowerCase();
+  if (normalized === "maid") return "maid";
+  if (normalized === "cook") return "cook";
+  if (normalized === "nanny") return "nanny";
+  return null;
+}
+
+function durationMinutesFromHm(startTime?: string, endTime?: string): number {
+  if (!startTime) return 60;
+  if (!endTime) return 60;
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const mins = eh * 60 + em - (sh * 60 + sm);
+  if (mins > 0) return Math.min(Math.max(mins, 15), 480);
+  return 60;
+}
+
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [viewTab, setViewTab] = useState<BookingsViewTab>("upcoming");
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
@@ -529,6 +584,18 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [vacationManagementDialogOpen, setVacationManagementDialogOpen] = useState(false);
   const [selectedBookingForVacationManagement, setSelectedBookingForVacationManagement] = useState<Booking | null>(null);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
+  const [onDemandRebookOpen, setOnDemandRebookOpen] = useState(false);
+  const [rebookCandidate, setRebookCandidate] = useState<Booking | null>(null);
+  const [checkingSameProviderRebook, setCheckingSameProviderRebook] = useState(false);
+  const [sameProviderRebookError, setSameProviderRebookError] = useState<string | null>(
+    null
+  );
+  const [rebookCheckoutOpen, setRebookCheckoutOpen] = useState(false);
+  const [rebookCheckoutProvider, setRebookCheckoutProvider] =
+    useState<EnhancedProviderDetails | null>(null);
+  const [rebookCheckoutKind, setRebookCheckoutKind] = useState<
+    "maid" | "cook" | "nanny" | null
+  >(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1633,8 +1700,70 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setComplaintDialogOpen(true);
   };
 
+  const commitRebookToStore = (
+    booking: Booking,
+    options?: { serviceProviderId?: number | null; clearProvider?: boolean }
+  ) => {
+    const payload = buildRebookPayload(toRebookSource(booking), {
+      serviceProviderId: options?.serviceProviderId,
+    });
+    if (!payload) return null;
+
+    const schedulePatch: Record<string, unknown> = { ...payload };
+    if (options?.clearProvider) {
+      schedulePatch.serviceproviderId = "";
+      schedulePatch.serviceProviderId = "";
+    }
+
+    dispatch(commitSchedule(schedulePatch));
+    const geo = buildRebookGeoLocation(toRebookSource(booking));
+    if (geo) {
+      dispatch(setGeoLocation(geo));
+    }
+    return payload;
+  };
+
+  const openOnDemandRebookCheckout = (
+    booking: Booking,
+    options?: { providerDetails?: EnhancedProviderDetails | null; providerId?: number }
+  ) => {
+    const serviceKind = rebookServiceKind(booking.service_type);
+    if (!serviceKind) return false;
+
+    const hasProvider =
+      options?.providerId != null &&
+      Number.isFinite(options.providerId) &&
+      options.providerId > 0;
+
+    if (
+      !commitRebookToStore(booking, {
+        serviceProviderId: hasProvider ? options?.providerId : undefined,
+        clearProvider: !hasProvider,
+      })
+    ) {
+      return false;
+    }
+
+    if (hasProvider) {
+      dispatch(openBookingDialog(String(options!.providerId)));
+    } else {
+      dispatch(closeBookingDialog());
+    }
+
+    setRebookCheckoutKind(serviceKind);
+    setRebookCheckoutProvider(options?.providerDetails ?? null);
+    setRebookCheckoutOpen(true);
+    return true;
+  };
+
+  const navigateToProviderSearch = () => {
+    if (typeof handleDataFromChild === "function") {
+      handleDataFromChild(DETAILS);
+    }
+  };
+
   const handleBookAgain = (booking: Booking) => {
-    const payload = buildRebookPayload(booking);
+    const payload = buildRebookPayload(toRebookSource(booking));
     if (!payload) {
       setSnackbarMessage(
         "This service type cannot be rebooked automatically. Please book from the home page."
@@ -1644,16 +1773,118 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       return;
     }
 
-    dispatch(commitSchedule(payload));
-
-    const geo = buildRebookGeoLocation(booking);
-    if (geo) {
-      dispatch(setGeoLocation(geo));
+    if (isOnDemandBookingType(booking.bookingType)) {
+      setRebookCandidate(booking);
+      setSameProviderRebookError(null);
+      setOnDemandRebookOpen(true);
+      return;
     }
 
-    if (typeof handleDataFromChild === "function") {
-      handleDataFromChild(DETAILS);
+    commitRebookToStore(booking);
+    navigateToProviderSearch();
+  };
+
+  const handleOnDemandRebookDifferentProvider = () => {
+    if (!rebookCandidate) return;
+
+    if (!openOnDemandRebookCheckout(rebookCandidate)) {
+      setSameProviderRebookError(
+        "This service type cannot be rebooked automatically. Please book from the home page."
+      );
+      return;
     }
+
+    setOnDemandRebookOpen(false);
+    setRebookCandidate(null);
+    setSameProviderRebookError(null);
+  };
+
+  const handleOnDemandRebookSameProvider = async () => {
+    if (!rebookCandidate) return;
+    const providerId = Number(rebookCandidate.serviceProviderId);
+    if (!Number.isFinite(providerId) || providerId < 1) {
+      setSameProviderRebookError(
+        "No provider was assigned on your last booking. Please choose a provider from the list."
+      );
+      return;
+    }
+
+    const lat = Number(rebookCandidate.latitude);
+    const lng = Number(rebookCandidate.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setSameProviderRebookError(
+        "We need your service location to check provider availability. Choose a different provider and confirm your address on the map."
+      );
+      return;
+    }
+
+    const payload = buildRebookPayload(toRebookSource(rebookCandidate), {
+      serviceProviderId: providerId,
+    });
+    if (!payload) {
+      setSameProviderRebookError(
+        "This service type cannot be rebooked automatically. Please book from the home page."
+      );
+      return;
+    }
+
+    const serviceKind = rebookServiceKind(rebookCandidate.service_type);
+    if (!serviceKind) {
+      setSameProviderRebookError(
+        "This service type cannot be rebooked automatically. Please book from the home page."
+      );
+      return;
+    }
+
+    setCheckingSameProviderRebook(true);
+    setSameProviderRebookError(null);
+    try {
+      const availability = await checkOnDemandProviderAvailability({
+        latitude: lat,
+        longitude: lng,
+        serviceType: serviceTypeForOnDemandApi(rebookCandidate.service_type),
+        startDate: payload.startDate,
+        startTime: payload.startTime,
+        durationMinutes: durationMinutesFromHm(payload.startTime, payload.endTime),
+        providerId,
+      });
+
+      if (!availability.available) {
+        setSameProviderRebookError(
+          availability.message ||
+            "This provider is not available for your selected schedule. Try another time or choose a different provider."
+        );
+        return;
+      }
+
+      if (
+        !openOnDemandRebookCheckout(rebookCandidate, {
+          providerId,
+          providerDetails: buildRebookProviderDetails(rebookCandidate),
+        })
+      ) {
+        setSameProviderRebookError(
+          "This service type cannot be rebooked automatically. Please book from the home page."
+        );
+        return;
+      }
+
+      setOnDemandRebookOpen(false);
+      setRebookCandidate(null);
+    } catch {
+      setSameProviderRebookError(
+        "Could not verify provider availability. Please try again."
+      );
+    } finally {
+      setCheckingSameProviderRebook(false);
+    }
+  };
+
+  const handleCloseRebookCheckout = () => {
+    dispatch(closeBookingDialog());
+    setRebookCheckoutOpen(false);
+    setRebookCheckoutProvider(null);
+    setRebookCheckoutKind(null);
   };
 
   const handleModifyClick = (booking: Booking) => {
@@ -2800,6 +3031,72 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           console.log('Selected service type:', serviceType);
         }}
       />
+
+      <OnDemandRebookDialog
+        open={onDemandRebookOpen}
+        onClose={() => {
+          if (checkingSameProviderRebook) return;
+          setOnDemandRebookOpen(false);
+          setRebookCandidate(null);
+          setSameProviderRebookError(null);
+        }}
+        booking={
+          rebookCandidate
+            ? {
+                serviceProviderId: rebookCandidate.serviceProviderId,
+                serviceProviderName: rebookCandidate.serviceProviderName,
+              }
+            : null
+        }
+        canCheckSameProvider={
+          Boolean(rebookCandidate?.serviceProviderId) &&
+          Number.isFinite(Number(rebookCandidate?.latitude)) &&
+          Number.isFinite(Number(rebookCandidate?.longitude))
+        }
+        sameProviderDisabledReason={
+          rebookCandidate &&
+          (!rebookCandidate.serviceProviderId ||
+            !Number.isFinite(Number(rebookCandidate.latitude)) ||
+            !Number.isFinite(Number(rebookCandidate.longitude)))
+            ? "Saved location is required to rebook with the same provider."
+            : null
+        }
+        checkingSameProvider={checkingSameProviderRebook}
+        sameProviderError={sameProviderRebookError}
+        onBookSameProvider={() => void handleOnDemandRebookSameProvider()}
+        onChooseDifferentProvider={handleOnDemandRebookDifferentProvider}
+      />
+
+      {rebookCheckoutKind === "maid" ? (
+        <MaidServiceDialog
+          open={rebookCheckoutOpen}
+          handleClose={handleCloseRebookCheckout}
+          providerDetails={rebookCheckoutProvider ?? undefined}
+          sendDataToParent={
+            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
+          }
+        />
+      ) : null}
+      {rebookCheckoutKind === "cook" ? (
+        <CookServicesDialog
+          open={rebookCheckoutOpen}
+          handleClose={handleCloseRebookCheckout}
+          providerDetails={rebookCheckoutProvider ?? undefined}
+          sendDataToParent={
+            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
+          }
+        />
+      ) : null}
+      {rebookCheckoutKind === "nanny" ? (
+        <NannyServicesDialog
+          open={rebookCheckoutOpen}
+          handleClose={handleCloseRebookCheckout}
+          providerDetails={rebookCheckoutProvider ?? undefined}
+          sendDataToParent={
+            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
+          }
+        />
+      ) : null}
 
       <Snackbar
         open={openSnackbar}

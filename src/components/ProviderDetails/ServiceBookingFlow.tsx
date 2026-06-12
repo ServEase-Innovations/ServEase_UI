@@ -703,6 +703,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       startDate,
       startTime,
       durationMinutes,
+      providerId: providerId ?? undefined,
     })
       .then((result) => {
         if (cancelled) return;
@@ -735,6 +736,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     bookingType?.endTime,
     bookingType?.timeRange,
     cfg.serviceType,
+    providerId,
   ]);
 
   const handleLoginToContinue = () => {

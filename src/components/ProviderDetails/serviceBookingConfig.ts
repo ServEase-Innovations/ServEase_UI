@@ -7,6 +7,7 @@ import {
   type PricingQuoteResponse,
 } from "src/services/pricingService";
 import { formatDateOnly } from "src/utils/maidPricingUtils";
+import { resolveScheduleTimeFields } from "src/utils/bookingSchedulePatch";
 import { BOOKING_HEADER_GRADIENT } from "./MaidServiceDialog.styles";
 
 export type ServiceBookingKind = "maid" | "cook";
@@ -70,8 +71,7 @@ export function isBookingScheduleComplete(
   const startDate = formatDateOnly(String(bookingType.startDate ?? ""));
   if (!startDate) return false;
 
-  const startTime = String(bookingType.startTime ?? "").trim();
-  const endTime = String(bookingType.endTime ?? "").trim();
+  const { startTime, endTime } = resolveScheduleTimeFields(bookingType);
   const endDate = formatDateOnly(String(bookingType.endDate ?? "")) || startDate;
 
   if (bookingTypeCode === "ON_DEMAND") {
@@ -96,7 +96,8 @@ export function computeDurationHours(
   endTime?: string,
   startDate?: string,
   endDate?: string,
-  timeRange?: string
+  timeRange?: string,
+  timeSlot?: string
 ): number | undefined {
   if (bookingTypeCode === "ON_DEMAND") {
     const hours = diffHoursFromTimes(startTime, endTime);
@@ -108,6 +109,8 @@ export function computeDurationHours(
   if (bookingTypeCode === "SHORT_TERM") {
     const hours = diffHoursFromTimes(startTime, endTime);
     if (hours != null && hours > 0) return hours;
+    const fromSlot = hoursFromTimeRange(timeSlot);
+    if (fromSlot != null && fromSlot > 0) return fromSlot;
     return undefined;
   }
   if (bookingTypeCode === "MONTHLY") {

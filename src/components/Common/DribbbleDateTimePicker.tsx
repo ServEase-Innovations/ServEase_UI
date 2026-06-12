@@ -30,6 +30,8 @@ const DEFAULT_MAX_RANGE_DAYS = 21;
 type RangeValue = {
   startDate?: Date;
   endDate?: Date;
+  /** Daily start time label, e.g. "3:00 PM" — used when dates are date-only at midnight. */
+  time?: string;
 };
 
 type SingleProps = {
@@ -177,6 +179,13 @@ export default function DribbbleDateTimePicker(props: Props) {
     "startDate" in value
       ? (value as RangeValue).endDate?.getTime() ?? null
       : null;
+  const rangeTimeLabel =
+    mode === "range" &&
+    value &&
+    typeof value === "object" &&
+    "startDate" in value
+      ? String((value as RangeValue).time ?? "").trim()
+      : "";
 
   /** Primitive key only — never depend on the `value` object reference. */
   const externalValueKey = useMemo(() => {
@@ -184,10 +193,10 @@ export default function DribbbleDateTimePicker(props: Props) {
       return singleValueTs != null ? `single:${singleValueTs}` : "single:";
     }
     if (mode === "range") {
-      return `range:${rangeStartTs ?? "none"}|${rangeEndTs ?? "none"}`;
+      return `range:${rangeStartTs ?? "none"}|${rangeEndTs ?? "none"}|${rangeTimeLabel}`;
     }
     return `${mode}:empty`;
-  }, [mode, singleValueTs, rangeStartTs, rangeEndTs]);
+  }, [mode, singleValueTs, rangeStartTs, rangeEndTs, rangeTimeLabel]);
 
   useEffect(() => {
     const currentValue = valueRef.current;
@@ -220,11 +229,12 @@ export default function DribbbleDateTimePicker(props: Props) {
         setRangeEnd((prev) => (prev === null ? prev : null));
       }
       if (rv.startDate && rv.endDate) {
-        const startWithTime = dayjs(rv.startDate);
-        const nextTime = formatTimeSlot(startWithTime);
-        if (nextTime) {
-          setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
-        }
+        const explicitTime = String(rv.time ?? "").trim();
+        const nextTime =
+          (explicitTime && ALL_TIMES.includes(explicitTime)
+            ? explicitTime
+            : null) ?? formatTimeSlot(dayjs(rv.startDate));
+        setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
       }
     }
   }, [mode, externalValueKey]);
@@ -267,18 +277,34 @@ export default function DribbbleDateTimePicker(props: Props) {
   // For the "More time" toggle: 
   // - For today: show first 6 slots initially (same as before)
   // - For future dates: show only slots up to 12 PM initially, then all slots after expanding
+  const sortTimeLabels = (times: string[]) =>
+    [...times].sort((a, b) => {
+      const aMin = dayjs(a, "h:mm A").hour() * 60 + dayjs(a, "h:mm A").minute();
+      const bMin = dayjs(b, "h:mm A").hour() * 60 + dayjs(b, "h:mm A").minute();
+      return aMin - bMin;
+    });
+
   const displayedTimes = useMemo(() => {
     if (!hasAvailableTimes) return [];
-    if (showAllTimes) return availableTimes;
-
-    // If activeDate is today, keep original behavior (first 6 slots)
-    if (activeDate && activeDate.isSame(now, "day")) {
-      return availableTimes.slice(0, 6);
+    let times: string[];
+    if (showAllTimes) {
+      times = availableTimes;
+    } else if (activeDate && activeDate.isSame(now, "day")) {
+      times = availableTimes.slice(0, 6);
+    } else {
+      times = getTimesUpToNoon(availableTimes);
     }
 
-    // For future dates: show only times up to 12 PM initially
-    return getTimesUpToNoon(availableTimes);
-  }, [availableTimes, showAllTimes, hasAvailableTimes, activeDate, now]);
+    if (
+      selectedTime &&
+      availableTimes.includes(selectedTime) &&
+      !times.includes(selectedTime)
+    ) {
+      times = sortTimeLabels([...times, selectedTime]);
+    }
+
+    return times;
+  }, [availableTimes, showAllTimes, hasAvailableTimes, activeDate, now, selectedTime]);
 
   // Determine if "More time" button should be shown
   const canExpand = useMemo(() => {

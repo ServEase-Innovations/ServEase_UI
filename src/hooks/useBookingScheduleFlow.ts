@@ -10,6 +10,7 @@ import {
   type ProviderScheduleCheckResult,
 } from "src/services/providerScheduleAvailability";
 import { computeDurationHours } from "src/components/ProviderDetails/serviceBookingConfig";
+import { resolveScheduleTimeFields } from "src/utils/bookingSchedulePatch";
 
 export type SelectedProviderAvailabilityState = {
   loading: boolean;
@@ -100,15 +101,15 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
       formatDateOnly(String(committedSchedule?.startDate ?? "")) || todayYmd();
     const endDate =
       formatDateOnly(String(committedSchedule?.endDate ?? "")) || startDate;
-    const startTime = String(committedSchedule?.startTime ?? "").trim();
-    const endTime = String(committedSchedule?.endTime ?? "").trim();
+    const { startTime, endTime } = resolveScheduleTimeFields(committedSchedule);
     const durationHours = computeDurationHours(
       bookingTypeCode,
       startTime,
       endTime,
       startDate,
       endDate,
-      String(committedSchedule?.timeRange ?? "")
+      String(committedSchedule?.timeRange ?? ""),
+      String(committedSchedule?.timeSlot ?? "")
     );
     const durationMinutes =
       durationHours != null && durationHours > 0

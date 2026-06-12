@@ -26,6 +26,7 @@ import { getBookingTypeFromPreference } from "src/utils/maidPricingUtils";
 import { isBookingScheduleComplete } from "./serviceBookingConfig";
 import {
   buildReduxBookingPatch,
+  resolveScheduleTimeFields,
   schedulePatchKey,
 } from "src/utils/bookingSchedulePatch";
 import { formatDateOnly } from "src/utils/maidPricingUtils";
@@ -233,26 +234,14 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     let sd = bookingType?.startDate ? dayjs(dateStr) : null;
     let ed = bookingType?.endDate ? dayjs(String(bookingType.endDate).split("T")[0]) : null;
 
-    let st =
-      parseTimeOnDate(dateStr, String(bookingType?.startTime ?? "")) ??
-      (sd ? sd.hour(9).minute(0) : null);
-    let et =
-      parseTimeOnDate(dateStr, String(bookingType?.endTime ?? "")) ??
-      (st ? st.add(1, "hour") : null);
-
-    const timeRange = String(bookingType?.timeRange ?? "");
-    if ((!st || !et) && timeRange.includes("-")) {
-      const [startPart, endPart] = timeRange.split("-").map((s) => s.trim());
-      st = st ?? parseTimeOnDate(dateStr, startPart);
-      et = et ?? parseTimeOnDate(dateStr, endPart);
-    }
-
-    const hasReduxTimes =
-      Boolean(String(bookingType?.startTime ?? "").trim()) &&
-      Boolean(String(bookingType?.endTime ?? "").trim());
+    const { startTime: reduxStart, endTime: reduxEnd } = resolveScheduleTimeFields(
+      bookingType
+    );
+    let st = parseTimeOnDate(dateStr, reduxStart);
+    let et = parseTimeOnDate(dateStr, reduxEnd);
 
     if (pref === "Date") {
-      if (hasReduxTimes && st && et) {
+      if (st && et) {
         const clamped = clampScheduleToWorkHours(st, et);
         st = clamped.start;
         et = clamped.end;
@@ -262,14 +251,16 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
         st = null;
         et = null;
         sd = bookingType?.startDate ? dayjs(dateStr) : null;
-        ed = pref === "Date" ? null : ed;
+        ed = null;
       }
     } else if (pref === "Short term") {
-      if (!hasReduxTimes) {
+      if (!reduxStart) {
         st = null;
         et = null;
+      } else if (!et && st) {
+        et = st.add(1, "hour");
       }
-    } else if (pref === "Monthly" && !String(bookingType?.startTime ?? "").trim()) {
+    } else if (pref === "Monthly" && !reduxStart) {
       st = null;
       et = null;
     }
@@ -282,6 +273,11 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     setSelectedDurationHours(hydratedDuration > 0 ? hydratedDuration : 1);
     setValidationMsg(null);
   }, [bookingType]);
+
+  const committedScheduleKey = useMemo(
+    () => schedulePatchKey((bookingType ?? {}) as Record<string, unknown>),
+    [bookingType]
+  );
 
   useEffect(() => {
     if (active) {
@@ -296,8 +292,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     dispatch(setScheduleDraft(null));
     dispatch(setScheduleIncomplete(false));
     onAvailabilityCheckBlockedChange?.(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, committedScheduleKey, dispatch, hydrateFromRedux, onAvailabilityCheckBlockedChange]);
 
   const planLabel = useMemo(() => {
     const pref = preference.toLowerCase();
@@ -418,7 +413,8 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
             endTimeStr,
             startDateYmd,
             endDateYmd,
-            String(patch.timeRange ?? "")
+            String(patch.timeRange ?? ""),
+            String(patch.timeSlot ?? "")
           );
           const durationMinutes =
             durationHours != null && durationHours > 0
@@ -718,6 +714,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
                 value={{
                   startDate: startDate?.toDate(),
                   endDate: endDate?.toDate(),
+                  time: startTime?.format("h:mm A"),
                 }}
                 onDateChange={handleRangeDateOnlyChange}
                 onChange={({ startDate: rangeStart, endDate: rangeEnd, time }) => {
