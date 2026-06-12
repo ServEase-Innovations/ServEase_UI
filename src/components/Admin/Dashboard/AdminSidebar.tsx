@@ -100,12 +100,12 @@ export function AdminSidebar({ activeSection, onSectionChange, userRole }: Admin
       >
         {!isCollapsed && (
           <div className="flex items-center gap-2.5 pl-0.5">
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-md bg-white/10 p-0.5 ring-1 ring-white/10">
+            <div className="flex h-10 w-[6.5rem] shrink-0 items-center justify-center rounded-md bg-white/95 px-2 py-1 ring-1 ring-white/15">
               <img
                 src={publicAsset("ServEaso_Logo.png")}
                 alt="ServEase"
-                className="h-full w-full object-contain"
-                width={32}
+                className="h-full max-h-8 w-full max-w-full object-contain object-center"
+                width={104}
                 height={32}
               />
             </div>
@@ -116,11 +116,11 @@ export function AdminSidebar({ activeSection, onSectionChange, userRole }: Admin
           </div>
         )}
         {isCollapsed && (
-          <div className="mx-auto h-8 w-8 overflow-hidden rounded-md bg-white/10 p-0.5 ring-1 ring-white/10">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-white/95 p-1 ring-1 ring-white/15">
             <img
               src={publicAsset("ServEaso_Logo.png")}
-              alt=""
-              className="h-full w-full object-contain"
+              alt="ServEase"
+              className="h-full w-full object-contain object-center"
               width={32}
               height={32}
             />

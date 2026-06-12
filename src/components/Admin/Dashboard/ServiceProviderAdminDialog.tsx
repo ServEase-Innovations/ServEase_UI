@@ -18,6 +18,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableHead,
   TableRow,
   Tabs,
   TextField,
@@ -47,6 +48,10 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import paymentInstance from "src/services/paymentInstance";
 import providerInstance from "src/services/providerInstance";
 import { EngagementEditDialog, type EngagementFormInitial } from "./EngagementEditDialog";
+import {
+  buildModificationSummary,
+  formatModificationSummaryShort,
+} from "./engagementModificationSummary";
 
 type ProviderDetails = Record<string, unknown>;
 
@@ -60,6 +65,8 @@ type EngRow = {
   endDate?: string;
   startTime?: string;
   endTime?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   start_date?: string;
   end_date?: string;
   booking_type?: string;
@@ -69,6 +76,24 @@ type EngRow = {
   active?: boolean;
   bucket: string;
 };
+
+function formatEngagementTimeHm(value: unknown): string {
+  if (value == null || value === "") return "—";
+  const s = String(value).trim();
+  if (!s) return "—";
+  const match = s.match(/^(\d{1,2}:\d{2})/);
+  return match ? match[1] : s;
+}
+
+function engagementStartTime(row?: EngRow | null): string {
+  if (!row) return "—";
+  return formatEngagementTimeHm(row.startTime ?? row.start_time);
+}
+
+function engagementEndTime(row?: EngRow | null): string {
+  if (!row) return "—";
+  return formatEngagementTimeHm(row.endTime ?? row.end_time);
+}
 
 function engRowToFormInitial(row: EngRow, dialogProviderId: number): EngagementFormInitial {
   const pid = row.serviceproviderid ?? 0;
@@ -107,23 +132,23 @@ type ModLogRow = Record<string, unknown> & {
   engagement_id: number;
   modified_at: string;
   modification_id: number;
+  modified_fields?: unknown;
+  modification_type?: string | null;
+  old_start_date?: string | null;
+  new_start_date?: string | null;
+  modified_by_role?: string | null;
+  modified_by_id?: string | number | null;
+  task_status?: string | null;
+  service_type?: string | null;
 };
 
-const fmtModSummary = (fields: unknown) => {
-  if (fields == null) return "—";
-  if (typeof fields === "string") {
-    try {
-      return JSON.stringify(JSON.parse(fields)).slice(0, 200);
-    } catch {
-      return fields.slice(0, 200);
-    }
-  }
-  try {
-    return JSON.stringify(fields).slice(0, 300);
-  } catch {
-    return "—";
-  }
-};
+function modLogSummaryCtx(row?: ModLogRow | null) {
+  return {
+    modificationType: row?.modification_type,
+    oldStartDate: row?.old_start_date,
+    newStartDate: row?.new_start_date,
+  };
+}
 
 const defaultMonth = () => dayjs().format("YYYY-MM");
 
@@ -313,6 +338,7 @@ export function ServiceProviderAdminDialog(props: {
   const [editing, setEditing] = useState<EngRow | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [modDetail, setModDetail] = useState<ModLogRow | null>(null);
 
   const loadProvider = useCallback(async () => {
     const r = await providerInstance.get<{
@@ -531,9 +557,38 @@ export function ServiceProviderAdminDialog(props: {
       { field: "booking_type", width: 120 },
       { field: "service_type", width: 120 },
       { field: "task_status", width: 120 },
-      { field: "startDate", headerName: "Start", width: 120 },
-      { field: "endDate", headerName: "End", width: 120 },
-      { field: "startTime", headerName: "Time", width: 90 },
+      {
+        field: "startDate",
+        headerName: "Start date",
+        width: 118,
+        valueFormatter: (p) => {
+          const v = p.value ?? p.data?.start_date;
+          return v ? String(v).slice(0, 10) : "—";
+        },
+      },
+      {
+        field: "endDate",
+        headerName: "End date",
+        width: 118,
+        valueFormatter: (p) => {
+          const v = p.value ?? p.data?.end_date;
+          return v ? String(v).slice(0, 10) : "—";
+        },
+      },
+      {
+        colId: "start_time",
+        headerName: "Start time",
+        width: 100,
+        valueGetter: (p) => engagementStartTime(p.data),
+        valueFormatter: (p) => engagementStartTime(p.data),
+      },
+      {
+        colId: "end_time",
+        headerName: "End time",
+        width: 100,
+        valueGetter: (p) => engagementEndTime(p.data),
+        valueFormatter: (p) => engagementEndTime(p.data),
+      },
       { field: "base_amount", width: 110, valueFormatter: (p) => (p.value != null ? String(p.value) : "—") },
       {
         colId: "edit",
@@ -595,10 +650,25 @@ export function ServiceProviderAdminDialog(props: {
       { field: "modified_by_role", width: 100, valueFormatter: (p) => (p.value != null ? String(p.value) : "—") },
       { field: "modified_by_id", width: 110, valueFormatter: (p) => (p.value != null ? String(p.value) : "—") },
       {
-        headerName: "Change (summary)",
-        minWidth: 300,
+        headerName: "Change summary",
+        minWidth: 320,
         flex: 1,
-        valueGetter: (p) => fmtModSummary(p.data?.modified_fields),
+        wrapText: true,
+        autoHeight: true,
+        valueGetter: (p) =>
+          p.data
+            ? formatModificationSummaryShort(p.data.modified_fields, modLogSummaryCtx(p.data))
+            : "—",
+        cellStyle: { whiteSpace: "pre-wrap", lineHeight: "1.45", paddingTop: 8, paddingBottom: 8 },
+      },
+      {
+        colId: "mod_details",
+        headerName: "",
+        width: 108,
+        sortable: false,
+        filter: false,
+        valueGetter: () => "View details",
+        cellClass: "text-sky-600 font-semibold cursor-pointer hover:underline",
       },
     ],
     []
@@ -1028,7 +1098,7 @@ export function ServiceProviderAdminDialog(props: {
                   <Stack spacing={1.5}>
                     <SectionCard
                       title="Change history (engagement modifications)"
-                      description="Latest first. “Who” comes from stored modified_by_id / role when the API was called; payload shows what changed (including vacation and admin edits)."
+                      description="Latest first. Summaries show readable field labels and values; use View details for a full before/after table."
                       icon={<History size={20} strokeWidth={1.75} />}
                       accent="sky"
                     >
@@ -1047,6 +1117,11 @@ export function ServiceProviderAdminDialog(props: {
                               paginationPageSize={12}
                               getRowId={(p) => String((p.data as ModLogRow | undefined)?.modification_id ?? "")}
                               defaultColDef={{ sortable: true, resizable: true, filter: true, minWidth: 80 }}
+                              onCellClicked={(e) => {
+                                if (e.colDef?.colId === "mod_details" && e.data) {
+                                  setModDetail(e.data);
+                                }
+                              }}
                             />
                           </div>
                         )}
@@ -1091,6 +1166,77 @@ export function ServiceProviderAdminDialog(props: {
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
             {deleteBusy ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!modDetail}
+        onClose={() => setModDetail(null)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle component="div">
+          <Typography variant="h6" fontWeight={700}>
+            Change details
+          </Typography>
+          {modDetail && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Engagement #{modDetail.engagement_id}
+              {modDetail.modified_at ? ` · ${modDetail.modified_at}` : ""}
+              {modDetail.modified_by_role
+                ? ` · ${modDetail.modified_by_role}${modDetail.modified_by_id != null ? ` #${modDetail.modified_by_id}` : ""}`
+                : ""}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent dividers>
+          {modDetail && (() => {
+            const summary = buildModificationSummary(
+              modDetail.modified_fields,
+              modLogSummaryCtx(modDetail)
+            );
+            return (
+              <Stack spacing={2}>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {summary.headline}
+                </Typography>
+                {summary.lines.length > 0 ? (
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Field</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Previous value</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>New value</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {summary.lines.map((line, idx) => (
+                          <TableRow key={`${line.field}-${idx}`}>
+                            <TableCell sx={{ fontWeight: 600 }}>{line.field}</TableCell>
+                            <TableCell>{line.previous ?? "—"}</TableCell>
+                            <TableCell>
+                              {line.next ?? line.detail ?? "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No structured change details were recorded for this entry.
+                  </Typography>
+                )}
+              </Stack>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, py: 1.5 }}>
+          <Button onClick={() => setModDetail(null)} sx={{ textTransform: "none", fontWeight: 600 }}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

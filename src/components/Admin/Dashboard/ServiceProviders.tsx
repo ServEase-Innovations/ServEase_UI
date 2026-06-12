@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Common/Card";
 import { Button } from "../../Common/button";
-import { Loader2, Search, UserCheck } from "lucide-react";
-import { Input } from "../../Common/input";
+import { Loader2, UserCheck } from "lucide-react";
+import { SearchField } from "../../Common/SearchField";
 import type { ColDef } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import ServiceProviderAdminDialog from "./ServiceProviderAdminDialog";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import providerInstance from "src/services/providerInstance";
+import { authApiErrorMessage, isAuthApiError } from "src/utils/apiAuthError";
 import { cn } from "../../utils";
 
 export interface ServiceProviderRow {
@@ -92,11 +93,25 @@ const ServiceProviders = () => {
 
       setRowData(normalized);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      const msg =
+      const err = e as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+        code?: string;
+      };
+
+      let msg =
         err?.response?.data?.message ||
+        err?.response?.data?.error ||
         err?.message ||
         "Failed to load service providers. Check the providers API and network.";
+
+      if (isAuthApiError(e)) {
+        msg = authApiErrorMessage(e);
+      } else if (err?.message === "Network Error" || err?.code === "ERR_NETWORK") {
+        msg =
+          "Could not reach the providers API (network/CORS). Confirm REACT_APP_PROVIDER_URL and providers CORS_ORIGINS.";
+      }
+
       setError(msg);
       setRowData([]);
     } finally {
@@ -268,16 +283,13 @@ const ServiceProviders = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Filter table…"
-              className="pl-9"
-              aria-label="Filter service providers"
-            />
-          </div>
+          <SearchField
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Filter table…"
+            wrapperClassName="max-w-md"
+            aria-label="Filter service providers"
+          />
 
           {loading && !rowData.length && !error ? (
             <div className="flex h-[420px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 text-slate-500">

@@ -33,8 +33,14 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import moment from "moment";
+import BeachAccessIcon from "@mui/icons-material/BeachAccess";
 import { ServiceProviderDTO } from "../../types/ProviderDetailsType";
 import { useLanguage } from "src/context/LanguageContext";
+import {
+  formatVacationDateRange,
+  formatVacationSummary,
+  resolveProviderVacationAvailability,
+} from "src/utils/providerVacationAvailability";
 
 const DrawerHeader = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -133,6 +139,7 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
   };
 
   const insight = getInsightAlert();
+  const vacationAvailability = resolveProviderVacationAvailability(provider);
 
   const getBookingTypeLabel = (bookingType: string) => {
     switch (bookingType) {
@@ -220,6 +227,23 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                 }}
               />
             )}
+            {vacationAvailability && (
+              <Chip
+                icon={<BeachAccessIcon sx={{ color: "#fcd34d !important" }} />}
+                label={
+                  vacationAvailability.overlapsSearchWindow
+                    ? "Vacation — available"
+                    : `${vacationAvailability.leaveDays} vacation days`
+                }
+                size="small"
+                sx={{
+                  fontWeight: 600,
+                  bgcolor: "rgba(251, 191, 36, 0.2)",
+                  color: "#fde68a",
+                  border: "1px solid rgba(251, 191, 36, 0.45)",
+                }}
+              />
+            )}
           </Stack>
         </Stack>
         <IconButton onClick={onClose} size="large" sx={{ color: "#f8fafc", mt: -0.5 }}>
@@ -236,6 +260,74 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             {insight.body}
           </Typography>
         </Alert>
+
+        {vacationAvailability && (
+          <Paper
+            elevation={0}
+            sx={{
+              mb: 2.5,
+              p: 2,
+              borderRadius: 2,
+              border: 2,
+              borderColor: vacationAvailability.overlapsSearchWindow ? "warning.main" : "warning.light",
+              bgcolor: vacationAvailability.overlapsSearchWindow
+                ? "rgba(254, 243, 199, 0.55)"
+                : "rgba(255, 251, 235, 0.9)",
+            }}
+          >
+            <Stack direction="row" spacing={1.25} alignItems="flex-start">
+              <BeachAccessIcon color="warning" sx={{ mt: 0.25 }} />
+              <Box minWidth={0}>
+                <Stack direction="row" flexWrap="wrap" gap={0.75} alignItems="center" mb={0.75}>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Vacation availability
+                  </Typography>
+                  <Chip
+                    size="small"
+                    color="warning"
+                    label={
+                      vacationAvailability.overlapsSearchWindow
+                        ? "Overlaps your dates"
+                        : "Active vacation"
+                    }
+                    sx={{ fontWeight: 700 }}
+                  />
+                </Stack>
+                <Typography variant="body2" fontWeight={600}>
+                  {formatVacationSummary(vacationAvailability, { includeEngagement: true })}
+                </Typography>
+                <Stack spacing={1} sx={{ mt: 1.25 }}>
+                  <DetailRow
+                    icon={<CalendarTodayIcon fontSize="small" />}
+                    label="Vacation period"
+                    value={formatVacationDateRange(vacationAvailability)}
+                  />
+                  <DetailRow
+                    icon={<EventAvailableIcon fontSize="small" />}
+                    label="Vacation days"
+                    value={`${vacationAvailability.leaveDays} day${
+                      vacationAvailability.leaveDays === 1 ? "" : "s"
+                    }`}
+                  />
+                  {vacationAvailability.engagementStartDate &&
+                    vacationAvailability.engagementEndDate && (
+                      <DetailRow
+                        icon={<CalendarMonthIcon fontSize="small" />}
+                        label="Engagement contract"
+                        value={`${formatDate(vacationAvailability.engagementStartDate)} – ${formatDate(
+                          vacationAvailability.engagementEndDate
+                        )}`}
+                      />
+                    )}
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
+                  During approved vacation, the provider may be available for other on-demand
+                  assignments while their long-term engagement is paused.
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+        )}
 
         {provider.previouslyBooked && provider.previousBookingDetails && (
           <Paper
@@ -301,6 +393,18 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
                     label={t("duration")}
                     value={`${formatDate(provider.previousBookingDetails.startDate)} – ${formatDate(provider.previousBookingDetails.endDate)}`}
                   />
+                  {provider.previousBookingDetails.leaveDays != null &&
+                    provider.previousBookingDetails.leaveDays > 0 &&
+                    provider.previousBookingDetails.vacationStartDate &&
+                    provider.previousBookingDetails.vacationEndDate && (
+                      <DetailRow
+                        icon={<BeachAccessIcon fontSize="small" />}
+                        label="Approved vacation"
+                        value={`${provider.previousBookingDetails.leaveDays} days · ${formatDate(
+                          provider.previousBookingDetails.vacationStartDate
+                        )} – ${formatDate(provider.previousBookingDetails.vacationEndDate)}`}
+                      />
+                    )}
                   <DetailRow
                     icon={<InfoIcon fontSize="small" />}
                     label={t("status")}

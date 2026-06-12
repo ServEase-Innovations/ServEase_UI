@@ -13,7 +13,9 @@ import Settings from "./Settings";
 import Coupons from "./Coupons";
 import { SidebarProvider, SidebarTrigger } from "src/components/Common/Sidebar/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
-import { Bell, Search, LogOut, Sparkles } from "lucide-react";
+import { Bell, Search, LogOut } from "lucide-react";
+import { AdminPendingApproval } from "./AdminPendingApproval";
+import { isPendingAdminRole, normalizeAdminRole } from "src/utils/adminRole";
 import { Input } from "src/components/Common/input";
 import { Button } from "src/components/Common/button";
 import Permissions from "./Permissions";
@@ -53,39 +55,33 @@ function roleLabel(role: string) {
 export function DashboardLayout({
   userRole,
   onLogout,
+  onRoleAssigned,
 }: {
   userRole: string;
   onLogout?: () => void;
+  onRoleAssigned?: (role: string) => void;
 }) {
   const [activeSection, setActiveSection] = useState("dashboard");
 
+  const normalizedRole = normalizeAdminRole(userRole);
   const sectionTitle = SECTION_LABELS[activeSection] ?? "Dashboard";
-  const role = useMemo(() => roleLabel(userRole), [userRole]);
+  const role = useMemo(() => roleLabel(normalizedRole), [normalizedRole]);
   const canUseTicketAlerts =
-    userRole.toLowerCase() === "admin" || userRole.toLowerCase() === "superadmin";
+    normalizedRole.toLowerCase() === "admin" || normalizedRole.toLowerCase() === "superadmin";
 
   useAdminTicketSocket(canUseTicketAlerts);
 
-  const renderActiveSection = () => {
-    if (userRole === "user") {
-      return (
-        <div className="mx-auto max-w-md rounded-2xl border border-amber-500/20 bg-amber-500/5 p-8 text-center shadow-sm">
-          <div
-            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 ring-1 ring-amber-500/25"
-            aria-hidden
-          >
-            <Sparkles className="h-7 w-7 text-amber-200" />
-          </div>
-          <h1 className="text-lg font-semibold text-foreground">Account pending</h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            An administrator will review your request. You’ll be notified when your access is approved. If this takes a while,
-            use the main app contact options.
-          </p>
-        </div>
-      );
-    }
+  if (isPendingAdminRole(normalizedRole)) {
+    return (
+      <AdminPendingApproval
+        onLogout={onLogout}
+        onRoleAssigned={(nextRole) => onRoleAssigned?.(nextRole)}
+      />
+    );
+  }
 
-    if (userRole.toLowerCase() === "admin") {
+  const renderActiveSection = () => {
+    if (normalizedRole.toLowerCase() === "admin") {
       switch (activeSection) {
         case "dashboard":
           return <Dashboard userRole={userRole} />;
@@ -110,7 +106,7 @@ export function DashboardLayout({
       }
     }
 
-    if (userRole.toLowerCase() === "superadmin") {
+    if (normalizedRole.toLowerCase() === "superadmin") {
       switch (activeSection) {
         case "dashboard":
           return <Dashboard userRole={userRole} />;
@@ -148,8 +144,15 @@ export function DashboardLayout({
     }
 
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-destructive font-medium">Invalid role. Please sign out and contact support.</p>
+      <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">Access not configured</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Your account does not have a recognized admin role yet. Please contact a Super Admin or support for
+          assistance.
+        </p>
+        <Button type="button" variant="outline" className="mt-6" onClick={() => onLogout?.()}>
+          Sign out
+        </Button>
       </div>
     );
   };

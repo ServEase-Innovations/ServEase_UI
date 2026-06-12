@@ -16,3 +16,10 @@ export async function buildAdminLoginPayload(username: string, password: string)
   ]);
   return { usernameHash, passwordHash };
 }
+
+/** Register body: hashes on the wire plus username for Mongo (legacy unique index). */
+export async function buildAdminRegisterPayload(username: string, password: string) {
+  const normalizedUsername = username.trim().toLowerCase();
+  const loginPayload = await buildAdminLoginPayload(normalizedUsername, password);
+  return { ...loginPayload, username: normalizedUsername };
+}

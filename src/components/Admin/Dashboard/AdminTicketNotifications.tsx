@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Bell, Ticket, X } from "lucide-react";
 import { Badge } from "@mui/material";
 import { Button } from "src/components/Common/button";
@@ -14,30 +14,29 @@ import {
   type AdminOnDemandEscalationDetail,
 } from "src/utils/onDemandEscalationEvents";
 import { fetchAdminEscalatedOnDemandEngagements } from "src/services/adminEngagementsService";
+import {
+  onDemandEscalationAlertKey,
+  ticketAlertKey,
+} from "src/utils/adminAlertKeys";
+import {
+  fetchAdminAlertReadKeys,
+  getAdminAlertUserId,
+  saveAdminAlertReadKeys,
+} from "src/services/adminAlertReadsService";
 
 type TicketActivity = AdminTicketActivityDetail & {
   kind: "ticket";
   id: string;
-  read: boolean;
 };
 
 type EscalationActivity = AdminOnDemandEscalationDetail & {
   kind: "on-demand";
   id: string;
-  read: boolean;
   title: string;
   body: string;
 };
 
-type StoredActivity = TicketActivity | EscalationActivity;
-
-function ticketActivityKey(a: AdminTicketActivityDetail) {
-  return `ticket-${a.ticketId}-${a.createdAt || ""}-${a.reason || ""}`;
-}
-
-function escalationActivityKey(a: AdminOnDemandEscalationDetail) {
-  return `on-demand-${a.engagementId}-${a.escalatedAt || ""}`;
-}
+type StoredActivity = (TicketActivity | EscalationActivity) & { read: boolean };
 
 type Props = {
   onGoToTickets?: () => void;
@@ -49,21 +48,55 @@ export function AdminTicketNotifications({
   onGoToOnDemandEscalations,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<StoredActivity[]>([]);
+  const [activities, setActivities] = useState<Array<TicketActivity | EscalationActivity>>([]);
+  const [readKeys, setReadKeys] = useState<Set<string>>(new Set());
+  const [readKeysLoaded, setReadKeysLoaded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const adminUserId = getAdminAlertUserId();
+
+  const items: StoredActivity[] = useMemo(
+    () => activities.map((a) => ({ ...a, read: readKeys.has(a.id) })),
+    [activities, readKeys]
+  );
 
   const unread = items.filter((i) => !i.read).length;
 
+  const persistReadKeys = useCallback(
+    async (keys: string[]) => {
+      if (!adminUserId || keys.length === 0) return;
+      try {
+        await saveAdminAlertReadKeys(adminUserId, keys);
+      } catch (err) {
+        console.warn("[admin-alerts] failed to persist read state", err);
+      }
+    },
+    [adminUserId]
+  );
+
+  const markKeysRead = useCallback(
+    (keys: string[]) => {
+      const fresh = keys.filter((k) => k && !readKeys.has(k));
+      if (fresh.length === 0) return;
+      setReadKeys((prev) => {
+        const next = new Set(prev);
+        fresh.forEach((k) => next.add(k));
+        return next;
+      });
+      void persistReadKeys(fresh);
+    },
+    [persistReadKeys, readKeys]
+  );
+
   const pushTicketActivity = useCallback((detail: AdminTicketActivityDetail) => {
-    const id = ticketActivityKey(detail);
-    setItems((prev) => {
+    const id = ticketAlertKey(detail);
+    setActivities((prev) => {
       const without = prev.filter((x) => x.id !== id);
-      return [{ ...detail, kind: "ticket" as const, id, read: false }, ...without].slice(0, 40);
+      return [{ ...detail, kind: "ticket" as const, id }, ...without].slice(0, 40);
     });
   }, []);
 
   const pushEscalationActivity = useCallback((detail: AdminOnDemandEscalationDetail) => {
-    const id = escalationActivityKey(detail);
+    const id = onDemandEscalationAlertKey(detail);
     const title = "On-demand booking needs a provider";
     const body = [
       detail.serviceType,
@@ -72,14 +105,35 @@ export function AdminTicketNotifications({
     ]
       .filter(Boolean)
       .join(" · ");
-    setItems((prev) => {
+    setActivities((prev) => {
       const without = prev.filter((x) => x.id !== id);
       return [
-        { ...detail, kind: "on-demand" as const, id, read: false, title, body },
+        { ...detail, kind: "on-demand" as const, id, title, body },
         ...without,
       ].slice(0, 40);
     });
   }, []);
+
+  useEffect(() => {
+    if (!adminUserId) {
+      setReadKeysLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    void fetchAdminAlertReadKeys(adminUserId)
+      .then((keys) => {
+        if (!cancelled) setReadKeys(keys);
+      })
+      .catch((err) => {
+        console.warn("[admin-alerts] failed to load read keys", err);
+      })
+      .finally(() => {
+        if (!cancelled) setReadKeysLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminUserId]);
 
   useEffect(() => {
     const onTicket = (e: Event) => {
@@ -101,6 +155,7 @@ export function AdminTicketNotifications({
   }, [pushTicketActivity, pushEscalationActivity]);
 
   useEffect(() => {
+    if (!readKeysLoaded) return;
     let cancelled = false;
     void fetchAdminEscalatedOnDemandEngagements()
       .then((rows) => {
@@ -118,7 +173,7 @@ export function AdminTicketNotifications({
               .join(" ")
               .trim(),
             customerMobile: row.customer?.mobile ?? null,
-            escalatedAt: new Date().toISOString(),
+            escalatedAt: undefined,
           });
         });
       })
@@ -128,7 +183,7 @@ export function AdminTicketNotifications({
     return () => {
       cancelled = true;
     };
-  }, [pushEscalationActivity]);
+  }, [pushEscalationActivity, readKeysLoaded]);
 
   useEffect(() => {
     if (!open) return;
@@ -142,11 +197,12 @@ export function AdminTicketNotifications({
   }, [open]);
 
   const markAllRead = () => {
-    setItems((prev) => prev.map((i) => ({ ...i, read: true })));
+    const keys = items.filter((i) => !i.read).map((i) => i.id);
+    markKeysRead(keys);
   };
 
   const openItem = (item: StoredActivity) => {
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read: true } : i)));
+    markKeysRead([item.id]);
     setOpen(false);
     if (item.kind === "ticket") {
       onGoToTickets?.();

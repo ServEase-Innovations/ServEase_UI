@@ -1,9 +1,14 @@
 import React, { useState } from "react";
 import utilsInstance from "src/services/utilsInstance";
-import { buildAdminLoginPayload } from "src/utils/adminAuthHashes";
-import { User, Lock, Loader2, QrCode, CheckCircle2 } from "lucide-react";
+import { buildAdminRegisterPayload } from "src/utils/adminAuthHashes";
+import { User, Loader2, QrCode, CheckCircle2 } from "lucide-react";
+import { AdminPasswordField } from "./AdminPasswordField";
 
-const RegisterWith2FA = () => {
+type RegisterWith2FAProps = {
+  onRegistrationComplete?: (details: { username: string }) => void;
+};
+
+const RegisterWith2FA = ({ onRegistrationComplete }: RegisterWith2FAProps) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [usernameHash, setUsernameHash] = useState("");
@@ -18,7 +23,7 @@ const RegisterWith2FA = () => {
     setLoading(true);
     setMessage("");
     try {
-      const payload = await buildAdminLoginPayload(username, password);
+      const payload = await buildAdminRegisterPayload(username, password);
       const res = await utilsInstance.post(`/api/register`, payload);
       setQrCode(res.data.qr);
       setUsernameHash(payload.usernameHash);
@@ -39,10 +44,7 @@ const RegisterWith2FA = () => {
     setMessage("");
     try {
       await utilsInstance.post(`/api/verify`, { usernameHash, token: otp });
-      setMessage("2FA setup complete. Open the Login tab to sign in.");
-      setStep("register");
-      setQrCode("");
-      setOtp("");
+      onRegistrationComplete?.({ username: username.trim() });
     } catch (err: unknown) {
       const ex = err as { response?: { data?: { message?: string } } };
       setMessage(ex?.response?.data?.message || "Verification failed");
@@ -105,27 +107,14 @@ const RegisterWith2FA = () => {
                     />
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="reg-pass" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock
-                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                      aria-hidden
-                    />
-                    <input
-                      id="reg-pass"
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder="Strong password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full rounded-xl border border-slate-600/60 bg-slate-900/60 py-3 pl-11 pr-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-sky-500/50 focus:ring-2 focus:ring-sky-500/20"
-                    />
-                  </div>
-                </div>
+                <AdminPasswordField
+                  id="reg-pass"
+                  label="Password"
+                  autoComplete="new-password"
+                  placeholder="Strong password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
                 <button
                   type="submit"
                   disabled={loading}

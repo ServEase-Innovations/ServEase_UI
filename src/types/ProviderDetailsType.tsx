@@ -25,12 +25,28 @@ export interface PreviousBookingDetails {
   serviceType: string;
   startDate: string;
   endDate: string;
+  vacationStartDate?: string | null;
+  vacationEndDate?: string | null;
+  leaveDays?: number;
   engagementStatus: string;
   assignmentStatus: string;
   taskStatus: string;
   active: boolean;
   baseAmount: number;
   createdAt: string;
+}
+
+/** Approved vacation on an active long-term engagement — provider may be assignable on-demand during these dates. */
+export interface VacationAvailabilityDTO {
+  status: "ACTIVE";
+  engagementId: string | null;
+  leaveDays: number;
+  vacationStartDate: string;
+  vacationEndDate: string;
+  engagementStartDate: string | null;
+  engagementEndDate: string | null;
+  /** True when vacation dates overlap the current provider search window. */
+  overlapsSearchWindow: boolean;
 }
 
 export interface ServiceProviderDTO {
@@ -65,6 +81,7 @@ export interface ServiceProviderDTO {
   monthlyAvailability: MonthlyAvailabilityDTO;
   previouslyBooked: boolean;
   previousBookingDetails: PreviousBookingDetails | null;
+  vacationAvailability?: VacationAvailabilityDTO | null;
 }
 
 export interface NearbyMonthlyResponseDTO {

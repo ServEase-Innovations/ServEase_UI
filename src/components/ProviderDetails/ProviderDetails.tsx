@@ -64,7 +64,13 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ProviderAvailabilityDrawer from "./ProviderAvailabilityDrawer";
 import { useLanguage } from "src/context/LanguageContext";
 import HistoryIcon from '@mui/icons-material/History';
+import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import { resolveEffectiveServiceRole, resolveProviderId } from "src/utils/providerId";
+import {
+  formatVacationSummary,
+  resolveProviderVacationAvailability,
+  vacationOverlapsSearch,
+} from "src/utils/providerVacationAvailability";
 import {
   formatProviderDisplayName,
   providerInitials,
@@ -97,6 +103,25 @@ const BestMatchBadge = styled(Box)(({ theme }) => ({
   },
 }));
 
+const VacationAvailabilityBadge = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+  background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, #f59e0b 100%)`,
+  color: '#78350f',
+  padding: `${theme.spacing(0.5)} ${theme.spacing(1.25)}`,
+  borderRadius: 999,
+  boxShadow: '0 4px 12px -2px rgba(245, 158, 11, 0.4)',
+  fontWeight: 700,
+  fontSize: '0.7rem',
+  letterSpacing: '0.02em',
+  border: '1px solid rgba(255,255,255,0.35)',
+  [theme.breakpoints.down('sm')]: {
+    padding: `${theme.spacing(0.35)} ${theme.spacing(1)}`,
+    fontSize: '0.65rem',
+  },
+}));
+
 const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -117,24 +142,36 @@ const PreviouslyBookedBadge = styled(Box)(({ theme }) => ({
 }));
 
 const ProviderCard = styled(Card, {
-  shouldForwardProp: (prop) => prop !== 'selected',
-})<{ selected?: boolean }>(({ theme, selected }) => ({
+  shouldForwardProp: (prop) => prop !== 'selected' && prop !== 'vacationHighlight',
+})<{ selected?: boolean; vacationHighlight?: boolean }>(({ theme, selected, vacationHighlight }) => ({
   borderRadius: 20,
   overflow: 'visible',
   transition: 'box-shadow 0.25s ease, transform 0.25s ease, border-color 0.2s ease',
   border: '1px solid',
-  borderColor: selected ? theme.palette.primary.main : 'rgba(15, 23, 42, 0.08)',
+  borderColor: selected
+    ? theme.palette.primary.main
+    : vacationHighlight
+      ? '#f59e0b'
+      : 'rgba(15, 23, 42, 0.08)',
   position: 'relative',
   background: selected
     ? `linear-gradient(145deg, ${theme.palette.primary.light}18 0%, ${theme.palette.background.paper} 42%)`
-    : theme.palette.background.paper,
+    : vacationHighlight
+      ? 'linear-gradient(145deg, rgba(254, 243, 199, 0.55) 0%, rgba(255, 251, 235, 0.9) 42%)'
+      : theme.palette.background.paper,
   boxShadow: selected
     ? `0 12px 32px -10px ${theme.palette.primary.main}55`
-    : '0 4px 20px -6px rgba(15, 23, 42, 0.1)',
+    : vacationHighlight
+      ? '0 8px 24px -8px rgba(245, 158, 11, 0.35)'
+      : '0 4px 20px -6px rgba(15, 23, 42, 0.1)',
   '&:hover': {
     transform: 'translateY(-3px)',
     boxShadow: '0 16px 36px -10px rgba(15, 23, 42, 0.14)',
-    borderColor: selected ? theme.palette.primary.main : theme.palette.primary.light,
+    borderColor: selected
+      ? theme.palette.primary.main
+      : vacationHighlight
+        ? '#d97706'
+        : theme.palette.primary.light,
   },
 }));
 
@@ -523,12 +560,21 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
 
   const allLanguages = getAllLanguages();
   const hasLanguages = allLanguages.length > 0;
-  const hasBadges = Boolean(props.bestMatch || props.previouslyBooked);
+  const vacationAvailability = resolveProviderVacationAvailability(props);
+  const vacationOverlapsWindow = vacationAvailability
+    ? vacationOverlapsSearch(
+        vacationAvailability,
+        bookingType?.startDate,
+        bookingType?.endDate || bookingType?.startDate
+      )
+    : false;
+  const hasBadges = Boolean(props.bestMatch || props.previouslyBooked || vacationAvailability);
 
   return (
     <>
       <ProviderCard 
         selected={selectedCardId === resolvedProviderIdStr}
+        vacationHighlight={Boolean(vacationAvailability && vacationOverlapsWindow)}
         sx={{
           '@media (max-width: 900px)': {
             borderRadius: 12,
@@ -561,7 +607,42 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
                     <span>{t('previouslyBooked')}</span>
                   </PreviouslyBookedBadge>
                 )}
+                {vacationAvailability && (
+                  <VacationAvailabilityBadge
+                    title={formatVacationSummary(vacationAvailability, { includeEngagement: true })}
+                  >
+                    <BeachAccessIcon sx={{ fontSize: 18 }} />
+                    <span>
+                      {vacationOverlapsWindow ? 'Vacation — available' : 'Active vacation'}
+                    </span>
+                  </VacationAvailabilityBadge>
+                )}
               </Stack>
+            )}
+
+            {vacationAvailability && (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1.25,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: vacationOverlapsWindow ? 'warning.main' : 'warning.light',
+                  bgcolor: vacationOverlapsWindow ? 'rgba(254, 243, 199, 0.65)' : 'rgba(255, 251, 235, 0.85)',
+                }}
+              >
+                <Typography variant="caption" color="warning.dark" fontWeight={800} sx={{ letterSpacing: '0.04em' }}>
+                  VACATION AVAILABILITY
+                </Typography>
+                <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mt: 0.35 }}>
+                  {formatVacationSummary(vacationAvailability, { includeEngagement: true })}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35 }}>
+                  {vacationOverlapsWindow
+                    ? 'Approved vacation on a long-term engagement — provider may be assignable for on-demand visits during this period.'
+                    : 'Has approved vacation days on an active engagement (outside your selected dates).'}
+                </Typography>
+              </Box>
             )}
 
             <Stack

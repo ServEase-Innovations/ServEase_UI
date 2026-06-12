@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, Send, RefreshCw, Search, Users } from "lucide-react";
+import { Bell, Send, RefreshCw, Users } from "lucide-react";
 import { Button } from "src/components/Common/button";
 import { Input } from "src/components/Common/input";
+import { SearchField } from "src/components/Common/SearchField";
 import { Card, CardContent, CardHeader, CardTitle } from "src/components/Common/Card";
 import utilsInstance from "src/services/utilsInstance";
 import { publicAsset } from "src/utils/publicAsset";
@@ -292,15 +293,12 @@ export default function PushNotifications() {
 
   const connectedList = (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input
-          className="pl-9"
-          placeholder="Search by email, role, device…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <SearchField
+        placeholder="Search by email, role, device…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search connected devices"
+      />
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" onClick={selectAllVisible}>

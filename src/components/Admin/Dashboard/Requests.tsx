@@ -13,6 +13,8 @@ import {
   type AdminEngagementRow,
   adminRowToFormInitial,
   deriveEngagementStage,
+  formatEngagementTimeHm,
+  formatServiceDateRange,
 } from "./engagementAdminUtils";
 import { EngagementEditDialog, type EngagementFormInitial } from "./EngagementEditDialog";
 
@@ -111,6 +113,10 @@ const Requests = () => {
         r.customer?.mobile,
         r.providerName,
         r.provider?.serviceproviderid,
+        r.start_date,
+        r.end_date,
+        r.start_time,
+        r.end_time,
       ]
         .map((v) => (v != null ? String(v).toLowerCase() : ""))
         .join(" ");
@@ -126,8 +132,49 @@ const Requests = () => {
   const columnDefs: ColDef<EngGridRow>[] = useMemo(
     () => [
       { field: "engagement_id", headerName: "ID", width: 90, valueFormatter: (p) => String(p.value ?? "") },
-      { field: "stage", headerName: "Stage", flex: 1, minWidth: 220, wrapText: true },
-      { field: "assignment_status", headerName: "Assignment", width: 120 },
+      {
+        colId: "service_dates",
+        headerName: "Service date(s)",
+        minWidth: 168,
+        valueGetter: (p) => (p.data ? formatServiceDateRange(p.data) : "—"),
+        comparator: (_a, _b, nodeA, nodeB) => {
+          const da = nodeA.data?.start_date || "";
+          const db = nodeB.data?.start_date || "";
+          return da.localeCompare(db);
+        },
+      },
+      {
+        field: "start_time",
+        headerName: "Start time",
+        width: 100,
+        valueGetter: (p) => formatEngagementTimeHm(p.data?.start_time),
+        valueFormatter: (p) => formatEngagementTimeHm(p.value),
+        cellClass: "font-medium tabular-nums",
+      },
+      {
+        field: "end_time",
+        headerName: "End time",
+        width: 100,
+        valueGetter: (p) => formatEngagementTimeHm(p.data?.end_time),
+        valueFormatter: (p) => formatEngagementTimeHm(p.value),
+        cellClass: "font-medium tabular-nums",
+      },
+      {
+        field: "assignment_status",
+        headerName: "Assignment",
+        width: 128,
+        valueFormatter: (p) => {
+          const v = String(p.value || "").toUpperCase();
+          if (v === "UNASSIGNED" || !v) return "Unassigned";
+          if (v === "ASSIGNED") return "Assigned";
+          return p.value ? String(p.value) : "—";
+        },
+        cellClassRules: {
+          "font-semibold text-amber-900": (p) =>
+            String(p.data?.assignment_status || "").toUpperCase() === "UNASSIGNED",
+        },
+      },
+      { field: "stage", headerName: "Stage", flex: 1, minWidth: 200, wrapText: true },
       { field: "task_status", headerName: "Task", width: 120 },
       { field: "booking_type", headerName: "Booking", width: 120, valueFormatter: (p) => p.value || "—" },
       { field: "service_type", headerName: "Service", width: 120, valueFormatter: (p) => p.value || "—" },
@@ -292,7 +339,7 @@ const Requests = () => {
               <CardTitle className="text-lg">All engagements</CardTitle>
               <CardDescription>
                 <Filter className="mr-1.5 -mt-0.5 inline h-4 w-4 text-slate-400" />
-                Amber / orange row background: still unassigned (no provider on record).
+                Amber rows are unassigned — service date(s), start time, and end time are shown for quick provider matching.
               </CardDescription>
             </div>
             <div className="relative w-full sm:max-w-sm">

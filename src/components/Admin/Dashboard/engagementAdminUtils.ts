@@ -28,6 +28,32 @@ export type AdminEngagementRow = {
   created_at: string | null;
 };
 
+export function formatEngagementTimeHm(value: unknown): string {
+  if (value == null || value === "") return "—";
+  const s = String(value).trim();
+  if (!s) return "—";
+  const match = s.match(/^(\d{1,2}:\d{2})/);
+  return match ? match[1] : s;
+}
+
+export function formatEngagementDate(value: unknown): string {
+  if (value == null || value === "") return "—";
+  const s = String(value).trim().slice(0, 10);
+  return s || "—";
+}
+
+export function formatServiceDateRange(row: {
+  start_date?: string | null;
+  end_date?: string | null;
+}): string {
+  const start = formatEngagementDate(row.start_date);
+  const end = formatEngagementDate(row.end_date);
+  if (start === "—" && end === "—") return "—";
+  if (start === end || end === "—") return start;
+  if (start === "—") return end;
+  return `${start} – ${end}`;
+}
+
 export function deriveEngagementStage(e: {
   assignment_status?: string | null;
   task_status?: string | null;
