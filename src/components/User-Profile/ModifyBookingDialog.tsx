@@ -228,7 +228,9 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const getLastModificationDetails = (value: Booking | null): string => {
     const modifications = value?.modifications ?? [];
     if (modifications.length === 0) return "";
-    const lastMod = modifications[modifications.length - 1];
+    const lastMod = [...modifications].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )[0];
     if (lastMod.changes?.start_date) {
       return `Last rescheduled from ${lastMod.changes.start_date.from} to ${lastMod.changes.start_date.to}`;
     }

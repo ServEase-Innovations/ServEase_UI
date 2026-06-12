@@ -10,7 +10,6 @@ import { Badge } from '../../components/Common/Badge/Badge';
 import { Separator } from '../../components/Common/Separator/Separator';
 import axiosInstance from '../../services/axiosInstance';
 import { useAuth0 } from '@auth0/auth0-react';
-import UserHoliday from './UserHoliday';
 import { Alert, Snackbar } from '@mui/material';
 import ModifyBookingDialog from './ModifyBookingDialog';
 import dayjs from 'dayjs';
@@ -409,10 +408,24 @@ const getModificationTooltip = (booking: Booking | null): string => {
   return "Modify this booking";
 };
 
+const getLatestModification = (
+  modifications: Booking["modifications"] | undefined
+) => {
+  if (!modifications?.length) return null;
+  return [...modifications].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )[0];
+};
+
+const hasScheduleModification = (booking: Booking): boolean =>
+  booking.modifications?.some((mod) => isCompletedScheduleModification(mod.action)) ??
+  false;
+
 const getModificationDetails = (booking: Booking): string => {
   if (!booking.modifications || booking.modifications.length === 0) return "";
-  
-  const lastMod = booking.modifications[booking.modifications.length - 1];
+
+  const lastMod = getLatestModification(booking.modifications);
+  if (!lastMod) return "";
   
   if (lastMod.action === "Date Rescheduled" && lastMod.changes) {
     if (lastMod.changes.new_start_date && lastMod.changes.new_end_date) {
@@ -496,16 +509,13 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);
   const [cancelledBookings, setCancelledBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [selectedBookingForLeave, setSelectedBookingForLeave] = useState<Booking | null>(null);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [modifiedBookings, setModifiedBookings] = useState<number[]>([]);
-  const [bookingsWithVacation, setBookingsWithVacation] = useState<number[]>([]);
   const [generatedOTPs, setGeneratedOTPs] = useState<Record<number, string>>({});
   
   const [openDialog, setOpenDialog] = useState(false);
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
-  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
@@ -1407,7 +1417,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       };
     }
 
-    const latestVacation = item.vacations?.[0];
+    const latestVacation = item.vacations?.[item.vacations.length - 1];
     const startFromHistory = toVacationYmd(latestVacation?.start_date);
     const endFromHistory = toVacationYmd(latestVacation?.end_date);
     if (startFromHistory && endFromHistory) {
@@ -1426,9 +1436,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       ? data.map((item) => {
           const vacation = resolveVacationFromEngagement(item);
           const hasVacation =
-            Boolean(vacation) ||
-            Number(item.leave_days ?? 0) > 0 ||
-            (item?.vacations?.length ?? 0) > 0;
+            Boolean(vacation) || Number(item.leave_days ?? 0) > 0;
           const modifications = item.modifications || [];
           const hasModifications = modifications.length > 0;
 
@@ -1492,9 +1500,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
             experience: item.experience || '',
             noOfPersons: item.noOfPersons || '',
             mealType: item.mealType || '',
-            modifiedDate: (hasModifications
-              ? modifications[modifications.length - 1]?.date || item.created_at
-              : item.created_at) || '',
+            modifiedDate:
+              (getLatestModification(modifications)?.date || item.created_at) ?? "",
             responsibilities: item.responsibilities || { tasks: [] },
             customerHolidays: item.customerHolidays || [],
             hasVacation: hasVacation,
@@ -1553,8 +1560,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           setSelectedBooking(booking);
           break;
         case 'vacation':
-          setSelectedBookingForLeave(booking);
-          setHolidayDialogOpen(true);
+          setSelectedBookingForVacationManagement(booking);
+          setVacationManagementDialogOpen(true);
           break;
         case 'payment':
           await handleCompletePayment(booking);
@@ -1654,14 +1661,17 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setModifyDialogOpen(true);
   };
 
+  const openVacationDialog = (booking: Booking) => {
+    setSelectedBookingForVacationManagement(booking);
+    setVacationManagementDialogOpen(true);
+  };
+
   const handleVacationClick = (booking: Booking) => {
-    setSelectedBookingForLeave(booking);
-    setHolidayDialogOpen(true);
+    openVacationDialog(booking);
   };
 
   const handleModifyVacationClick = (booking: Booking) => {
-    setSelectedBookingForVacationManagement(booking);
-    setVacationManagementDialogOpen(true);
+    openVacationDialog(booking);
   };
 
   const handleVacationSuccess = async (message = 'Vacation updated successfully!') => {
@@ -1669,11 +1679,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setSnackbarSeverity('success');
     setOpenSnackbar(true);
     await refreshBookings();
-  };
-
-  const handleApplyLeaveClick = (booking: Booking) => {
-    setSelectedBookingForLeave(booking);
-    setHolidayDialogOpen(true);
   };
 
   const handleCancelBooking = async (booking: Booking) => {
@@ -1696,44 +1701,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     setModifyDialogOpen(false);
     setSelectedBooking(null);
   };
-
-const handleLeaveSubmit = async (startDate: string, endDate: string, service_type: string): Promise<void> => {
-  if (!selectedBookingForLeave || !customerId) {
-    throw new Error("Missing required information for leave application");
-  }
-
-  try {
-    setIsRefreshing(true);
-
-    await PaymentInstance.post(
-      `api/v2/createEngagements/${selectedBookingForLeave.id}/vacation`,   
-      {
-       customerid: customerId,                                           
-        vacation_start_date: startDate,
-        vacation_end_date: endDate,
-        leave_type: "VACATION",
-        modified_by_id: customerId,                                        
-        modified_by_role: "CUSTOMER"
-      }
-    );
-
-    setBookingsWithVacation(prev => [...prev, selectedBookingForLeave.id]);
-    await refreshBookings();
-    setSnackbarMessage('Leave applied successfully!');
-    setSnackbarSeverity('success');
-    setOpenSnackbar(true);
-    setHolidayDialogOpen(false);
-  } catch (error: any) {
-    console.error("Error applying leave:", error);
-    const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Failed to apply leave. Please try again.';
-    setSnackbarMessage(errorMsg);
-    setSnackbarSeverity('error');
-    setOpenSnackbar(true);
-    throw error;
-  } finally {
-    setIsRefreshing(false);
-  }
-};
 
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking);
@@ -2436,8 +2403,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                             </>
                           ) : null}
                           {booking.taskStatus !== "CANCELLED" &&
-                            booking.modifications &&
-                            booking.modifications.length > 0 && (
+                            hasScheduleModification(booking) && (
                               <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
                             )}
                         </span>
@@ -2663,8 +2629,7 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
                             </>
                           ) : null}
                           {booking.taskStatus !== "CANCELLED" &&
-                            booking.modifications &&
-                            booking.modifications.length > 0 && (
+                            hasScheduleModification(booking) && (
                               <span className="ml-1 text-xs font-medium text-emerald-600">(Rescheduled)</span>
                             )}
                         </span>
@@ -2753,12 +2718,6 @@ const handleLeaveSubmit = async (startDate: string, endDate: string, service_typ
       />
 
       {/* Dialogs */}
-      <UserHoliday 
-        open={holidayDialogOpen}
-        onClose={() => setHolidayDialogOpen(false)}
-        booking={selectedBookingForLeave}
-        onLeaveSubmit={handleLeaveSubmit}
-      />
       <VacationManagementDialog
         open={vacationManagementDialogOpen}
         onClose={() => {
