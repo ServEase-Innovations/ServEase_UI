@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet, ArrowUpDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -495,6 +495,27 @@ const formatBookedAtLabel = (booking: Booking): string => {
 };
 
 type BookingsViewTab = "today" | "upcoming" | "past" | "pending";
+type UpcomingSortOrder = "newest" | "oldest";
+
+const getBookingCreatedEpoch = (booking: Booking): number => {
+  const raw = booking.created_at || booking.bookingDate;
+  if (!raw) return 0;
+  const epoch = new Date(raw).getTime();
+  return Number.isFinite(epoch) ? epoch : 0;
+};
+
+const sortUpcomingByCreated = (
+  bookings: Booking[],
+  order: UpcomingSortOrder
+): Booking[] => {
+  const direction = order === "newest" ? -1 : 1;
+  return [...bookings].sort((a, b) => {
+    const createdDiff =
+      (getBookingCreatedEpoch(a) - getBookingCreatedEpoch(b)) * direction;
+    if (createdDiff !== 0) return createdDiff;
+    return (a.id - b.id) * direction;
+  });
+};
 
 const isPaymentPendingBooking = (booking: Booking) =>
   Boolean(
@@ -610,6 +631,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [upcomingSortOrder, setUpcomingSortOrder] =
+    useState<UpcomingSortOrder>("newest");
   useEffect(() => {
     if (statusFilter === "COMPLETED") {
       setStatusFilter("ALL");
@@ -1257,7 +1280,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     return bookings.filter((booking) => bookingMatchesSearch(booking, term));
   };
 
-  const sortUpcomingBookings = (bookings: Booking[]): Booking[] => {
+  const sortPendingPaymentBookings = (bookings: Booking[]): Booking[] => {
     const statusOrder: Record<string, number> = {
       'NOT_STARTED': 2,
       'IN_PROGRESS': 1,
@@ -1271,7 +1294,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     return [...bookings].sort((a, b) => {
       const statusComparison = statusOrder[a.taskStatus] - statusOrder[b.taskStatus];
       if (statusComparison !== 0) return statusComparison;
-      // Epoch-first ordering for upcoming/pending lists (earliest first).
       return toEpoch(a) - toEpoch(b);
     });
   };
@@ -2219,11 +2241,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     }
   };
 
-  const upcomingBookings = sortUpcomingBookings(
-    [...currentBookings, ...futureBookings].filter(isUpcomingTabBooking)
+  const upcomingBookings = sortUpcomingByCreated(
+    [...currentBookings, ...futureBookings].filter(isUpcomingTabBooking),
+    upcomingSortOrder
   );
 
-  const pendingPaymentBookings = sortUpcomingBookings(
+  const pendingPaymentBookings = sortPendingPaymentBookings(
     [...currentBookings, ...futureBookings, ...pastBookings].filter(
       isPaymentPendingBooking
     )
@@ -2528,7 +2551,26 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           {viewTab === "upcoming" && (isLoading ? (
             <StatusTabsSkeleton />
           ) : (
-            <div className="mb-4">
+            <div className="mb-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Sort by
+                </span>
+                <label className="inline-flex items-center gap-1.5">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                  <select
+                    value={upcomingSortOrder}
+                    onChange={(e) =>
+                      setUpcomingSortOrder(e.target.value as UpcomingSortOrder)
+                    }
+                    className="rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-8 text-xs font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:text-sm"
+                    aria-label="Sort upcoming bookings"
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                  </select>
+                </label>
+              </div>
               <div className="-mx-1 overflow-x-auto pb-0.5 scrollbar-thin">
                 <div className="flex min-w-max gap-1.5 px-1 md:flex-wrap md:min-w-0 md:gap-2">
                   {statusTabs.map((tab) => {
