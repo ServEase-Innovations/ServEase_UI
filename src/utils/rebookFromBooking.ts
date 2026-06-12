@@ -100,11 +100,16 @@ function buildTimeFields(
       endTime,
     };
   }
+  const resolvedEnd =
+    endTime ||
+    (startTime && dayjs(startTime, "HH:mm", true).isValid()
+      ? dayjs(startTime, "HH:mm").add(1, "hour").format("HH:mm")
+      : "");
   return {
     timeRange: startTime,
-    timeSlot: startTime,
+    timeSlot: startTime && resolvedEnd ? `${startTime}-${resolvedEnd}` : startTime,
     startTime,
-    endTime,
+    endTime: resolvedEnd,
   };
 }
 

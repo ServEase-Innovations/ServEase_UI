@@ -246,8 +246,12 @@ const ProviderAvailabilityDrawer: React.FC<ProviderAvailabilityDrawerProps> = ({
             )}
           </Stack>
         </Stack>
-        <IconButton onClick={onClose} size="large" sx={{ color: "#f8fafc", mt: -0.5 }}>
-          <CloseIcon />
+        <IconButton
+          onClick={onClose}
+          aria-label="Close"
+          className="-mt-0.5 shrink-0 text-slate-50 opacity-100 hover:bg-white/15 hover:text-white"
+        >
+          <CloseIcon sx={{ fontSize: 24, opacity: 1 }} />
         </IconButton>
       </DrawerHeader>
 

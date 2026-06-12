@@ -4,12 +4,12 @@ import dayjs, { Dayjs } from "dayjs";
 import { Snackbar, Alert, CircularProgress, Checkbox, FormControlLabel, Typography, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { CalendarClock } from "lucide-react";
-import { coalesceStartEpoch } from "src/services/bookingEpoch";
+import { coalesceEndEpoch, coalesceStartEpoch } from "src/services/bookingEpoch";
 import {
   BookingService,
   isPaymentCancelledError,
 } from "src/services/bookingService";
-import { formatInr } from "src/utils/maidPricingUtils";
+import { formatInr, parseCalendarDateYmd } from "src/utils/maidPricingUtils";
 import { computeCheckoutWithWallet } from "src/utils/paymentTotals";
 import { fetchCustomerWallet } from "src/services/walletService";
 import { useLanguage } from "src/context/LanguageContext";
@@ -144,7 +144,15 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
   const resolveBookingStart = (value: Booking | null): Dayjs | null => {
     if (!value) return null;
     const startEpoch = coalesceStartEpoch(value.start_epoch, value.startDate);
-    return startEpoch != null ? dayjs.unix(startEpoch) : dayjs(value.startDate);
+    if (startEpoch != null) return dayjs.unix(startEpoch);
+    return parseCalendarDateYmd(value.startDate) ?? dayjs();
+  };
+
+  const resolveBookingEnd = (value: Booking | null): Dayjs | null => {
+    if (!value) return null;
+    const endEpoch = coalesceEndEpoch(value.end_epoch, value.endDate);
+    if (endEpoch != null) return dayjs.unix(endEpoch);
+    return parseCalendarDateYmd(value.endDate);
   };
 
   const parseTimeSlot = (booking: Booking): { start?: string; end?: string } => {
@@ -459,9 +467,10 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
     booking.bookingType === "MONTHLY" || booking.bookingType === "SHORT_TERM";
 
   const bookingTypeLabel = booking.bookingType.replace(/_/g, " ");
+  const resolvedEnd = resolveBookingEnd(booking);
   const currentScheduleLabel = `${(resolveBookingStart(booking) || dayjs()).format("MMM D, YYYY")}${
-    booking.endDate && booking.bookingType === "SHORT_TERM"
-      ? ` – ${dayjs(booking.endDate).format("MMM D, YYYY")}`
+    resolvedEnd && booking.bookingType === "SHORT_TERM"
+      ? ` – ${resolvedEnd.format("MMM D, YYYY")}`
       : ""
   } · ${booking.timeSlot}`;
 
@@ -576,8 +585,14 @@ const ModifyBookingDialog: React.FC<ModifyBookingDialogProps> = ({
                     providerId={booking.serviceProviderId}
                     customerId={customerId}
                     bookingCoords={bookingCoords}
-                    initialStartDate={booking.startDate}
-                    initialEndDate={booking.endDate}
+                    initialStartDate={
+                      resolveBookingStart(booking)?.format("YYYY-MM-DD") ||
+                      booking.startDate
+                    }
+                    initialEndDate={
+                      resolveBookingEnd(booking)?.format("YYYY-MM-DD") ||
+                      booking.endDate
+                    }
                     initialStartTime={times.start}
                     initialEndTime={times.end}
                     onAvailabilityVerifiedChange={handleAvailabilityVerifiedChange}

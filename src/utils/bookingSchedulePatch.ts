@@ -54,12 +54,15 @@ export function buildReduxBookingPatch(
   endTime: Dayjs | null,
   existing: Record<string, unknown> | null
 ) {
-  const startIso = startDate?.toISOString() ?? startTime?.toISOString() ?? "";
-  const endIso =
-    endDate?.toISOString() ??
+  const startYmd =
+    (startDate && formatDateOnly(startDate.format("YYYY-MM-DD"))) ||
+    (startTime && formatDateOnly(startTime.format("YYYY-MM-DD"))) ||
+    "";
+  const endYmd =
+    (endDate && formatDateOnly(endDate.format("YYYY-MM-DD"))) ||
     (preference === "Monthly" && startDate
-      ? startDate.add(1, "month").toISOString()
-      : startIso);
+      ? formatDateOnly(startDate.add(1, "month").format("YYYY-MM-DD"))
+      : startYmd);
 
   let timeRange = "";
   let timeSlot = "";
@@ -71,13 +74,13 @@ export function buildReduxBookingPatch(
     timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
   } else {
     timeRange = startTime?.format("HH:mm") || "";
-    timeSlot = startTime?.format("HH:mm") || "";
+    timeSlot = `${startTime?.format("HH:mm") || ""}-${endTime?.format("HH:mm") || ""}`;
   }
 
   const patch = {
     ...(existing ?? {}),
-    startDate: startIso ? startIso.split("T")[0] : "",
-    endDate: endIso ? endIso.split("T")[0] : "",
+    startDate: startYmd,
+    endDate: endYmd,
     timeRange,
     bookingPreference: preference,
     startTime: startTime?.format("HH:mm") || "",

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import "./DribbbleDateTimePicker.css";
 
@@ -24,6 +24,28 @@ const generateTimeSlots = () => {
 const ALL_TIMES = generateTimeSlots();
 /** Default max span between range start and end (inclusive window = this + 1 days). */
 const DEFAULT_MAX_RANGE_DAYS = 21;
+
+/** Map a JS Date to a calendar day in local time (ignores UTC shift from date-only strings). */
+function calendarDayFromDate(d: Date): Dayjs {
+  return dayjs(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0));
+}
+
+/** Parse "6:00 AM" style labels without relying on dayjs format plugins. */
+function parseTimeLabel(time: string): { hour: number; minute: number } {
+  const match = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return { hour: 0, minute: 0 };
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hour !== 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  return { hour, minute };
+}
+
+function timeLabelToMinutes(time: string): number {
+  const { hour, minute } = parseTimeLabel(time);
+  return hour * 60 + minute;
+}
 
 /* -------------------- Types -------------------- */
 
@@ -84,26 +106,13 @@ const getAvailableTimes = (date: Dayjs | null): string[] => {
   }
 
   // Today: only future slots (with 30 min buffer)
-  return ALL_TIMES.filter((time) => {
-    const parsed = dayjs(time, "h:mm A");
-    const timeDateTime = now
-      .hour(parsed.hour())
-      .minute(parsed.minute())
-      .second(0)
-      .millisecond(0);
-    return timeDateTime.isAfter(now.add(30, "minute"));
-  });
+  const cutoffMinutes = now.hour() * 60 + now.minute() + 30;
+  return ALL_TIMES.filter((time) => timeLabelToMinutes(time) > cutoffMinutes);
 };
 
 /* -------------------- Helper: filter times before or equal to noon -------------------- */
-const getTimesUpToNoon = (times: string[]): string[] => {
-  return times.filter((time) => {
-    const parsed = dayjs(time, "h:mm A");
-    const totalMinutes = parsed.hour() * 60 + parsed.minute();
-    // 12:00 PM = 12*60 = 720 minutes
-    return totalMinutes <= 720;
-  });
-};
+const getTimesUpToNoon = (times: string[]): string[] =>
+  times.filter((time) => timeLabelToMinutes(time) <= 12 * 60);
 
 /* -------------------- Component -------------------- */
 
@@ -116,8 +125,16 @@ export default function DribbbleDateTimePicker(props: Props) {
   const singleProps = props.mode !== "range" ? (props as SingleProps) : null;
   const hideTimeSelection =
     rangeProps?.hideTimeSelection ?? singleProps?.hideTimeSelection ?? false;
-  const rangeMinDate = rangeProps?.minDate ? dayjs(rangeProps.minDate).startOf("day") : null;
-  const rangeMaxDate = rangeProps?.maxDate ? dayjs(rangeProps.maxDate).startOf("day") : null;
+  const today = useMemo(() => dayjs().startOf("day"), []);
+  const rangeMinDate = rangeProps?.minDate
+    ? calendarDayFromDate(rangeProps.minDate).startOf("day")
+    : null;
+  const rangeMaxDate = rangeProps?.maxDate
+    ? calendarDayFromDate(rangeProps.maxDate).startOf("day")
+    : null;
+  /** Date-only range pickers default to today when minDate is omitted. */
+  const effectiveRangeMin =
+    rangeMinDate ?? (mode === "range" && hideTimeSelection ? today : null);
   const minRangeDays = Math.max(1, rangeProps?.minRangeDays ?? 1);
   const minRangeDaysInclusive = minRangeDays;
   const maxRangeDays =
@@ -135,7 +152,7 @@ export default function DribbbleDateTimePicker(props: Props) {
 
   /* ---------- Single Date ---------- */
   const [selectedDate, setSelectedDate] = useState<Dayjs>(
-    mode === "single" && value instanceof Date ? dayjs(value) : dayjs()
+    mode === "single" && value instanceof Date ? calendarDayFromDate(value) : dayjs()
   );
 
   /* ---------- Range ---------- */
@@ -145,20 +162,23 @@ export default function DribbbleDateTimePicker(props: Props) {
       : undefined;
 
   const [rangeStart, setRangeStart] = useState<Dayjs | null>(
-    rangeValue?.startDate ? dayjs(rangeValue.startDate) : null
+    rangeValue?.startDate ? calendarDayFromDate(rangeValue.startDate) : null
   );
 
   const [rangeEnd, setRangeEnd] = useState<Dayjs | null>(
-    rangeValue?.endDate ? dayjs(rangeValue.endDate) : null
+    rangeValue?.endDate ? calendarDayFromDate(rangeValue.endDate) : null
   );
 
-  const formatTimeSlot = (d: Dayjs): string | null => {
-    const match = ALL_TIMES.find((slot) => {
-      const parsed = dayjs(slot, "h:mm A");
-      return parsed.hour() === d.hour() && parsed.minute() === d.minute();
-    });
-    return match ?? null;
-  };
+  const formatTimeSlot = useCallback((d: Dayjs): string | null => {
+    const hour = d.hour();
+    const minute = d.minute();
+    return (
+      ALL_TIMES.find((slot) => {
+        const parsed = parseTimeLabel(slot);
+        return parsed.hour === hour && parsed.minute === minute;
+      }) ?? null
+    );
+  }, []);
 
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -202,10 +222,13 @@ export default function DribbbleDateTimePicker(props: Props) {
     const currentValue = valueRef.current;
 
     if (mode === "single" && currentValue instanceof Date) {
-      const d = dayjs(currentValue);
-      setSelectedDate((prev) => (prev.isSame(d) ? prev : d));
-      const nextTime = formatTimeSlot(d);
-      setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
+      const full = dayjs(currentValue);
+      const dayAnchor = calendarDayFromDate(currentValue);
+      setSelectedDate((prev) => (prev.isSame(dayAnchor, "day") ? prev : dayAnchor));
+      const nextTime = formatTimeSlot(full);
+      if (nextTime) {
+        setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
+      }
       return;
     }
 
@@ -217,13 +240,13 @@ export default function DribbbleDateTimePicker(props: Props) {
     ) {
       const rv = currentValue as RangeValue;
       if (rv.startDate) {
-        const nextStart = dayjs(rv.startDate).startOf("day");
+        const nextStart = calendarDayFromDate(rv.startDate).startOf("day");
         setRangeStart((prev) => (prev?.isSame(nextStart, "day") ? prev : nextStart));
       } else {
         setRangeStart((prev) => (prev === null ? prev : null));
       }
       if (rv.endDate) {
-        const nextEnd = dayjs(rv.endDate).startOf("day");
+        const nextEnd = calendarDayFromDate(rv.endDate).startOf("day");
         setRangeEnd((prev) => (prev?.isSame(nextEnd, "day") ? prev : nextEnd));
       } else {
         setRangeEnd((prev) => (prev === null ? prev : null));
@@ -237,12 +260,9 @@ export default function DribbbleDateTimePicker(props: Props) {
         setSelectedTime((prev) => (prev === nextTime ? prev : nextTime));
       }
     }
-  }, [mode, externalValueKey]);
+  }, [mode, externalValueKey, formatTimeSlot]);
 
   /* -------------------- Calendar Setup -------------------- */
-
-  const today = dayjs().startOf("day");
-  const now = dayjs();
 
   const startOfMonth = currentMonth.startOf("month");
   const daysInMonth = currentMonth.daysInMonth();
@@ -260,36 +280,32 @@ export default function DribbbleDateTimePicker(props: Props) {
     return null;
   }, [mode, selectedDate, rangeStart]);
 
+  const isActiveDateToday = activeDate ? activeDate.isSame(dayjs(), "day") : false;
+  const todayMinuteKey = isActiveDateToday ? dayjs().format("HH:mm") : "static";
+
   /* -------------------- Get available times -------------------- */
   const availableTimes = useMemo(() => {
     return getAvailableTimes(activeDate);
-  }, [activeDate]);
+    // Refresh slot list each minute when the selected day is today
+  }, [activeDate, todayMinuteKey]);
 
   const hasAvailableTimes = availableTimes.length > 0;
 
   /** When every slot for today is in the past, block selecting today on the calendar. */
   const todayHasNoSlots = useMemo(
     () => getAvailableTimes(today).length === 0,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-check when active month/day context changes
-    [today.format("YYYY-MM-DD"), now.hour(), now.minute()]
+    [today, dayjs().format("YYYY-MM-DD HH:mm")]
   );
 
-  // For the "More time" toggle: 
-  // - For today: show first 6 slots initially (same as before)
-  // - For future dates: show only slots up to 12 PM initially, then all slots after expanding
   const sortTimeLabels = (times: string[]) =>
-    [...times].sort((a, b) => {
-      const aMin = dayjs(a, "h:mm A").hour() * 60 + dayjs(a, "h:mm A").minute();
-      const bMin = dayjs(b, "h:mm A").hour() * 60 + dayjs(b, "h:mm A").minute();
-      return aMin - bMin;
-    });
+    [...times].sort((a, b) => timeLabelToMinutes(a) - timeLabelToMinutes(b));
 
   const displayedTimes = useMemo(() => {
     if (!hasAvailableTimes) return [];
     let times: string[];
     if (showAllTimes) {
       times = availableTimes;
-    } else if (activeDate && activeDate.isSame(now, "day")) {
+    } else if (isActiveDateToday) {
       times = availableTimes.slice(0, 6);
     } else {
       times = getTimesUpToNoon(availableTimes);
@@ -304,25 +320,20 @@ export default function DribbbleDateTimePicker(props: Props) {
     }
 
     return times;
-  }, [availableTimes, showAllTimes, hasAvailableTimes, activeDate, now, selectedTime]);
+  }, [availableTimes, showAllTimes, hasAvailableTimes, isActiveDateToday, selectedTime]);
 
-  // Determine if "More time" button should be shown
   const canExpand = useMemo(() => {
     if (!hasAvailableTimes) return false;
-    
-    // For today: show expand if more than 6 slots
-    if (activeDate && activeDate.isSame(now, "day")) {
+    if (isActiveDateToday) {
       return availableTimes.length > 6;
     }
-    
-    // For future dates: show expand if there are any times after 12 PM
     const timesUpToNoon = getTimesUpToNoon(availableTimes);
     return availableTimes.length > timesUpToNoon.length;
-  }, [availableTimes, hasAvailableTimes, activeDate, now]);
+  }, [availableTimes, hasAvailableTimes, isActiveDateToday]);
 
   /* -------------------- Helper Functions -------------------- */
   const isTodayDate = (date: Dayjs | null): boolean => {
-    return date ? date.isSame(now, "day") : false;
+    return date ? date.isSame(dayjs(), "day") : false;
   };
 
   const isPastDate = (date: Dayjs): boolean => date.isBefore(today, "day");
@@ -355,16 +366,15 @@ export default function DribbbleDateTimePicker(props: Props) {
       return true;
     }
 
-    if (hideTimeSelection && rangeMinDate && date.isBefore(rangeMinDate, "day")) return true;
+    if (effectiveRangeMin && date.isBefore(effectiveRangeMin, "day")) return true;
     if (hideTimeSelection && rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
 
     // For single mode (on-demand), disable dates beyond maxDate
     if (mode === "single" && singleMaxDate) {
-      if (date.isAfter(dayjs(singleMaxDate), "day")) return true;
+      if (date.isAfter(calendarDayFromDate(singleMaxDate), "day")) return true;
     }
 
     if (mode === "range" && !rangeStart) {
-      if (rangeMinDate && date.isBefore(rangeMinDate, "day")) return true;
       if (rangeMaxDate && date.isAfter(rangeMaxDate, "day")) return true;
     }
 
@@ -480,16 +490,10 @@ export default function DribbbleDateTimePicker(props: Props) {
 
     setSelectedTime(time);
 
-    const parsedTime = dayjs(time, "h:mm A");
-    if (!parsedTime.isValid()) return;
+    const { hour, minute } = parseTimeLabel(time);
 
     if (mode === "single") {
-      const finalDate = selectedDate
-        .hour(parsedTime.hour())
-        .minute(parsedTime.minute())
-        .second(0)
-        .toDate();
-
+      const finalDate = selectedDate.hour(hour).minute(minute).second(0).millisecond(0).toDate();
       (props as SingleProps).onChange(finalDate);
       return;
     }
@@ -498,14 +502,8 @@ export default function DribbbleDateTimePicker(props: Props) {
     if (!rangeStart || !rangeEnd) return;
     const rangeProps = props as RangeProps;
     rangeProps.onChange({
-      startDate: rangeStart
-        .hour(parsedTime.hour())
-        .minute(parsedTime.minute())
-        .toDate(),
-      endDate: rangeEnd
-        .hour(parsedTime.hour())
-        .minute(parsedTime.minute())
-        .toDate(),
+      startDate: rangeStart.hour(hour).minute(minute).second(0).millisecond(0).toDate(),
+      endDate: rangeEnd.hour(hour).minute(minute).second(0).millisecond(0).toDate(),
       time,
     });
   };

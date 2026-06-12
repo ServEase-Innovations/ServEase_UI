@@ -180,8 +180,12 @@ const ProviderFilter: React.FC<FilterProps> = ({
             {t("filterProviders")}
           </Typography>
         </Box>
-        <IconButton onClick={onClose} sx={{ color: "inherit", mt: -0.5 }}>
-          <CloseIcon />
+        <IconButton
+          onClick={onClose}
+          aria-label={t("close")}
+          className="-mt-0.5 shrink-0 text-slate-50 opacity-100 hover:bg-white/15 hover:text-white"
+        >
+          <CloseIcon sx={{ fontSize: 22, opacity: 1 }} />
         </IconButton>
       </DrawerHeader>
 

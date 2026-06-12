@@ -27,7 +27,7 @@ import { isBookingScheduleComplete } from "src/components/ProviderDetails/servic
 import { buildReduxBookingPatch } from "src/utils/bookingSchedulePatch";
 import { checkSelectedProviderAvailability } from "src/services/providerScheduleAvailability";
 import { computeDurationHours } from "src/components/ProviderDetails/serviceBookingConfig";
-import { formatDateOnly } from "src/utils/maidPricingUtils";
+import { formatDateOnly, parseCalendarDateYmd } from "src/utils/maidPricingUtils";
 import { cn } from "../utils";
 import {
   MaidDurationChip,
@@ -104,7 +104,8 @@ function durationHoursFromTimes(start: Dayjs | null, end: Dayjs | null): number 
 
 function parseTimeOnDate(dateStr: string | undefined, timeStr: string | undefined): Dayjs | null {
   if (!dateStr || !timeStr) return null;
-  const base = dayjs(dateStr.split("T")[0]);
+  const base = parseCalendarDateYmd(dateStr);
+  if (!base) return null;
   const normalized = String(timeStr).trim();
   const parsed = dayjs(normalized, ["HH:mm:ss", "HH:mm", "h:mm A", "hh:mm A"], true);
   if (parsed.isValid()) {
@@ -290,10 +291,10 @@ const ModifyBookingScheduleSection = forwardRef<
   );
 
   useEffect(() => {
-    const dateStr = initialStartDate?.split("T")[0] || dayjs().format("YYYY-MM-DD");
-    const endStr = initialEndDate?.split("T")[0] || dateStr;
-    const sd = dayjs(dateStr);
-    let ed = dayjs(endStr);
+    const dateStr = formatDateOnly(initialStartDate) || dayjs().format("YYYY-MM-DD");
+    const endStr = formatDateOnly(initialEndDate) || dateStr;
+    const sd = parseCalendarDateYmd(dateStr) ?? dayjs().startOf("day");
+    let ed = parseCalendarDateYmd(endStr) ?? sd;
     const st =
       parseTimeOnDate(dateStr, initialStartTime) ??
       parseTimeOnDate(dateStr, initialStartTime?.replace(/\s*(AM|PM)/i, "")) ??
@@ -386,6 +387,10 @@ const ModifyBookingScheduleSection = forwardRef<
   const handleDateOnlyChange = (date: Date) => {
     markScheduleTouched();
     const day = dayjs(date).startOf("day");
+    if (day.isBefore(today, "day")) {
+      setValidationMsg(t("pastDateRestriction"));
+      return;
+    }
     const monthlyEnd = day.add(1, "month");
     setStartDate(day);
     setStartTime(null);
@@ -397,6 +402,10 @@ const ModifyBookingScheduleSection = forwardRef<
   const handleRangeDateOnlyChange = (payload: { startDate: Date; endDate?: Date }) => {
     markScheduleTouched();
     const start = dayjs(payload.startDate).startOf("day");
+    if (start.isBefore(today, "day")) {
+      setValidationMsg(t("pastDateRestriction"));
+      return;
+    }
     const end = payload.endDate ? dayjs(payload.endDate).startOf("day") : null;
     setStartDate(start);
     setEndDate(end);
@@ -682,6 +691,7 @@ const ModifyBookingScheduleSection = forwardRef<
                   compact
                   mode="range"
                   hideTimeSelection
+                  minDate={today.startOf("day").toDate()}
                   value={{
                     startDate: startDate?.toDate(),
                     endDate: endDate?.toDate(),

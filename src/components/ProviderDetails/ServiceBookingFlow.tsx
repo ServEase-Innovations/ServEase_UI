@@ -392,6 +392,20 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     setSnackbarOpen(true);
   }, []);
 
+  const handleAvailabilityCheckBlockedChange = useCallback(
+    (blocked: boolean, message?: string) => {
+      setAvailabilityCheckBlocked(blocked);
+      setAvailabilityCheckBlockedMessage(message);
+      if (blocked) {
+        showAvailabilityErrorSnackbar(message);
+      }
+    },
+    [showAvailabilityErrorSnackbar]
+  );
+
+  const needsScheduleAvailabilityCheck =
+    schedulePendingCommit || scheduleIncomplete;
+
   useEffect(() => {
     if (
       !active ||
@@ -399,7 +413,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
       !providerId ||
       bookingTypeCode === "ON_DEMAND" ||
       !scheduleReady ||
-      !bookingCoords
+      !bookingCoords ||
+      needsScheduleAvailabilityCheck
     ) {
       providerAvailabilityLoadingRef.current = selectedProviderAvailability.loading;
       return;
@@ -421,6 +436,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
     active,
     bookingCoords,
     bookingTypeCode,
+    needsScheduleAvailabilityCheck,
     providerId,
     providerRequired,
     scheduleReady,
@@ -782,8 +798,8 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   const handleNavigateToBookings = () => {
     setSuccessDialogOpen(false);
-    onClose();
     sendDataToParent?.(BOOKINGS);
+    onClose();
   };
 
   const applyCouponCode = (code: string) => {
@@ -1048,13 +1064,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
               onScheduleActionsReady={(actions) => {
                 scheduleActionsRef.current = actions;
               }}
-              onAvailabilityCheckBlockedChange={(blocked, message) => {
-                setAvailabilityCheckBlocked(blocked);
-                setAvailabilityCheckBlockedMessage(message);
-                if (blocked) {
-                  showAvailabilityErrorSnackbar(message);
-                }
-              }}
+              onAvailabilityCheckBlockedChange={handleAvailabilityCheckBlockedChange}
             />
           </MaidCard>
 
@@ -1063,6 +1073,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
           bookingTypeCode !== "ON_DEMAND" &&
           scheduleReady &&
           bookingCoords &&
+          !needsScheduleAvailabilityCheck &&
           !selectedProviderAvailability.loading &&
           !selectedProviderAvailability.available ? (
             <Box
@@ -1292,29 +1303,24 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                   {t("loginToContinue")}
                 </MaidBtnPrimary>
               </>
-            ) : scheduleIncomplete ? (
-              <MaidBtnPrimary
-                type="button"
-                disabled
-                title={
-                  bookingTypeCode === "SHORT_TERM"
-                    ? "Select your date range and daily start time"
-                    : "Select a time for your chosen date"
-                }
-              >
-                {t("checkout") || "Pay now"}
-              </MaidBtnPrimary>
-            ) : schedulePendingCommit ? (
+            ) : needsScheduleAvailabilityCheck ? (
               <MaidBtnPrimary
                 type="button"
                 disabled={
-                  isCheckingAvailability || loading || availabilityCheckBlocked
+                  scheduleIncomplete ||
+                  isCheckingAvailability ||
+                  loading ||
+                  availabilityCheckBlocked
                 }
                 title={
-                  availabilityCheckBlocked
-                    ? availabilityCheckBlockedMessage ||
-                      "Adjust your schedule, then check availability again"
-                    : "Confirm your schedule changes before checkout"
+                  scheduleIncomplete
+                    ? bookingTypeCode === "SHORT_TERM"
+                      ? "Select your date range and daily start time"
+                      : "Select a time for your chosen date"
+                    : availabilityCheckBlocked
+                      ? availabilityCheckBlockedMessage ||
+                        "Adjust your schedule, then check availability again"
+                      : "Confirm your schedule changes before checkout"
                 }
                 onClick={() => void scheduleActionsRef.current?.checkAvailability()}
               >

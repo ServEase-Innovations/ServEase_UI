@@ -214,10 +214,20 @@ export function formatDateOnly(value?: string | null): string {
   if (!value) return "";
   const s = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const datePart = s.split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
   const parsed = dayjs(s);
   if (!parsed.isValid()) return "";
   // Keep local calendar day selected by user (avoid UTC date-shift from toISOString()).
   return parsed.format("YYYY-MM-DD");
+}
+
+/** Parse API calendar dates (YYYY-MM-DD) in local time — avoids UTC midnight shifting the day. */
+export function parseCalendarDateYmd(value?: string | null): dayjs.Dayjs | null {
+  const ymd = formatDateOnly(value);
+  if (!ymd) return null;
+  const parsed = dayjs(new Date(`${ymd}T12:00:00`)).startOf("day");
+  return parsed.isValid() ? parsed : null;
 }
 
 export function computeDurationDays(startDate?: string, endDate?: string): number {

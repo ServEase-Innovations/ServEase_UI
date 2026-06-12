@@ -218,11 +218,13 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
   /** User's duration choice — kept when date/time is cleared so chips stay highlighted. */
   const [selectedDurationHours, setSelectedDurationHours] = useState(1);
   const scheduleBaselineRef = useRef("");
+  const onAvailabilityBlockedRef = useRef(onAvailabilityCheckBlockedChange);
+  onAvailabilityBlockedRef.current = onAvailabilityCheckBlockedChange;
 
   const markScheduleTouched = useCallback(() => {
     setUserTouchedSchedule(true);
-    onAvailabilityCheckBlockedChange?.(false);
-  }, [onAvailabilityCheckBlockedChange]);
+    onAvailabilityBlockedRef.current?.(false);
+  }, []);
 
   const hydrateFromRedux = useCallback(() => {
     const pref = String(bookingType?.bookingPreference ?? "Date");
@@ -276,7 +278,14 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
 
   const committedScheduleKey = useMemo(
     () => schedulePatchKey((bookingType ?? {}) as Record<string, unknown>),
-    [bookingType]
+    [
+      bookingType?.startDate,
+      bookingType?.endDate,
+      bookingType?.startTime,
+      bookingType?.endTime,
+      bookingType?.timeRange,
+      bookingType?.timeSlot,
+    ]
   );
 
   useEffect(() => {
@@ -291,8 +300,10 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     dispatch(setScheduleDirty(false));
     dispatch(setScheduleDraft(null));
     dispatch(setScheduleIncomplete(false));
-    onAvailabilityCheckBlockedChange?.(false);
-  }, [active, committedScheduleKey, dispatch, hydrateFromRedux, onAvailabilityCheckBlockedChange]);
+    onAvailabilityBlockedRef.current?.(false);
+    // Only re-hydrate when the committed schedule changes — not on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, committedScheduleKey, dispatch]);
 
   const planLabel = useMemo(() => {
     const pref = preference.toLowerCase();
@@ -639,7 +650,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
         </MaidSummaryTile>
       </MaidSummaryGrid>
 
-      {(preference === "Date" || preference === "Short term") && (
+      {(preference === "Date" || preference === "Short term" || preference === "Monthly") && (
         <>
           <MaidSectionHead>
             <MaidSectionTitle>{t("serviceDuration")}</MaidSectionTitle>
@@ -648,7 +659,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
             <MaidDurationHint>
               {preference === "Short term"
                 ? "Hours per visit — price updates for each day in your range."
-                : t("durationMessage")}
+                : preference === "Monthly"
+                  ? "Hours per visit — price updates for your monthly service."
+                  : t("durationMessage")}
             </MaidDurationHint>
             <MaidDurationChips>
               {DURATION_OPTIONS.map((h) => {

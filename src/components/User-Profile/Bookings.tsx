@@ -65,7 +65,7 @@ import {
   openBookingDialog,
 } from '../../features/bookingType/bookingTypeSlice';
 import { add as setGeoLocation } from '../../features/geoLocation/geoLocationSlice';
-import { DETAILS } from 'src/Constants/pagesConstants';
+import { BOOKINGS, DETAILS } from 'src/Constants/pagesConstants';
 import {
   buildRebookGeoLocation,
   buildRebookPayload,
@@ -596,6 +596,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [rebookCheckoutKind, setRebookCheckoutKind] = useState<
     "maid" | "cook" | "nanny" | null
   >(null);
+  const rebookNavigateToDetailsRef = useRef(false);
+  const rebookCheckoutSucceededRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1723,9 +1725,13 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     return payload;
   };
 
-  const openOnDemandRebookCheckout = (
+  const openRebookCheckout = (
     booking: Booking,
-    options?: { providerDetails?: EnhancedProviderDetails | null; providerId?: number }
+    options?: {
+      providerDetails?: EnhancedProviderDetails | null;
+      providerId?: number;
+      navigateToDetailsOnClose?: boolean;
+    }
   ) => {
     const serviceKind = rebookServiceKind(booking.service_type);
     if (!serviceKind) return false;
@@ -1750,6 +1756,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       dispatch(closeBookingDialog());
     }
 
+    rebookNavigateToDetailsRef.current = options?.navigateToDetailsOnClose === true;
+    rebookCheckoutSucceededRef.current = false;
     setRebookCheckoutKind(serviceKind);
     setRebookCheckoutProvider(options?.providerDetails ?? null);
     setRebookCheckoutOpen(true);
@@ -1759,6 +1767,15 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const navigateToProviderSearch = () => {
     if (typeof handleDataFromChild === "function") {
       handleDataFromChild(DETAILS);
+    }
+  };
+
+  const handleRebookDialogSendDataToParent = (data: string) => {
+    if (data === BOOKINGS) {
+      rebookCheckoutSucceededRef.current = true;
+    }
+    if (typeof handleDataFromChild === "function") {
+      handleDataFromChild(data);
     }
   };
 
@@ -1780,14 +1797,28 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       return;
     }
 
-    commitRebookToStore(booking);
-    navigateToProviderSearch();
+    const providerId = Number(booking.serviceProviderId);
+    const hasProvider = Number.isFinite(providerId) && providerId > 0;
+
+    if (
+      !openRebookCheckout(booking, {
+        providerId: hasProvider ? providerId : undefined,
+        providerDetails: hasProvider ? buildRebookProviderDetails(booking) : null,
+        navigateToDetailsOnClose: true,
+      })
+    ) {
+      setSnackbarMessage(
+        "This service type cannot be rebooked automatically. Please book from the home page."
+      );
+      setSnackbarSeverity("info");
+      setOpenSnackbar(true);
+    }
   };
 
   const handleOnDemandRebookDifferentProvider = () => {
     if (!rebookCandidate) return;
 
-    if (!openOnDemandRebookCheckout(rebookCandidate)) {
+    if (!openRebookCheckout(rebookCandidate)) {
       setSameProviderRebookError(
         "This service type cannot be rebooked automatically. Please book from the home page."
       );
@@ -1858,7 +1889,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       }
 
       if (
-        !openOnDemandRebookCheckout(rebookCandidate, {
+        !openRebookCheckout(rebookCandidate, {
           providerId,
           providerDetails: buildRebookProviderDetails(rebookCandidate),
         })
@@ -1882,9 +1913,16 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
   const handleCloseRebookCheckout = () => {
     dispatch(closeBookingDialog());
+    const shouldNavigateToDetails =
+      rebookNavigateToDetailsRef.current && !rebookCheckoutSucceededRef.current;
+    rebookNavigateToDetailsRef.current = false;
+    rebookCheckoutSucceededRef.current = false;
     setRebookCheckoutOpen(false);
     setRebookCheckoutProvider(null);
     setRebookCheckoutKind(null);
+    if (shouldNavigateToDetails) {
+      navigateToProviderSearch();
+    }
   };
 
   const handleModifyClick = (booking: Booking) => {
@@ -3072,9 +3110,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           open={rebookCheckoutOpen}
           handleClose={handleCloseRebookCheckout}
           providerDetails={rebookCheckoutProvider ?? undefined}
-          sendDataToParent={
-            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
-          }
+          sendDataToParent={handleRebookDialogSendDataToParent}
         />
       ) : null}
       {rebookCheckoutKind === "cook" ? (
@@ -3082,9 +3118,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           open={rebookCheckoutOpen}
           handleClose={handleCloseRebookCheckout}
           providerDetails={rebookCheckoutProvider ?? undefined}
-          sendDataToParent={
-            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
-          }
+          sendDataToParent={handleRebookDialogSendDataToParent}
         />
       ) : null}
       {rebookCheckoutKind === "nanny" ? (
@@ -3092,9 +3126,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           open={rebookCheckoutOpen}
           handleClose={handleCloseRebookCheckout}
           providerDetails={rebookCheckoutProvider ?? undefined}
-          sendDataToParent={
-            typeof handleDataFromChild === "function" ? handleDataFromChild : undefined
-          }
+          sendDataToParent={handleRebookDialogSendDataToParent}
         />
       ) : null}
 

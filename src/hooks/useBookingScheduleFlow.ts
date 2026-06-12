@@ -54,6 +54,10 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
     (state: { bookingType?: { scheduleRevision?: number } }) =>
       state.bookingType?.scheduleRevision ?? 0
   );
+  const scheduleDirty = useSelector(
+    (state: { bookingType?: { scheduleDirty?: boolean } }) =>
+      Boolean(state.bookingType?.scheduleDirty)
+  );
 
   const bookingTypeCode = getBookingTypeFromPreference(
     String(committedSchedule?.bookingPreference ?? "Date")
@@ -91,7 +95,8 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
       !resolvedProviderId ||
       bookingTypeCode === "ON_DEMAND" ||
       !scheduleReady ||
-      !coordsReady
+      !coordsReady ||
+      scheduleDirty
     ) {
       setSelectedProviderAvailability({ loading: false, available: true });
       return;
@@ -162,6 +167,7 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
     customerId,
     role,
     scheduleRevision,
+    scheduleDirty,
     committedSchedule?.startDate,
     committedSchedule?.endDate,
     committedSchedule?.startTime,
