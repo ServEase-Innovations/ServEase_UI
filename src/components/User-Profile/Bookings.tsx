@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet, ArrowUpDown } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet, ArrowUpDown, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -53,7 +53,9 @@ import {
   type CancellationPolicy,
 } from 'src/utils/cancellationPolicy';
 import {
+  getNoProviderAutoCancelMessage,
   getPaymentTimeoutCancellationMessage,
+  isNoProviderAutoCancelCancellation,
   isPaymentTimeoutCancellation,
   type BookingCancellationInfo,
 } from 'src/utils/bookingCancellation';
@@ -1080,6 +1082,38 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       </div>
     );
   };
+
+  const renderNoProviderAutoCancelNotice = (booking: Booking) => {
+    if (!isNoProviderAutoCancelCancellation(booking)) return null;
+
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-sky-300/90 bg-gradient-to-r from-sky-50 via-slate-50/80 to-sky-50 p-3.5 sm:p-4"
+      >
+        <div className="flex gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-800 ring-1 ring-sky-200/80">
+            <Info className="h-5 w-5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-sky-950">
+              No provider was available
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-sky-900/90 sm:text-sm">
+              {getNoProviderAutoCancelMessage(booking)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAutoCancellationNotices = (booking: Booking) => (
+    <>
+      {renderPaymentTimeoutCancellationNotice(booking)}
+      {renderNoProviderAutoCancelNotice(booking)}
+    </>
+  );
 
   const renderScheduledMessage = (booking: Booking) => {
     if (booking.today_service && booking.today_service.status === "SCHEDULED") {
@@ -2699,7 +2733,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
-                    {renderPaymentTimeoutCancellationNotice(booking)}
+                    {renderAutoCancellationNotices(booking)}
 
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
                       <div className="flex items-start gap-2.5 text-sm">
@@ -2925,7 +2959,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                   </CardHeader>
 
                   <CardContent className="space-y-3 p-4 sm:p-4 sm:pt-3">
-                    {renderPaymentTimeoutCancellationNotice(booking)}
+                    {renderAutoCancellationNotices(booking)}
 
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 p-2.5 sm:p-3">
                       <div className="flex items-start gap-2.5 text-sm">
