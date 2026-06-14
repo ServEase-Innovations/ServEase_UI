@@ -71,6 +71,8 @@ export interface ServiceProviderDTO {
   diet: "VEG" | "NONVEG" | "BOTH";
   cookingspeciality: "VEG" | "NONVEG" | "BOTH";
   languageknown: string | string[] | null;
+  /** Nearby / search APIs (preferred) */
+  languageKnown?: string | string[] | null;
   locality: string;
   location: string;
   pincode: number;

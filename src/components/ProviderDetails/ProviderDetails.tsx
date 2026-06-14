@@ -76,6 +76,7 @@ import {
   providerInitials,
   trimNamePart,
 } from "src/utils/providerDisplayName";
+import { readProviderLanguages } from "src/utils/providerLanguages";
 
 interface ProviderDetailsProps extends ServiceProviderDTO  {
   selectedProvider: (provider: ServiceProviderDTO) => void;
@@ -526,23 +527,9 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
       ? props.profilePic.trim()
       : null;
 
-  // Helper function to get all languages as array
-  const getAllLanguages = (): string[] => {
-    const languages = props.languageknown;
-    if (!languages) return [];
-    
-    if (Array.isArray(languages)) {
-      return languages;
-    }
-    
-    if (typeof languages === 'string') {
-      return languages.split(',').map(lang => lang.trim());
-    }
-    
-    return [];
-  };
+  const allLanguages = readProviderLanguages(props);
+  const hasLanguages = allLanguages.length > 0;
 
-  // Helper function to format rating display
   const formatRating = () => {
     if (!props.rating || props.rating === 0) {
       return "0.0";
@@ -550,16 +537,12 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return props.rating.toFixed(1);
   };
 
-  // Helper function to get rating value
   const getRatingValue = () => {
     if (!props.rating || props.rating === 0) {
       return 0;
     }
     return props.rating;
   };
-
-  const allLanguages = getAllLanguages();
-  const hasLanguages = allLanguages.length > 0;
   const vacationAvailability = resolveProviderVacationAvailability(props);
   const vacationOverlapsWindow = vacationAvailability
     ? vacationOverlapsSearch(
