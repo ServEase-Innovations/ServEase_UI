@@ -17,6 +17,7 @@ import {
   Server,
   Shield,
   Timer,
+  Share2,
 } from "lucide-react";
 import { cn } from "../../utils";
 import utilsInstance from "src/services/utilsInstance";
@@ -51,6 +52,20 @@ type PlatformProviderReminders = {
   overdueStartIntervalMinutes: number;
 };
 
+type PlatformFooterSocial = {
+  x: string;
+  instagram: string;
+  youtube: string;
+  linkedin: string;
+  facebook: string;
+};
+
+type PlatformFooter = {
+  helplinePhone: string;
+  joinUsPhone: string;
+  social: PlatformFooterSocial;
+};
+
 export type PlatformSettings = {
   platformName: string;
   supportEmail: string;
@@ -60,6 +75,7 @@ export type PlatformSettings = {
   security: PlatformSecurity;
   cancellation: PlatformCancellation;
   providerReminders: PlatformProviderReminders;
+  footer: PlatformFooter;
   updatedAt?: string | null;
   source?: string;
 };
@@ -92,6 +108,17 @@ const EMPTY_FORM: PlatformSettings = {
   },
   providerReminders: {
     overdueStartIntervalMinutes: 15,
+  },
+  footer: {
+    helplinePhone: "+918792827744",
+    joinUsPhone: "+918792827754",
+    social: {
+      x: "https://x.com/ServEaso",
+      instagram: "https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn",
+      youtube: "https://www.youtube.com/@ServEaso",
+      linkedin: "https://www.linkedin.com/in/serveaso-media-7b7719381/",
+      facebook: "https://www.facebook.com/profile.php?id=61572701168852",
+    },
   },
 };
 
@@ -158,6 +185,7 @@ function comparableSettings(f: PlatformSettings) {
     security: f.security,
     cancellation: f.cancellation,
     providerReminders: f.providerReminders,
+    footer: f.footer,
   });
 }
 
@@ -188,6 +216,7 @@ const Settings = () => {
         security: { ...p.security },
         cancellation: { ...p.cancellation },
         providerReminders: { ...p.providerReminders },
+        footer: { ...p.footer, social: { ...p.footer.social } },
       });
     };
     const emptyBaseline = {
@@ -197,6 +226,7 @@ const Settings = () => {
       security: { ...EMPTY_FORM.security },
       cancellation: { ...EMPTY_FORM.cancellation },
       providerReminders: { ...EMPTY_FORM.providerReminders },
+      footer: { ...EMPTY_FORM.footer, social: { ...EMPTY_FORM.footer.social } },
     };
     try {
       const res = await utilsInstance.get<{ success?: boolean; settings?: PlatformSettings; error?: string }>(
@@ -212,6 +242,11 @@ const Settings = () => {
           security: { ...EMPTY_FORM.security, ...s.security },
           cancellation: { ...EMPTY_FORM.cancellation, ...s.cancellation },
           providerReminders: { ...EMPTY_FORM.providerReminders, ...s.providerReminders },
+          footer: {
+            ...EMPTY_FORM.footer,
+            ...s.footer,
+            social: { ...EMPTY_FORM.footer.social, ...s.footer?.social },
+          },
         };
         applyBaseline(merged);
         return;
@@ -280,6 +315,7 @@ const Settings = () => {
         security: form.security,
         cancellation: form.cancellation,
         providerReminders: form.providerReminders,
+        footer: form.footer,
       };
       const res = await utilsInstance.put<{ success?: boolean; settings?: PlatformSettings; error?: string }>(
         "/api/platform-settings",
@@ -295,6 +331,11 @@ const Settings = () => {
           security: { ...EMPTY_FORM.security, ...s.security },
           cancellation: { ...EMPTY_FORM.cancellation, ...s.cancellation },
           providerReminders: { ...EMPTY_FORM.providerReminders, ...s.providerReminders },
+          footer: {
+            ...EMPTY_FORM.footer,
+            ...s.footer,
+            social: { ...EMPTY_FORM.footer.social, ...s.footer?.social },
+          },
         };
         setForm(merged);
         setLastSaved({
@@ -304,6 +345,7 @@ const Settings = () => {
           security: { ...merged.security },
           cancellation: { ...merged.cancellation },
           providerReminders: { ...merged.providerReminders },
+          footer: { ...merged.footer, social: { ...merged.footer.social } },
         });
         setSaveOk(true);
         window.setTimeout(() => setSaveOk(false), 4000);
@@ -326,6 +368,9 @@ const Settings = () => {
         features: { ...lastSaved.features },
         notifications: { ...lastSaved.notifications },
         security: { ...lastSaved.security },
+        cancellation: { ...lastSaved.cancellation },
+        providerReminders: { ...lastSaved.providerReminders },
+        footer: { ...lastSaved.footer, social: { ...lastSaved.footer.social } },
       }));
     }
   }, [lastSaved]);
@@ -649,6 +694,101 @@ const Settings = () => {
                   How often to remind providers when a visit&apos;s scheduled start time has passed and the task is still not started.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200/90 shadow-sm">
+            <CardHeader>
+              <CardTitle className="!text-lg flex items-center gap-2 text-slate-900">
+                <Share2 className="h-5 w-5 text-slate-500" />
+                Footer contact &amp; social links
+              </CardTitle>
+              <CardDescription>
+                Phone numbers and social profile URLs shown in the app and web footer. Leave a social URL blank to hide
+                that icon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="footer-helpline">Helpline phone</Label>
+                  <Input
+                    id="footer-helpline"
+                    type="tel"
+                    value={form.footer.helplinePhone}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        footer: { ...f.footer, helplinePhone: e.target.value },
+                      }))
+                    }
+                    placeholder="+918792827744"
+                    className="w-full border-slate-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="footer-join-us">Join us phone</Label>
+                  <Input
+                    id="footer-join-us"
+                    type="tel"
+                    value={form.footer.joinUsPhone}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        footer: { ...f.footer, joinUsPhone: e.target.value },
+                      }))
+                    }
+                    placeholder="+918792827754"
+                    className="w-full border-slate-200"
+                  />
+                </div>
+              </div>
+              <Separator className="bg-slate-200" />
+              {(
+                [
+                  { k: "x" as const, label: "X (Twitter)", placeholder: "https://x.com/ServEaso" },
+                  {
+                    k: "instagram" as const,
+                    label: "Instagram",
+                    placeholder: "https://www.instagram.com/serveaso",
+                  },
+                  {
+                    k: "youtube" as const,
+                    label: "YouTube",
+                    placeholder: "https://www.youtube.com/@ServEaso",
+                  },
+                  {
+                    k: "linkedin" as const,
+                    label: "LinkedIn",
+                    placeholder: "https://www.linkedin.com/company/serveaso",
+                  },
+                  {
+                    k: "facebook" as const,
+                    label: "Facebook",
+                    placeholder: "https://www.facebook.com/profile.php?id=...",
+                  },
+                ] as const
+              ).map((row) => (
+                <div key={row.k} className="space-y-2">
+                  <Label htmlFor={`footer-social-${row.k}`}>{row.label}</Label>
+                  <Input
+                    id={`footer-social-${row.k}`}
+                    type="url"
+                    value={form.footer.social[row.k]}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        footer: {
+                          ...f.footer,
+                          social: { ...f.footer.social, [row.k]: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder={row.placeholder}
+                    className="w-full border-slate-200"
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
 

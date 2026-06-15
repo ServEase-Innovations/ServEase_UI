@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaInstagram,
   FaLinkedin,
@@ -10,6 +10,13 @@ import {
 import { useLanguage } from "src/context/LanguageContext";
 import { publicAsset } from "src/utils/publicAsset";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
+import {
+  DEFAULT_FOOTER_SETTINGS,
+  FOOTER_SOCIAL_ORDER,
+  FooterSettings,
+  FooterSocialKey,
+  fetchPublicFooterSettings,
+} from "src/services/footerSettingsApi";
 
 interface FooterProps {
   onAboutClick: () => void;
@@ -18,38 +25,21 @@ interface FooterProps {
   onTermsClick: () => void;
 }
 
-const socialLinks = [
-  {
-    href: "https://x.com/ServEaso",
-    label: "X (Twitter)",
-    icon: FaXTwitter,
-    hoverClass: "hover:bg-white/18 hover:text-white",
-  },
-  {
-    href: "https://www.instagram.com/serveaso?igsh=cHQxdmdubnZocjRn",
-    label: "Instagram",
-    icon: FaInstagram,
-    hoverClass: "hover:bg-white/18 hover:text-pink-200",
-  },
-  {
-    href: "https://www.linkedin.com/in/serveaso-media-7b7719381/",
-    label: "LinkedIn",
-    icon: FaLinkedin,
-    hoverClass: "hover:bg-white/18 hover:text-sky-200",
-  },
-  {
-    href: "https://www.youtube.com/@ServEaso",
-    label: "YouTube",
-    icon: FaYoutube,
-    hoverClass: "hover:bg-white/18 hover:text-red-200",
-  },
-  {
-    href: "https://www.facebook.com/profile.php?id=61572701168852",
-    label: "Facebook",
-    icon: FaFacebook,
-    hoverClass: "hover:bg-white/18 hover:text-sky-100",
-  },
-] as const;
+const SOCIAL_ICONS: Record<FooterSocialKey, typeof FaXTwitter> = {
+  x: FaXTwitter,
+  instagram: FaInstagram,
+  linkedin: FaLinkedin,
+  youtube: FaYoutube,
+  facebook: FaFacebook,
+};
+
+const SOCIAL_LABELS: Record<FooterSocialKey, string> = {
+  x: "X (Twitter)",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  youtube: "YouTube",
+  facebook: "Facebook",
+};
 
 const Footer: React.FC<FooterProps> = ({
   onAboutClick,
@@ -58,6 +48,38 @@ const Footer: React.FC<FooterProps> = ({
   onTermsClick,
 }) => {
   const { t } = useLanguage();
+  const [footerSettings, setFooterSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicFooterSettings().then((settings) => {
+      if (active) setFooterSettings(settings);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const socialLinks = useMemo(
+    () =>
+      FOOTER_SOCIAL_ORDER.map((key) => ({
+        key,
+        href: footerSettings.social[key],
+        label: SOCIAL_LABELS[key],
+        icon: SOCIAL_ICONS[key],
+        hoverClass:
+          key === "instagram"
+            ? "hover:bg-white/18 hover:text-pink-200"
+            : key === "youtube"
+              ? "hover:bg-white/18 hover:text-red-200"
+              : key === "facebook"
+                ? "hover:bg-white/18 hover:text-sky-100"
+                : key === "linkedin"
+                  ? "hover:bg-white/18 hover:text-sky-200"
+                  : "hover:bg-white/18 hover:text-white",
+      })).filter((row) => Boolean(row.href)),
+    [footerSettings.social]
+  );
 
   const linkBase =
     "flex w-full items-center justify-start rounded-md px-0 py-1.5 text-left text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70";
@@ -90,9 +112,9 @@ const Footer: React.FC<FooterProps> = ({
               {t("footerFollowUs")}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {socialLinks.map(({ href, label, icon: Icon, hoverClass }) => (
+              {socialLinks.map(({ key, href, label, icon: Icon, hoverClass }) => (
                 <a
-                  key={href}
+                  key={key}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
