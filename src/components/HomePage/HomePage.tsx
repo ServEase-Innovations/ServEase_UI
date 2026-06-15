@@ -229,8 +229,8 @@ useEffect(() => {
   }
 
     return (
-        <main className="min-h-screen bg-slate-50 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] md:pt-[calc(5.75rem+env(safe-area-inset-top,0px))] lg:pt-[calc(6.25rem+env(safe-area-inset-top,0px))] xl:pt-[calc(6.75rem+env(safe-area-inset-top,0px))]">
-            <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-sky-50/90 via-white to-slate-50">
+        <main className="min-h-screen bg-slate-50">
+            <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-sky-50/90 via-white to-slate-50 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] md:pt-[calc(5.75rem+env(safe-area-inset-top,0px))] lg:pt-[calc(6.25rem+env(safe-area-inset-top,0px))] xl:pt-[calc(6.75rem+env(safe-area-inset-top,0px))]">
                 <div
                     className="pointer-events-none absolute inset-x-0 -top-32 h-[28rem] bg-[radial-gradient(ellipse_75%_50%_at_50%_-5%,rgba(14,165,233,0.18),transparent)]"
                     aria-hidden

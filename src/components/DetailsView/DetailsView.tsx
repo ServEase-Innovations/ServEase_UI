@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import "./DetailsView.css";
 import ProviderDetails from "../ProviderDetails/ProviderDetails";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { usePricingFilterService } from "../../utils/PricingFilter";
 import providerInstance from "../../services/providerInstance";
 import { ServiceProviderDTO } from "src/types/ProviderDetailsType";
@@ -27,12 +27,17 @@ import {
   filterMaidRowsForBooking,
   type MaidPricingRow,
 } from "src/utils/maidPricingUtils";
-import { isBookingScheduleComplete } from "src/components/ProviderDetails/serviceBookingConfig";
+import { isBookingScheduleComplete, computeDurationHours } from "src/components/ProviderDetails/serviceBookingConfig";
 import { formatMonthlyHourlyRateBand } from "src/Constants/servicePricing";
 import {
   buildLocationSearchKey,
   resolveLocationCoords,
 } from "src/utils/bookingLocation";
+import { resolveScheduleTimeFields } from "src/utils/bookingSchedulePatch";
+import { checkSelectedProviderAvailability } from "src/services/providerScheduleAvailability";
+import {
+  confirmProviderScheduleVerified,
+} from "src/features/bookingType/bookingTypeSlice";
 
 interface DetailsViewProps {
   sendDataToParent: (data: string) => void;
@@ -47,6 +52,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   checkoutItem,
   selectedProvider,
 }) => {
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProviderType, setSelectedProviderType] = useState("");
@@ -77,6 +83,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       startTime: bookingType?.startTime,
       endTime: bookingType?.endTime,
       timeRange: bookingType?.timeRange,
+      timeSlot: bookingType?.timeSlot,
       housekeepingRole: bookingType?.housekeepingRole,
       bookingPreference: bookingType?.bookingPreference,
     }),
@@ -86,6 +93,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
       bookingType?.startTime,
       bookingType?.endTime,
       bookingType?.timeRange,
+      bookingType?.timeSlot,
       bookingType?.housekeepingRole,
       bookingType?.bookingPreference,
     ]
@@ -288,29 +296,42 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         longitude = location.lng;
       }
 
-      const serviceDurationMinutes = calculateDurationInMinutes(
-        providerSearchCriteria.startTime,
-        providerSearchCriteria.endTime
+      const bookingTypeCode = getBookingTypeFromPreference(
+        providerSearchCriteria.bookingPreference
       );
+      const startDateYmd =
+        formatDateOnly(providerSearchCriteria.startDate) || dayjs().format("YYYY-MM-DD");
+      const endDateYmd =
+        formatDateOnly(providerSearchCriteria.endDate) ||
+        formatDateOnly(providerSearchCriteria.startDate) ||
+        dayjs().format("YYYY-MM-DD");
+      const { startTime: resolvedStart, endTime: resolvedEnd } = resolveScheduleTimeFields(
+        providerSearchCriteria as Record<string, unknown>
+      );
+      const durationHours = computeDurationHours(
+        bookingTypeCode,
+        resolvedStart,
+        resolvedEnd,
+        startDateYmd,
+        endDateYmd,
+        String(providerSearchCriteria.timeRange ?? ""),
+        String(providerSearchCriteria.timeSlot ?? "")
+      );
+      const serviceDurationMinutes =
+        durationHours != null && durationHours > 0
+          ? Math.round(durationHours * 60)
+          : calculateDurationInMinutes(resolvedStart, resolvedEnd);
 
       // Base payload
       const payload: any = {
         lat: latitude.toString(),
         lng: longitude.toString(),
         radius: 10,
-        startDate: formatDateOnly(providerSearchCriteria.startDate) || dayjs().format("YYYY-MM-DD"),
-        endDate:
-          formatDateOnly(providerSearchCriteria.endDate) ||
-          formatDateOnly(providerSearchCriteria.startDate) ||
-          dayjs().format("YYYY-MM-DD"),
-        preferredStartTime:
-          String(providerSearchCriteria.startTime || "").trim() ||
-          (providerSearchCriteria.timeRange
-            ? providerSearchCriteria.timeRange.split("-")[0]?.trim()
-            : "") ||
-          "09:00",
+        startDate: startDateYmd,
+        endDate: endDateYmd,
+        preferredStartTime: resolvedStart || "09:00",
         role: providerSearchCriteria.housekeepingRole || "COOK",
-        serviceDurationMinutes: serviceDurationMinutes
+        serviceDurationMinutes,
       };
 
       // ✅ Transform filters to match required backend format
@@ -535,33 +556,110 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     bookingType?.serviceproviderId ?? bookingType?.serviceProviderId ?? 0
   );
 
-  const selectedProviderUnavailable = useMemo(() => {
-    if (!Number.isFinite(selectedProviderId) || selectedProviderId < 1) return false;
-    if (!hasFetchedOnce || loading) return false;
+  const [selectedProviderLiveCheck, setSelectedProviderLiveCheck] = useState<{
+    loading: boolean;
+    unavailable: boolean;
+  }>({ loading: false, unavailable: false });
 
+  useEffect(() => {
     const selectedIdStr = String(selectedProviderId);
-    if (
+    const verified =
       verifiedProviderSchedule &&
       verifiedProviderSchedule.providerId === selectedIdStr &&
-      verifiedProviderSchedule.scheduleRevision === scheduleRevision
-    ) {
-      return false;
+      verifiedProviderSchedule.scheduleRevision === scheduleRevision;
+
+    if (!Number.isFinite(selectedProviderId) || selectedProviderId < 1 || verified) {
+      setSelectedProviderLiveCheck({ loading: false, unavailable: false });
+      return;
     }
 
-    const match = allProviders.find((p) => {
-      const id = p.serviceproviderid ?? p.serviceProviderId ?? p.serviceproviderId;
-      return id != null && String(id) === selectedIdStr;
-    });
-    if (!match) return false;
-    return match.monthlyAvailability?.fullyAvailable === false;
+    if (!canSearchProviders || !hasFetchedOnce) {
+      return;
+    }
+
+    const bookingTypeCode = getBookingTypeFromPreference(
+      providerSearchCriteria.bookingPreference
+    );
+    if (bookingTypeCode === "ON_DEMAND") {
+      setSelectedProviderLiveCheck({ loading: false, unavailable: false });
+      return;
+    }
+
+    const coords = resolveLocationCoords(location);
+    if (!coords) {
+      return;
+    }
+
+    const startDateYmd =
+      formatDateOnly(String(providerSearchCriteria.startDate ?? "")) ||
+      dayjs().format("YYYY-MM-DD");
+    const endDateYmd =
+      formatDateOnly(String(providerSearchCriteria.endDate ?? "")) || startDateYmd;
+    const { startTime, endTime } = resolveScheduleTimeFields(
+      providerSearchCriteria as Record<string, unknown>
+    );
+    const durationHours = computeDurationHours(
+      bookingTypeCode,
+      startTime,
+      endTime,
+      startDateYmd,
+      endDateYmd,
+      String(providerSearchCriteria.timeRange ?? ""),
+      String(providerSearchCriteria.timeSlot ?? "")
+    );
+    const durationMinutes =
+      durationHours != null && durationHours > 0
+        ? Math.round(durationHours * 60)
+        : 60;
+
+    let cancelled = false;
+    setSelectedProviderLiveCheck({ loading: true, unavailable: false });
+
+    checkSelectedProviderAvailability({
+      providerId: selectedProviderId,
+      latitude: coords.lat,
+      longitude: coords.lng,
+      role: String(providerSearchCriteria.housekeepingRole || "COOK"),
+      startDate: startDateYmd,
+      endDate: endDateYmd,
+      preferredStartTime: startTime,
+      serviceDurationMinutes: durationMinutes,
+      customerId,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setSelectedProviderLiveCheck({
+          loading: false,
+          unavailable: !result.available,
+        });
+        if (result.available) {
+          dispatch(confirmProviderScheduleVerified(selectedIdStr));
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSelectedProviderLiveCheck({ loading: false, unavailable: false });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
-    allProviders,
+    canSearchProviders,
+    customerId,
+    dispatch,
     hasFetchedOnce,
-    loading,
+    location,
+    locationSearchKey,
+    providerSearchCriteria,
+    providerSearchTriggerKey,
     scheduleRevision,
     selectedProviderId,
     verifiedProviderSchedule,
   ]);
+
+  const selectedProviderUnavailable =
+    selectedProviderLiveCheck.unavailable && !selectedProviderLiveCheck.loading;
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100/80">

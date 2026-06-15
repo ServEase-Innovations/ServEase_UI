@@ -416,8 +416,8 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
             dayjs().format("YYYY-MM-DD");
           const endDateYmd =
             formatDateOnly(String(patch.endDate ?? "")) || startDateYmd;
-          const startTimeStr = String(patch.startTime ?? "").trim();
-          const endTimeStr = String(patch.endTime ?? "").trim();
+          const { startTime: startTimeStr, endTime: endTimeStr } =
+            resolveScheduleTimeFields(patch);
           const durationHours = computeDurationHours(
             bookingTypeCode,
             startTimeStr,

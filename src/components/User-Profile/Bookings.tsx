@@ -581,7 +581,7 @@ function durationMinutesFromHm(startTime?: string, endTime?: string): number {
 }
 
 const Booking: React.FC<any> = ({ handleDataFromChild }) => {
-  const [viewTab, setViewTab] = useState<BookingsViewTab>("upcoming");
+  const [viewTab, setViewTab] = useState<BookingsViewTab>("today");
   const [currentBookings, setCurrentBookings] = useState<Booking[]>([]);
   const [pastBookings, setPastBookings] = useState<Booking[]>([]);
   const [futureBookings, setFutureBookings] = useState<Booking[]>([]);

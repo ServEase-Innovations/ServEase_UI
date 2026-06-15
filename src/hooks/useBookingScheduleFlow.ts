@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   getBookingTypeFromPreference,
   formatDateOnly,
@@ -11,6 +11,7 @@ import {
 } from "src/services/providerScheduleAvailability";
 import { computeDurationHours } from "src/components/ProviderDetails/serviceBookingConfig";
 import { resolveScheduleTimeFields } from "src/utils/bookingSchedulePatch";
+import { confirmProviderScheduleVerified } from "src/features/bookingType/bookingTypeSlice";
 
 export type SelectedProviderAvailabilityState = {
   loading: boolean;
@@ -32,6 +33,7 @@ function todayYmd(): string {
 }
 
 export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = {}) {
+  const dispatch = useDispatch();
   const {
     active = true,
     providerId,
@@ -142,6 +144,9 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
           available: result.available,
           message: result.message,
         });
+        if (result.available) {
+          dispatch(confirmProviderScheduleVerified(String(resolvedProviderId)));
+        }
       })
       .catch(() => {
         if (cancelled) return;
