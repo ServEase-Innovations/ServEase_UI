@@ -91,23 +91,13 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
     Number.isFinite(latitude) &&
     Number.isFinite(longitude);
 
-  useEffect(() => {
-    if (
-      !active ||
-      !resolvedProviderId ||
-      bookingTypeCode === "ON_DEMAND" ||
-      !scheduleReady ||
-      !coordsReady ||
-      scheduleDirty
-    ) {
-      setSelectedProviderAvailability({ loading: false, available: true });
-      return;
-    }
+  const scheduleParams = useMemo(() => {
+    if (!committedSchedule) return null;
 
     const startDate =
-      formatDateOnly(String(committedSchedule?.startDate ?? "")) || todayYmd();
+      formatDateOnly(String(committedSchedule.startDate ?? "")) || todayYmd();
     const endDate =
-      formatDateOnly(String(committedSchedule?.endDate ?? "")) || startDate;
+      formatDateOnly(String(committedSchedule.endDate ?? "")) || startDate;
     const { startTime, endTime } = resolveScheduleTimeFields(committedSchedule);
     const durationHours = computeDurationHours(
       bookingTypeCode,
@@ -115,13 +105,36 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
       endTime,
       startDate,
       endDate,
-      String(committedSchedule?.timeRange ?? ""),
-      String(committedSchedule?.timeSlot ?? "")
+      String(committedSchedule.timeRange ?? ""),
+      String(committedSchedule.timeSlot ?? "")
     );
     const durationMinutes =
       durationHours != null && durationHours > 0
         ? Math.round(durationHours * 60)
         : 60;
+
+    return {
+      startDate,
+      endDate,
+      preferredStartTime: startTime,
+      durationMinutes,
+      role: String(committedSchedule.housekeepingRole || role),
+    };
+  }, [committedSchedule, bookingTypeCode, role]);
+
+  useEffect(() => {
+    if (
+      !active ||
+      !resolvedProviderId ||
+      bookingTypeCode === "ON_DEMAND" ||
+      !scheduleReady ||
+      !coordsReady ||
+      scheduleDirty ||
+      !scheduleParams
+    ) {
+      setSelectedProviderAvailability({ loading: false, available: true });
+      return;
+    }
 
     let cancelled = false;
     setSelectedProviderAvailability((prev) => ({ ...prev, loading: true }));
@@ -130,11 +143,11 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
       providerId: resolvedProviderId,
       latitude: latitude!,
       longitude: longitude!,
-      role: String(committedSchedule?.housekeepingRole || role),
-      startDate,
-      endDate,
-      preferredStartTime: startTime,
-      serviceDurationMinutes: durationMinutes,
+      role: scheduleParams.role,
+      startDate: scheduleParams.startDate,
+      endDate: scheduleParams.endDate,
+      preferredStartTime: scheduleParams.preferredStartTime,
+      serviceDurationMinutes: scheduleParams.durationMinutes,
       customerId,
     })
       .then((result: ProviderScheduleCheckResult) => {
@@ -167,18 +180,13 @@ export function useBookingScheduleFlow(options: UseBookingScheduleFlowOptions = 
     bookingTypeCode,
     scheduleReady,
     coordsReady,
+    scheduleDirty,
     latitude,
     longitude,
     customerId,
-    role,
+    scheduleParams,
     scheduleRevision,
-    scheduleDirty,
-    committedSchedule?.startDate,
-    committedSchedule?.endDate,
-    committedSchedule?.startTime,
-    committedSchedule?.endTime,
-    committedSchedule?.timeRange,
-    committedSchedule?.housekeepingRole,
+    dispatch,
   ]);
 
   const selectedProviderReady =

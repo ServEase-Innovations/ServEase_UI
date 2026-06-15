@@ -281,21 +281,23 @@ export default function DribbbleDateTimePicker(props: Props) {
   }, [mode, selectedDate, rangeStart]);
 
   const isActiveDateToday = activeDate ? activeDate.isSame(dayjs(), "day") : false;
-  const todayMinuteKey = isActiveDateToday ? dayjs().format("HH:mm") : "static";
+
+  const [, setSlotRefreshTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setSlotRefreshTick((tick) => tick + 1);
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   /* -------------------- Get available times -------------------- */
-  const availableTimes = useMemo(() => {
-    return getAvailableTimes(activeDate);
-    // Refresh slot list each minute when the selected day is today
-  }, [activeDate, todayMinuteKey]);
+  // Re-render each minute (slotRefreshTick) so today's past slots drop off.
+  const availableTimes = getAvailableTimes(activeDate);
 
   const hasAvailableTimes = availableTimes.length > 0;
 
   /** When every slot for today is in the past, block selecting today on the calendar. */
-  const todayHasNoSlots = useMemo(
-    () => getAvailableTimes(today).length === 0,
-    [today, dayjs().format("YYYY-MM-DD HH:mm")]
-  );
+  const todayHasNoSlots = getAvailableTimes(today).length === 0;
 
   const sortTimeLabels = (times: string[]) =>
     [...times].sort((a, b) => timeLabelToMinutes(a) - timeLabelToMinutes(b));
