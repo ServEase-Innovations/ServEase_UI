@@ -332,6 +332,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
         preferredStartTime: resolvedStart || "09:00",
         role: providerSearchCriteria.housekeepingRole || "COOK",
         serviceDurationMinutes,
+        bookingType: bookingTypeCode,
       };
 
       // ✅ Transform filters to match required backend format

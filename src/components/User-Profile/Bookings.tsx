@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet, ArrowUpDown, Info } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, MessageCircle, Star, CheckCircle, XCircle, History, Edit, XCircle as XCircleIcon, Menu, Search, CreditCard, FileText, ArrowLeft, Wallet, ArrowUpDown, Info, ChefHat, Home, HeartHandshake, LayoutGrid, Zap, CalendarClock, FilterX } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/Common/Card';
 import _ from 'lodash';
 import { Button } from '../../components/Button/button';
@@ -538,6 +538,69 @@ const isUpcomingTabBooking = (booking: Booking): boolean => {
   return status !== "CANCELLED" && status !== "COMPLETED";
 };
 
+type UpcomingServiceFilter = "ALL" | "cook" | "maid" | "nanny";
+type UpcomingDurationFilter = "ALL" | "MONTHLY" | "SHORT_TERM" | "ON_DEMAND";
+
+const UPCOMING_SERVICE_FILTERS: {
+  value: UpcomingServiceFilter;
+  label: string;
+  shortLabel: string;
+  icon: React.ReactNode;
+}[] = [
+  { value: "ALL", label: "All services", shortLabel: "All", icon: <LayoutGrid className="h-3.5 w-3.5" /> },
+  { value: "cook", label: "Cook", shortLabel: "Cook", icon: <ChefHat className="h-3.5 w-3.5" /> },
+  { value: "maid", label: "Maid", shortLabel: "Maid", icon: <Home className="h-3.5 w-3.5" /> },
+  { value: "nanny", label: "Caregiver", shortLabel: "Caregiver", icon: <HeartHandshake className="h-3.5 w-3.5" /> },
+];
+
+const UPCOMING_DURATION_FILTERS: {
+  value: UpcomingDurationFilter;
+  label: string;
+  shortLabel: string;
+  icon: React.ReactNode;
+}[] = [
+  { value: "ALL", label: "All types", shortLabel: "All", icon: <Calendar className="h-3.5 w-3.5" /> },
+  { value: "MONTHLY", label: "Monthly", shortLabel: "Monthly", icon: <Calendar className="h-3.5 w-3.5" /> },
+  { value: "SHORT_TERM", label: "Short term", shortLabel: "Short", icon: <CalendarClock className="h-3.5 w-3.5" /> },
+  { value: "ON_DEMAND", label: "On demand", shortLabel: "On demand", icon: <Zap className="h-3.5 w-3.5" /> },
+];
+
+const normalizeBookingServiceType = (booking: Booking): string =>
+  String(booking.service_type || "").toLowerCase().trim();
+
+const matchesUpcomingServiceFilter = (
+  booking: Booking,
+  filter: UpcomingServiceFilter
+): boolean => {
+  if (filter === "ALL") return true;
+  const serviceType = normalizeBookingServiceType(booking);
+  if (filter === "nanny") return serviceType === "nanny" || serviceType === "caregiver";
+  if (filter === "maid") return serviceType === "maid" || serviceType === "cleaning";
+  return serviceType === filter;
+};
+
+const matchesUpcomingDurationFilter = (
+  booking: Booking,
+  filter: UpcomingDurationFilter
+): boolean => {
+  if (filter === "ALL") return true;
+  return String(booking.bookingType || "").toUpperCase() === filter;
+};
+
+const applyUpcomingTabFilters = (
+  bookings: Booking[],
+  serviceFilter: UpcomingServiceFilter,
+  durationFilter: UpcomingDurationFilter,
+  statusFilter: string
+): Booking[] =>
+  bookings
+    .filter((booking) => matchesUpcomingServiceFilter(booking, serviceFilter))
+    .filter((booking) => matchesUpcomingDurationFilter(booking, durationFilter))
+    .filter((booking) => {
+      if (statusFilter === "ALL" || statusFilter === "CANCELLED") return true;
+      return effectiveTaskStatus(booking) === statusFilter;
+    });
+
 function toRebookSource(booking: Booking): RebookSourceBooking {
   return {
     service_type: booking.service_type,
@@ -633,6 +696,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [upcomingServiceFilter, setUpcomingServiceFilter] =
+    useState<UpcomingServiceFilter>("ALL");
+  const [upcomingDurationFilter, setUpcomingDurationFilter] =
+    useState<UpcomingDurationFilter>("ALL");
   const [upcomingSortOrder, setUpcomingSortOrder] =
     useState<UpcomingSortOrder>("newest");
   useEffect(() => {
@@ -2280,6 +2347,42 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     upcomingSortOrder
   );
 
+  const countUpcomingWithFilters = (
+    source: Booking[],
+    overrides: Partial<{
+      serviceFilter: UpcomingServiceFilter;
+      durationFilter: UpcomingDurationFilter;
+      statusFilter: string;
+    }> = {}
+  ) =>
+    applyUpcomingTabFilters(
+      source,
+      overrides.serviceFilter ?? upcomingServiceFilter,
+      overrides.durationFilter ?? upcomingDurationFilter,
+      overrides.statusFilter ?? statusFilter
+    ).length;
+
+  const upcomingFilterSource =
+    statusFilter === "CANCELLED" ? cancelledBookings : upcomingBookings;
+
+  const filteredUpcomingPreSearch = applyUpcomingTabFilters(
+    upcomingFilterSource,
+    upcomingServiceFilter,
+    upcomingDurationFilter,
+    statusFilter === "CANCELLED" ? "ALL" : statusFilter
+  );
+
+  const hasActiveUpcomingFilters =
+    statusFilter !== "ALL" ||
+    upcomingServiceFilter !== "ALL" ||
+    upcomingDurationFilter !== "ALL";
+
+  const clearUpcomingFilters = () => {
+    setStatusFilter("ALL");
+    setUpcomingServiceFilter("ALL");
+    setUpcomingDurationFilter("ALL");
+  };
+
   const pendingPaymentBookings = sortPendingPaymentBookings(
     [...currentBookings, ...futureBookings, ...pastBookings].filter(
       isPaymentPendingBooking
@@ -2288,18 +2391,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
 
   const searchActive = Boolean(searchTerm.trim());
 
-  const filteredByStatus =
-    statusFilter === 'ALL'
-      ? upcomingBookings
-      : statusFilter === 'CANCELLED'
-        ? cancelledBookings
-        : upcomingBookings.filter(
-            (booking) => effectiveTaskStatus(booking) === statusFilter
-          );
-
   const filteredUpcomingBookings = searchActive
     ? filterBookings(getAllBookings(), searchTerm)
-    : filterBookings(filteredByStatus, searchTerm);
+    : filterBookings(filteredUpcomingPreSearch, searchTerm);
 
   const filteredPendingPaymentBookings = searchActive
     ? filterBookings(
@@ -2363,11 +2457,54 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   ];
 
   const statusTabs = [
-    { value: 'ALL', label: 'All', count: upcomingBookings.length },
-    { value: 'NOT_STARTED', label: 'Not Started', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'NOT_STARTED').length },
-    { value: 'IN_PROGRESS', label: 'In Progress', count: upcomingBookings.filter(b => effectiveTaskStatus(b) === 'IN_PROGRESS').length },
-    { value: 'CANCELLED', label: 'Cancelled', count: cancelledBookings.length },
+    { value: "ALL", label: "All", count: countUpcomingWithFilters(upcomingBookings, { statusFilter: "ALL" }) },
+    {
+      value: "NOT_STARTED",
+      label: "Not Started",
+      count: countUpcomingWithFilters(upcomingBookings, { statusFilter: "NOT_STARTED" }),
+    },
+    {
+      value: "IN_PROGRESS",
+      label: "In Progress",
+      count: countUpcomingWithFilters(upcomingBookings, { statusFilter: "IN_PROGRESS" }),
+    },
+    {
+      value: "CANCELLED",
+      label: "Cancelled",
+      count: countUpcomingWithFilters(cancelledBookings, { statusFilter: "ALL" }),
+    },
   ];
+
+  const upcomingSelectClassName =
+    "min-w-[7.5rem] max-w-[9.5rem] shrink-0 rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-[11px] font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:min-w-[8.5rem] sm:text-xs";
+
+  const renderUpcomingFilterSelect = (
+    shortLabel: string,
+    label: string,
+    value: string,
+    onChange: (next: string) => void,
+    options: { value: string; label: string; count: number }[],
+    ariaLabel: string
+  ) => (
+    <label className="flex w-[7.5rem] shrink-0 flex-col gap-1 sm:w-[8.5rem]">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        {shortLabel}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={upcomingSelectClassName}
+        aria-label={ariaLabel}
+        title={label}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label} ({option.count})
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-100/80">
@@ -2570,8 +2707,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                       {filteredUpcomingBookings.length === 1 ? " booking" : " bookings"}
                       {searchTerm.trim()
                         ? " match your search"
-                        : statusFilter !== "ALL"
-                          ? " with this status"
+                        : hasActiveUpcomingFilters
+                          ? " match your filters"
                           : " on your calendar"}
                       <span className="text-slate-400"> · </span>
                       <span className="tabular-nums text-slate-600">{upcomingBookings.length} total</span>
@@ -2585,54 +2722,77 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           {viewTab === "upcoming" && (isLoading ? (
             <StatusTabsSkeleton />
           ) : (
-            <div className="mb-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Sort by
+            <div className="mb-4 -mx-1 overflow-x-auto pb-1 scrollbar-thin">
+              <div className="flex min-w-max items-end gap-2 px-1 sm:gap-2.5">
+              <label className="flex w-[7.5rem] shrink-0 flex-col gap-1 sm:w-[8.5rem]">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Sort
                 </span>
-                <label className="inline-flex items-center gap-1.5">
-                  <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                <div className="inline-flex items-center gap-1">
+                  <ArrowUpDown className="h-3 w-3 shrink-0 text-slate-400" aria-hidden />
                   <select
                     value={upcomingSortOrder}
                     onChange={(e) =>
                       setUpcomingSortOrder(e.target.value as UpcomingSortOrder)
                     }
-                    className="rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-8 text-xs font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:text-sm"
+                    className={upcomingSelectClassName}
                     aria-label="Sort upcoming bookings"
                   >
                     <option value="newest">Newest first</option>
                     <option value="oldest">Oldest first</option>
                   </select>
-                </label>
-              </div>
-              <div className="-mx-1 overflow-x-auto pb-0.5 scrollbar-thin">
-                <div className="flex min-w-max gap-1.5 px-1 md:flex-wrap md:min-w-0 md:gap-2">
-                  {statusTabs.map((tab) => {
-                    const active = statusFilter === tab.value;
-                    return (
-                      <button
-                        key={tab.value}
-                        type="button"
-                        onClick={() => setStatusFilter(tab.value)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all md:px-3.5 md:text-sm ${
-                          active
-                            ? "border-sky-600 bg-sky-600 text-white shadow-md shadow-sky-600/25"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                        }`}
-                      >
-                        <span className="hidden sm:inline">{tab.label}</span>
-                        <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums md:text-xs ${
-                            active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {tab.count}
-                        </span>
-                      </button>
-                    );
-                  })}
                 </div>
+              </label>
+              {renderUpcomingFilterSelect(
+                "Service",
+                "Service type",
+                upcomingServiceFilter,
+                (value) => setUpcomingServiceFilter(value as UpcomingServiceFilter),
+                UPCOMING_SERVICE_FILTERS.map((tab) => ({
+                  value: tab.value,
+                  label: tab.label,
+                  count: countUpcomingWithFilters(upcomingFilterSource, {
+                    serviceFilter: tab.value,
+                  }),
+                })),
+                "Filter upcoming bookings by service type"
+              )}
+              {renderUpcomingFilterSelect(
+                "Type",
+                "Booking type",
+                upcomingDurationFilter,
+                (value) => setUpcomingDurationFilter(value as UpcomingDurationFilter),
+                UPCOMING_DURATION_FILTERS.map((tab) => ({
+                  value: tab.value,
+                  label: tab.label,
+                  count: countUpcomingWithFilters(upcomingFilterSource, {
+                    durationFilter: tab.value,
+                  }),
+                })),
+                "Filter upcoming bookings by booking type"
+              )}
+              {renderUpcomingFilterSelect(
+                "Status",
+                "Status",
+                statusFilter,
+                setStatusFilter,
+                statusTabs.map((tab) => ({
+                  value: tab.value,
+                  label: tab.label,
+                  count: tab.count,
+                })),
+                "Filter upcoming bookings by status"
+              )}
+              {hasActiveUpcomingFilters ? (
+                <button
+                  type="button"
+                  onClick={clearUpcomingFilters}
+                  className="mb-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-100 sm:text-xs"
+                >
+                  <FilterX className="h-3.5 w-3.5" />
+                  Clear
+                </button>
+              ) : null}
               </div>
             </div>
           ))}
@@ -2644,6 +2804,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               ))}
             </div>
           ) : hasActiveBookings ? (
+            activeBookingsList.length > 0 ? (
             <div className="grid gap-3">
               {activeBookingsList.map((booking) => {
                 const bookedAtLabel = formatBookedAtLabel(booking);
@@ -2808,6 +2969,30 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               );
               })}
             </div>
+            ) : (
+            <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
+              <CardContent className="px-6">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
+                  <FilterX className="h-7 w-7 text-sky-600" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">No matching bookings</h3>
+                <p className="mx-auto mb-6 max-w-sm text-sm text-slate-600">
+                  {hasActiveUpcomingFilters
+                    ? "No upcoming bookings match your current filters. Try adjusting service type, booking type, or status."
+                    : "No bookings match your search. Try different keywords or clear the search."}
+                </p>
+                {hasActiveUpcomingFilters ? (
+                  <Button variant="outline" onClick={clearUpcomingFilters} className="rounded-xl">
+                    Clear all filters
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => setSearchTerm("")} className="rounded-xl">
+                    Clear search
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+            )
           ) : (
             <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
               <CardContent className="px-6">
