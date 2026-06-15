@@ -362,14 +362,8 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
           payload.languages = activeFilters.language;
         }
 
-        // Distance (optional, only if changed from default max 50)
         if (activeFilters.distance && activeFilters.distance[1] < 50) {
-          payload.maxDistance = activeFilters.distance[1];
-        }
-
-        // Availability (optional)
-        if (activeFilters.availability.length > 0) {
-          payload.availabilityStatuses = activeFilters.availability;
+          payload.radius = activeFilters.distance[1];
         }
       }
 
@@ -503,7 +497,6 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (filters.gender && filters.gender !== "") count++;
     if (filters.diet && filters.diet !== "") count++;
     if (filters.language.length > 0) count++;
-    if (filters.availability.length > 0) count++;
     setActiveFilterCount(count);
     setFilterOpen(false);
   };

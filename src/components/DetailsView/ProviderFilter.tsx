@@ -1,4 +1,3 @@
-import { IconButton } from "src/components/Button/icon-button";
 import React, { useEffect, useState } from "react";
 import {
   Drawer,
@@ -15,7 +14,12 @@ import {
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import { IconButton } from "src/components/Button/icon-button";
 import { useLanguage } from "src/context/LanguageContext";
+import {
+  fetchProviderLanguages,
+  PROVIDER_REGISTRATION_LANGUAGES_FALLBACK,
+} from "src/services/providerLanguagesApi";
 
 interface FilterProps {
   open: boolean;
@@ -31,15 +35,14 @@ export interface FilterCriteria {
   diet: string | null;
   language: string[];
   distance: number[];
-  availability: string[];
 }
 
 const DrawerHeader = styled(Box)(({ theme }) => ({
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "space-between",
-  gap: theme.spacing(2),
-  padding: theme.spacing(2.5, 3),
+  gap: theme.spacing(1.5),
+  padding: theme.spacing(2, 2, 2, 2.5),
   borderBottom: `1px solid ${theme.palette.divider}`,
   background: "linear-gradient(135deg, #0369a1 0%, #0f172a 55%, #0f172a 100%)",
   color: "#f8fafc",
@@ -50,34 +53,6 @@ const FilterSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }));
 
-const LANGUAGES = [
-  "English",
-  "Hindi",
-  "Bengali",
-  "Telugu",
-  "Tamil",
-  "Kannada",
-  "Malayalam",
-  "Marathi",
-  "Gujarati",
-  "Punjabi",
-  "Odia",
-  "Assamese",
-  "Urdu",
-  "Sanskrit",
-  "Nepali",
-  "French",
-  "German",
-  "Spanish",
-  "Arabic",
-  "Japanese",
-  "Chinese",
-  "Russian",
-  "Portuguese",
-  "Italian",
-  "Dutch",
-];
-
 const DEFAULT_FILTERS: FilterCriteria = {
   experience: [0, 30],
   rating: null,
@@ -85,7 +60,6 @@ const DEFAULT_FILTERS: FilterCriteria = {
   diet: null,
   language: [],
   distance: [0, 50],
-  availability: [],
 };
 
 const GENDER_OPTIONS = [
@@ -100,12 +74,6 @@ const DIET_OPTIONS = [
   { value: "BOTH", labelKey: "both" },
 ] as const;
 
-const AVAILABILITY_OPTIONS = [
-  { value: "Fully Available", labelKey: "fullyAvailable" },
-  { value: "Partially Available", labelKey: "partiallyAvailable" },
-  { value: "Limited", labelKey: "filterLimited" },
-] as const;
-
 const ProviderFilter: React.FC<FilterProps> = ({
   open,
   onClose,
@@ -117,6 +85,25 @@ const ProviderFilter: React.FC<FilterProps> = ({
     initialFilters || DEFAULT_FILTERS
   );
   const [tempFilters, setTempFilters] = useState<FilterCriteria>(filters);
+  const [languageOptions, setLanguageOptions] = useState<string[]>([
+    ...PROVIDER_REGISTRATION_LANGUAGES_FALLBACK,
+  ]);
+  const [languagesLoading, setLanguagesLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLanguagesLoading(true);
+    fetchProviderLanguages()
+      .then((languages) => {
+        if (!cancelled && languages.length > 0) setLanguageOptions(languages);
+      })
+      .finally(() => {
+        if (!cancelled) setLanguagesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -125,22 +112,17 @@ const ProviderFilter: React.FC<FilterProps> = ({
     }
   }, [open, initialFilters, filters]);
 
-  const toggleSingle = (
-    field: "gender" | "diet",
-    value: string
-  ) => {
+  const toggleSingle = (field: "gender" | "diet", value: string) => {
     setTempFilters((prev) => ({
       ...prev,
       [field]: prev[field] === value ? null : value,
     }));
   };
 
-  const toggleAvailability = (status: string) => {
+  const handleLanguageChange = (_event: unknown, newValue: string[]) => {
     setTempFilters((prev) => ({
       ...prev,
-      availability: prev.availability.includes(status)
-        ? prev.availability.filter((a) => a !== status)
-        : [...prev.availability, status],
+      language: newValue,
     }));
   };
 
@@ -172,20 +154,24 @@ const ProviderFilter: React.FC<FilterProps> = ({
       }}
     >
       <DrawerHeader>
-        <Box>
-          <Typography variant="h6" fontWeight={700} sx={{ color: "inherit" }}>
-            <FilterListIcon
-              sx={{ mr: 1, verticalAlign: "middle", fontSize: 22 }}
-            />
+        <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 1 }}>
+          <FilterListIcon sx={{ fontSize: 22, flexShrink: 0 }} />
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            sx={{ color: "inherit", lineHeight: 1.25 }}
+            noWrap
+          >
             {t("filterProviders")}
           </Typography>
         </Box>
         <IconButton
           onClick={onClose}
           aria-label={t("close")}
-          className="-mt-0.5 shrink-0 text-slate-50 opacity-100 hover:bg-white/15 hover:text-white"
+          className="shrink-0 rounded-lg border border-white/25 bg-white/15 text-slate-50 hover:bg-white/25 hover:text-white"
+          style={{ width: 40, height: 40 }}
         >
-          <CloseIcon sx={{ fontSize: 22, opacity: 1 }} />
+          <CloseIcon sx={{ fontSize: 22 }} />
         </IconButton>
       </DrawerHeader>
 
@@ -200,27 +186,27 @@ const ProviderFilter: React.FC<FilterProps> = ({
       >
         <FilterSection>
           <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-            {t("filterExperienceYears")}
+            {t("filterDistanceKm")}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
             {t("filterRangeSummary", {
-              min: tempFilters.experience[0],
-              max: tempFilters.experience[1],
-              unit: t("filterYearsUnit"),
+              min: tempFilters.distance[0],
+              max: tempFilters.distance[1],
+              unit: t("filterKmUnit"),
             })}
           </Typography>
           <Box sx={{ px: 0.5 }}>
             <Slider
-              value={tempFilters.experience}
+              value={tempFilters.distance}
               onChange={(_, newValue) =>
                 setTempFilters((prev) => ({
                   ...prev,
-                  experience: newValue as number[],
+                  distance: newValue as number[],
                 }))
               }
               valueLabelDisplay="auto"
               min={0}
-              max={30}
+              max={50}
               step={1}
             />
           </Box>
@@ -263,30 +249,81 @@ const ProviderFilter: React.FC<FilterProps> = ({
 
         <FilterSection>
           <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-            {t("filterDistanceKm")}
+            {t("filterExperienceYears")}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
             {t("filterRangeSummary", {
-              min: tempFilters.distance[0],
-              max: tempFilters.distance[1],
-              unit: t("filterKmUnit"),
+              min: tempFilters.experience[0],
+              max: tempFilters.experience[1],
+              unit: t("filterYearsUnit"),
             })}
           </Typography>
           <Box sx={{ px: 0.5 }}>
             <Slider
-              value={tempFilters.distance}
+              value={tempFilters.experience}
               onChange={(_, newValue) =>
                 setTempFilters((prev) => ({
                   ...prev,
-                  distance: newValue as number[],
+                  experience: newValue as number[],
                 }))
               }
               valueLabelDisplay="auto"
               min={0}
-              max={50}
+              max={30}
               step={1}
             />
           </Box>
+        </FilterSection>
+
+        <FilterSection>
+          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            {t("languagesSpoken")}
+          </Typography>
+          <Autocomplete
+            multiple
+            options={languageOptions}
+            value={tempFilters.language}
+            onChange={handleLanguageChange}
+            loading={languagesLoading}
+            disableCloseOnSelect
+            filterSelectedOptions
+            noOptionsText={t("filterSelectLanguages")}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t("filterSelectLanguages")}
+                placeholder={t("filterSelectLanguages")}
+                size="small"
+              />
+            )}
+            slotProps={{
+              popper: {
+                sx: { zIndex: 10002 },
+              },
+            }}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  label={option}
+                  size="small"
+                  {...getTagProps({ index })}
+                  key={option}
+                />
+              ))
+            }
+          />
+          {tempFilters.language.length > 0 && (
+            <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                size="small"
+                onClick={() =>
+                  setTempFilters((prev) => ({ ...prev, language: [] }))
+                }
+              >
+                {t("filterClearLanguages")}
+              </Button>
+            </Box>
+          )}
         </FilterSection>
 
         <FilterSection>
@@ -307,7 +344,7 @@ const ProviderFilter: React.FC<FilterProps> = ({
           </Stack>
         </FilterSection>
 
-        <FilterSection>
+        <FilterSection sx={{ mb: 0 }}>
           <Typography variant="subtitle2" fontWeight={600} gutterBottom>
             {t("dietPreference")}
           </Typography>
@@ -320,79 +357,6 @@ const ProviderFilter: React.FC<FilterProps> = ({
                 color={tempFilters.diet === value ? "primary" : "default"}
                 variant={tempFilters.diet === value ? "filled" : "outlined"}
                 onClick={() => toggleSingle("diet", value)}
-              />
-            ))}
-          </Stack>
-        </FilterSection>
-
-        <FilterSection>
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-            {t("languagesSpoken")}
-          </Typography>
-          <Autocomplete
-            multiple
-            options={LANGUAGES}
-            value={tempFilters.language}
-            onChange={(_, newValue) =>
-              setTempFilters((prev) => ({ ...prev, language: newValue }))
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                placeholder={t("filterSelectLanguages")}
-                size="small"
-              />
-            )}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  label={option}
-                  size="small"
-                  {...getTagProps({ index })}
-                />
-              ))
-            }
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                padding: "6px 8px",
-                minHeight: 48,
-                alignItems: "flex-start",
-              },
-            }}
-            ListboxProps={{ style: { maxHeight: 280 } }}
-          />
-          {tempFilters.language.length > 0 && (
-            <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
-              <Button
-                size="small"
-                onClick={() =>
-                  setTempFilters((prev) => ({ ...prev, language: [] }))
-                }
-              >
-                {t("filterClearLanguages")}
-              </Button>
-            </Box>
-          )}
-        </FilterSection>
-
-        <FilterSection sx={{ mb: 0 }}>
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-            {t("filterAvailabilityStatus")}
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
-            {AVAILABILITY_OPTIONS.map(({ value, labelKey }) => (
-              <Chip
-                key={value}
-                label={t(labelKey)}
-                clickable
-                color={
-                  tempFilters.availability.includes(value) ? "primary" : "default"
-                }
-                variant={
-                  tempFilters.availability.includes(value) ? "filled" : "outlined"
-                }
-                onClick={() => toggleAvailability(value)}
               />
             ))}
           </Stack>

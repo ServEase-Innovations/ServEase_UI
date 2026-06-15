@@ -32,6 +32,7 @@ import {
 import { Button } from "../Button/button";
 import { useLanguage } from "src/context/LanguageContext";
 import { FormHelperText } from "@mui/material";
+import { fetchProviderLanguages } from "src/services/providerLanguagesApi";
 
 interface ServiceDetailsProps {
   formData: any;
@@ -171,32 +172,22 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
     onEveningSlotChange(index, newValue);
   };
 
-  // Language selection
-  const [availableLanguages] = useState<string[]>([
-    "Assamese",
-    "Bengali",
-    "Gujarati",
-    "Hindi",
-    "Kannada",
-    "Kashmiri",
-    "Marathi",
-    "Malayalam",
-    "Oriya",
-    "Punjabi",
-    "Sanskrit",
-    "Tamil",
-    "Telugu",
-    "Urdu",
-    "Sindhi",
-    "Konkani",
-    "Nepali",
-    "Manipuri",
-    "Bodo",
-    "Dogri",
-    "Maithili",
-    "Santhali",
-    "English",
-  ]);
+  // Language selection — loaded from providers service (same list as registration).
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchProviderLanguages()
+      .then((languages) => {
+        if (!cancelled) setAvailableLanguages(languages);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableLanguages([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLanguageChange = (event: any, newValue: string[]) => {
     if (onLanguagesChange) {
