@@ -715,31 +715,36 @@ const ModifyBookingScheduleSection = forwardRef<
           </MaidPickerPanel>
 
           <div className="mt-3 border-t border-slate-100 px-4 pt-3">
-            {preference === "Short term" ? (
-              <div className="mb-3">
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <Timer className="h-3.5 w-3.5 text-sky-600" aria-hidden />
-                  <span className="text-xs font-semibold text-slate-800">Hours per visit</span>
-                </div>
-                <MaidDurationChips>
-                  {DURATION_OPTIONS.map((h) => {
-                    const disabled =
-                      !datesComplete || (Boolean(startTime) && h > maxDurationHours);
-                    return (
-                      <MaidDurationChip
-                        key={h}
-                        type="button"
-                        $active={durationHours === h}
-                        disabled={disabled}
-                        onClick={() => setDurationHours(h)}
-                      >
-                        {h}h
-                      </MaidDurationChip>
-                    );
-                  })}
-                </MaidDurationChips>
+            <div className="mb-3">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <Timer className="h-3.5 w-3.5 text-sky-600" aria-hidden />
+                <span className="text-xs font-semibold text-slate-800">
+                  {preference === "Short term" ? "Hours per visit" : "Service duration"}
+                </span>
               </div>
-            ) : null}
+              <p className="mb-2 text-xs text-slate-500">
+                {preference === "Short term"
+                  ? "This duration applies to each day of service."
+                  : "This duration applies to each day of your monthly subscription."}
+              </p>
+              <MaidDurationChips>
+                {DURATION_OPTIONS.map((h) => {
+                  const disabled =
+                    !datesComplete || (Boolean(startTime) && h > maxDurationHours);
+                  return (
+                    <MaidDurationChip
+                      key={h}
+                      type="button"
+                      $active={durationHours === h}
+                      disabled={disabled}
+                      onClick={() => setDurationHours(h)}
+                    >
+                      {h} {h === 1 ? "Hour" : "Hours"}
+                    </MaidDurationChip>
+                  );
+                })}
+              </MaidDurationChips>
+            </div>
 
             <div className="mb-2 flex items-center gap-1.5">
               <Clock3 className="h-4 w-4 text-sky-600" aria-hidden />
@@ -796,7 +801,7 @@ const ModifyBookingScheduleSection = forwardRef<
                 <Clock3 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span className="font-medium">
                   {timeSummary}
-                  {preference === "Short term" ? ` · ${durationHours}h per visit` : ""}
+                  {` · ${durationHours} ${durationHours === 1 ? "hour" : "hours"} per visit`}
                 </span>
               </div>
             ) : null}
@@ -815,7 +820,8 @@ const ModifyBookingScheduleSection = forwardRef<
             </p>
             <p className="text-sm text-slate-600">{originalScheduleRef.current?.timeSummary}</p>
             <p className="mt-0.5 text-[11px] text-slate-500">
-              {originalScheduleRef.current?.durationHours}h per visit
+              {originalScheduleRef.current?.durationHours}{" "}
+              {originalScheduleRef.current?.durationHours === 1 ? "hour" : "hours"} per visit
             </p>
           </div>
 
@@ -832,7 +838,9 @@ const ModifyBookingScheduleSection = forwardRef<
             </div>
             <p className="mt-1 text-sm font-semibold leading-snug text-slate-900">{dateSummary}</p>
             <p className="text-sm text-slate-700">{timeSummary}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">{durationHours}h per visit</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {durationHours} {durationHours === 1 ? "hour" : "hours"} per visit
+            </p>
           </div>
 
           {checking ? (
