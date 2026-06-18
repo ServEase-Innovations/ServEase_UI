@@ -496,7 +496,7 @@ const formatBookedAtLabel = (booking: Booking): string => {
   return formatBookingCreatedAt(raw) || booking.placed_at_label?.trim() || "";
 };
 
-type BookingsViewTab = "today" | "upcoming" | "past" | "pending";
+type BookingsViewTab = "today" | "upcoming" | "past" | "cancelled" | "pending";
 type UpcomingSortOrder = "newest" | "oldest";
 
 const getBookingCreatedEpoch = (booking: Booking): number => {
@@ -597,7 +597,7 @@ const applyUpcomingTabFilters = (
     .filter((booking) => matchesUpcomingServiceFilter(booking, serviceFilter))
     .filter((booking) => matchesUpcomingDurationFilter(booking, durationFilter))
     .filter((booking) => {
-      if (statusFilter === "ALL" || statusFilter === "CANCELLED") return true;
+      if (statusFilter === "ALL") return true;
       return effectiveTaskStatus(booking) === statusFilter;
     });
 
@@ -2076,7 +2076,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const handleCancelBooking = async (booking: Booking) => {
     await PaymentInstance.post(`/api/v2/engagements/${booking.id}/cancel`, {});
     await refreshBookings();
-    setStatusFilter('CANCELLED');
+    setViewTab("cancelled");
+    setStatusFilter("ALL");
     setSnackbarMessage('Booking cancelled successfully!');
     setSnackbarSeverity('success');
     setOpenSnackbar(true);
@@ -2362,14 +2363,13 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       overrides.statusFilter ?? statusFilter
     ).length;
 
-  const upcomingFilterSource =
-    statusFilter === "CANCELLED" ? cancelledBookings : upcomingBookings;
+  const upcomingFilterSource = upcomingBookings;
 
   const filteredUpcomingPreSearch = applyUpcomingTabFilters(
     upcomingFilterSource,
     upcomingServiceFilter,
     upcomingDurationFilter,
-    statusFilter === "CANCELLED" ? "ALL" : statusFilter
+    statusFilter
   );
 
   const hasActiveUpcomingFilters =
@@ -2405,6 +2405,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   const filteredPastBookings = searchActive
     ? filterBookings(getAllBookings(), searchTerm)
     : filterBookings(pastBookings, searchTerm);
+
+  const sortedCancelledBookings = sortUpcomingByCreated(cancelledBookings, "newest");
+  const filteredCancelledBookings = filterBookings(sortedCancelledBookings, searchTerm);
 
   const filteredTodaySchedule = React.useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -2449,6 +2452,12 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     { id: "upcoming", label: "Upcoming", shortLabel: "Upcoming" },
     { id: "past", label: "Past", shortLabel: "Past" },
     {
+      id: "cancelled",
+      label: "Cancelled",
+      shortLabel: "Cancel",
+      count: cancelledBookings.length,
+    },
+    {
       id: "pending",
       label: "Pending payment",
       shortLabel: "Pending",
@@ -2468,15 +2477,17 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
       label: "In Progress",
       count: countUpcomingWithFilters(upcomingBookings, { statusFilter: "IN_PROGRESS" }),
     },
-    {
-      value: "CANCELLED",
-      label: "Cancelled",
-      count: countUpcomingWithFilters(cancelledBookings, { statusFilter: "ALL" }),
-    },
   ];
 
   const upcomingSelectClassName =
     "min-w-[7.5rem] max-w-[9.5rem] shrink-0 rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-[11px] font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:min-w-[8.5rem] sm:text-xs";
+
+  const historyTabBookings =
+    viewTab === "cancelled" ? filteredCancelledBookings : filteredPastBookings;
+  const historyTabTotal =
+    viewTab === "cancelled" ? cancelledBookings.length : pastBookings.length;
+  const historyTabHasAny =
+    viewTab === "cancelled" ? cancelledBookings.length > 0 : pastBookings.length > 0;
 
   const renderUpcomingFilterSelect = (
     shortLabel: string,
@@ -2531,9 +2542,6 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                   <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-900 sm:text-xl md:text-2xl">
                     My bookings
                   </h1>
-                  <p className="mt-1 text-xs leading-snug text-slate-500 sm:text-sm">
-                    Search below, or open your wallet from the icon on the right.
-                  </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -2610,6 +2618,8 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                       ? "bg-red-600 text-white shadow-md shadow-red-600/20"
                       : tab.id === "today"
                         ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                        : tab.id === "cancelled"
+                          ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
                         : "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
                     : "text-slate-600 hover:bg-white/60 hover:text-slate-900"
                 }`}
@@ -2620,13 +2630,15 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
                       active
-                        ? tab.id === "pending" || tab.id === "today"
+                        ? tab.id === "pending" || tab.id === "today" || tab.id === "cancelled"
                           ? "bg-white/25 text-white"
                           : "bg-sky-100 text-sky-800"
                         : tab.id === "today"
                           ? "bg-emerald-100 text-emerald-800"
                           : tab.id === "pending"
                             ? "bg-red-100 text-red-800"
+                            : tab.id === "cancelled"
+                              ? "bg-rose-100 text-rose-800"
                             : "bg-slate-200 text-slate-700"
                     }`}
                   >
@@ -3028,30 +3040,36 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
         </section>
         )}
 
-        {viewTab === "past" && (
+        {(viewTab === "past" || viewTab === "cancelled") && (
         <section>
           <div className="mb-5 flex flex-col gap-3 border-b border-slate-200/90 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-stretch gap-3">
               <div
-                className="w-1 shrink-0 rounded-full bg-gradient-to-b from-slate-400 to-slate-500"
+                className={`w-1 shrink-0 rounded-full bg-gradient-to-b ${
+                  viewTab === "cancelled"
+                    ? "from-rose-500 to-rose-600"
+                    : "from-slate-400 to-slate-500"
+                }`}
                 aria-hidden
               />
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-                  Past
+                  {viewTab === "cancelled" ? "Cancelled" : "Past"}
                 </h2>
                 <div className="mt-1 text-sm leading-snug text-slate-500">
                   {isLoading ? (
                     <SkeletonLoader width="160px" height="0.875rem" />
                   ) : (
                     <>
-                      <span className="font-medium text-slate-700">{filteredPastBookings.length}</span>
-                      {filteredPastBookings.length === 1 ? " booking" : " bookings"}
+                      <span className="font-medium text-slate-700">{historyTabBookings.length}</span>
+                      {historyTabBookings.length === 1 ? " booking" : " bookings"}
                       {searchTerm.trim()
                         ? " match your search"
-                        : " — completed, cancelled, or ended"}
+                        : viewTab === "cancelled"
+                          ? " — bookings you cancelled"
+                          : " — completed or ended"}
                       <span className="text-slate-400"> · </span>
-                      <span className="tabular-nums text-slate-600">{pastBookings.length} total</span>
+                      <span className="tabular-nums text-slate-600">{historyTabTotal} total</span>
                     </>
                   )}
                 </div>
@@ -3065,9 +3083,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                 <BookingCardSkeleton key={i} />
               ))}
             </div>
-          ) : pastBookings.length > 0 ? (
+          ) : historyTabHasAny ? (
             <div className="grid gap-3">
-              {filteredPastBookings.map((booking) => {
+              {historyTabBookings.map((booking) => {
                 const bookedAtLabel = formatBookedAtLabel(booking);
                 const serviceTimeLabel = formatServiceTimeRange(booking);
                 return (
@@ -3222,12 +3240,26 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           ) : (
             <Card className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/90 py-12 text-center shadow-none">
               <CardContent className="px-6">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 ring-1 ring-slate-200/80">
-                  <History className="h-7 w-7 text-slate-500" />
+                <div
+                  className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ${
+                    viewTab === "cancelled"
+                      ? "bg-rose-50 ring-rose-200/80"
+                      : "bg-slate-100 ring-slate-200/80"
+                  }`}
+                >
+                  {viewTab === "cancelled" ? (
+                    <XCircle className="h-7 w-7 text-rose-500" />
+                  ) : (
+                    <History className="h-7 w-7 text-slate-500" />
+                  )}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">No past bookings yet</h3>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">
+                  {viewTab === "cancelled" ? "No cancelled bookings" : "No past bookings yet"}
+                </h3>
                 <p className="mx-auto max-w-sm text-sm text-slate-600">
-                  Completed, cancelled, and ended bookings will appear here.
+                  {viewTab === "cancelled"
+                    ? "When you cancel a booking, it will appear here."
+                    : "Completed and ended bookings will appear here."}
                 </p>
               </CardContent>
             </Card>
