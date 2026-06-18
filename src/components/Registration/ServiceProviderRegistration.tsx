@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { IconButton } from "src/components/Button/icon-button";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import moment from "moment";
 import {
   Grid,
@@ -47,6 +47,13 @@ import MapComponent from "../MapComponent/MapComponent";
 import providerInstance from "src/services/providerInstance";
 import { useLanguage } from "src/context/LanguageContext";
 import { useAuth0 } from "@auth0/auth0-react";
+import {
+  clearSpRegistrationDraft,
+  hasMeaningfulDraft,
+  loadSpRegistrationDraft,
+  sanitizeFormDataForDraft,
+  saveSpRegistrationDraft,
+} from "src/services/spRegistrationDraft";
 
 // Define the shape of formData using an interface
 interface FormData {
@@ -111,6 +118,97 @@ interface FormData {
   // NEW: Bank details
   bankDetails: BankDetailsData;
 }
+
+const createEmptySpFormData = (): FormData => ({
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  gender: "",
+  emailId: "",
+  password: "",
+  confirmPassword: "",
+  mobileNo: "",
+  AlternateNumber: "",
+  buildingName: "",
+  locality: "",
+  street: "",
+  currentLocation: "",
+  nearbyLocation: "",
+  pincode: "",
+  latitude: 0,
+  longitude: 0,
+  AADHAR: "",
+  agentReferralId: "",
+  pan: "",
+  panImage: null,
+  housekeepingRole: [],
+  description: "",
+  experience: "",
+  kyc: "AADHAR",
+  documentImage: null,
+  otherDetails: "",
+  profileImage: null,
+  cookingSpeciality: "",
+  nannyCareType: "",
+  age: "",
+  diet: "",
+  dob: "",
+  profilePic: "",
+  timeslot: "06:00-20:00",
+  referralCode: "",
+  agreeToTerms: false,
+  terms: false,
+  privacy: false,
+  keyFacts: false,
+  kycType: "AADHAR",
+  kycNumber: "",
+  permanentAddress: {
+    apartment: "",
+    street: "",
+    city: "",
+    state: "",
+    country: "",
+    pincode: "",
+  },
+  correspondenceAddress: {
+    apartment: "",
+    street: "",
+    city: "",
+    state: "",
+    country: "",
+    pincode: "",
+  },
+  bankDetails: {
+    bankName: "",
+    ifscCode: "",
+    accountHolderName: "",
+    accountNumber: "",
+    accountType: "",
+    upiId: "",
+  },
+});
+
+const mergeLoadedSpFormData = (partial: Record<string, unknown>): FormData => {
+  const base = createEmptySpFormData();
+  const permanent = (partial.permanentAddress as FormData["permanentAddress"]) ?? {};
+  const correspondence =
+    (partial.correspondenceAddress as FormData["correspondenceAddress"]) ?? {};
+  const bankDetails = (partial.bankDetails as FormData["bankDetails"]) ?? {};
+
+  return {
+    ...base,
+    ...(partial as Partial<FormData>),
+    panImage: null,
+    documentImage: null,
+    profileImage: null,
+    permanentAddress: { ...base.permanentAddress, ...permanent },
+    correspondenceAddress: { ...base.correspondenceAddress, ...correspondence },
+    bankDetails: { ...base.bankDetails, ...bankDetails },
+    housekeepingRole: Array.isArray(partial.housekeepingRole)
+      ? (partial.housekeepingRole as string[])
+      : base.housekeepingRole,
+  };
+};
 
 // Define the shape of errors to hold string messages
 interface FormErrors {
@@ -233,75 +331,8 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [isFullTime, setIsFullTime] = useState(true);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string>("06:00-20:00");
 
-  const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    gender: "",
-    emailId: "",
-    password: "",
-    confirmPassword: "",
-    mobileNo: "",
-    AlternateNumber: "",
-    buildingName: "",
-    locality: "",
-    street: "",
-    currentLocation: "",
-    nearbyLocation: "",
-    pincode: "",
-    latitude: 0,
-    longitude: 0,
-    AADHAR: "",
-    agentReferralId: "",
-    pan: "",
-    panImage: null,
-    housekeepingRole: [],
-    description: "",
-    experience: "",
-    kyc: "AADHAR",
-    documentImage: null,
-    otherDetails: "",
-    profileImage: null,
-    cookingSpeciality: "",
-    nannyCareType: "",
-    age: "",
-    diet: "",
-    dob: "",
-    profilePic: "",
-    timeslot: "06:00-20:00",
-    referralCode: "",
-    agreeToTerms: false,
-    terms: false,
-    privacy: false,
-    keyFacts: false,
-    kycType: "AADHAR",
-    kycNumber: "",
-    permanentAddress: {
-      apartment: "",
-      street: "",
-      city: "",
-      state: "",
-      country: "",
-      pincode: ""
-    },
-    correspondenceAddress: {
-      apartment: "",
-      street: "",
-      city: "",
-      state: "",
-      country: "",
-      pincode: ""
-    },
-    // NEW: Bank details initial state
-    bankDetails: {
-      bankName: "",
-      ifscCode: "",
-      accountHolderName: "",
-      accountNumber: "",
-      accountType: "",
-      upiId: ""
-    }
-  });
+  const [formData, setFormData] = useState<FormData>(createEmptySpFormData);
+  const [draftReady, setDraftReady] = useState(false);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -309,6 +340,94 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [image, setImage] = useState<Blob | null>(null);
 
   const [kycDocumentFile, setKycDocumentFile] = useState<File | null>(null);
+
+  const buildDraftSnapshot = useCallback(
+    () => ({
+      activeStep,
+      formData: sanitizeFormDataForDraft(formData as unknown as Record<string, unknown>),
+      selectedLanguages,
+      isCookSelected,
+      isNannySelected,
+      currentLocation,
+      isSameAddress,
+      morningSlots,
+      eveningSlots,
+      isFullTime,
+      selectedTimeSlots,
+    }),
+    [
+      activeStep,
+      formData,
+      selectedLanguages,
+      isCookSelected,
+      isNannySelected,
+      currentLocation,
+      isSameAddress,
+      morningSlots,
+      eveningSlots,
+      isFullTime,
+      selectedTimeSlots,
+    ]
+  );
+
+  const persistDraftNow = useCallback(() => {
+    if (!draftReady) return;
+    const snapshot = buildDraftSnapshot();
+    if (!hasMeaningfulDraft({ version: 1, savedAt: Date.now(), ...snapshot })) {
+      return;
+    }
+    saveSpRegistrationDraft(snapshot);
+  }, [buildDraftSnapshot, draftReady]);
+
+  const debouncedPersistDraft = useMemo(
+    () => debounce(() => persistDraftNow(), 500),
+    [persistDraftNow]
+  );
+
+  useEffect(() => {
+    const draft = loadSpRegistrationDraft();
+    if (draft && hasMeaningfulDraft(draft)) {
+      setActiveStep(Math.min(Math.max(draft.activeStep, 0), steps.length - 1));
+      setFormData(mergeLoadedSpFormData(draft.formData));
+      setSelectedLanguages(draft.selectedLanguages ?? []);
+      setIsCookSelected(Boolean(draft.isCookSelected));
+      setIsNannySelected(Boolean(draft.isNannySelected));
+      setCurrentLocation(draft.currentLocation ?? null);
+      setIsSameAddress(Boolean(draft.isSameAddress));
+      setMorningSlots(draft.morningSlots ?? [[6, 12]]);
+      setEveningSlots(draft.eveningSlots ?? [[12, 20]]);
+      setIsFullTime(Boolean(draft.isFullTime));
+      setSelectedTimeSlots(draft.selectedTimeSlots ?? "06:00-20:00");
+      setSnackbarMessage("Your registration progress was restored.");
+      setSnackbarSeverity("info");
+      setSnackbarOpen(true);
+    }
+    setDraftReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    debouncedPersistDraft();
+  }, [draftReady, debouncedPersistDraft, buildDraftSnapshot]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+
+    const flushDraft = () => persistDraftNow();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushDraft();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flushDraft);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flushDraft);
+    };
+  }, [draftReady, persistDraftNow]);
 
   // ============================================================
   // FIX: Helper to check if all mandatory agreements are accepted
@@ -1366,6 +1485,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
       setSnackbarOpen(true);
       setSnackbarSeverity("success");
       setSnackbarMessage(t("serviceProviderAdded"));
+      clearSpRegistrationDraft();
 
       // 5. Create Auth0 user if email and password provided
       if (registrationEmail && formData.password) {

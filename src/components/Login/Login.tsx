@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Registration from "../Registration/Registration";
 import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
@@ -11,6 +11,7 @@ import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
 import { DASHBOARD } from "../../Constants/pagesConstants";
 import { useAppUser } from "src/context/AppUserContext";
+import { hasSpRegistrationInProgress } from "src/services/spRegistrationDraft";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -48,6 +49,12 @@ export const Login: React.FC<ChildComponentProps> = ({
 
   const dispatch = useDispatch();
   const { setAppUser } = useAppUser();
+
+  useEffect(() => {
+    if (hasSpRegistrationInProgress()) {
+      setServiceRegistration(true);
+    }
+  }, []);
 
   const handleBackToLogin = () => {
     setIsRegistration(false);

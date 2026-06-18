@@ -20,6 +20,7 @@ import { add } from "../../features/bookingType/bookingTypeSlice";
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import BookingDialog from "../BookingDialog/BookingDialog";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
+import { hasSpRegistrationInProgress } from "src/services/spRegistrationDraft";
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -67,6 +68,12 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     type: "cook" | "maid" | "babycare" | null;
     }>({ open: false, type: null });
     const [showServiceSelection, setShowServiceSelection] = useState(false);
+
+    useEffect(() => {
+        if (hasSpRegistrationInProgress()) {
+            setShowRegistrationDialog(true);
+        }
+    }, []);
 
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
