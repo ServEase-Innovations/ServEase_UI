@@ -82,12 +82,3 @@ export async function fetchPublicFooterSettings(): Promise<FooterSettings> {
     return cachedFooter;
   }
 }
-
-export function formatPhoneDisplay(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) {
-    const local = digits.slice(2);
-    return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
-  }
-  return phone;
-}

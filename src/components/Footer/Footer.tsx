@@ -1,21 +1,21 @@
 /* eslint-disable */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaInstagram,
   FaLinkedin,
   FaYoutube,
   FaFacebook,
   FaXTwitter,
-  FaPhone,
 } from "react-icons/fa6";
+import { useLanguage } from "src/context/LanguageContext";
 import { publicAsset } from "src/utils/publicAsset";
+import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 import {
   DEFAULT_FOOTER_SETTINGS,
   FOOTER_SOCIAL_ORDER,
   FooterSettings,
   FooterSocialKey,
   fetchPublicFooterSettings,
-  formatPhoneDisplay,
 } from "src/services/footerSettingsApi";
 
 interface FooterProps {
@@ -41,7 +41,13 @@ const SOCIAL_LABELS: Record<FooterSocialKey, string> = {
   facebook: "Facebook",
 };
 
-const Footer: React.FC<FooterProps> = ({ onTermsClick }) => {
+const Footer: React.FC<FooterProps> = ({
+  onAboutClick,
+  onContactClick,
+  onPrivacyPolicyClick,
+  onTermsClick,
+}) => {
+  const { t } = useLanguage();
   const [footerSettings, setFooterSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
 
   useEffect(() => {
@@ -54,106 +60,161 @@ const Footer: React.FC<FooterProps> = ({ onTermsClick }) => {
     };
   }, []);
 
-  const helplineLabel = formatPhoneDisplay(footerSettings.helplinePhone);
-  const joinUsLabel = formatPhoneDisplay(footerSettings.joinUsPhone);
+  const socialLinks = useMemo(
+    () =>
+      FOOTER_SOCIAL_ORDER.map((key) => ({
+        key,
+        href: footerSettings.social[key],
+        label: SOCIAL_LABELS[key],
+        icon: SOCIAL_ICONS[key],
+        hoverClass:
+          key === "instagram"
+            ? "hover:bg-white/18 hover:text-pink-200"
+            : key === "youtube"
+              ? "hover:bg-white/18 hover:text-red-200"
+              : key === "facebook"
+                ? "hover:bg-white/18 hover:text-sky-100"
+                : key === "linkedin"
+                  ? "hover:bg-white/18 hover:text-sky-200"
+                  : "hover:bg-white/18 hover:text-white",
+      })).filter((row) => Boolean(row.href)),
+    [footerSettings.social]
+  );
+
+  const linkBase =
+    "flex w-full items-center justify-start rounded-md px-0 py-1.5 text-left text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70";
+
+  /* Shared min-height so column titles line up across the row (incl. wrapped labels). */
+  const sectionTitle =
+    "flex min-h-[2.75rem] w-full items-end text-left text-[11px] font-semibold uppercase leading-snug tracking-[0.12em] text-white/45 sm:min-h-[3rem]";
 
   return (
-    <footer className="relative mt-auto w-full overflow-hidden border-t border-[#c4c6cf]/60 bg-[#f2f4f6] text-[#191c1e]">
-      <div className="mx-auto w-full max-w-lg px-5 py-6 sm:max-w-2xl sm:px-6 sm:py-8">
-        <div className="w-full rounded-2xl border border-[#c4c6cf] bg-white px-4 py-6 shadow-[0_2px_12px_rgba(15,23,42,0.06)] sm:px-6 sm:py-7">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#c4c6cf] bg-[#dae2ff]">
+    <footer
+      className={`relative mt-auto w-full overflow-hidden border-t border-white/10 text-slate-200 ${CHROME_BAR_GRADIENT} ${CHROME_BAR_SHADOW}`}
+    >
+      <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-10 lg:items-start">
+          <div className="text-left lg:col-span-4">
+            <div className="flex items-center gap-2.5">
               <img
                 src={publicAsset("ServEaso_Logo.png")}
                 alt=""
-                className="h-10 w-10 rounded-full object-contain"
+                className="h-9 w-9 rounded-xl object-contain ring-1 ring-white/20 sm:h-10 sm:w-10"
               />
+              <span className="text-lg font-semibold tracking-tight text-white">
+                ServEaso
+              </span>
             </div>
-            <p className="text-xl font-extrabold tracking-tight text-[#191c1e]">ServeEaso</p>
-            <p className="mt-1 text-sm font-medium text-[#43474e]">Trusted home services</p>
-          </div>
-
-          <div className="my-5 h-px bg-[#c4c6cf]/80" />
-
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#43474e]">
-            Contact us
-          </p>
-          <div className="grid w-full gap-2.5 sm:grid-cols-2">
-            <a
-              href={`tel:${footerSettings.helplinePhone}`}
-              className="flex items-center gap-3 rounded-[14px] border border-[#c4c6cf] bg-[#dae2ff]/55 px-3 py-3 transition hover:bg-[#dae2ff]/80"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white text-[#335baf]">
-                <FaPhone className="h-3.5 w-3.5" aria-hidden />
-              </span>
-              <span className="min-w-0 text-left">
-                <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#43474e]">
-                  Helpline
-                </span>
-                <span className="block truncate text-sm font-semibold text-[#191c1e]">
-                  {helplineLabel}
-                </span>
-              </span>
-            </a>
-            <a
-              href={`tel:${footerSettings.joinUsPhone}`}
-              className="flex items-center gap-3 rounded-[14px] border border-[#c4c6cf] bg-[#dae2ff]/55 px-3 py-3 transition hover:bg-[#dae2ff]/80"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white text-[#335baf]">
-                <FaPhone className="h-3.5 w-3.5" aria-hidden />
-              </span>
-              <span className="min-w-0 text-left">
-                <span className="block text-[11px] font-semibold uppercase tracking-wide text-[#43474e]">
-                  Join us
-                </span>
-                <span className="block truncate text-sm font-semibold text-[#191c1e]">
-                  {joinUsLabel}
-                </span>
-              </span>
-            </a>
-          </div>
-
-          <div className="my-5 h-px bg-[#c4c6cf]/80" />
-
-          <div className="flex w-full flex-col items-center gap-3">
-            <p className="w-full text-xs font-semibold uppercase tracking-[0.08em] text-[#43474e]">
-              Follow us
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/75">
+              {t("description")}
             </p>
-            <div className="flex w-full flex-wrap items-center justify-center gap-2">
-              {FOOTER_SOCIAL_ORDER.map((key) => {
-                const href = footerSettings.social[key];
-                if (!href) return null;
-                const Icon = SOCIAL_ICONS[key];
-                return (
-                  <a
-                    key={key}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={SOCIAL_LABELS[key]}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#c4c6cf] bg-[#dae2ff]/70 text-[#124296] transition hover:bg-[#dae2ff]"
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                  </a>
-                );
-              })}
+            <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              {t("footerFollowUs")}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {socialLinks.map(({ key, href, label, icon: Icon, hoverClass }) => (
+                <a
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition ${hoverClass}`}
+                >
+                  <Icon className="h-[18px] w-[18px]" aria-hidden />
+                </a>
+              ))}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onTermsClick}
-            className="mx-auto mt-5 block text-sm font-semibold text-[#335baf] underline underline-offset-2 transition hover:text-[#124296]"
-          >
-            Terms &amp; Conditions
-          </button>
-        </div>
+          <div className="grid w-full min-w-0 grid-cols-[repeat(2,minmax(0,1fr))] items-start gap-x-6 gap-y-8 text-left md:grid-cols-[repeat(4,minmax(0,1fr))] md:gap-x-5 lg:col-span-8 lg:gap-x-6">
+            <nav
+              className="flex min-w-0 flex-col gap-1.5 items-stretch text-left"
+              aria-label={t("footerSectionLegal")}
+            >
+              <h2 className={sectionTitle}>{t("footerSectionLegal")}</h2>
+              <ul className="m-0 w-full list-none space-y-0.5 p-0">
+                <li className="w-full">
+                  <button type="button" onClick={onTermsClick} className={linkBase}>
+                    {t("termsOfService")}
+                  </button>
+                </li>
+                <li className="w-full">
+                  <button
+                    type="button"
+                    onClick={onPrivacyPolicyClick}
+                    className={linkBase}
+                  >
+                    {t("privacyPolicy")}
+                  </button>
+                </li>
+              </ul>
+            </nav>
 
-        <div className="mt-3 w-full rounded-xl bg-gradient-to-r from-[#001630] to-[#0d2b4d] px-4 py-3 text-center">
-          <p className="text-xs font-semibold tracking-wide text-[#7993bb]">
-            ServeEaso — home help you can trust
-          </p>
+            <nav
+              className="flex min-w-0 flex-col gap-1.5 items-stretch text-left"
+              aria-label={t("footerSectionResources")}
+            >
+              <h2 className={sectionTitle}>{t("footerSectionResources")}</h2>
+              <ul className="m-0 w-full list-none space-y-0.5 p-0">
+                <li className="w-full">
+                  <a href="#!" className={linkBase}>
+                    {t("tutorials")}
+                  </a>
+                </li>
+                <li className="w-full">
+                  <a href="#!" className={linkBase}>
+                    {t("blog")}
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            <nav
+              className="flex min-w-0 flex-col gap-1.5 items-stretch text-left"
+              aria-label={t("footerSectionCompany")}
+            >
+              <h2 className={sectionTitle}>{t("footerSectionCompany")}</h2>
+              <ul className="m-0 w-full list-none space-y-0.5 p-0">
+                <li className="w-full">
+                  <button type="button" onClick={onContactClick} className={linkBase}>
+                    {t("contactUs")}
+                  </button>
+                </li>
+                <li className="w-full">
+                  <a href="#!" className={linkBase}>
+                    {t("partners")}
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            <nav
+              className="flex min-w-0 flex-col gap-1.5 items-stretch text-left"
+              aria-label={t("footerSectionExplore")}
+            >
+              <h2 className={sectionTitle}>{t("footerSectionExplore")}</h2>
+              <ul className="m-0 w-full list-none space-y-0.5 p-0">
+                <li className="w-full">
+                  <a href="#!" className={linkBase}>
+                    {t("pricing")}
+                  </a>
+                </li>
+                <li className="w-full">
+                  <button type="button" onClick={onAboutClick} className={linkBase}>
+                    {t("about")}
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
+      </div>
+
+      <div className="relative border-t border-white/10 px-4 py-4 sm:px-6 lg:px-8">
+        <p className="text-center text-xs leading-relaxed text-white/55">
+          {t("copyright")}
+        </p>
       </div>
     </footer>
   );
