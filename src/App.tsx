@@ -409,6 +409,10 @@ function App() {
     setAcceptingEngagementId(eid);
     try {
       const result = await acceptEngagement(eid, appUser as Record<string, unknown>);
+      const providerId = resolveProviderId(appUser as Record<string, unknown>);
+      if (providerId != null) {
+        await dismissProviderNewBookingNotifications(eid, providerId);
+      }
       setActiveToast(null);
       setAcceptError(null);
       setBookingSnack({

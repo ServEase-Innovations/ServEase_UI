@@ -57,6 +57,13 @@ export const getStatusBadge = (status: string) => {
           Not Started
         </Badge>
       );
+    case "QUEUE_STANDBY":
+      return (
+        <Badge variant="secondary" className="bg-teal-50 text-teal-800 border-teal-200">
+          <Clock className="h-3 w-3 mr-1" />
+          Backup queue
+        </Badge>
+      );
     default:
       return null;
   }

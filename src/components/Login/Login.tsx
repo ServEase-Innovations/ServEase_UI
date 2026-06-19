@@ -11,7 +11,7 @@ import { useDispatch } from "react-redux";
 import { add } from "../../features/user/userSlice";
 import { DASHBOARD } from "../../Constants/pagesConstants";
 import { useAppUser } from "src/context/AppUserContext";
-import { hasSpRegistrationInProgress } from "src/services/spRegistrationDraft";
+import { shouldResumeSpRegistration } from "src/services/spRegistrationDraft";
 
 interface ChildComponentProps {
   sendDataToParent?: (data: string) => void;
@@ -48,13 +48,15 @@ export const Login: React.FC<ChildComponentProps> = ({
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const dispatch = useDispatch();
-  const { setAppUser } = useAppUser();
+  const { appUser, setAppUser } = useAppUser();
 
   useEffect(() => {
-    if (hasSpRegistrationInProgress()) {
+    if (shouldResumeSpRegistration(appUser as Record<string, unknown> | null)) {
       setServiceRegistration(true);
+    } else {
+      setServiceRegistration(false);
     }
-  }, []);
+  }, [appUser]);
 
   const handleBackToLogin = () => {
     setIsRegistration(false);

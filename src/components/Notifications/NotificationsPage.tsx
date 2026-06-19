@@ -442,6 +442,10 @@ export default function NotificationsPage({
       setAcceptingId(n.id);
       try {
         const result = await acceptEngagement(eid, appUser);
+        const providerId = resolveProviderIdNumber(appUser);
+        if (providerId != null) {
+          await dismissProviderNewBookingNotifications(eid, providerId);
+        }
         setSnack({ open: true, message: result.message, severity: "success" });
         setDetailError(null);
         setDetailFor((d) => (d != null && String(d.id) === String(n.id) ? null : d));

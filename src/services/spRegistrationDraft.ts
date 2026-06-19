@@ -1,3 +1,5 @@
+import { resolveProviderIdNumber } from "src/utils/spSession";
+
 const DRAFT_KEY = "servease:sp-registration-draft";
 const OPEN_FLAG_KEY = "servease:sp-registration-in-progress";
 const DRAFT_VERSION = 1;
@@ -108,6 +110,26 @@ export function hasSpRegistrationInProgress(): boolean {
   } catch {
     return false;
   }
+}
+
+function isRegisteredServiceProvider(
+  appUser: Record<string, unknown> | null | undefined
+): boolean {
+  if (!appUser) return false;
+  const role = String(appUser.role ?? appUser.user_role ?? "").toUpperCase();
+  if (role === "SERVICE_PROVIDER") return true;
+  return resolveProviderIdNumber(appUser) != null;
+}
+
+/** Resume SP registration wizard only for users who are not already registered providers. */
+export function shouldResumeSpRegistration(
+  appUser: Record<string, unknown> | null | undefined
+): boolean {
+  if (isRegisteredServiceProvider(appUser)) {
+    clearSpRegistrationDraft();
+    return false;
+  }
+  return hasSpRegistrationInProgress();
 }
 
 export function clearSpRegistrationDraft(): void {

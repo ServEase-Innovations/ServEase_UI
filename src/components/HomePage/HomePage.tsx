@@ -20,7 +20,8 @@ import { add } from "../../features/bookingType/bookingTypeSlice";
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import BookingDialog from "../BookingDialog/BookingDialog";
 import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
-import { hasSpRegistrationInProgress } from "src/services/spRegistrationDraft";
+import { shouldResumeSpRegistration } from "src/services/spRegistrationDraft";
+import { resolveProviderIdNumber } from "src/utils/spSession";
 import ServiceDetailsDialog from "./ServiceDetailsDialog";
 import Chatbot from "../Chat/Chatbot";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -69,11 +70,15 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
     }>({ open: false, type: null });
     const [showServiceSelection, setShowServiceSelection] = useState(false);
 
+    const { appUser } = useAppUser();
+
     useEffect(() => {
-        if (hasSpRegistrationInProgress()) {
+        if (shouldResumeSpRegistration(appUser as Record<string, unknown> | null)) {
             setShowRegistrationDialog(true);
+        } else {
+            setShowRegistrationDialog(false);
         }
-    }, []);
+    }, [appUser]);
 
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
@@ -189,12 +194,13 @@ const handleSave = () => {
   // Keep a local role state if you already use it for UI (your code references `role`)
   const [role, setRole] = useState<string | null>(null);
 
-  const { appUser } = useAppUser();
   const { showOffer, checking: checkingOffer } = useFirstBookingOfferVisible();
   const isLoggedIn = isAuthenticated || Boolean(appUser);
   const isServiceProvider =
     isLoggedIn &&
-    (appUser?.role === "SERVICE_PROVIDER" || appUser?.user_role === "SERVICE_PROVIDER");
+    (appUser?.role === "SERVICE_PROVIDER" ||
+      appUser?.user_role === "SERVICE_PROVIDER" ||
+      resolveProviderIdNumber(appUser as Record<string, unknown> | null) != null);
 
 useEffect(() => {
   if (!isAuthenticated || !appUser) return;

@@ -62,7 +62,13 @@ export default function ProviderCalendarBig({
         const evts = entries
           .filter((e) => {
             const st = String(e.status || "").toUpperCase();
-            return st === "BOOKED" || st === "UNAVAILABLE" || st === "FREE" || st === "VACATION";
+            return (
+              st === "BOOKED" ||
+              st === "QUEUE_STANDBY" ||
+              st === "UNAVAILABLE" ||
+              st === "FREE" ||
+              st === "VACATION"
+            );
           })
           .map((e) => {
             const dayPart = dayjs(e.date).isValid()
@@ -72,7 +78,9 @@ export default function ProviderCalendarBig({
             const end = dayjs(`${dayPart} ${normalizeTime(e.end_time)}`, "YYYY-MM-DD HH:mm:ss");
             const st = String(e.status || "").toUpperCase();
             const title =
-              st === "VACATION"
+              st === "QUEUE_STANDBY"
+                ? `Backup queue · #${e.engagement_id ?? "?"}`
+                : st === "VACATION"
                 ? `Vacation · #${e.engagement_id ?? "?"}`
                 : st === "UNAVAILABLE"
                   ? "Unavailable (blocked)"
@@ -122,6 +130,7 @@ export default function ProviderCalendarBig({
         eventPropGetter={(event) => {
           let backgroundColor = "#3174ad"; // default
           if (event.status === "BOOKED") backgroundColor = "#e74c3c"; // red
+          else if (event.status === "QUEUE_STANDBY") backgroundColor = "#14b8a6"; // teal
           else if (event.status === "VACATION") backgroundColor = "#f59e0b"; // amber
           else if (event.status === "AVAILABLE") backgroundColor = "#2ecc71"; // green
           else if (event.status === "UNAVAILABLE") backgroundColor = "#95a5a6"; // gray
@@ -131,6 +140,8 @@ export default function ProviderCalendarBig({
           alert(
             event.status === "BOOKED"
               ? `This slot is BOOKED (Engagement #${event.engagement_id})`
+              : event.status === "QUEUE_STANDBY"
+                ? `You are backup in the queue (Engagement #${event.engagement_id})`
               : event.status === "VACATION"
                 ? `Customer vacation (Engagement #${event.engagement_id}) — no visit scheduled`
                 : `This slot is ${event.status}`

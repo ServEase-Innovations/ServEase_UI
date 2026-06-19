@@ -47,6 +47,7 @@ import {
 import type { EngagementEpochFields } from "src/services/epochContract";
 import { sortProviderEngagementsByServiceDate } from "src/utils/sortProviderEngagements";
 import { getOtpVerifyErrorMessage } from "src/utils/otpVerifyError";
+import { withdrawFromOnDemandEngagement } from "src/services/engagementService";
 
 interface AllBookingsDialogProps {
   bookings: BookingHistoryResponse | null;
@@ -99,6 +100,10 @@ type ProviderEngagementApi = Partial<EngagementEpochFields> & {
     can_complete?: boolean;
     otp_active?: boolean;
   };
+  can_provider_withdraw?: boolean;
+  is_queue_standby?: boolean;
+  queue_position?: number;
+  queue_role?: string;
 };
 
 type TaskBookingData = {
@@ -506,6 +511,8 @@ type BookingRowProps = {
   onTrack: (address: string) => void;
   onStart: (bookingId: string, data: TaskBookingData) => void;
   onComplete: (bookingId: string, data: TaskBookingData) => void;
+  onWithdraw: (booking: Booking) => void;
+  withdrawingId: string | null;
 };
 
 function BookingRow({
@@ -517,6 +524,8 @@ function BookingRow({
   onTrack,
   onStart,
   onComplete,
+  onWithdraw,
+  withdrawingId,
 }: BookingRowProps) {
   const [expanded, setExpanded] = useState(false);
   const bookingKey = booking.id.toString();
@@ -528,24 +537,36 @@ function BookingRow({
     taskStatus[bookingKey]
   );
   const taskStatusOriginal = displayStatus.toUpperCase();
+  const isQueueStandby =
+    taskStatusOriginal === "QUEUE_STANDBY" ||
+    api.is_queue_standby === true ||
+    api.queue_role === "backup";
 
   const isInProgress =
-    todayServiceStatus === "IN_PROGRESS" ||
-    taskStatus[bookingKey] === "IN_PROGRESS" ||
-    taskStatusOriginal === "IN_PROGRESS" ||
-    taskStatusOriginal === "STARTED";
+    !isQueueStandby &&
+    (todayServiceStatus === "IN_PROGRESS" ||
+      taskStatus[bookingKey] === "IN_PROGRESS" ||
+      taskStatusOriginal === "IN_PROGRESS" ||
+      taskStatusOriginal === "STARTED");
 
   const isCompleted =
     todayServiceStatus === "COMPLETED" || taskStatusOriginal === "COMPLETED";
 
   const isNotStarted =
-    todayServiceStatus === "SCHEDULED" || taskStatusOriginal === "NOT_STARTED";
+    !isQueueStandby &&
+    (todayServiceStatus === "SCHEDULED" || taskStatusOriginal === "NOT_STARTED");
 
-  const canStart = booking.bookingData?.today_service?.can_start === true;
+  const canStart = !isQueueStandby && booking.bookingData?.today_service?.can_start === true;
   const showActions = tab === "ongoing";
   const showStartButton = showActions && isNotStarted && canStart;
   const showCompleteButton = showActions && isInProgress;
   const showCompletedButton = showActions && isCompleted;
+  const showWithdrawButton =
+    api.can_provider_withdraw === true &&
+    tab !== "past" &&
+    !isInProgress &&
+    !isCompleted;
+  const isWithdrawing = withdrawingId === bookingKey;
   const address = booking.location?.trim();
   const bookingType = String(booking.booking_type || "").toUpperCase();
   const isRecurring = bookingType === "MONTHLY" || bookingType === "SHORT_TERM";
@@ -568,6 +589,7 @@ function BookingRow({
   const slotStartEpoch = coalesceStartEpoch(api.start_epoch, api.startDate || api.start_date);
   const isOverdue =
     tab === "ongoing" &&
+    !isQueueStandby &&
     slotStartEpoch != null &&
     dayjs().unix() >= slotStartEpoch &&
     !isInProgress &&
@@ -581,7 +603,12 @@ function BookingRow({
           <p className="text-xs font-medium text-slate-500">Booking #{booking.id}</p>
           <div className="flex shrink-0 flex-wrap items-center gap-1.5">
             {getBookingTypeBadge(booking.booking_type)}
-            {getStatusBadge(displayStatus)}
+            {getStatusBadge(isQueueStandby ? "QUEUE_STANDBY" : displayStatus)}
+            {isQueueStandby && api.queue_position ? (
+              <span className="rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-200">
+                #{api.queue_position} in queue
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -622,6 +649,13 @@ function BookingRow({
             </div>
           ) : null}
         </div>
+
+        {isQueueStandby ? (
+          <p className="mt-2 text-xs leading-relaxed text-slate-600">
+            You are on backup for this on-demand booking. It appears on your calendar in teal until
+            you are promoted or withdraw.
+          </p>
+        ) : null}
 
         {isOverdue ? (
           <p className="mt-2 flex items-start gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-900">
@@ -685,7 +719,7 @@ function BookingRow({
             </Button>
 
             {showActions ? (
-              taskStatusUpdating[bookingKey] ? (
+              taskStatusUpdating[bookingKey] || isWithdrawing ? (
                 <Button type="button" variant="ghost" size="sm" disabled className="h-8">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 </Button>
@@ -721,9 +755,22 @@ function BookingRow({
                   <Play className="h-3.5 w-3.5" />
                   Start visit
                 </Button>
-              ) : tab === "ongoing" && !isCompleted ? (
+              ) : tab === "ongoing" && !isCompleted && !isQueueStandby ? (
                 <span className="ml-auto text-xs text-slate-500">Not ready to start yet</span>
               ) : null
+            ) : null}
+
+            {showWithdrawButton ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 border-amber-200 bg-amber-50 text-xs text-amber-900 hover:bg-amber-100"
+                disabled={isWithdrawing}
+                onClick={() => onWithdraw(booking)}
+              >
+                {isQueueStandby ? "Leave queue" : "Cancel booking"}
+              </Button>
             ) : null}
         </div>
       </div>
@@ -750,6 +797,7 @@ export function AllBookingsDialog({
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
   const [currentBooking, setCurrentBooking] = useState<CurrentBookingState>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   const tabCounts = useMemo(
     () => ({
@@ -881,6 +929,37 @@ export function AllBookingsDialog({
   const handleStopTask = (bookingId: string, bookingData: TaskBookingData) => {
     setCurrentBooking({ bookingId, bookingData });
     setOtpDialogOpen(true);
+  };
+
+  const handleWithdrawFromBooking = async (booking: Booking) => {
+    if (!serviceProviderId) return;
+    const api = booking.bookingData as ProviderEngagementApi;
+    const isBackup = api.is_queue_standby === true || api.queue_role === "backup";
+    const confirmed = window.confirm(
+      isBackup
+        ? "Leave the backup queue for this on-demand booking?"
+        : "Cancel your assignment for this on-demand booking? If you are primary, the next backup may be promoted."
+    );
+    if (!confirmed) return;
+
+    const bookingKey = booking.id.toString();
+    setWithdrawingId(bookingKey);
+    try {
+      const { message } = await withdrawFromOnDemandEngagement(booking.id, serviceProviderId);
+      toast({ title: "Withdrawn", description: message });
+      await fetchMonth();
+    } catch (err) {
+      let errorMessage = "Could not withdraw from this booking.";
+      if (axios.isAxiosError(err)) {
+        errorMessage =
+          err.response?.data?.error || err.response?.data?.message || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      toast({ title: "Withdraw failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setWithdrawingId(null);
+    }
   };
 
   const handleVerifyOtp = async (otp: string) => {
@@ -1136,6 +1215,8 @@ export function AllBookingsDialog({
                       onTrack={handleTrackAddress}
                       onStart={handleStartTask}
                       onComplete={handleStopTask}
+                      onWithdraw={handleWithdrawFromBooking}
+                      withdrawingId={withdrawingId}
                     />
                   ))}
                 </div>
