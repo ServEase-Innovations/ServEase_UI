@@ -1,6 +1,15 @@
 /**
  * API shape for GET /api/admin/engagements
  */
+export type AdminProviderQueueEntry = {
+  queue_position: number;
+  role: "primary" | "backup";
+  serviceproviderid: number;
+  firstname?: string | null;
+  lastname?: string | null;
+  accepted_at?: string | null;
+};
+
 export type AdminEngagementRow = {
   engagement_id: number;
   booking_type: string | null;
@@ -25,6 +34,7 @@ export type AdminEngagementRow = {
     lastname: string | null;
   } | null;
   payment: { status: string; total_amount: number; payment_mode: string } | null;
+  provider_queue?: AdminProviderQueueEntry[];
   created_at: string | null;
 };
 
@@ -52,6 +62,33 @@ export function formatServiceDateRange(row: {
   if (start === end || end === "—") return start;
   if (start === "—") return end;
   return `${start} – ${end}`;
+}
+
+export function formatProviderQueueLabel(
+  queue?: AdminProviderQueueEntry[] | null
+): string {
+  if (!queue?.length) return "—";
+  return queue
+    .map((q) => {
+      const name = [q.firstname, q.lastname].filter(Boolean).join(" ").trim();
+      const label = name || `#${q.serviceproviderid}`;
+      return q.role === "primary" ? `P: ${label}` : `B${q.queue_position}: ${label}`;
+    })
+    .join(" · ");
+}
+
+export function formatBackupProvidersLabel(
+  queue?: AdminProviderQueueEntry[] | null
+): string {
+  if (!queue?.length) return "—";
+  const backups = queue.filter((q) => q.role === "backup");
+  if (!backups.length) return "—";
+  return backups
+    .map((q) => {
+      const name = [q.firstname, q.lastname].filter(Boolean).join(" ").trim();
+      return name ? `#${q.queue_position} ${name}` : `#${q.queue_position} SP ${q.serviceproviderid}`;
+    })
+    .join(", ");
 }
 
 export function deriveEngagementStage(e: {

@@ -56,6 +56,20 @@ export async function assignOnDemandEngagement(engagementId: number, providerId:
   return data;
 }
 
+export async function adminSetProviderQueue(engagementId: number, providerIds: number[]) {
+  const { data } = await PaymentInstance.put<{
+    success: boolean;
+    provider_queue: Array<{
+      queue_position: number;
+      role: string;
+      serviceproviderid: number;
+      firstname?: string;
+      lastname?: string;
+    }>;
+  }>(`/api/admin/engagements/${engagementId}/provider-queue`, { providerIds });
+  return data;
+}
+
 export type AdminVacationProviderRow = {
   engagement_id: number;
   customer: {

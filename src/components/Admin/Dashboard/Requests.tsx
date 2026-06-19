@@ -13,7 +13,9 @@ import {
   type AdminEngagementRow,
   adminRowToFormInitial,
   deriveEngagementStage,
+  formatBackupProvidersLabel,
   formatEngagementTimeHm,
+  formatProviderQueueLabel,
   formatServiceDateRange,
 } from "./engagementAdminUtils";
 import { EngagementEditDialog, type EngagementFormInitial } from "./EngagementEditDialog";
@@ -129,8 +131,7 @@ const Requests = () => {
     [displayRows]
   );
 
-  const columnDefs: ColDef<EngGridRow>[] = useMemo(
-    () => [
+  const columnDefs = useMemo((): ColDef<EngGridRow>[] => [
       { field: "engagement_id", headerName: "ID", width: 90, valueFormatter: (p) => String(p.value ?? "") },
       {
         colId: "service_dates",
@@ -180,7 +181,34 @@ const Requests = () => {
       { field: "service_type", headerName: "Service", width: 120, valueFormatter: (p) => p.value || "—" },
       { field: "customerName", headerName: "Customer", minWidth: 150 },
       { field: "customer", headerName: "Customer ID", width: 110, valueFormatter: (p) => (p.data?.customer?.customerid != null ? String(p.data?.customer?.customerid) : "—") },
-      { field: "providerName", headerName: "Provider", minWidth: 140, valueFormatter: (p) => p.value || "—" },
+      { field: "providerName", headerName: "Primary SP", minWidth: 140, valueFormatter: (p) => p.value || "—" },
+      {
+        colId: "backup_providers",
+        headerName: "Backup SPs",
+        minWidth: 160,
+        valueGetter: (p) => formatBackupProvidersLabel(p.data?.provider_queue),
+        wrapText: true,
+      },
+      {
+        colId: "queue_fill",
+        headerName: "Queue",
+        width: 88,
+        valueGetter: (p) => {
+          const n = p.data?.provider_queue?.length ?? 0;
+          return n ? `${n}/5` : "—";
+        },
+        cellClassRules: {
+          "font-semibold text-sky-800": (p) => (p.data?.provider_queue?.length ?? 0) > 1,
+        },
+      },
+      {
+        colId: "provider_queue_detail",
+        headerName: "Queue detail",
+        minWidth: 200,
+        hide: true,
+        valueGetter: (p) => formatProviderQueueLabel(p.data?.provider_queue),
+        wrapText: true,
+      },
       { field: "base_amount", headerName: "Amount", width: 100, valueFormatter: (p: ValueFormatterParams) => (p.data?.base_amount != null ? String(p.data?.base_amount) : "—") },
       { field: "active", headerName: "Active", width: 90, valueFormatter: (p) => (p.data?.active ? "Yes" : "No") },
       {
