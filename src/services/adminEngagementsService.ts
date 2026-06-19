@@ -159,7 +159,8 @@ export function mapProviderToAdminBookingRow(
     vacationStatus,
     vacationDays: vac?.leaveDays ?? null,
     vacationPeriod: vac ? formatVacationSummary(vac) : null,
-    vacationEngagementId: vac?.engagementId ?? null,
+    vacationEngagementId:
+      vac?.engagementId != null ? Number(vac.engagementId) : null,
     vacationOverlapsVisit: overlaps,
     vacationTooltip: vac
       ? formatVacationSummary(vac, { includeEngagement: true })
