@@ -15,6 +15,7 @@ import {
   BellRing,
   Ticket,
   AlertTriangle,
+  CalendarDays,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "requests", title: "Requests", icon: ClipboardList },
   { id: "tickets", title: "Support tickets", icon: Ticket },
   { id: "on-demand-escalations", title: "On-demand escalations", icon: AlertTriangle },
+  { id: "vacation-providers", title: "Vacation priority", icon: CalendarDays },
   { id: "chats", title: "Chats", icon: MessageSquare },
   { id: "permissions", title: "Permissions", icon: Shield },
   { id: "push-notifications", title: "Push notifications", icon: BellRing },
@@ -84,7 +86,15 @@ export function AdminSidebar({ activeSection, onSectionChange, userRole }: Admin
   const items = itemsForRole(userRole);
   const overview = items.filter((i) => i.id === "dashboard");
   const main = items.filter((i) =>
-    ["users", "service-providers", "requests", "tickets", "on-demand-escalations", "chats"].includes(i.id)
+    [
+      "users",
+      "service-providers",
+      "requests",
+      "tickets",
+      "on-demand-escalations",
+      "vacation-providers",
+      "chats",
+    ].includes(i.id)
   );
   const operations = items.filter((i) =>
     ["payments", "pricing", "upload-data", "coupons", "ledger"].includes(i.id)

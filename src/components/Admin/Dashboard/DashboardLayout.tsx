@@ -23,6 +23,7 @@ import AdminLedgerGrid from "./AdminLedgerGrid";
 import PushNotifications from "./PushNotifications";
 import Tickets from "./Tickets";
 import OnDemandEscalations from "./OnDemandEscalations";
+import VacationPriorityProviders from "./VacationPriorityProviders";
 import { CHROME_BAR_GRADIENT, CHROME_BAR_SHADOW } from "src/Constants/chromeBar";
 import { cn } from "../../utils";
 
@@ -33,6 +34,7 @@ const SECTION_LABELS: Record<string, string> = {
   requests: "Requests",
   tickets: "Support tickets",
   "on-demand-escalations": "On-demand escalations",
+  "vacation-providers": "Vacation priority",
   chats: "Chats",
   permissions: "Permissions",
   payments: "Payments",
@@ -95,6 +97,8 @@ export function DashboardLayout({
           return <Tickets />;
         case "on-demand-escalations":
           return <OnDemandEscalations />;
+        case "vacation-providers":
+          return <VacationPriorityProviders />;
         case "chats":
           return <Chats />;
         case "permissions":
@@ -120,6 +124,8 @@ export function DashboardLayout({
           return <Tickets />;
         case "on-demand-escalations":
           return <OnDemandEscalations />;
+        case "vacation-providers":
+          return <VacationPriorityProviders />;
         case "chats":
           return <Chats />;
         case "payments":
