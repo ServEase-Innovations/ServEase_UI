@@ -9,6 +9,7 @@ import {
   fetchAdminEscalatedOnDemandEngagements,
   type AdminEngagementRow,
 } from "src/services/adminEngagementsService";
+import { AdminProviderBookingDialog } from "./AdminProviderBookingDialog";
 import {
   ADMIN_ON_DEMAND_ESCALATION_EVENT,
   ADMIN_OPEN_ON_DEMAND_ESCALATIONS_EVENT,
@@ -32,6 +33,7 @@ const OnDemandEscalations = () => {
   const [alert, setAlert] = useState<AdminOnDemandEscalationDetail | null>(null);
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [providerByEngagement, setProviderByEngagement] = useState<Record<number, string>>({});
+  const [pickerEngagement, setPickerEngagement] = useState<AdminEngagementRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,6 +210,13 @@ const OnDemandEscalations = () => {
                     </label>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => setPickerEngagement(row)}
+                    >
+                      Browse providers
+                    </Button>
+                    <Button
+                      size="sm"
                       onClick={() => void handleAssign(row.engagement_id)}
                       disabled={assigningId === row.engagement_id}
                     >
@@ -220,6 +229,19 @@ const OnDemandEscalations = () => {
           )}
         </CardContent>
       </Card>
+
+      <AdminProviderBookingDialog
+        open={pickerEngagement != null}
+        onClose={() => setPickerEngagement(null)}
+        engagement={pickerEngagement}
+        onSelect={(providerId) => {
+          if (!pickerEngagement) return;
+          setProviderByEngagement((prev) => ({
+            ...prev,
+            [pickerEngagement.engagement_id]: String(providerId),
+          }));
+        }}
+      />
     </div>
   );
 };

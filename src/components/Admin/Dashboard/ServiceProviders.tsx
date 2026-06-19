@@ -9,6 +9,7 @@ import ServiceProviderAdminDialog from "./ServiceProviderAdminDialog";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import providerInstance from "src/services/providerInstance";
+import { fetchAdminVacationProviders, type AdminVacationProviderRow } from "src/services/adminEngagementsService";
 import { authApiErrorMessage, isAuthApiError } from "src/utils/apiAuthError";
 import { cn } from "../../utils";
 
@@ -46,6 +47,11 @@ export interface ServiceProviderRow {
   kyc?: string | null;
   correspondenceAddress?: { locality?: string } | null;
   permanentAddress?: { locality?: string } | null;
+  /** Merged from admin vacation API */
+  vacationStatus?: string;
+  vacationDays?: number | null;
+  vacationPeriod?: string | null;
+  vacationEngagementId?: number | null;
 }
 
 const ServiceProviders = () => {
@@ -54,6 +60,23 @@ const ServiceProviders = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [managing, setManaging] = useState<ServiceProviderRow | null>(null);
+  const [vacationByProviderId, setVacationByProviderId] = useState<
+    Map<number, AdminVacationProviderRow>
+  >(new Map());
+
+  const loadVacations = useCallback(async () => {
+    try {
+      const list = await fetchAdminVacationProviders(false, { scope: "future" });
+      const map = new Map<number, AdminVacationProviderRow>();
+      for (const v of list) {
+        const pid = v.provider?.serviceproviderid;
+        if (pid != null) map.set(pid, v);
+      }
+      setVacationByProviderId(map);
+    } catch {
+      setVacationByProviderId(new Map());
+    }
+  }, []);
 
   const loadProviders = useCallback(async () => {
     setLoading(true);
@@ -121,16 +144,28 @@ const ServiceProviders = () => {
 
   useEffect(() => {
     void loadProviders();
-  }, [loadProviders]);
+    void loadVacations();
+  }, [loadProviders, loadVacations]);
 
   const displayRows = useMemo(() => {
     const q = searchText.trim().toLowerCase();
-    if (!q) return rowData;
-    return rowData.filter((row) => {
+    const withVacation = rowData.map((row) => {
+      const vac = vacationByProviderId.get(row.serviceproviderid);
+      if (!vac) return row;
+      return {
+        ...row,
+        vacationStatus: "Active vacation",
+        vacationDays: vac.leave_days,
+        vacationPeriod: `${vac.vacation_start_date} → ${vac.vacation_end_date}`,
+        vacationEngagementId: vac.engagement_id,
+      };
+    });
+    if (!q) return withVacation;
+    return withVacation.filter((row) => {
       const o = row as unknown as Record<string, unknown>;
       return Object.values(o).some((v) => v != null && String(v).toLowerCase().includes(q));
     });
-  }, [rowData, searchText]);
+  }, [rowData, searchText, vacationByProviderId]);
 
   const columnDefs: ColDef<ServiceProviderRow>[] = useMemo(
     () => [
@@ -239,6 +274,36 @@ const ServiceProviders = () => {
         },
         valueFormatter: (p) => (p.value ? "Active" : "Inactive"),
       },
+      {
+        colId: "vacationStatus",
+        field: "vacationStatus",
+        headerName: "Vacation status",
+        width: 140,
+        valueFormatter: (p) => p.value || "—",
+        cellClass: (p) => (p.value ? "text-amber-800 font-semibold" : ""),
+      },
+      {
+        colId: "vacationDays",
+        field: "vacationDays",
+        headerName: "Vacation days",
+        width: 120,
+        valueFormatter: (p) => (p.value != null ? String(p.value) : "—"),
+      },
+      {
+        colId: "vacationPeriod",
+        field: "vacationPeriod",
+        headerName: "Vacation period",
+        minWidth: 200,
+        flex: 1,
+        valueFormatter: (p) => p.value || "—",
+      },
+      {
+        colId: "vacationEngagement",
+        field: "vacationEngagementId",
+        headerName: "Vacation eng.",
+        width: 110,
+        valueFormatter: (p) => (p.value != null ? `#${p.value}` : "—"),
+      },
       { field: "kyc", headerName: "KYC", width: 100, valueFormatter: (p) => p.value || "—" },
       { field: "vendorId", headerName: "Vendor", width: 100, valueFormatter: (p) => (p.value == null ? "—" : String(p.value)) },
     ],
@@ -262,7 +327,16 @@ const ServiceProviders = () => {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Service providers</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => void loadProviders()} disabled={loading}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void loadProviders();
+              void loadVacations();
+            }}
+            disabled={loading}
+          >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
           </Button>
         </div>
@@ -301,6 +375,7 @@ const ServiceProviders = () => {
               className={cn("ag-theme-alpine w-full rounded-lg border border-slate-200/80 overflow-hidden")}
               style={{ width: "100%", height: 560 }}
             >
+              <style>{`.admin-sp-vacation-row { background-color: rgba(254, 243, 199, 0.55) !important; }`}</style>
               <AgGridReact<ServiceProviderRow>
                 rowData={displayRows}
                 columnDefs={columnDefs}
@@ -309,6 +384,7 @@ const ServiceProviders = () => {
                 paginationPageSize={20}
                 animateRows
                 getRowId={(p) => String(p.data?.serviceproviderid ?? "")}
+                getRowClass={(p) => (p.data?.vacationStatus ? "admin-sp-vacation-row" : "")}
                 suppressRowClickSelection
                 rowSelection="multiple"
                 onCellClicked={(e) => {
