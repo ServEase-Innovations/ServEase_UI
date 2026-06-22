@@ -13,6 +13,11 @@ export function effectiveProviderTaskStatus(
   const sd = String(todayServiceStatus ?? "").toUpperCase();
   if (sd === "IN_PROGRESS" || sd === "STARTED") return "IN_PROGRESS";
   if (sd === "COMPLETED" || sd === "DONE") return "COMPLETED";
+  if (sd === "SCHEDULED" || !sd) {
+    const t = String(storedTaskStatus ?? "").toUpperCase();
+    if (t === "COMPLETED") return "COMPLETED";
+    return "NOT_STARTED";
+  }
   const t = String(storedTaskStatus ?? "").toUpperCase();
   if (t === "STARTED") return "IN_PROGRESS";
   if (t) return t;
