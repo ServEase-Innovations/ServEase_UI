@@ -2497,7 +2497,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
     options: { value: string; label: string; count: number }[],
     ariaLabel: string
   ) => (
-    <label className="flex w-[7.5rem] shrink-0 flex-col gap-1 sm:w-[8.5rem]">
+    <label className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         {shortLabel}
       </span>
@@ -2734,9 +2734,9 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
           {viewTab === "upcoming" && (isLoading ? (
             <StatusTabsSkeleton />
           ) : (
-            <div className="mb-4 -mx-1 overflow-x-auto pb-1 scrollbar-thin">
-              <div className="flex min-w-max items-end gap-2 px-1 sm:gap-2.5">
-              <label className="flex w-[7.5rem] shrink-0 flex-col gap-1 sm:w-[8.5rem]">
+            <div className="mb-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5 md:flex md:items-end">
+              <label className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                   Sort
                 </span>
@@ -2799,10 +2799,10 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
                 <button
                   type="button"
                   onClick={clearUpcomingFilters}
-                  className="mb-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-100 sm:text-xs"
+                  className="col-span-2 mt-2 inline-flex items-center justify-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-100 sm:col-span-1 sm:mt-0 sm:self-end sm:text-xs md:shrink-0"
                 >
                   <FilterX className="h-3.5 w-3.5" />
-                  Clear
+                  Clear Filters
                 </button>
               ) : null}
               </div>
