@@ -847,7 +847,16 @@ export const Header: React.FC<ChildComponentProps> = ({
     setDialogOpen(true);
   };
 
-  const handleBookingSave = () => {
+  const handleBookingSave = (bookingDetails?: {
+    option: string;
+    startDate: string | null;
+    endDate: string | null;
+    startTime: Dayjs | null;
+    endTime: Dayjs | null;
+    start_epoch: number | null;
+    end_epoch: number | null;
+    genderPreference?: string;
+  }) => {
     let timeRange = "";
     let timeSlot = "";
 
@@ -875,7 +884,8 @@ export const Header: React.FC<ChildComponentProps> = ({
       housekeepingRole: selectedType,
       startTime: startTime?.format("HH:mm") || "",
       endTime: endTime?.format("HH:mm") || "",
-      timeSlot: timeSlot
+      timeSlot: timeSlot,
+      genderPreference: bookingDetails?.genderPreference || "No Preference"
     };
 
     console.log("Booking details:", booking);

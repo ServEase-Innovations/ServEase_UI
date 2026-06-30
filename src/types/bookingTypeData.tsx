@@ -10,4 +10,5 @@ export type Bookingtype = {
     startTime?: string | null;  // Added from BookingForm
     endTime?: string | null;    // Added from BookingForm
     serviceType?: 'Regular' | 'Premium';  // Added from BookingForm
+    genderPreference?: string;  // Added for provider gender preference filtering
 }
