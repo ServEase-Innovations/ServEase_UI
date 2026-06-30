@@ -40,6 +40,7 @@ interface BookingDialogProps {
     endTime: Dayjs | null;
     start_epoch: number | null;
     end_epoch: number | null;
+    genderPreference?: string;
   }) => void;
   selectedOption: string;
   onOptionChange: (val: string) => void;
@@ -102,6 +103,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 }) => {
   const { t } = useLanguage();
   const [lastSelectedDate, setLastSelectedDate] = useState<Dayjs | null>(null);
+  const [genderPreference, setGenderPreference] = useState<string>("No Preference");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
@@ -116,6 +118,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       setStartTime(null);
       setEndTime(null);
       setLastSelectedDate(null);
+      setGenderPreference("No Preference");
     }
   }, [open, setStartDate, setEndDate, setStartTime, setEndTime]);
 
@@ -600,6 +603,96 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     );
   };
 
+  // Render Gender Preference Selector (Only for Date/One-time bookings)
+  const renderGenderPreference = () => {
+    const genderOptions = [
+      { value: "Male", label: "Male", icon: "👨" },
+      { value: "Female", label: "Female", icon: "👩" },
+      { value: "No Preference", label: "No Preference", icon: "👥" },
+    ];
+
+    return (
+      <Box
+        sx={{
+          mb: 2,
+          p: isMobile ? 1.5 : 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: alpha(theme.palette.primary.main, 0.02),
+        }}
+      >
+        <Typography
+          variant={isMobile ? "subtitle2" : "subtitle1"}
+          sx={{ fontWeight: 700, mb: 0.5, color: "text.primary", display: "flex", alignItems: "center", gap: 0.75 }}
+        >
+          <span style={{ fontSize: "1.1em" }}>👤</span>
+          Provider Gender Preference
+        </Typography>
+        
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: "text.secondary", 
+            mb: 2, 
+            fontSize: isMobile ? "0.75rem" : "0.875rem" 
+          }}
+        >
+          Select your preferred provider gender (optional)
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+            gap: isMobile ? 1 : 1.5,
+          }}
+        >
+          {genderOptions.map((option) => {
+            const isSelected = genderPreference === option.value;
+            return (
+              <Button
+                key={option.value}
+                variant={isSelected ? "contained" : "outlined"}
+                onClick={() => setGenderPreference(option.value)}
+                sx={{
+                  py: isMobile ? 1.25 : 1.5,
+                  px: isMobile ? 1.5 : 2,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: isMobile ? "0.875rem" : "0.9375rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.5,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: isSelected ? "2px solid" : "2px solid",
+                  borderColor: isSelected ? "primary.main" : "divider",
+                  bgcolor: isSelected ? "primary.main" : "background.paper",
+                  color: isSelected ? "primary.contrastText" : "text.primary",
+                  boxShadow: isSelected ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}` : "none",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    bgcolor: isSelected ? "primary.dark" : alpha(theme.palette.primary.main, 0.04),
+                    borderColor: isSelected ? "primary.dark" : "primary.light",
+                    transform: "translateY(-2px)",
+                    boxShadow: isSelected 
+                      ? `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
+                      : "0 2px 8px rgba(15, 23, 42, 0.08)",
+                  },
+                }}
+              >
+                <span style={{ fontSize: isMobile ? "1.5rem" : "1.75rem" }}>{option.icon}</span>
+                <span>{option.label}</span>
+              </Button>
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  };
+
   const handleAccept = () => {
     if (startTime && !isBookingValid(startTime)) {
       alert(t('bookingTimeRestriction'));
@@ -622,6 +715,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
       endTime,
       start_epoch: toEpochSeconds(normalizedStart),
       end_epoch: toEpochSeconds(normalizedEnd),
+      genderPreference: genderPreference,
     });
   };
 
@@ -811,6 +905,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   </Box>
                 </Box>
               </Box>
+              {renderGenderPreference()}
               {renderBookingDetails()}
               <Box
                 sx={{

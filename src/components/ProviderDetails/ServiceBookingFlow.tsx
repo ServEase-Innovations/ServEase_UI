@@ -965,6 +965,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
         payment_mode: "razorpay",
         use_wallet: useWalletBalance && walletBalance > 0,
         end_time: endTime,
+        provider_gender_preference: bookingType?.genderPreference || "No Preference",
       };
       const startEpoch = dayjs(`${start_date} ${payload.start_time}`).unix();
       const endEpoch =

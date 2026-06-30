@@ -2480,7 +2480,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
   ];
 
   const upcomingSelectClassName =
-    "min-w-[7.5rem] max-w-[9.5rem] shrink-0 rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-[11px] font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:min-w-[8.5rem] sm:text-xs";
+    "min-w-0 w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-2 pr-7 text-[11px] font-medium text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:text-xs";
 
   const historyTabBookings =
     viewTab === "cancelled" ? filteredCancelledBookings : filteredPastBookings;

@@ -112,7 +112,16 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         return (endTotalMinutes - startTotalMinutes) / 60;
     };
 
-const handleSave = () => {
+const handleSave = (bookingDetails?: {
+  option: string;
+  startDate: string | null;
+  endDate: string | null;
+  startTime: Dayjs | null;
+  endTime: Dayjs | null;
+  start_epoch: number | null;
+  end_epoch: number | null;
+  genderPreference?: string;
+}) => {
   let timeRange = "";
   let timeSlot = "";
 
@@ -139,6 +148,7 @@ const handleSave = () => {
     startTime?: string; 
     endTime?: string;
     timeSlot?: string;
+    genderPreference?: string;
   } = {
     startDate: startDateYmd,
     endDate: endDateYmd,
@@ -149,7 +159,9 @@ const handleSave = () => {
     startTime: startTime?.format("HH:mm") || "",
     endTime: endTime?.format("HH:mm") || "",
     // ✅ timeSlot will have time range when applicable
-    timeSlot: timeSlot
+    timeSlot: timeSlot,
+    // ✅ Store gender preference from bookingDetails
+    genderPreference: bookingDetails?.genderPreference || "No Preference"
   };
 
   console.log("Booking details:", {
@@ -160,7 +172,8 @@ const handleSave = () => {
     timeRange: booking.timeRange, // "05:35-09:35" for Date, "05:35" for others
     timeSlot: booking.timeSlot,   // "05:35-09:35" for Date/Short term, "05:35" for Monthly
     bookingPreference: booking.bookingPreference,
-    housekeepingRole: booking.housekeepingRole
+    housekeepingRole: booking.housekeepingRole,
+    genderPreference: booking.genderPreference
   });
 
   if (selectedRadioButtonValue === "Date") {
