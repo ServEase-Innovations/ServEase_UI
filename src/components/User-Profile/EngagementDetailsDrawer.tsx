@@ -19,6 +19,9 @@ import {
   toEpochOrNull,
 } from 'src/services/bookingEpoch';
 import type { EngagementEpochFields } from 'src/services/epochContract';
+import paymentInstance from 'src/services/paymentInstance';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert, { AlertProps } from '@mui/material/Alert';
 
 interface DrawerPayment {
   engagement_id?: number | string;
@@ -58,6 +61,29 @@ interface EngagementDetailsDrawerProps {
   onPaymentComplete?: () => void | Promise<void>;
 }
 
+interface ExtensionSlot {
+  hours: number;
+  newEndTime: string;
+  newEndTimeFormatted: string;
+  additionalCost: number;
+  totalCost: number;
+}
+
+interface ExtensionAvailability {
+  canExtend: boolean;
+  reason?: string;
+  currentEndTimeFormatted?: string;
+  hourlyRate?: number;
+  availableSlots?: ExtensionSlot[];
+}
+
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  props,
+  ref,
+) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 const formatDate = (dateString: string) => {
   return dayjs(dateString).format('MMMM D, YYYY');
 };
@@ -69,6 +95,120 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
   onPaymentComplete,
 }) => {
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
+  
+  // Extension states
+  const [showExtendDialog, setShowExtendDialog] = React.useState(false);
+  const [extensionAvailability, setExtensionAvailability] = React.useState<ExtensionAvailability | null>(null);
+  const [loadingAvailability, setLoadingAvailability] = React.useState(false);
+  const [selectedExtension, setSelectedExtension] = React.useState<ExtensionSlot | null>(null);
+  const [isExtending, setIsExtending] = React.useState(false);
+
+  // Snackbar states
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState<'success' | 'error' | 'warning' | 'info'>('success');
+
+  const handleSnackbarClose = (_?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') return;
+    setSnackbarOpen(false);
+  };
+
+  if (!isOpen || !booking) return null;
+
+  // Extension handlers
+  const isProviderAssigned = () => {
+    const notAssignedString = 'Not Assigned';
+    return !!(
+      booking.serviceProviderName &&
+      booking.serviceProviderName !== notAssignedString &&
+      booking.serviceProviderName.trim() !== '' &&
+      booking.serviceProviderName !== 'Not Assigned'
+    );
+  };
+
+  const canShowExtendButton = () => {
+    return (
+      booking.bookingType === 'ON_DEMAND' &&
+      isProviderAssigned() &&
+      ['NOT_STARTED', 'IN_PROGRESS'].includes(booking.taskStatus || '') &&
+      booking.payment?.status !== 'PENDING'
+    );
+  };
+
+  const handleExtendClick = async () => {
+    setShowExtendDialog(true);
+    await checkExtensionAvailability();
+  };
+
+  const checkExtensionAvailability = async () => {
+    try {
+      setLoadingAvailability(true);
+      const response = await paymentInstance.get(
+        `/api/v2/engagements/${booking.id}/extension-availability`
+      );
+      setExtensionAvailability(response.data);
+      
+      if (!response.data.canExtend) {
+        setSnackbarMessage(response.data.reason || 'Booking cannot be extended at this time');
+        setSnackbarSeverity('warning');
+        setSnackbarOpen(true);
+        setShowExtendDialog(false);
+      }
+    } catch (error: any) {
+      console.error('Error checking availability:', error);
+      setSnackbarMessage('Unable to check extension availability. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      setShowExtendDialog(false);
+    } finally {
+      setLoadingAvailability(false);
+    }
+  };
+
+  const handleExtendBooking = async () => {
+    if (!selectedExtension) {
+      setSnackbarMessage('Please select an extension option');
+      setSnackbarSeverity('warning');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    if (!window.confirm(
+      `Extend booking by ${selectedExtension.hours} hour${selectedExtension.hours > 1 ? 's' : ''} for ₹${selectedExtension.additionalCost}?`
+    )) {
+      return;
+    }
+
+    try {
+      setIsExtending(true);
+      const response = await paymentInstance.post(
+        `/api/v2/engagements/${booking.id}/extend`,
+        {
+          extensionHours: selectedExtension.hours,
+          newEndTime: selectedExtension.newEndTime,
+          additionalAmount: selectedExtension.additionalCost,
+          paymentMode: 'CASH'
+        }
+      );
+
+      setSnackbarMessage(response.data.message || 'Booking extended successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+      setShowExtendDialog(false);
+      setSelectedExtension(null);
+      
+      if (onPaymentComplete) await onPaymentComplete();
+      setTimeout(() => onClose(), 500);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to extend booking';
+      setSnackbarMessage(message);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setIsExtending(false);
+    }
+  };
 
   if (!isOpen || !booking) return null;
 
@@ -311,6 +451,21 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             </div>
           )}
 
+          {/* Extend Service Hour Button */}
+          {canShowExtendButton() && (
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleExtendClick}
+                className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-3"
+              >
+                <Clock className="h-5 w-5 mr-2" />
+                Extend Service Hour
+              </Button>
+            </div>
+          )}
+
           {/* Modification History */}
           {booking.modifications && booking.modifications.length > 0 && (
             <div className="space-y-4">
@@ -372,6 +527,186 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Extend Service Hour Dialog */}
+      {showExtendDialog && (
+        <>
+          {/* Dialog Overlay */}
+          <div 
+            className="fixed inset-0 bg-black/60 transition-opacity z-[60]"
+            onClick={() => setShowExtendDialog(false)}
+          />
+          
+          {/* Dialog Content */}
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-[70] max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 relative">
+              <div className="flex items-center justify-center gap-3">
+                <Clock className="h-6 w-6 text-white" />
+                <h2 className="text-xl font-bold text-white">Extend Service Hour</h2>
+              </div>
+              <button
+                onClick={() => setShowExtendDialog(false)}
+                className="absolute right-4 top-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-200px)] p-6">
+              {loadingAvailability ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-600">Checking provider availability...</p>
+                </div>
+              ) : extensionAvailability && extensionAvailability.canExtend ? (
+                <>
+                  {/* Current Booking Info */}
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">
+                          Current End Time
+                        </p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {extensionAvailability.currentEndTimeFormatted}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">
+                          Hourly Rate
+                        </p>
+                        <p className="text-lg font-bold text-blue-600">
+                          ₹{extensionAvailability.hourlyRate}/hour
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h3 className="font-bold text-gray-900 mb-4">Select Extension Duration</h3>
+
+                  {/* Extension Options */}
+                  <div className="space-y-3 mb-6">
+                    {extensionAvailability.availableSlots?.map((slot, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedExtension(slot)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all ${
+                          selectedExtension?.hours === slot.hours
+                            ? 'border-blue-600 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                              selectedExtension?.hours === slot.hours
+                                ? 'border-blue-600'
+                                : 'border-gray-300'
+                            }`}>
+                              {selectedExtension?.hours === slot.hours && (
+                                <div className="w-3 h-3 rounded-full bg-blue-600" />
+                              )}
+                            </div>
+                            <div className="text-left">
+                              <p className="font-bold text-gray-900">
+                                +{slot.hours} hour{slot.hours > 1 ? 's' : ''}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Until {slot.newEndTimeFormatted}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-blue-600">
+                              +₹{slot.additionalCost}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Total: ₹{slot.totalCost}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Summary */}
+                  {selectedExtension && (
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-900 mb-3">Extension Summary</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Duration:</span>
+                          <span className="font-semibold text-gray-900">
+                            +{selectedExtension.hours} hour{selectedExtension.hours > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">New End Time:</span>
+                          <span className="font-semibold text-gray-900">
+                            {selectedExtension.newEndTimeFormatted}
+                          </span>
+                        </div>
+                        <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between items-center">
+                          <span className="font-bold text-gray-900">Additional Cost:</span>
+                          <span className="text-xl font-bold text-blue-600">
+                            ₹{selectedExtension.additionalCost}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <AlertCircle className="h-16 w-16 text-red-500" />
+                  <h3 className="text-xl font-bold text-gray-900">Cannot Extend</h3>
+                  <p className="text-gray-600 text-center">
+                    {extensionAvailability?.reason || 'This booking cannot be extended at this time'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {extensionAvailability?.canExtend && (
+              <div className="border-t border-gray-200 p-4 flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowExtendDialog(false)}
+                  disabled={isExtending}
+                  className="flex-1 border-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleExtendBooking}
+                  disabled={!selectedExtension || isExtending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                >
+                  {isExtending ? 'Processing...' : 'Confirm Extension'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        style={{ marginTop: '60px' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
 
       {/* Add CSS for highlight animation */}
       <style>{`
