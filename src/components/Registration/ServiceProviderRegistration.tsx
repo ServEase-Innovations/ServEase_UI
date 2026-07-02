@@ -1277,7 +1277,21 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   };
 
   const handleNext = () => {
-    // No validation needed - just proceed
+    // Check if validation is in progress on step 0
+    if (activeStep === 0) {
+      const isValidating = validationResults.email.loading || 
+                          validationResults.mobile.loading || 
+                          validationResults.alternate.loading;
+      
+      if (isValidating) {
+        setSnackbarMessage(t("pleaseWaitForValidation") || "Please wait for validation to complete");
+        setSnackbarSeverity("warning");
+        setSnackbarOpen(true);
+        return;
+      }
+    }
+
+    // Proceed to next step
     setActiveStep((prevStep) => Math.min(prevStep + 1, steps.length - 1));
     if (activeStep === steps.length - 1) {
       setSnackbarMessage(t("registrationSuccessful"));
@@ -2158,7 +2172,14 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
                     handleNext();
                   }}
                   endIcon={<ArrowForward />}
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting || 
+                    (activeStep === 0 && (
+                      validationResults.email.loading || 
+                      validationResults.mobile.loading || 
+                      validationResults.alternate.loading
+                    ))
+                  }
                 >
                   {t("next")}
                 </Button>
