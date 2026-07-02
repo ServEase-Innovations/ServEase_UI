@@ -67,6 +67,18 @@ interface ExtensionSlot {
   newEndTimeFormatted: string;
   additionalCost: number;
   totalCost: number;
+  pricing?: {
+    baseGross: number;
+    baseNet: number;
+    hourDiscount: number;
+    platformFee: number;
+    gst: number;
+    total: number;
+  };
+  discounts?: Array<{
+    label: string;
+    amount: number;
+  }>;
 }
 
 interface ExtensionAvailability {
@@ -173,39 +185,97 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
       return;
     }
 
-    if (!window.confirm(
-      `Extend booking by ${selectedExtension.hours} hour${selectedExtension.hours > 1 ? 's' : ''} for ₹${selectedExtension.additionalCost}?`
-    )) {
-      return;
-    }
-
     try {
       setIsExtending(true);
+      
+      // Step 1: Initiate extension and create Razorpay order
       const response = await paymentInstance.post(
         `/api/v2/engagements/${booking.id}/extend`,
         {
           extensionHours: selectedExtension.hours,
           newEndTime: selectedExtension.newEndTime,
-          additionalAmount: selectedExtension.additionalCost,
-          paymentMode: 'CASH'
+          additionalAmount: selectedExtension.additionalCost
         }
       );
 
-      setSnackbarMessage(response.data.message || 'Booking extended successfully');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      setShowExtendDialog(false);
-      setSelectedExtension(null);
-      
-      if (onPaymentComplete) await onPaymentComplete();
-      setTimeout(() => onClose(), 500);
+      const {
+        razorpay_order_id,
+        razorpay_key_id,
+        amount,
+        currency
+      } = response.data;
+
+      if (!razorpay_order_id) {
+        setSnackbarMessage('Payment order could not be created. Please try again.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        setIsExtending(false);
+        return;
+      }
+
+      // Step 2: Load Razorpay script dynamically
+      const { loadRazorpayCheckoutScript } = await import('src/utils/loadRazorpayCheckout');
+      const RazorpayConstructor = await loadRazorpayCheckoutScript();
+
+      // Step 3: Open Razorpay checkout
+      const options = {
+        key: razorpay_key_id || 'rzp_test_lTdgjtSRlEwreA',
+        amount: amount,
+        currency: currency || 'INR',
+        order_id: razorpay_order_id,
+        name: 'Serveaso',
+        description: `Extend booking by ${selectedExtension.hours} hour${selectedExtension.hours > 1 ? 's' : ''}`,
+        handler: async function (razorpayResponse: any) {
+          try {
+            // Step 4: Verify payment
+            await paymentInstance.post(`/api/v2/engagements/${booking.id}/extend/verify`, {
+              razorpay_order_id: razorpayResponse.razorpay_order_id,
+              razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+              razorpay_signature: razorpayResponse.razorpay_signature,
+            });
+
+            setSnackbarMessage('Booking extended successfully!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+            
+            setShowExtendDialog(false);
+            setSelectedExtension(null);
+            
+            if (onPaymentComplete) await onPaymentComplete();
+            setTimeout(() => onClose(), 500);
+          } catch (verifyError: any) {
+            console.error('Extension payment verification error:', verifyError);
+            const message = verifyError?.response?.data?.error || 'Payment verification failed';
+            setSnackbarMessage(message);
+            setSnackbarSeverity('error');
+            setSnackbarOpen(true);
+          } finally {
+            setIsExtending(false);
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setIsExtending(false);
+          }
+        },
+        prefill: {
+          name: booking.customerName || '',
+          contact: '9999999999',
+          email: '',
+        },
+        theme: {
+          color: '#3b82f6', // blue-600
+        },
+      };
+
+      const razorpay = new RazorpayConstructor(options);
+      razorpay.open();
     } catch (error: any) {
-      const message = error?.response?.data?.error || 'Failed to extend booking';
+      console.error('Extension initiation error:', error);
+      const message = error?.response?.data?.error || error?.message || 'Failed to initiate extension';
       setSnackbarMessage(message);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
-    } finally {
       setIsExtending(false);
     }
   };
@@ -635,8 +705,34 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
                   {/* Summary */}
                   {selectedExtension && (
                     <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                      <h4 className="font-bold text-gray-900 mb-3">Extension Summary</h4>
+                      <h4 className="font-bold text-gray-900 mb-3">Price Breakup</h4>
                       <div className="space-y-2">
+                        
+                        {/* Pricing Breakdown */}
+                        {selectedExtension.pricing && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Base Amount:</span>
+                              <span className="text-gray-900">₹{selectedExtension.pricing.baseNet.toFixed(2)}</span>
+                            </div>
+                            {selectedExtension.discounts && selectedExtension.discounts.length > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-green-600">{selectedExtension.discounts[0].label}:</span>
+                                <span className="text-green-600">-₹{selectedExtension.discounts[0].amount.toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Platform Fee (6%):</span>
+                              <span className="text-gray-900">₹{selectedExtension.pricing.platformFee.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">GST (18%):</span>
+                              <span className="text-gray-900">₹{selectedExtension.pricing.gst.toFixed(2)}</span>
+                            </div>
+                            <div className="border-t border-blue-200 my-2"></div>
+                          </>
+                        )}
+                        
                         <div className="flex justify-between">
                           <span className="text-gray-600">Duration:</span>
                           <span className="font-semibold text-gray-900">
@@ -649,8 +745,9 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
                             {selectedExtension.newEndTimeFormatted}
                           </span>
                         </div>
-                        <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between items-center">
-                          <span className="font-bold text-gray-900">Additional Cost:</span>
+                        
+                        <div className="border-t-2 border-blue-300 pt-3 mt-3 flex justify-between items-center">
+                          <span className="font-bold text-gray-900">Total Additional Cost:</span>
                           <span className="text-xl font-bold text-blue-600">
                             ₹{selectedExtension.additionalCost}
                           </span>
