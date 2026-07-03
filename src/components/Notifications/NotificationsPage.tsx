@@ -288,7 +288,7 @@ export default function NotificationsPage({
           );
         }
         const merged = [n, ...base].filter(
-          (x, i, a) => a.findIndex((y) => y.id === x.id) === i
+          (x, i, a) => a.findIndex((y) => String(y.id) === String(x.id)) === i
         );
         return merged;
       });
@@ -619,7 +619,7 @@ export default function NotificationsPage({
           ) : null}
 
           <List component="ol" disablePadding sx={{ listStyle: "none" }} className="pb-2">
-            {items.map((n) => {
+            {items.map((n, index) => {
               const unreadItem = !n.readAt;
               const meta = typeMeta(n.type);
               const TypeIcon = meta.Icon;
@@ -665,7 +665,7 @@ export default function NotificationsPage({
               };
               return (
                 <ListItem
-                  key={n.id}
+                  key={`${n.id}-${index}`}
                   component="li"
                   disableGutters
                   sx={{ display: "block" }}
