@@ -729,7 +729,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
     width: "100%",
     maxWidth: isMobile ? "100%" : 380,
     mx: "auto",
-    p: { xs: 1, sm: 1.5, md: 2 },
+    p: { xs: 0, sm: 1.5, md: 2 },
     borderRadius: 2,
     border: "1px solid",
     borderColor: "divider",
