@@ -49,6 +49,7 @@ import { getOtpVerifyErrorMessage } from "src/utils/otpVerifyError";
 import WithdrawalDialog from "./WithdrawalDialog";
 import { WithdrawalHistoryDialog } from "./WithdrawalHistoryDialog";
 import TrackAddress from "./TrackAddress";
+import JourneyTrackingButton from "./JourneyTrackingButton";
 import {
   ProviderLeaveDialog,
   ProviderUnavailabilityDialog,
@@ -507,6 +508,17 @@ function TodayVisitsCard({
                         <span>{overdueMessage}</span>
                       </p>
                     ) : null}
+                    {/* Journey Tracking Button - Shows before service starts */}
+                    {!showComplete && taskU !== "COMPLETED" && (
+                      <div className="mt-2">
+                        <JourneyTrackingButton
+                          engagementId={b.engagement_id}
+                          onStatusChange={(status) => {
+                            console.log(`Journey status changed for ${b.engagement_id}:`, status);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     {getBookingTypeBadge(String(b.booking_type || ""))}

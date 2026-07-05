@@ -22,6 +22,9 @@ import { OfflineBanner } from './OfflineBanner';
 import { hideMap, stopSession, setAutoCenter, resetTracking } from '../../features/tracking/trackingSlice';
 import { stopTrackingSession } from '../../services/trackingService';
 
+// Define libraries as a constant outside component to prevent reloads
+const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
@@ -54,7 +57,7 @@ export const TrackingMapView: React.FC = () => {
   // Load Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places'],
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   // WebSocket connection

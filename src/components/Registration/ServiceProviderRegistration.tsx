@@ -33,6 +33,9 @@ import { keys } from "../../env/env";
 import axiosInstance from "../../services/axiosInstance";
 import { urls } from "../../config/urls";
 import { Button } from "../Button/button";
+
+// Define libraries as a constant outside component to prevent Google Maps reloads
+const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 import { debounce } from "src/utils/debounce";
@@ -322,7 +325,7 @@ const ServiceProviderRegistration: React.FC<RegistrationProps> = ({
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const { isLoaded: isMapLoaded, loadError: mapLoadError } = useJsApiLoader({
     googleMapsApiKey: keys.api_key || "",
-    libraries: ["places"],
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   // New state variables for multi-slot time selection
