@@ -102,9 +102,10 @@ export const DateWiseTimeline: React.FC<DateWiseTimelineProps> = ({
     return dayjs(dateStr).isSame(dayjs(), 'day');
   };
 
-  const isPast = (dateStr: string): boolean => {
-    return dayjs(dateStr).isBefore(dayjs(), 'day');
-  };
+  // Unused helper - keeping for potential future use
+  // const isPast = (dateStr: string): boolean => {
+  //   return dayjs(dateStr).isBefore(dayjs(), 'day');
+  // };
 
   const isFuture = (dateStr: string): boolean => {
     return dayjs(dateStr).isAfter(dayjs(), 'day');

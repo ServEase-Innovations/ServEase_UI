@@ -91,7 +91,7 @@ export const ETADisplay: React.FC<ETADisplayProps> = ({
   useEffect(() => {
     setCurrentETA(eta.duration_seconds);
     setElapsedTime(0);
-  }, [eta.calculated_at]);
+  }, [eta.calculated_at, eta.duration_seconds]);
 
   const etaColor = getETAColor(currentETA);
   const minETA = Math.max(0, eta.eta_range.min_seconds - elapsedTime);
