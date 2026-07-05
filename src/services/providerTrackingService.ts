@@ -194,15 +194,6 @@ export async function updateLocation(
   );
 }
 
-export {
-  startJourney,
-  markArrived,
-  markServiceStarted,
-  markServiceCompleted,
-  getTrackingStatus,
-  updateLocation,
-};
-
 export default {
   startJourney,
   markArrived,
