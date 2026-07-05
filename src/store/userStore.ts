@@ -7,6 +7,7 @@ import detailsDataReducer from '../features/detailsData/detailsDataSlice';
 import  addToCartReducer  from '../features/addToCart/addToSlice';
 import  geoLocationReducer  from '../features/geoLocation/geoLocationSlice';
 import customerReducer from '../features/customer/customerSlice';
+import trackingReducer from '../features/tracking/trackingSlice';
 // Configure your Redux store
 const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ const store = configureStore({
     addToCart: addToCartReducer,
     geoLocation : geoLocationReducer,
     customer: customerReducer,
+    tracking: trackingReducer,
   },
 });
 

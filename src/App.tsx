@@ -45,6 +45,8 @@ import { LanguageProvider } from "./context/LanguageContext";
 import AgentDashboard from "./components/Agent/AgentDashboard";
 import { urls } from "./config/urls";
 import { Alert, Snackbar } from "@mui/material";
+import { TrackingMapView } from "./components/Tracking/TrackingMapView";
+import { useSelector } from "react-redux";
 import {
   acceptEngagement,
   dismissProviderNewBookingNotifications,
@@ -918,6 +920,9 @@ function App() {
                 : undefined
           }
         />
+
+        {/* Tracking Map Overlay - shows when tracking is active */}
+        <TrackingMapView />
       </div>
     </LanguageProvider>
   );

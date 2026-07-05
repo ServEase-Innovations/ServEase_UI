@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../Common/Card";
 import { Button } from "../Button/button";
 import { Badge } from "../Common/Badge/Badge";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
+import { TrackButton } from "../Tracking/TrackButton";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -118,6 +119,7 @@ interface CustomerTodayTasksCardProps {
   onOpenBooking: (engagementId: number) => void;
   onCallProvider: (phone: string, name: string) => void;
   onOpenMap: (address: string) => void;
+  customerId?: number | null;
 }
 
 export default function CustomerTodayTasksCard({
@@ -129,6 +131,7 @@ export default function CustomerTodayTasksCard({
   onOpenBooking,
   onCallProvider,
   onOpenMap,
+  customerId,
 }: CustomerTodayTasksCardProps) {
   const [todayFilter, setTodayFilter] = useState<TodayVisitFilter>("ALL");
 
@@ -309,6 +312,15 @@ export default function CustomerTodayTasksCard({
                           ) : (
                             getStatusBadge(statusForBadge(phase))
                           )}
+                          
+                          {/* Track Provider Button - show for UPCOMING visits when provider is assigned */}
+                          {phase === "UPCOMING" && !unassigned && b.serviceproviderid && customerId && (
+                            <TrackButton
+                              engagementId={b.engagement_id}
+                              customerId={customerId}
+                            />
+                          )}
+                          
                           {b.provider_mobileno ? (
                             <Button
                               type="button"

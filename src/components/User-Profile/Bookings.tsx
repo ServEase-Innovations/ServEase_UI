@@ -81,6 +81,7 @@ import CookServicesDialog from '../ProviderDetails/CookServicesDialog';
 import NannyServicesDialog from '../ProviderDetails/NannyServicesDialog';
 import { EnhancedProviderDetails } from '../../types/ProviderDetailsType';
 import { buildRebookProviderDetails } from 'src/utils/rebookProviderDetails';
+import { TrackButton } from '../Tracking/TrackButton';
 
 interface Task {
   taskType: string;
@@ -2667,6 +2668,7 @@ const Booking: React.FC<any> = ({ handleDataFromChild }) => {
               todaySchedule={filteredTodaySchedule}
               otpLoadingId={otpLoading}
               generatedOTPs={generatedOTPs}
+              customerId={resolvedCustomerId ? Number(resolvedCustomerId) : null}
               onGenerateOtp={handleGenerateOtpFromToday}
               onOpenBooking={scrollToBooking}
               onCallProvider={(phone) => {
