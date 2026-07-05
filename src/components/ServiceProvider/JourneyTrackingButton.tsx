@@ -38,6 +38,7 @@ export default function JourneyTrackingButton({ engagementId, onStatusChange }: 
 
   useEffect(() => {
     loadTrackingStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engagementId]);
 
   // Start/stop location tracking based on status
