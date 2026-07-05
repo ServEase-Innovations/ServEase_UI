@@ -93,12 +93,14 @@ interface Responsibilities {
 }
 
 interface TodayService {
-  service_day_id: string;
+  service_day_id: string | number;
   status: string;
   can_start: boolean;
   can_generate_otp: boolean;
   can_complete: boolean;
   otp_active: boolean;
+  actual_start_epoch?: number;
+  actual_end_epoch?: number;
 }
 
 interface Payment {

@@ -3,6 +3,7 @@ import React from 'react';
 import { X, Calendar, Clock, MapPin, User, CreditCard, Tag, AlertCircle, CheckCircle, XCircle, Download, Printer } from 'lucide-react';
 import { Badge } from '../../components/Common/Badge/Badge';
 import { Separator } from '../../components/Common/Separator/Separator';
+import { BookingTimeline, MonthlyBookingTimeline, DateWiseTimeline, type TimelineData, type MonthlyTimelineData } from '../../components/Common/BookingTimeline';
 import { getServiceTitle, getBookingTypeBadge, getStatusBadge } from '../Common/Booking/BookingUtils';
 import dayjs from 'dayjs';
 import { DialogHeader } from '../ProviderDetails/CookServicesDialog.styles';
@@ -52,6 +53,24 @@ interface DrawerBooking extends Partial<EngagementEpochFields> {
   leave_days?: number;
   payment?: DrawerPayment;
   modifications?: Array<{ action?: string; date?: string; refund?: number; penalty?: number }>;
+  // Timeline recalculation fields
+  actual_start_epoch?: number;
+  actual_end_epoch?: number;
+  duration_minutes?: number;
+  is_timeline_recalculated?: boolean;
+  early_start_minutes?: number;
+  // Today's service info (for MONTHLY/SHORT_TERM)
+  today_service?: {
+    service_day_id?: number | string;
+    status?: string;
+    can_start?: boolean;
+    can_generate_otp?: boolean;
+    can_complete?: boolean;
+    otp_active?: boolean;
+    // Actual start/end times from service_days table
+    actual_start_epoch?: number;
+    actual_end_epoch?: number;
+  };
 }
 
 interface EngagementDetailsDrawerProps {
@@ -313,6 +332,69 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
     }
   };
 
+  /**
+   * Build timeline data for BookingTimeline component (ON_DEMAND)
+   */
+  const buildTimelineData = (): TimelineData => {
+    return {
+      scheduled: {
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        start_epoch: booking.start_epoch,
+        end_epoch: booking.end_epoch,
+      },
+      actual: booking.actual_start_epoch ? {
+        start_epoch: booking.actual_start_epoch,
+        end_epoch: booking.actual_end_epoch,
+      } : undefined,
+      duration_minutes: booking.duration_minutes,
+      is_recalculated: booking.is_timeline_recalculated,
+      early_start_minutes: booking.early_start_minutes,
+    };
+  };
+
+  /**
+   * Build timeline data for MonthlyBookingTimeline component (MONTHLY/SHORT_TERM)
+   */
+  const buildMonthlyTimelineData = (): MonthlyTimelineData => {
+    // Get today's service day info if available
+    const todayService = booking.today_service;
+    
+    // Calculate early start minutes if we have actual start time
+    let earlyStartMinutes = 0;
+    if (todayService?.actual_start_epoch && booking.start_epoch) {
+      earlyStartMinutes = Math.round((booking.start_epoch - todayService.actual_start_epoch) / 60);
+    }
+    
+    return {
+      booking_period: {
+        start_date: booking.startDate || '',
+        end_date: booking.endDate || '',
+        total_days: booking.leave_days || 0, // This might need adjustment based on actual field
+      },
+      daily_schedule: {
+        scheduled_start_time: booking.start_time || '',
+        scheduled_end_time: booking.end_time || '',
+        duration_minutes: booking.duration_minutes || 60,
+      },
+      current_service: todayService ? {
+        date: dayjs().format('YYYY-MM-DD'), // Today's date
+        scheduled_start_time: booking.start_time || '',
+        scheduled_end_time: booking.end_time || '',
+        actual_start_time: todayService.actual_start_epoch 
+          ? dayjs.unix(todayService.actual_start_epoch).format('HH:mm')
+          : undefined,
+        actual_start_epoch: todayService.actual_start_epoch,
+        actual_end_time: todayService.actual_end_epoch 
+          ? dayjs.unix(todayService.actual_end_epoch).format('HH:mm')
+          : undefined,
+        actual_end_epoch: todayService.actual_end_epoch,
+        status: todayService.status || 'SCHEDULED',
+        early_start_minutes: earlyStartMinutes > 0 ? earlyStartMinutes : undefined,
+      } : undefined,
+    };
+  };
+
   const handleCompletePayment = async () => {
     const engagementId = booking.payment?.engagement_id ?? booking.id;
     if (!engagementId) {
@@ -407,31 +489,101 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
             </div>
           </div>
 
-          {/* Schedule Information */}
+          {/* Schedule Information with Timeline */}
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-500" />
               Schedule
             </h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                <p className="font-medium">{displayStartDate}</p>
+            {/* For MONTHLY and SHORT_TERM: Show date range */}
+            {(booking.bookingType === 'MONTHLY' || booking.bookingType === 'SHORT_TERM') && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Start Date</p>
+                  <p className="font-medium">{displayStartDate}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">End Date</p>
+                  <p className="font-medium">{displayEndDate}</p>
+                </div>
               </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">End Date</p>
-                <p className="font-medium">{displayEndDate}</p>
-              </div>
-            </div>
+            )}
 
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1">Service time</p>
-              <p className="font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-400" />
-                {displayTimeRange}
-              </p>
-            </div>
+            {/* For ON_DEMAND: Show single date + Actual Times Prominently */}
+            {booking.bookingType === 'ON_DEMAND' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Service Date</p>
+                    <p className="font-medium">{displayStartDate}</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1">Booking Type</p>
+                    <p className="font-medium">On Demand</p>
+                  </div>
+                </div>
+
+                {/* Show Actual Times Prominently for ON_DEMAND */}
+                {booking.actual_start_epoch && (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <p className="text-sm font-semibold text-green-800">
+                        Actual Service Times
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-green-600 mb-1">Started At</p>
+                        <p className="text-lg font-bold text-green-800">
+                          {dayjs.unix(booking.actual_start_epoch).format('h:mm A')}
+                        </p>
+                      </div>
+                      {booking.actual_end_epoch && (
+                        <div>
+                          <p className="text-xs text-green-600 mb-1">
+                            {booking.taskStatus === 'COMPLETED' ? 'Ended At' : 'Will End At'}
+                          </p>
+                          <p className="text-lg font-bold text-green-800">
+                            {dayjs.unix(booking.actual_end_epoch).format('h:mm A')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {booking.early_start_minutes && booking.early_start_minutes > 0 && (
+                      <div className="mt-3 pt-3 border-t border-green-200">
+                        <p className="text-xs text-green-700">
+                          ✓ Service started {booking.early_start_minutes} minutes early
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Render appropriate timeline component based on booking type */}
+            {booking.bookingType === 'ON_DEMAND' ? (
+              <BookingTimeline 
+                timeline={buildTimelineData()} 
+                status={booking.taskStatus}
+                showEarlyStartBadge={true}
+              />
+            ) : (
+              <>
+                <MonthlyBookingTimeline
+                  timeline={buildMonthlyTimelineData()}
+                  bookingType={booking.bookingType || 'MONTHLY'}
+                />
+                
+                {/* Date-wise timeline for MONTHLY/SHORT_TERM bookings */}
+                <DateWiseTimeline
+                  engagementId={booking.id}
+                  bookingType={booking.bookingType || 'MONTHLY'}
+                />
+              </>
+            )}
           </div>
 
           {/* Provider Information */}
@@ -635,14 +787,35 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
                 <>
                   {/* Current Booking Info */}
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    {booking.is_timeline_recalculated && booking.early_start_minutes && booking.early_start_minutes > 0 && (
+                      <div className="mb-3 pb-3 border-b border-gray-200">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className="text-green-700 font-medium">
+                            Service started {booking.early_start_minutes} min early
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 ml-4">
+                          End time was adjusted to preserve {booking.duration_minutes}-minute duration
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">
                           Current End Time
+                          {booking.is_timeline_recalculated && (
+                            <span className="text-green-600 ml-1">✓</span>
+                          )}
                         </p>
                         <p className="text-lg font-bold text-gray-900">
                           {extensionAvailability.currentEndTimeFormatted}
                         </p>
+                        {booking.is_timeline_recalculated && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            (Adjusted from early start)
+                          </p>
+                        )}
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">
