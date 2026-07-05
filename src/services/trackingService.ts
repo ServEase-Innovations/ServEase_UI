@@ -80,7 +80,8 @@ export const checkHealth = async () => {
   return response.data;
 };
 
-export default {
+// Named exports are preferred for tree-shaking and easier refactoring
+const trackingService = {
   checkTrackingAvailability,
   startTrackingSession,
   stopTrackingSession,
@@ -88,3 +89,5 @@ export default {
   getETA,
   checkHealth,
 };
+
+export default trackingService;

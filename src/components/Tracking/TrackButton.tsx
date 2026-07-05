@@ -41,11 +41,7 @@ export const TrackButton: React.FC<TrackButtonProps> = ({
   } | null>(null);
   const [loading, setLoadingState] = useState(false);
 
-  useEffect(() => {
-    checkAvailability();
-  }, [engagementId]);
-
-  const checkAvailability = async () => {
+  const checkAvailability = React.useCallback(async () => {
     try {
       const result = await checkTrackingAvailability(engagementId);
       setAvailability(result);
@@ -69,7 +65,11 @@ export const TrackButton: React.FC<TrackButtonProps> = ({
         },
       });
     }
-  };
+  }, [engagementId]);
+
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
 
   const handleTrackClick = async () => {
     if (!availability?.available) {

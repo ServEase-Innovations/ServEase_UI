@@ -85,9 +85,10 @@ export const DateWiseTimeline: React.FC<DateWiseTimelineProps> = ({
     }
   }, [engagementId]);
 
-  const formatDate = (dateStr: string): string => {
-    return dayjs(dateStr).format('MMM D, YYYY');
-  };
+  // Unused helper - keeping for potential future use
+  // const formatDate = (dateStr: string): string => {
+  //   return dayjs(dateStr).format('MMM D, YYYY');
+  // };
 
   const formatDateShort = (dateStr: string): string => {
     return dayjs(dateStr).format('MMM D');
@@ -109,12 +110,13 @@ export const DateWiseTimeline: React.FC<DateWiseTimelineProps> = ({
     return dayjs(dateStr).isAfter(dayjs(), 'day');
   };
 
-  const getStatusColor = (status: string): string => {
-    const upper = status.toUpperCase();
-    if (upper === 'COMPLETED') return 'text-green-700';
-    if (upper === 'IN_PROGRESS') return 'text-blue-700';
-    return 'text-gray-600';
-  };
+  // Unused helper - keeping for potential future use
+  // const getStatusColor = (status: string): string => {
+  //   const upper = status.toUpperCase();
+  //   if (upper === 'COMPLETED') return 'text-green-700';
+  //   if (upper === 'IN_PROGRESS') return 'text-blue-700';
+  //   return 'text-gray-600';
+  // };
 
   const getStatusBadgeColor = (status: string): string => {
     const upper = status.toUpperCase();
@@ -153,7 +155,8 @@ export const DateWiseTimeline: React.FC<DateWiseTimelineProps> = ({
 
   const completedCount = serviceDays.filter(sd => sd.status.toUpperCase() === 'COMPLETED').length;
   const upcomingCount = serviceDays.filter(sd => sd.status.toUpperCase() === 'SCHEDULED' && isFuture(sd.service_date)).length;
-  const todayService = serviceDays.find(sd => isToday(sd.service_date));
+  // Unused variable - keeping for potential today service indicator
+  // const todayService = serviceDays.find(sd => isToday(sd.service_date));
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -186,7 +189,8 @@ export const DateWiseTimeline: React.FC<DateWiseTimelineProps> = ({
           {serviceDays.map((serviceDay, index) => {
             const isLast = index === serviceDays.length - 1;
             const dayIsToday = isToday(serviceDay.service_date);
-            const dayIsPast = isPast(serviceDay.service_date);
+            // Unused variable - keeping for potential styling
+            // const dayIsPast = isPast(serviceDay.service_date);
             const statusUpper = serviceDay.status.toUpperCase();
             const isCompleted = statusUpper === 'COMPLETED';
             const isActive = statusUpper === 'IN_PROGRESS';

@@ -72,6 +72,7 @@ export const ETADisplay: React.FC<ETADisplayProps> = ({
   // Update ETA countdown every second
   useEffect(() => {
     const startTime = eta.calculated_at;
+    const initialDuration = eta.duration_seconds;
     
     const interval = setInterval(() => {
       const now = Date.now();
@@ -79,7 +80,7 @@ export const ETADisplay: React.FC<ETADisplayProps> = ({
       setElapsedTime(elapsed);
       
       // Update current ETA by subtracting elapsed time
-      const newETA = Math.max(0, eta.duration_seconds - elapsed);
+      const newETA = Math.max(0, initialDuration - elapsed);
       setCurrentETA(newETA);
     }, 1000);
 

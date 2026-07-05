@@ -69,29 +69,36 @@ export const TrackingMapView: React.FC = () => {
     ? { lat: tracking.map.center.latitude, lng: tracking.map.center.longitude }
     : defaultCenter;
 
-  // Get provider position (real or estimated)
-  const providerPosition = tracking.provider.estimatedPosition
-    ? {
+  // Get provider position (real or estimated) - memoized to prevent unnecessary re-renders
+  const providerPosition = React.useMemo(() => {
+    if (tracking.provider.estimatedPosition) {
+      return {
         lat: tracking.provider.estimatedPosition.latitude,
         lng: tracking.provider.estimatedPosition.longitude,
         estimated: true,
         confidence: tracking.provider.estimatedPosition.confidence,
-      }
-    : tracking.provider.location
-    ? {
+      };
+    }
+    if (tracking.provider.location) {
+      return {
         lat: tracking.provider.location.latitude,
         lng: tracking.provider.location.longitude,
         estimated: false,
-      }
-    : null;
+      };
+    }
+    return null;
+  }, [tracking.provider.location, tracking.provider.estimatedPosition]);
 
-  // Get destination position
-  const destinationPosition = tracking.destination.latitude && tracking.destination.longitude
-    ? {
+  // Get destination position - memoized to prevent unnecessary re-renders
+  const destinationPosition = React.useMemo(() => {
+    if (tracking.destination.latitude && tracking.destination.longitude) {
+      return {
         lat: tracking.destination.latitude,
         lng: tracking.destination.longitude,
-      }
-    : null;
+      };
+    }
+    return null;
+  }, [tracking.destination.latitude, tracking.destination.longitude]);
 
   // Handle map load
   const onLoad = useCallback((map: google.maps.Map) => {
