@@ -529,6 +529,14 @@ const isPaymentPendingBooking = (booking: Booking) =>
 /** Aligns list badges/filters with today’s visit (service_days), not only task_status. */
 const effectiveTaskStatus = (booking: Booking): string => {
   if (booking.taskStatus === "CANCELLED") return "CANCELLED";
+  
+  // For MONTHLY and SHORT_TERM bookings, today_service only represents today's visit
+  // We should use the engagement-level taskStatus instead
+  if (booking.bookingType === "MONTHLY" || booking.bookingType === "SHORT_TERM") {
+    return booking.taskStatus;
+  }
+  
+  // For ON_DEMAND bookings, today_service reflects the overall status
   const visit = booking.today_service?.status?.toUpperCase();
   if (visit === "IN_PROGRESS" || visit === "STARTED") return "IN_PROGRESS";
   if (visit === "COMPLETED" || visit === "DONE") return "COMPLETED";
