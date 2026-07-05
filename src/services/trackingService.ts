@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Create axios instance for tracking service
 const trackingAPI = axios.create({
-  baseURL: process.env.REACT_APP_TRACKING_API_URL || 'http://localhost:5007/api/tracking',
+  baseURL: process.env.REACT_APP_TRACKING_API_URL 
+    ? `${process.env.REACT_APP_TRACKING_API_URL}/api/tracking`
+    : 'http://localhost:5007/api/tracking',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
