@@ -194,7 +194,7 @@ export async function updateLocation(
   );
 }
 
-export default {
+const providerTrackingService = {
   startJourney,
   markArrived,
   markServiceStarted,
@@ -202,3 +202,5 @@ export default {
   getTrackingStatus,
   updateLocation,
 };
+
+export default providerTrackingService;
