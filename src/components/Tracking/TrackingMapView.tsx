@@ -18,6 +18,7 @@ import {
 import { GoogleMap, useJsApiLoader, Marker, Circle } from '@react-google-maps/api';
 import { useTrackingWebSocket } from './hooks/useTrackingWebSocket';
 import { useLocationPolling } from './hooks/useLocationPolling';
+import { ProviderMarker } from './ProviderMarker';
 import { ETADisplay } from './ETADisplay';
 import { OfflineBanner } from './OfflineBanner';
 import { hideMap, stopSession, setAutoCenter, resetTracking } from '../../features/tracking/trackingSlice';
@@ -250,16 +251,9 @@ export const TrackingMapView: React.FC = () => {
           {/* Provider Marker */}
           {providerPosition && (
             <>
-              <Marker
+              <ProviderMarker
                 position={providerPosition}
-                icon={{
-                  url: tracking.team.isTeam
-                    ? '/assets/team-marker.png'
-                    : '/assets/provider-marker.png',
-                  scaledSize: new google.maps.Size(40, 40),
-                }}
-                label={tracking.team.isTeam ? 'Team' : undefined}
-                opacity={providerPosition.estimated ? 0.6 : 1}
+                isEstimated={providerPosition.estimated || false}
               />
               {/* Accuracy circle */}
               {!providerPosition.estimated && tracking.provider.location?.accuracy && (
@@ -267,11 +261,11 @@ export const TrackingMapView: React.FC = () => {
                   center={providerPosition}
                   radius={tracking.provider.location.accuracy}
                   options={{
-                    fillColor: '#4285F4',
-                    fillOpacity: 0.2,
-                    strokeColor: '#4285F4',
-                    strokeOpacity: 0.5,
-                    strokeWeight: 1,
+                    fillColor: '#dc2626',
+                    fillOpacity: 0.15,
+                    strokeColor: '#dc2626',
+                    strokeOpacity: 0.4,
+                    strokeWeight: 2,
                   }}
                 />
               )}
