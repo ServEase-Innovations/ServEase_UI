@@ -125,7 +125,7 @@ export const CompactETADisplay: React.FC<CompactETADisplayProps> = ({
         </>
       )}
       {eta.traffic_aware && (
-        <TrendingUp className="h-3 w-3 opacity-60" title="Live traffic" />
+        <TrendingUp className="h-3 w-3 opacity-60" />
       )}
     </div>
   );
