@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { GoogleMap, useJsApiLoader, Marker, Circle } from '@react-google-maps/api';
 import { useTrackingWebSocket } from './hooks/useTrackingWebSocket';
+import { useLocationPolling } from './hooks/useLocationPolling';
 import { ETADisplay } from './ETADisplay';
 import { OfflineBanner } from './OfflineBanner';
 import { hideMap, stopSession, setAutoCenter, resetTracking } from '../../features/tracking/trackingSlice';
@@ -65,6 +66,13 @@ export const TrackingMapView: React.FC = () => {
     sessionToken: tracking.session.sessionToken,
     engagementId: tracking.session.engagementId,
     enabled: tracking.ui.isMapVisible && tracking.session.isActive,
+  });
+
+  // Polling fallback (polls every 10 seconds)
+  const { isPolling } = useLocationPolling({
+    engagementId: tracking.session.engagementId,
+    enabled: tracking.ui.isMapVisible && tracking.session.isActive,
+    interval: 10000,
   });
 
   // Calculate map center

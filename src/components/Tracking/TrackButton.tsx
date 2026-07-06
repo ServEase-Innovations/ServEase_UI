@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress, Tooltip } from '@mui/material';
 import { LocationOn as LocationIcon } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
-import { checkTrackingAvailability, startTrackingSession } from '../../services/trackingService';
-import { startSession, showMap, setDestination, setError, setLoading } from '../../features/tracking/trackingSlice';
+import { checkTrackingAvailability, startTrackingSession, getLocationUpdate } from '../../services/trackingService';
+import { startSession, showMap, setDestination, setError, setLoading, updateLocation, setMapCenter } from '../../features/tracking/trackingSlice';
 
 interface TrackButtonProps {
   engagementId: number;
@@ -100,6 +100,23 @@ export const TrackButton: React.FC<TrackButtonProps> = ({
           longitude: address.longitude || 0,
           address: address.address || '',
         }));
+      }
+
+      // Fetch initial location
+      try {
+        const locationData = await getLocationUpdate(engagementId);
+        if (locationData?.location) {
+          console.log('Initial location fetched:', locationData.location);
+          dispatch(updateLocation(locationData.location));
+          
+          // Center map on provider location
+          dispatch(setMapCenter({
+            latitude: locationData.location.latitude,
+            longitude: locationData.location.longitude,
+          }));
+        }
+      } catch (locError) {
+        console.warn('Could not fetch initial location:', locError);
       }
 
       // Show map
