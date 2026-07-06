@@ -37,11 +37,6 @@ export const useETAPolling = ({
 
     // Fetch ETA and update Redux state
     const fetchETA = async () => {
-      if (isCalculating) {
-        console.log('ETA calculation already in progress, skipping...');
-        return;
-      }
-
       try {
         setIsCalculating(true);
         setError(null);

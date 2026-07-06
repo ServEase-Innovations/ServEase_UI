@@ -78,7 +78,7 @@ export const TrackingMapView: React.FC = () => {
   });
 
   // ETA polling (calculates ETA every 30 seconds)
-  const { isCalculating: isCalculatingETA } = useETAPolling({
+  useETAPolling({
     engagementId: tracking.session.engagementId,
     enabled: tracking.ui.isMapVisible && tracking.session.isActive,
     interval: 30000,
