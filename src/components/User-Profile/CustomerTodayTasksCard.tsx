@@ -5,6 +5,7 @@ import { Button } from "../Button/button";
 import { Badge } from "../Common/Badge/Badge";
 import { getBookingTypeBadge, getServiceTitle, getStatusBadge } from "../Common/Booking/BookingUtils";
 import { TrackButton } from "../Tracking/TrackButton";
+import { CompactETADisplay } from "../Tracking/CompactETADisplay";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -289,7 +290,13 @@ export default function CustomerTodayTasksCard({
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1 space-y-1">
-                          <p className="text-sm font-bold tabular-nums text-slate-900">{timeRange}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-bold tabular-nums text-slate-900">{timeRange}</p>
+                            {/* Show ETA for UPCOMING visits when provider is assigned and en route */}
+                            {phase === "UPCOMING" && !unassigned && b.serviceproviderid && (
+                              <CompactETADisplay engagementId={b.engagement_id} />
+                            )}
+                          </div>
                           <p className="truncate text-sm font-semibold text-slate-800">
                             {getServiceTitle(b.service_type || "")}
                           </p>
