@@ -67,10 +67,20 @@ export const getLocationUpdate = async (engagementId: number) => {
 };
 
 /**
- * Get current ETA
+ * Get current ETA from cache
  */
 export const getETA = async (engagementId: number) => {
   const response = await trackingAPI.get(`/eta/${engagementId}`);
+  return response.data;
+};
+
+/**
+ * Calculate ETA with traffic-aware routing
+ */
+export const calculateETA = async (engagementId: number) => {
+  const response = await trackingAPI.post('/calculate-eta', {
+    engagement_id: engagementId,
+  });
   return response.data;
 };
 
@@ -89,6 +99,7 @@ const trackingService = {
   stopTrackingSession,
   getLocationUpdate,
   getETA,
+  calculateETA,
   checkHealth,
 };
 

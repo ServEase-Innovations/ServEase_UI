@@ -15,9 +15,10 @@ import {
   MyLocation as RecenterIcon,
   Message as MessageIcon,
 } from '@mui/icons-material';
-import { GoogleMap, useJsApiLoader, Marker, Circle } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, Circle, Polyline } from '@react-google-maps/api';
 import { useTrackingWebSocket } from './hooks/useTrackingWebSocket';
 import { useLocationPolling } from './hooks/useLocationPolling';
+import { useETAPolling } from './hooks/useETAPolling';
 import { ProviderMarker } from './ProviderMarker';
 import { ETADisplay } from './ETADisplay';
 import { OfflineBanner } from './OfflineBanner';
@@ -25,7 +26,7 @@ import { hideMap, stopSession, setAutoCenter, resetTracking } from '../../featur
 import { stopTrackingSession } from '../../services/trackingService';
 
 // Define libraries as a constant outside component to prevent reloads
-const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+const GOOGLE_MAPS_LIBRARIES: ('places' | 'geometry')[] = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
@@ -76,6 +77,13 @@ export const TrackingMapView: React.FC = () => {
     interval: 10000,
   });
 
+  // ETA polling (calculates ETA every 30 seconds)
+  const { isCalculating: isCalculatingETA } = useETAPolling({
+    engagementId: tracking.session.engagementId,
+    enabled: tracking.ui.isMapVisible && tracking.session.isActive,
+    interval: 30000,
+  });
+
   // Calculate map center
   const mapCenter = tracking.map.center 
     ? { lat: tracking.map.center.latitude, lng: tracking.map.center.longitude }
@@ -111,6 +119,25 @@ export const TrackingMapView: React.FC = () => {
     }
     return null;
   }, [tracking.destination.latitude, tracking.destination.longitude]);
+
+  // Get route path from ETA (decode polyline) - memoized
+  const routePath = React.useMemo(() => {
+    if (tracking.eta?.route_polyline && window.google?.maps?.geometry?.encoding) {
+      try {
+        const decoded = window.google.maps.geometry.encoding.decodePath(
+          tracking.eta.route_polyline
+        );
+        return decoded.map((point: any) => ({
+          lat: point.lat(),
+          lng: point.lng(),
+        }));
+      } catch (error) {
+        console.error('Error decoding polyline:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [tracking.eta?.route_polyline]);
 
   // Handle map load
   const onLoad = useCallback((map: google.maps.Map) => {
@@ -248,6 +275,19 @@ export const TrackingMapView: React.FC = () => {
           onDragStart={handleMapInteraction}
           onZoomChanged={handleMapInteraction}
         >
+          {/* Route Polyline */}
+          {routePath && (
+            <Polyline
+              path={routePath}
+              options={{
+                strokeColor: '#2563eb', // Blue color
+                strokeOpacity: 0.8,
+                strokeWeight: 4,
+                geodesic: true,
+              }}
+            />
+          )}
+
           {/* Provider Marker */}
           {providerPosition && (
             <>
