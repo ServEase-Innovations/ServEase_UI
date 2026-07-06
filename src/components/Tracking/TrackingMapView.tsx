@@ -69,7 +69,7 @@ export const TrackingMapView: React.FC = () => {
   });
 
   // Polling fallback (polls every 10 seconds)
-  const { isPolling } = useLocationPolling({
+  useLocationPolling({
     engagementId: tracking.session.engagementId,
     enabled: tracking.ui.isMapVisible && tracking.session.isActive,
     interval: 10000,
