@@ -28,7 +28,7 @@ import {
   type MaidPricingRow,
 } from "src/utils/maidPricingUtils";
 import { isBookingScheduleComplete, computeDurationHours } from "src/components/ProviderDetails/serviceBookingConfig";
-import { formatMonthlyHourlyRateBand } from "src/Constants/servicePricing";
+import { formatMonthlyHourlyRateBand, formatNannyMonthlyRate } from "src/Constants/servicePricing";
 import {
   buildLocationSearchKey,
   resolveLocationCoords,
@@ -160,9 +160,13 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
   const resolveSearchRateLabel = (
     rows: MaidPricingRow[],
     bookingPreference?: string,
-    bookingTypeCode?: string
+    bookingTypeCode?: string,
+    role?: string
   ): string | null => {
     if (bookingTypeCode === "MONTHLY") {
+      if (role?.toUpperCase() === "NANNY") {
+        return formatNannyMonthlyRate();
+      }
       return formatMonthlyHourlyRateBand();
     }
     if (!rows.length) return null;
@@ -218,7 +222,7 @@ export const DetailsView: React.FC<DetailsViewProps> = ({
     if (!catalogRows?.length && pricingKey === "cook") {
       catalogRows = getFilteredPricing("maid") as MaidPricingRow[];
     }
-    const rateLine = resolveSearchRateLabel(catalogRows, pref, bookingTypeCode);
+    const rateLine = resolveSearchRateLabel(catalogRows, pref, bookingTypeCode, role);
 
     if (!dateLine && !timeLine && !rateLine) return null;
 
