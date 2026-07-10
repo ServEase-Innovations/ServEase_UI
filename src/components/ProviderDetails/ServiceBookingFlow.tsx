@@ -10,7 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { EnhancedProviderDetails } from "../../types/ProviderDetailsType";
 import { removeFromCart, selectCartItems } from "../../features/addToCart/addToSlice";
-import { isMaidCartItem, isMealCartItem } from "../../types/cartSlice";
+import { isMaidCartItem, isMealCartItem, isNannyCartItem } from "../../types/cartSlice";
 import {
   MaidRoot,
   MaidHeader,
@@ -126,7 +126,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
 
   const allCartItems = useSelector(selectCartItems);
   const legacyCartItems = allCartItems.filter(
-    serviceKind === "maid" ? isMaidCartItem : isMealCartItem
+    serviceKind === "maid" ? isMaidCartItem : serviceKind === "nanny" ? isNannyCartItem : isMealCartItem
   );
 
   const [loading, setLoading] = useState(false);
@@ -1499,7 +1499,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
             <Typography variant="body2" color="text.secondary">
               {couponLoading
                 ? "Loading coupons..."
-                : `No ${cfg.serviceType === "COOK" ? "Cook" : "Maid"} coupons available for this order.`}
+                : `No ${cfg.serviceType === "COOK" ? "Cook" : cfg.serviceType === "NANNY" ? "Nanny" : "Maid"} coupons available for this order.`}
             </Typography>
           ) : null}
           {ineligibleCoupons.length > 0 ? (
