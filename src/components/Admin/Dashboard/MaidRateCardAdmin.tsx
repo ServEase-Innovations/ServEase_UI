@@ -110,11 +110,11 @@ type RuleForm = {
   displayHourlyMax: string;
 };
 
-function planToForm(p?: PricingPlan): PlanForm {
+function planToForm(p: PricingPlan | undefined, currentServiceType: string): PlanForm {
   const c = p?.constraints_json || {};
   return {
     plan_id: p?.plan_id,
-    service_type: p?.service_type || "MAID",
+    service_type: p?.service_type || currentServiceType,
     booking_type: p?.booking_type || "ON_DEMAND",
     code: p?.code || "",
     name: p?.name || "",
@@ -193,6 +193,7 @@ function buildEffect(form: RuleForm): Record<string, unknown> {
 }
 
 export default function MaidRateCardAdmin() {
+  const [serviceType, setServiceType] = useState("MAID");
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -217,7 +218,7 @@ export default function MaidRateCardAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const rows = await fetchAdminPricingPlans("MAID", false);
+      const rows = await fetchAdminPricingPlans(serviceType, false);
       setPlans(rows);
       setExpanded((prev) => {
         if (Object.keys(prev).length) return prev;
@@ -233,7 +234,7 @@ export default function MaidRateCardAdmin() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [serviceType]);
 
   useEffect(() => {
     void load();
@@ -345,10 +346,23 @@ export default function MaidRateCardAdmin() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Maid rate card</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{serviceType.charAt(0) + serviceType.slice(1).toLowerCase()} rate card</h2>
           <p className="text-sm text-slate-600">
             Edit hourly, short-term, and monthly base rates plus promos. Changes apply to new quotes after save.
           </p>
+          <div className="mt-3 flex gap-2">
+            {["MAID", "COOK", "NANNY"].map((type) => (
+               <Button
+                 key={type}
+                 type="button"
+                 size="sm"
+                 variant={serviceType === type ? "default" : "outline"}
+                 onClick={() => setServiceType(type)}
+               >
+                 {type}
+               </Button>
+            ))}
+          </div>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -362,7 +376,7 @@ export default function MaidRateCardAdmin() {
               setPlanDialog({
                 open: true,
                 form: planToForm({
-                  service_type: "MAID",
+                  service_type: serviceType,
                   booking_type: "ON_DEMAND",
                   code: "",
                   name: "",
@@ -371,7 +385,7 @@ export default function MaidRateCardAdmin() {
                   base_rate_max: 0,
                   constraints_json: {},
                   is_active: true,
-                } as PricingPlan),
+                } as PricingPlan, serviceType),
               })
             }
           >
@@ -434,7 +448,7 @@ export default function MaidRateCardAdmin() {
                       <IconButton
                         size="small"
                         title="Edit plan"
-                        onClick={() => setPlanDialog({ open: true, form: planToForm(plan) })}
+                        onClick={() => setPlanDialog({ open: true, form: planToForm(plan, serviceType) })}
                       >
                         <Pencil className="h-4 w-4" />
                       </IconButton>

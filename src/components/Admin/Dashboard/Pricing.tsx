@@ -284,7 +284,7 @@ const Pricing = () => {
             variant={activeTab === "ratecard" ? "default" : "outline"}
             onClick={() => setActiveTab("ratecard")}
           >
-            Maid rate card
+            Service rate cards
           </Button>
           <Button
             type="button"
