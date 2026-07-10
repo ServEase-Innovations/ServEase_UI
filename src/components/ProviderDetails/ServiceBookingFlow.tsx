@@ -1066,6 +1066,7 @@ const ServiceBookingFlow: React.FC<ServiceBookingFlowProps> = ({
                 scheduleActionsRef.current = actions;
               }}
               onAvailabilityCheckBlockedChange={handleAvailabilityCheckBlockedChange}
+              fixedDurationHours={serviceKind === "nanny" ? 8 : undefined}
             />
           </MaidCard>
 
