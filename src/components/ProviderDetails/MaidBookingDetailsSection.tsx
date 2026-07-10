@@ -183,8 +183,8 @@ interface MaidBookingDetailsSectionProps {
   onScheduleActionsReady?: (actions: MaidBookingDetailsSectionHandle) => void;
   /** Fired when an availability check fails until the user edits the schedule again. */
   onAvailabilityCheckBlockedChange?: (blocked: boolean, message?: string) => void;
-  /** When set, locks the service duration to this many hours (hides the chip selector). */
-  fixedDurationHours?: number;
+  /** When set, restricts duration choices to these specific hours (renders these chips). */
+  allowedDurationHours?: number[];
 }
 
 const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
@@ -196,7 +196,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
   onApplyingScheduleChange,
   onScheduleActionsReady,
   onAvailabilityCheckBlockedChange,
-  fixedDurationHours,
+  allowedDurationHours,
 }) => {
   const { t } = useLanguage();
   const dispatch = useDispatch();
@@ -219,16 +219,12 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
   const [userTouchedSchedule, setUserTouchedSchedule] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   /** User's duration choice — kept when date/time is cleared so chips stay highlighted. */
-  const [selectedDurationHours, setSelectedDurationHours] = useState(fixedDurationHours ?? 1);
-
-  // When a fixed duration is set (e.g. Nanny = 8h), auto-update end time whenever start changes.
-  useEffect(() => {
-    if (!fixedDurationHours || !startTime) return;
-    const newEnd = startTime.add(fixedDurationHours, "hour");
-    setEndTime(newEnd);
-    if (preference === "Date") setEndDate(newEnd);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixedDurationHours, startTime?.valueOf()]);
+  const [selectedDurationHours, setSelectedDurationHours] = useState(() => {
+    if (allowedDurationHours) {
+      return allowedDurationHours.includes(8) ? 8 : allowedDurationHours[0];
+    }
+    return 1;
+  });
   const scheduleBaselineRef = useRef("");
   const onAvailabilityBlockedRef = useRef(onAvailabilityCheckBlockedChange);
   onAvailabilityBlockedRef.current = onAvailabilityCheckBlockedChange;
@@ -284,7 +280,14 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     setStartTime(st);
     setEndTime(et);
     const hydratedDuration = durationHoursFromTimes(st, et);
-    setSelectedDurationHours(hydratedDuration > 0 ? hydratedDuration : 1);
+    const defaultDuration = allowedDurationHours
+      ? (allowedDurationHours.includes(8) ? 8 : allowedDurationHours[0])
+      : 1;
+    setSelectedDurationHours(
+      hydratedDuration > 0 && (!allowedDurationHours || allowedDurationHours.includes(hydratedDuration))
+        ? hydratedDuration
+        : defaultDuration
+    );
     setValidationMsg(null);
   }, [bookingType]);
 
@@ -655,11 +658,9 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
           </MaidSummaryIcon>
           <MaidSummaryLabel>{t("serviceDuration")}</MaidSummaryLabel>
           <MaidSummaryValue>
-            {fixedDurationHours
-              ? `${fixedDurationHours} ${t("hourUnit")}${fixedDurationHours > 1 ? "s" : ""} (fixed)`
-              : durationHours > 0
-                ? `${durationHours} ${t("hourUnit")}${durationHours > 1 ? "s" : ""}`
-                : "—"}
+            {durationHours > 0
+              ? `${durationHours} ${t("hourUnit")}${durationHours > 1 ? "s" : ""}`
+              : "—"}
           </MaidSummaryValue>
         </MaidSummaryTile>
       </MaidSummaryGrid>
@@ -669,54 +670,33 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
           <MaidSectionHead>
             <MaidSectionTitle>{t("serviceDuration")}</MaidSectionTitle>
           </MaidSectionHead>
-          {fixedDurationHours ? (
-            <MaidDurationSection>
-              <MaidBadge
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: 8,
-                  padding: "8px 14px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  marginBottom: 4,
-                }}
-              >
-                <TimelapseOutlinedIcon style={{ fontSize: 16 }} />
-                This service is for {fixedDurationHours} hours · end time is set automatically
-              </MaidBadge>
-            </MaidDurationSection>
-          ) : (
-            <MaidDurationSection>
-              <MaidDurationHint>
-                {preference === "Short term"
+          <MaidDurationSection>
+            <MaidDurationHint>
+              {allowedDurationHours
+                ? "Select duration for your caregiver service."
+                : preference === "Short term"
                   ? "Hours per visit — price updates for each day in your range."
                   : preference === "Monthly"
                     ? "Hours per visit — price updates for your monthly service."
                     : t("durationMessage")}
-              </MaidDurationHint>
-              <MaidDurationChips>
-                {DURATION_OPTIONS.map((h) => {
-                  const disabled = Boolean(startTime) && h > maxDurationHours;
-                  return (
-                    <MaidDurationChip
-                      key={h}
-                      type="button"
-                      $active={durationHours === h}
-                      disabled={disabled}
-                      onClick={() => setDurationHours(h)}
-                    >
-                      {h}h
-                    </MaidDurationChip>
-                  );
-                })}
-              </MaidDurationChips>
-            </MaidDurationSection>
-          )}
+            </MaidDurationHint>
+            <MaidDurationChips>
+              {(allowedDurationHours ?? DURATION_OPTIONS).map((h) => {
+                const disabled = Boolean(startTime) && h > maxDurationHours;
+                return (
+                  <MaidDurationChip
+                    key={h}
+                    type="button"
+                    $active={durationHours === h}
+                    disabled={disabled}
+                    onClick={() => setDurationHours(h)}
+                  >
+                    {h}h
+                  </MaidDurationChip>
+                );
+              })}
+            </MaidDurationChips>
+          </MaidDurationSection>
         </>
       )}
 
