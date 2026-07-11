@@ -221,7 +221,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
   /** User's duration choice — kept when date/time is cleared so chips stay highlighted. */
   const [selectedDurationHours, setSelectedDurationHours] = useState(() => {
     if (allowedDurationHours) {
-      return allowedDurationHours.includes(8) ? 8 : allowedDurationHours[0];
+      return allowedDurationHours[0];
     }
     return 1;
   });
@@ -281,7 +281,7 @@ const MaidBookingDetailsSection: React.FC<MaidBookingDetailsSectionProps> = ({
     setEndTime(et);
     const hydratedDuration = durationHoursFromTimes(st, et);
     const defaultDuration = allowedDurationHours
-      ? (allowedDurationHours.includes(8) ? 8 : allowedDurationHours[0])
+      ? allowedDurationHours[0]
       : 1;
     setSelectedDurationHours(
       hydratedDuration > 0 && (!allowedDurationHours || allowedDurationHours.includes(hydratedDuration))
