@@ -96,6 +96,7 @@
     "build:qa": "env-cmd -f .env.qa craco build",
     "build:prod": "env-cmd -f .env.prod craco build",
     "test": "craco test",
+    "test:e2e": "playwright test",
     "eject": "react-scripts eject",
     "lint": "eslint . || true",
     "lint:ci": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings 0"
@@ -122,6 +123,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
+    "@playwright/test": "^1.61.1",
     "@types/lodash": "^4.17.23",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-easy-crop": "^1.16.0",
