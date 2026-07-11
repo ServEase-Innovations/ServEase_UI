@@ -107,7 +107,8 @@ function isDurationWithinWorkHours(start: Dayjs, hours: number): boolean {
 
 function maxAllowedDurationHours(start: Dayjs): number {
   let max = 0;
-  for (const h of DURATION_OPTIONS) {
+  // Check up to 8 hours (maximum possible duration for any service)
+  for (let h = 1; h <= 8; h++) {
     if (isDurationWithinWorkHours(start, h)) max = h;
   }
   return max;
