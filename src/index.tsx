@@ -5,6 +5,9 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import store from './store/userStore';
+if (typeof window !== "undefined") {
+  (window as any).store = store;
+}
 import { Provider } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';  // Importing routing components
 import Admin from "./components/Admin/Admin";

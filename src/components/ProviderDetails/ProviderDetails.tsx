@@ -203,11 +203,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const [engagementData, setEngagementData] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [missingTimeSlots, setMissingTimeSlots] = useState<string[]>([]);
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("12:00");
-  const [warning, setWarning] = useState("");
-  const [missingSlots, setMissingSlots] = useState<string[]>([]);
-  const [uniqueMissingSlots, setUniqueMissingSlots] = useState<string[]>([]);
   const [matchedMorningSelection, setMatchedMorningSelection] = useState<string | null>(null);
   const [matchedEveningSelection, setMatchedEveningSelection] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -277,15 +272,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     console.log("Favorite toggled for provider:", props.serviceproviderid, "New status:", !isFavorite);
   };
 
-  const checkMissingTimeSlots = () => {
-    const expectedTimeSlots = [
-      "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
-      "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
-    ];
 
-    const missing = expectedTimeSlots.filter(slot => !props.availableTimeSlots?.includes(slot));
-    setMissingSlots(missing);
-  };
 
   const toggleExpand = async () => {
     setIsExpanded(!isExpanded);
@@ -348,8 +335,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     } else {
       booking = {
         serviceproviderId: resolvedProviderId,
-        timeRange: `${startTime} - ${endTime}`,
-        duration: getHoursDifference(startTime, endTime),
+        // Remove hardcoded timeRange and duration as ServiceBookingFlow handles it
         ...bookingType,
       };
     }
@@ -359,14 +345,6 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     } else {
       dispatch(add(booking));
     }
-  };
-
-  const getHoursDifference = (start: string, end: string) => {
-    const [startHours, startMinutes] = start.split(":").map(Number);
-    const [endHours, endMinutes] = end.split(":").map(Number);
-    const startTotalMinutes = startHours * 60 + startMinutes;
-    const endTotalMinutes = endHours * 60 + endMinutes;
-    return (endTotalMinutes - startTotalMinutes) / 60;
   };
 
   const handleBookNow = () => {
@@ -400,28 +378,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     dispatch(closeBookingDialog());
   };
 
-  const handleStartTimeChange = (newStartTime: string) => {
-    setStartTime(newStartTime);
-    validateTimeRange(newStartTime, endTime);
-  };
 
-  const handleEndTimeChange = (newEndTime: string) => {
-    setEndTime(newEndTime);
-    validateTimeRange(startTime, newEndTime);
-  };
-
-  const validateTimeRange = (start: string, end: string) => {
-    const [startHours, startMinutes] = start.split(":").map(Number);
-    const [endHours, endMinutes] = end.split(":").map(Number);
-    const startTotalMinutes = startHours * 60 + startMinutes;
-    const endTotalMinutes = endHours * 60 + endMinutes;
-    
-    if (endTotalMinutes - startTotalMinutes < 240) {
-      setWarning(t('timeRangeWarning'));
-    } else {
-      setWarning("");
-    }
-  };
   
   const getAvailabilityStatus = () => {
     if (!props.monthlyAvailability) return t('available');
@@ -482,18 +439,11 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     return "primary";
   };
 
-  const { appUser } = useAppUser();
-
   useEffect(() => {
     if (appUser?.role === 'CUSTOMER') {
       setLoggedInUser(user);
     }
   }, [appUser]);
-
-  if (!hasCheckedRef.current) {
-    checkMissingTimeSlots();
-    hasCheckedRef.current = true;
-  }
 
   const isBookNowEnabled = 
     (morningSelection !== null || eveningSelection !== null) || 
@@ -507,9 +457,7 @@ const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
     selectedMorningTime: morningSelection,
     selectedEveningTime: eveningSelection,
     matchedMorningSelection,
-    matchedEveningSelection,
-    startTime,
-    endTime
+    matchedEveningSelection
   };
 
   const formatTimeForDisplay = (timeString: string) => {

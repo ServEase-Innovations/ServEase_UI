@@ -16,7 +16,6 @@ export function resolveProviderId(
   );
 }
 
-/** Use the role the customer searched for when the provider offers it. */
 export function resolveEffectiveServiceRole(
   searchRole: string | null | undefined,
   provider: {
@@ -32,9 +31,17 @@ export function resolveEffectiveServiceRole(
         ? [provider.housekeepingRole]
         : []
   )
-    .map((role) => String(role).trim().toUpperCase())
+    .map((role) => {
+      let r = String(role).trim().toUpperCase();
+      if (r === "CAREGIVER") r = "NANNY";
+      return r;
+    })
     .filter(Boolean);
 
   if (search && offered.includes(search)) return search;
-  return String(provider.housekeepingRole || offered[0] || "").trim().toUpperCase();
+  
+  let fallback = String(provider.housekeepingRole || offered[0] || "").trim().toUpperCase();
+  if (fallback === "CAREGIVER") fallback = "NANNY";
+  
+  return fallback;
 }
