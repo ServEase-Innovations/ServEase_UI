@@ -194,6 +194,7 @@ const AvailabilityChip = styled(Chip)(({ theme }) => ({
 
 const ProviderDetails: React.FC<ProviderDetailsProps> = (props) => {
   const { t } = useLanguage();
+  const { appUser } = useAppUser();
   const [isExpanded, setIsExpanded] = useState(true);
   const [eveningSelection, setEveningSelection] = useState<number | null>(null);
   const [morningSelection, setMorningSelection] = useState<number | null>(null);
