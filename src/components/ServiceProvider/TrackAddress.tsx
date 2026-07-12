@@ -110,7 +110,7 @@ const TrackAddress: React.FC<Props> = ({ onClose, googleMapsApiKey, destinationA
     });
 
     // Add markers
-    new google.maps.Marker({
+    const sourceMarker = new google.maps.Marker({
       position: currentLocation,
       map: map,
       title: 'Your Location',
@@ -119,7 +119,7 @@ const TrackAddress: React.FC<Props> = ({ onClose, googleMapsApiKey, destinationA
       }
     });
 
-    new google.maps.Marker({
+    const destMarker = new google.maps.Marker({
       position: destination,
       map: map,
       title: destinationAddress,

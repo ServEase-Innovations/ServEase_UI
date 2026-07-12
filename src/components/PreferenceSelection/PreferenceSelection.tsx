@@ -20,11 +20,7 @@ const PreferenceSelection = () => {
   const [personCount, setPersonCount] = useState<number>();
 
   const getText = () => {
-    if (bookingType?.service?.toLowerCase() === "cook") {
-      return "Meal Type";
-    } else {
-      return "Meal Type";
-    }
+    return "Meal Type";
   };
 
   const handleCategoryChange = (category: string) => {

@@ -145,7 +145,7 @@ export function NotificationBookingSummary({ metadata, compact = false }: Props)
       {lines.map((line) => (
         <Typography
           key={line.label}
-          variant={compact ? "body2" : "body2"}
+          variant="body2"
           color="text.secondary"
           lineHeight={1.45}
         >

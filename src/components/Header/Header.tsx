@@ -1313,9 +1313,7 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
                 setdropDownOpen(false);
                 setShowDropdown((open) => !open);
               }}
-              className={`flex min-w-0 flex-1 items-center gap-0.5 rounded-md py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 ${
-                isMobile ? "px-1.5" : "px-1.5"
-              } ${showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"}`}
+              className={`flex min-w-0 flex-1 items-center gap-0.5 rounded-md py-0.5 text-left transition-colors sm:gap-1.5 sm:px-2 px-1.5 ${showDropdown ? "bg-white/15 ring-2 ring-white/35 ring-offset-0" : "hover:bg-white/12"}`}
               aria-label={location || t("location")}
               title={location || t("location")}
             >

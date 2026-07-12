@@ -123,7 +123,7 @@
     }
   
     /* Hide avatar in mobile view */
-    .ProfileHeader .profile-section Avatar {
+    .ProfileHeader .profile-section .MuiAvatar-root {
       display: none;
     }
   

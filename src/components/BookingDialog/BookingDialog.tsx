@@ -667,7 +667,7 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
                   gap: 0.5,
                   alignItems: "center",
                   justifyContent: "center",
-                  border: isSelected ? "2px solid" : "2px solid",
+                  border: "2px solid",
                   borderColor: isSelected ? "primary.main" : "divider",
                   bgcolor: isSelected ? "primary.main" : "background.paper",
                   color: isSelected ? "primary.contrastText" : "text.primary",
