@@ -427,7 +427,7 @@ useEffect(() => {
       } catch (err) {
         console.error("Failed to save new address:", err);
         alert(t('addressSaveError'));
-        setAddresses(addresses);
+        setAddresses(() => addresses);
       }
     }
   };
@@ -443,7 +443,7 @@ useEffect(() => {
         await updateAddressesInUserSettings(updatedAddresses);
       } catch (error) {
         console.error("Failed to remove address:", error);
-        setAddresses(addresses);
+        setAddresses(() => addresses);
         alert(t('addressRemoveError'));
       }
     }
