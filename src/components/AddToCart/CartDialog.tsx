@@ -194,11 +194,11 @@ export const CartDialog: React.FC<CartDialogProps> = ({
   const proceedWithCheckout = async () => {
     try {
       if (mealCartItems.length > 0 && handleCookCheckout) {
-        await handleCookCheckout();
+        handleCookCheckout();
       } else if (maidCartItems.length > 0 && handleMaidCheckout) {
-        await handleMaidCheckout();
+        handleMaidCheckout();
       } else if (nannyCartItems.length > 0 && handleNannyCheckout) {
-        await handleNannyCheckout();
+        handleNannyCheckout();
       } else {
         console.error('No checkout handler available');
       }

@@ -19,9 +19,6 @@ const PreferenceSelection = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [personCount, setPersonCount] = useState<number>();
 
-  const getText = () => {
-    return "Meal Type";
-  };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategories((prev) =>
@@ -144,7 +141,7 @@ const PreferenceSelection = () => {
 
   return (
     <div className="fare-type-container">
-      <span className="fare-label">{getText()}:</span>
+      <span className="fare-label">Meal Type:</span>
       <div className="fare-options">
         {cookServices.map((service: any, index: number) => (
           <label key={index}>
