@@ -1,7 +1,5 @@
 /* Base styles for the landing container */
-body{
-  background-color: rgba(249, 252, 255, 0.59);
-}
+
 .landing-container {
     display: flex;
     justify-content: center;
@@ -18,7 +16,7 @@ body{
   /* Selectors are the clickable areas around each icon */
   .selectors {
     margin: 10px;
-    border: 1px solid #0d6efd;
+    border: 1px solid var(--brand-booking-sky);
     width: 20vw;  /* 30% of the viewport width */
     height: 20vw; /* Ensure square aspect ratio */
     border-radius: 50%;
@@ -37,7 +35,7 @@ body{
   font-size: 16px;
   font-weight: bold;
   /* color: #333; */
-  color: #0a5398; 
+  color: var(--brand-accent); 
   text-align: center;
   }
 
@@ -104,7 +102,7 @@ body{
   .date-label {
     font-size: 16px;
     font-weight: bold;
-    color: #293138; /* Match the intended color scheme */
+    color: var(--brand-text); /* Match the intended color scheme */
   }
   /* Media queries for responsiveness */
   

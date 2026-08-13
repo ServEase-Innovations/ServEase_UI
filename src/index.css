@@ -6,6 +6,27 @@ html {
   height: 100%;
 }
 
+:root {
+  --brand-accent: #193f79;
+  --brand-accent-soft: #e8f1ff;
+  --brand-accent-dark: #0848b0;
+  --brand-logo-light: #246097;
+  --brand-logo-dark: #0b375f;
+  --brand-booking-navy: #0c1e3d;
+  --brand-booking-sky: #4f8ff7;
+  --brand-sky-cta: #0ea5e9;
+  --brand-text: #0f172a;
+  --brand-text-muted: #64748b;
+  --brand-line: #e2e8f0;
+  --brand-canvas: #f1f5f9;
+  --brand-surface: #ffffff;
+  --brand-chrome-start: #020617;
+  --brand-chrome-mid: #0b2a5c;
+  --brand-chrome-end: #082f49;
+  --brand-header-tint: #c8e4ff;
+  --brand-footer-tint: #b8dbfc;
+}
+
 body {
   height: 100%;
   margin: 0;
@@ -14,6 +35,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--brand-canvas);
+  color: var(--brand-text);
 }
 
 code {

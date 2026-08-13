@@ -1,20 +1,15 @@
-import { IconButton } from "src/components/Button/icon-button";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogActions,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
   Button,
   Box,
   useTheme,
   useMediaQuery,
   Typography,  Stack,
   SwipeableDrawer,
+  IconButton,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -22,7 +17,6 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { DialogHeader } from "../ProviderDetails/CookServicesDialog.styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DribbbleDateTimePicker from "../Common/DribbbleDateTimePicker";
 import { useLanguage } from "src/context/LanguageContext";
@@ -739,38 +733,58 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
 
   const dialogContent = (
     <>
-      <Box sx={{ position: "relative", flexShrink: 0 }}>
+      <Box 
+        sx={{ 
+          position: "relative", 
+          flexShrink: 0,
+          background: "linear-gradient(135deg, #0c1e3d 0%, #0b5bd3 48%, #4f8ff7 100%)",
+          display: "flex",
+          alignItems: "center",
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          minHeight: { xs: "3rem", sm: "4rem" },
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          m: 0,
+          borderTopLeftRadius: { xs: 20, sm: 16 },
+          borderTopRightRadius: { xs: 20, sm: 16 }
+        }}
+      >
+        <Typography 
+          component="h2" 
+          variant={isMobile ? "subtitle1" : "h6"} 
+          sx={{ 
+            fontWeight: 700, 
+            letterSpacing: "-0.02em", 
+            pr: { xs: 4, sm: 5 }, 
+            lineHeight: 1.25,
+            fontSize: { xs: "1.1rem", sm: "1.25rem" },
+            color: "white",
+            m: 0
+          }}
+        >
+          {t("selectBookingOption")}
+        </Typography>
+
         <IconButton
           aria-label={t("close")}
           onClick={onClose}
-          className="absolute right-2 top-1/2 z-[2] -translate-y-1/2"
-          style={{
-            color: isMobile ? theme.palette.text.primary : theme.palette.common.white,
-            backgroundColor: isMobile ? alpha(theme.palette.grey[500], 0.1) : alpha("#fff", 0.12),
-            width: isMobile ? 32 : 40,
-            height: isMobile ? 32 : 40,
+          sx={{
+            position: "absolute",
+            right: { xs: 8, sm: 16 },
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "white",
+            bgcolor: "rgba(255, 255, 255, 0.12)",
+            width: { xs: 32, sm: 40 },
+            height: { xs: 32, sm: 40 },
+            "&:hover": {
+              bgcolor: "rgba(255, 255, 255, 0.2)",
+            }
           }}
         >
-          <CloseIcon sx={{ fontSize: isMobile ? 18 : 22 }} />
+          <CloseIcon sx={{ fontSize: { xs: 18, sm: 22 } }} />
         </IconButton>
-
-        <DialogHeader
-          className={`flex items-center !border-b-0 ${isMobile ? "!px-4 !py-3 !min-h-[3rem]" : "!px-5 !py-4 !min-h-[3.75rem]"}`}
-        >
-          <Typography 
-            component="h2" 
-            variant={isMobile ? "subtitle1" : "h6"} 
-            sx={{ 
-              fontWeight: 700, 
-              letterSpacing: "-0.02em", 
-              pr: isMobile ? 4 : 5, 
-              lineHeight: 1.25,
-              fontSize: isMobile ? "1.1rem" : "1.25rem"
-            }}
-          >
-            {t("selectBookingOption")}
-          </Typography>
-        </DialogHeader>
       </Box>
 
       <DialogContent
@@ -786,99 +800,56 @@ const BookingDialog: React.FC<BookingDialogProps> = ({
           WebkitOverflowScrolling: "touch",
         }}
       >
-        <FormControl component="fieldset" variant="standard" sx={{ mb: 2.5, width: "100%" }}>
-          <FormLabel
-            component="legend"
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="subtitle2"
             sx={{
-              mb: 1.5,
-              fontSize: "0.7rem",
               fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "text.secondary",
-              "&.Mui-focused": { color: "text.secondary" },
+              mb: 1.5,
+              color: "text.primary",
             }}
           >
-            {t("bookBy")}
-          </FormLabel>
-          <RadioGroup
-            name="booking-option"
-            value={selectedOption}
-            onChange={(e) => handleOptionChange(e.target.value)}
+            Booking Plan
+          </Typography>
+          <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-              alignItems: "stretch",
-              gap: isMobile ? 1 : 1.25,
+              display: "flex",
+              flexDirection: "row",
+              bgcolor: "grey.100",
+              borderRadius: "12px",
+              p: 0.5,
               width: "100%",
             }}
           >
             {bookingTypeOptions.map((opt) => {
               const selected = selectedOption === opt.value;
               return (
-                <FormControlLabel
+                <Button
                   key={opt.value}
-                  value={opt.value}
-                  control={
-                    <Radio
-                      size="small"
-                      sx={{
-                        p: 0.5,
-                        color: selected ? "primary.main" : "action.active",
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography
-                      component="span"
-                      sx={{
-                        display: "block",
-                        fontWeight: 600,
-                        fontSize: isMobile ? "0.875rem" : "0.9375rem",
-                        lineHeight: 1.3,
-                        color: "text.primary",
-                      }}
-                    >
-                      {opt.label}
-                    </Typography>
-                  }
+                  disableElevation
+                  variant={selected ? "contained" : "text"}
+                  onClick={() => handleOptionChange(opt.value)}
                   sx={{
-                    m: 0,
-                    mx: 0,
-                    py: isMobile ? 1 : 1.5,
-                    px: isMobile ? 1.25 : 1.75,
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    gap: isMobile ? 0.75 : 1,
-                    width: "100%",
-                    maxWidth: "100%",
-                    minHeight: { xs: "auto", sm: 56 },
-                    height: { xs: "auto", sm: "100%" },
-                    alignSelf: "stretch",
-                    borderRadius: 2,
-                    border: "2px solid",
-                    borderColor: selected ? "primary.main" : "divider",
-                    bgcolor: selected ? alpha(theme.palette.primary.main, 0.08) : "background.paper",
-                    boxShadow: selected ? `0 0 0 1px ${alpha(theme.palette.primary.main, 0.25)}` : "0 1px 2px rgba(15, 23, 42, 0.05)",
-                    transition: "all 0.2s ease",
-                    cursor: "pointer",
-                    "& .MuiFormControlLabel-label": {
-                      width: "100%",
-                      flex: 1,
-                      minWidth: 0,
-                    },
+                    flex: 1,
+                    py: 1,
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: selected ? 700 : 500,
+                    fontSize: isMobile ? "0.8125rem" : "0.875rem",
+                    color: selected ? "primary.dark" : "text.secondary",
+                    bgcolor: selected ? "common.white" : "transparent",
+                    boxShadow: selected ? "0px 2px 4px rgba(0,0,0,0.05)" : "none",
                     "&:hover": {
-                      borderColor: selected ? "primary.main" : "primary.light",
-                      bgcolor: alpha(theme.palette.primary.main, selected ? 0.1 : 0.04),
+                      bgcolor: selected ? "common.white" : "grey.200",
                     },
                   }}
-                />
+                >
+                  {opt.label}
+                </Button>
               );
             })}
-          </RadioGroup>
-        </FormControl>
+          </Box>
+        </Box>
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           {/* Date Option */}

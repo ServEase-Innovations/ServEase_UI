@@ -80,6 +80,18 @@ const HomePage: React.FC<ChildComponentProps> = ({ sendDataToParent, bookingType
         }
     }, [appUser]);
 
+    useEffect(() => {
+        // Handle tinyurl deep links for direct booking (e.g. /cook)
+        const path = window.location.pathname.toLowerCase();
+        if (path === "/cook") {
+            handleClick("COOK");
+        } else if (path === "/maid") {
+            handleClick("MAID");
+        } else if (path === "/nanny") {
+            handleClick("NANNY");
+        }
+    }, []);
+
     const handleWorkClick = () => {
         setShowRegistrationDialog(true);
     };
@@ -255,267 +267,152 @@ useEffect(() => {
   }
 
     return (
-        <main className="min-h-screen bg-slate-50">
-            <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-sky-50/90 via-white to-slate-50 pt-[calc(4.25rem+env(safe-area-inset-top,0px))] sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] md:pt-[calc(5.75rem+env(safe-area-inset-top,0px))] lg:pt-[calc(6.25rem+env(safe-area-inset-top,0px))] xl:pt-[calc(6.75rem+env(safe-area-inset-top,0px))]">
-                <div
-                    className="pointer-events-none absolute inset-x-0 -top-32 h-[28rem] bg-[radial-gradient(ellipse_75%_50%_at_50%_-5%,rgba(14,165,233,0.18),transparent)]"
-                    aria-hidden
-                />
-                <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between md:gap-14 md:py-14 lg:px-8">
-                    <div className="w-full max-w-xl space-y-6 text-center md:w-1/2 md:text-left">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800/80">
-                            {t("ourServices")}
-                        </p>
-                        <h1 className="text-3xl font-bold leading-[1.12] tracking-tight text-slate-900 sm:text-4xl md:text-[2.65rem]">
-                            {t("heroTitle")}
-                        </h1>
-                        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
-                            {t("heroDescription")}
-                        </p>
+        <main className="min-h-screen bg-slate-50 flex flex-col">
+            {/* 1. Hero Gradient Section */}
+            <section className="relative w-full bg-gradient-chrome pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-12 sm:pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pb-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+                <div className="w-full max-w-6xl space-y-5 text-center text-white">
+                    <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-[2.65rem] text-white">
+                        {t("heroTitle")}
+                    </h1>
+                    <p className="mx-auto max-w-2xl text-sm leading-relaxed text-white/90 sm:text-base">
+                        {t("heroDescription")}
+                    </p>
 
-                        <div className="mx-auto grid w-full max-w-md grid-cols-3 gap-2.5 sm:max-w-lg sm:gap-4 md:mx-0">
-                            {[
-                                { key: "COOK", img: publicAsset("CookNew.png"), label: t("homeCook") },
-                                { key: "MAID", img: publicAsset("MaidNew.png"), label: t("cleaningHelp") },
-                                { key: "NANNY", img: publicAsset("NannyNew.png"), label: t("caregiver") },
-                            ].map((svc) => (
-                                <button
-                                    key={svc.key}
-                                    type="button"
-                                    disabled={isServiceProvider}
-                                    onClick={() => handleClick(svc.key)}
-                                    aria-label={
-                                        isServiceProvider
-                                            ? svc.label
-                                            : `${svc.label} — ${t("bookService")}`
-                                    }
-                                    className={`group relative flex min-w-0 flex-col overflow-hidden rounded-2xl bg-white text-center shadow-md shadow-slate-900/[0.06] ring-1 ring-slate-200/70 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 min-h-0 ${
-                                        isServiceProvider
-                                            ? "cursor-not-allowed opacity-50 grayscale"
-                                            : "cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/[0.08] hover:ring-sky-300/50 active:translate-y-0 active:shadow-md"
-                                    }`}
-                                >
-                                    <div className="relative aspect-[4/5] w-full shrink-0 overflow-hidden bg-gradient-to-b from-slate-100 to-slate-200/90">
-                                        <img
-                                            src={svc.img}
-                                            alt=""
-                                            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                                            loading="lazy"
-                                            decoding="async"
-                                        />
-                                        <div
-                                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/35 via-transparent to-transparent opacity-80"
-                                            aria-hidden
-                                        />
-                                    </div>
-                                    <div className="flex flex-1 flex-col items-center justify-between gap-1.5 px-2 py-2.5 sm:px-3 sm:py-3">
-                                        <span className="line-clamp-2 min-h-[2.25rem] text-[11px] font-semibold leading-tight tracking-tight text-slate-900 sm:min-h-[2.5rem] sm:text-xs">
-                                            {svc.label}
-                                        </span>
-                                        {!isServiceProvider && (
-                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700 sm:text-[11px]">
-                                                {t("bookService")}
-                                                <ArrowRight
-                                                    className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 sm:h-3.5 sm:w-3.5"
-                                                    aria-hidden
-                                                />
-                                            </span>
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-
-                        {!isLoggedIn && (
-                            <div className="flex flex-wrap justify-center gap-2 pt-2 sm:gap-3 md:justify-start">
-                                <Button
-                                    type="button"
-                                    className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 sm:text-sm"
-                                    onClick={() => {
-                                      void loginWithPopup({
-                                        authorizationParams: { screen_hint: "signup" },
-                                      }).catch(() => {});
-                                    }}
-                                >
-                                    {t("registerAsUser")}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    className="rounded-lg border-slate-300 bg-white/90 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:text-sm"
-                                    onClick={handleWorkClick}
-                                >
-                                    {t("registerAsProvider")}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    className="rounded-lg border-slate-300 bg-white/90 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:text-sm"
-                                    onClick={() => setIsAgentRegistrationOpen(true)}
-                                >
-                                    {t("registerAsAgent")}
-                                </Button>
+                    {/* Chips Row */}
+                    <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+                        {[{ icon: "✓", label: "Trusted Pros" }, { icon: "✨", label: "Easy Booking" }, { icon: "📅", label: "Flexible Slots" }].map((chip, i) => (
+                            <div key={i} className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
+                                <span>{chip.icon}</span>
+                                <span>{chip.label}</span>
                             </div>
-                        )}
+                        ))}
                     </div>
 
-                    <div className="w-full md:w-1/2 md:max-w-lg">
-                        <div className="relative mx-auto w-full max-w-md">
-                            <div className="relative aspect-[5/4] overflow-hidden rounded-2xl bg-slate-200 shadow-lg ring-1 ring-slate-200/80 sm:aspect-[4/3] md:aspect-[5/4]">
-                                {images.map((img, index) => (
-                                    <img
-                                        key={index}
-                                        src={img}
-                                        alt={`${t("service")} ${index + 1}`}
-                                        className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${
-                                            index === currentSlide ? "opacity-100" : "pointer-events-none opacity-0"
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={prevSlide}
-                                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-2 text-slate-800 shadow-md ring-1 ring-slate-200/80 transition hover:bg-white"
-                                aria-label={t("previousSlide")}
-                            >
-                                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={nextSlide}
-                                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-2 text-slate-800 shadow-md ring-1 ring-slate-200/80 transition hover:bg-white"
-                                aria-label={t("nextSlide")}
-                            >
-                                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-                            </button>
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 sm:bottom-4">
-                                {images.map((_, index) => (
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        onClick={() => goToSlide(index)}
-                                        className={`h-2.5 rounded-full transition-all ${
-                                            index === currentSlide
-                                                ? "w-8 bg-white shadow"
-                                                : "w-2.5 bg-white/50 hover:bg-white/80"
-                                        }`}
-                                        aria-label={`${t("goToSlide")} ${index + 1}`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                    {/* Search Bar */}
+                    <div className="mx-auto mt-6 flex w-full max-w-md items-center gap-2 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-sky-500">
+                        <span className="text-slate-400">🔍</span>
+                        <input 
+                            type="text" 
+                            placeholder="Find a cook, maid, or cleaner..." 
+                            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                        />
+                        <span className="text-slate-400">⚙️</span>
                     </div>
+
                 </div>
             </section>
 
-            {!isServiceProvider && !checkingOffer && showOffer ? (
-                <section className="border-b border-slate-200/60 bg-white py-5 sm:py-6">
-                    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                        <FirstBookingOffer onPress={() => setShowServiceSelection(true)} />
-                    </div>
-                </section>
-            ) : null}
-
-            <section className="border-b border-slate-200/60 bg-white py-12 sm:py-16">
-                <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                    <div className="mx-auto mb-10 max-w-2xl text-center">
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                            {t("popularServices")}
+            {/* 2. Main Canvas Section */}
+            <section className="-mt-8 relative z-10 flex-1 rounded-t-[32px] bg-white px-4 pt-8 pb-16 sm:px-6 lg:px-8 shadow-sm ring-1 ring-slate-900/5">
+                <div className="mx-auto max-w-6xl space-y-12">
+                    
+                    {/* Header */}
+                    <div className="flex flex-col items-start gap-1">
+                        <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                            {isServiceProvider ? t("hero.exploreServices") : "What service do you need?"}
                         </h2>
+                        <p className="text-sm text-slate-500">
+                            {isServiceProvider ? t("hero.learnAboutServices") : "Choose a professional for your home"}
+                        </p>
                     </div>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+
+                    {/* Services Grid (iOS Style) */}
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                         {[
-                            {
-                                title: t("homeCook"),
-                                desc: t("homeCookDesc"),
-                                icon: "👩‍🍳",
-                                type: "cook",
-                            },
-                            {
-                                title: t("cleaningHelp"),
-                                desc: t("cleaningHelpDesc"),
-                                icon: "🧹",
-                                type: "maid",
-                            },
-                            {
-                                title: t("caregiver"),
-                                desc: t("caregiverDesc"),
-                                icon: "❤️",
-                                type: "babycare",
-                            },
-                        ].map((service, index) => (
-                            <Card
-                                key={index}
-                                className={`group border border-slate-200/90 bg-white text-center shadow-sm transition-all duration-200 ${
-                                    isServiceProvider
-                                        ? "cursor-not-allowed opacity-50 grayscale"
-                                        : "hover:-translate-y-0.5 hover:border-sky-200/80 hover:shadow-md"
+                            { key: "COOK", label: t("homeCook"), desc: "Daily meals & parties", icon: "👩‍🍳", bg: "bg-orange-50", color: "text-orange-600" },
+                            { key: "MAID", label: t("cleaningHelp"), desc: "Deep home cleaning", icon: "🧹", bg: "bg-blue-50", color: "text-blue-600" },
+                            { key: "NANNY", label: t("caregiver"), desc: "Eldercare & support", icon: "❤️", bg: "bg-rose-50", color: "text-rose-600" },
+                        ].map((svc) => (
+                            <button
+                                key={svc.key}
+                                type="button"
+                                disabled={isServiceProvider}
+                                onClick={() => handleClick(svc.key)}
+                                className={`flex flex-col items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                                    isServiceProvider ? "cursor-not-allowed opacity-50" : "hover:border-sky-300 hover:shadow-md active:scale-[0.98]"
                                 }`}
                             >
-                                <CardContent className="flex h-full flex-col space-y-4 p-6 sm:p-7">
-                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-slate-50 text-3xl ring-1 ring-sky-100/80 transition-transform duration-200 group-hover:scale-105">
-                                        {service.icon}
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-slate-900">{service.title}</h3>
-                                    <p className="flex-1 text-sm leading-relaxed text-slate-600">{service.desc}</p>
-                                    <button
-                                        type="button"
-                                        disabled={isServiceProvider}
-                                        aria-label={`${t("learnMore")} — ${service.title}`}
-                                        onClick={() => {
-                                            if (isServiceProvider) return;
-                                            setServiceDialog({ open: true, type: service.type as "cook" | "maid" | "babycare" });
-                                        }}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50/90 to-white px-4 py-2.5 text-sm font-semibold text-sky-800 shadow-sm ring-1 ring-sky-100/60 transition-all duration-200 hover:border-sky-400 hover:from-sky-100 hover:to-sky-50 hover:text-sky-900 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-hover:border-sky-300"
-                                    >
-                                        <span>{t("learnMore")}</span>
-                                        <ArrowRight
-                                            className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-                                            aria-hidden
-                                        />
-                                    </button>
-                                </CardContent>
-                            </Card>
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${svc.bg} text-2xl`}>
+                                    {svc.icon}
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-semibold text-slate-900 line-clamp-1">{svc.label}</h3>
+                                    <p className="text-xs text-slate-500 line-clamp-2">{svc.desc}</p>
+                                </div>
+                                {!isServiceProvider && (
+                                    <span className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                                        ⭐ Top Rated
+                                    </span>
+                                )}
+                            </button>
                         ))}
                     </div>
-                </div>
-            </section>
 
-            <section className="bg-gradient-to-b from-slate-100/80 to-slate-50 py-14 sm:py-16">
-                <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-center text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                        {t("howItWorks")}
-                    </h2>
-                    <div className="mt-10 grid gap-6 md:grid-cols-3 md:gap-8">
-                        {(
-                            [
-                                {
-                                    Icon: HandIcon,
-                                    title: t("chooseService"),
-                                    body: t("chooseServiceDesc"),
-                                },
-                                {
-                                    Icon: CalendarIcon,
-                                    title: t("scheduleInMinutes"),
-                                    body: t("scheduleInMinutesDesc"),
-                                },
-                                {
-                                    Icon: HomeIcon,
-                                    title: t("relaxWeHandle"),
-                                    body: t("relaxWeHandleDesc"),
-                                },
-                            ] as const
-                        ).map((step, i) => (
-                            <div
-                                key={i}
-                                className="rounded-2xl border border-slate-200/90 bg-white/90 p-6 text-center shadow-sm ring-1 ring-slate-100/80"
-                            >
-                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 text-white shadow-md shadow-sky-600/25">
-                                    <step.Icon className="h-6 w-6" aria-hidden />
+                    <p className="text-center text-xs text-slate-400">Click a card to book a service</p>
+
+                    {/* First Booking Offer */}
+                    {!isServiceProvider && !checkingOffer && showOffer ? (
+                        <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+                            <FirstBookingOffer onPress={() => setShowServiceSelection(true)} />
+                        </div>
+                    ) : null}
+
+                    {/* Stats Row */}
+                    <div className="flex divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-slate-50 py-6">
+                        <div className="flex flex-1 flex-col items-center justify-center space-y-1">
+                            <span className="text-2xl font-bold tracking-tight text-slate-900">50k+</span>
+                            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Happy Homes</span>
+                        </div>
+                        <div className="flex flex-1 flex-col items-center justify-center space-y-1">
+                            <span className="text-2xl font-bold tracking-tight text-slate-900">2000+</span>
+                            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Verified Pros</span>
+                        </div>
+                        <div className="flex flex-1 flex-col items-center justify-center space-y-1">
+                            <span className="text-2xl font-bold tracking-tight text-slate-900">4.8/5</span>
+                            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Avg Rating</span>
+                        </div>
+                    </div>
+
+                    {/* Need Help Choosing */}
+                    <div className="flex flex-col items-center justify-center space-y-4 pt-4 text-center">
+                        <h4 className="text-sm font-medium text-slate-500">Need help choosing?</h4>
+                        <div className="flex items-center gap-4 text-sm font-semibold text-sky-600">
+                            <button onClick={() => onContactClick?.()} className="flex items-center gap-1.5 hover:text-sky-700">
+                                <span>🎧</span> Talk to Support
+                            </button>
+                            <span className="text-slate-300">|</span>
+                            <button className="flex items-center gap-1.5 hover:text-sky-700">
+                                <span>❓</span> How it works
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* How It Works Steps Card */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-6 text-lg font-bold text-slate-900">{t("howItWorks")}</h3>
+                        <div className="space-y-5">
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">1</div>
+                                <div>
+                                    <h4 className="font-semibold text-slate-900">{t("chooseService")}</h4>
+                                    <p className="text-sm text-slate-500">{t("chooseServiceDesc")}</p>
                                 </div>
-                                <h4 className="text-base font-semibold text-slate-900">{step.title}</h4>
-                                <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.body}</p>
                             </div>
-                        ))}
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">2</div>
+                                <div>
+                                    <h4 className="font-semibold text-slate-900">{t("scheduleInMinutes")}</h4>
+                                    <p className="text-sm text-slate-500">{t("scheduleInMinutesDesc")}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">3</div>
+                                <div>
+                                    <h4 className="font-semibold text-slate-900">{t("relaxWeHandle")}</h4>
+                                    <p className="text-sm text-slate-500">{t("relaxWeHandleDesc")}</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

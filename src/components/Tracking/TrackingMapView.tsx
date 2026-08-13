@@ -24,6 +24,7 @@ import { ETADisplay } from './ETADisplay';
 import { OfflineBanner } from './OfflineBanner';
 import { hideMap, stopSession, setAutoCenter, resetTracking } from '../../features/tracking/trackingSlice';
 import { stopTrackingSession } from '../../services/trackingService';
+import { keys } from "../../env/env";
 
 // Define libraries as a constant outside component to prevent reloads
 const GOOGLE_MAPS_LIBRARIES: ('places' | 'geometry')[] = ['places', 'geometry'];
@@ -59,7 +60,7 @@ export const TrackingMapView: React.FC = () => {
 
   // Load Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: keys.api_key || '',
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 

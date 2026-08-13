@@ -17,6 +17,9 @@ import {
   FooterSocialKey,
   fetchPublicFooterSettings,
 } from "src/services/footerSettingsApi";
+import { useAuth0 } from "@auth0/auth0-react";
+import ServiceProviderRegistration from "../Registration/ServiceProviderRegistration";
+import AgentRegistrationForm from "../Registration/AgentRegistrationForm";
 
 interface FooterProps {
   onAboutClick: () => void;
@@ -48,7 +51,10 @@ const Footer: React.FC<FooterProps> = ({
   onTermsClick,
 }) => {
   const { t } = useLanguage();
+  const { loginWithPopup } = useAuth0();
   const [footerSettings, setFooterSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
+  const [showProviderReg, setShowProviderReg] = useState(false);
+  const [showAgentReg, setShowAgentReg] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -153,19 +159,28 @@ const Footer: React.FC<FooterProps> = ({
 
             <nav
               className="flex min-w-0 flex-col gap-1.5 items-stretch text-left"
-              aria-label={t("footerSectionResources")}
+              aria-label={t("footerSectionAccount") || "Account"}
             >
-              <h2 className={sectionTitle}>{t("footerSectionResources")}</h2>
+              <h2 className={sectionTitle}>{t("footerSectionAccount") || "Account"}</h2>
               <ul className="m-0 w-full list-none space-y-0.5 p-0">
                 <li className="w-full">
-                  <a href="#!" className={linkBase}>
-                    {t("tutorials")}
-                  </a>
+                  <button type="button" onClick={() => {
+                      void loginWithPopup({
+                        authorizationParams: { screen_hint: "signup" },
+                      }).catch(() => {});
+                    }} className={linkBase}>
+                    {t("registerAsUser") || "Register as User"}
+                  </button>
                 </li>
                 <li className="w-full">
-                  <a href="#!" className={linkBase}>
-                    {t("blog")}
-                  </a>
+                  <button type="button" onClick={() => setShowProviderReg(true)} className={linkBase}>
+                    {t("registerAsProvider") || "Register as Provider"}
+                  </button>
+                </li>
+                <li className="w-full">
+                  <button type="button" onClick={() => setShowAgentReg(true)} className={linkBase}>
+                    {t("registerAsAgent") || "Register as Agent"}
+                  </button>
                 </li>
               </ul>
             </nav>

@@ -35,7 +35,7 @@ import { urls } from "../../config/urls";
 import { Button } from "../Button/button";
 
 // Define libraries as a constant outside component to prevent Google Maps reloads
-const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+const GOOGLE_MAPS_LIBRARIES: ('places' | 'geometry')[] = ['places', 'geometry'];
 import AddressComponent from "./AddressComponent";
 import { TermsCheckboxes } from "../Common/TermsCheckboxes/TermsCheckboxes";
 import { debounce } from "src/utils/debounce";

@@ -1180,11 +1180,9 @@ const handleSnackbarClose = (event?: React.SyntheticEvent | Event, reason?: stri
               className="group absolute left-0 top-1/2 z-20 flex -translate-y-1/2 items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950"
               aria-label="ServEaso home"
             >
-              <img
-                src={publicAsset("ServEaso_Logo.png")}
-                alt=""
-                className="h-11 w-auto max-w-[5.25rem] object-contain object-left opacity-95 transition group-hover:opacity-100 sm:h-[4.75rem] sm:max-w-[14rem] md:h-24 md:max-w-[17rem] lg:h-28 lg:max-w-[19rem] xl:h-32 xl:max-w-[21rem]"
-              />
+              <span className="text-white text-xl font-[800] tracking-[-0.02em] sm:text-[1.75rem] leading-none select-none">
+                ServEaso
+              </span>
             </button>
           </div>
         </div>

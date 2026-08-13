@@ -28,7 +28,8 @@ const Auth0SignInDialog: React.FC<{
     if (open) {
       wasAuthenticatedOnOpenRef.current = isAuthenticated;
     }
-  }, [open, isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (open && isAuthenticated && !wasAuthenticatedOnOpenRef.current) {

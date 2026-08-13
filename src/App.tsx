@@ -65,6 +65,8 @@ import SupportTicketDetailDialog from "./components/User-Profile/SupportTicketDe
 import type { OpenSupportTicketDetail } from "./utils/supportTicketEvents";
 
 // Import the LanguageProvider
+import BottomNav from "./components/Navigation/BottomNav";
+import ServiceProviderRegistration from "./components/Registration/ServiceProviderRegistration";
 
 function App() {
   const [selection, setSelection] = useState<string | undefined>(); 
@@ -88,6 +90,8 @@ function App() {
   const [chatUnread, setChatUnread] = useState(0);
   const [chatSupportPreview, setChatSupportPreview] = useState<string | null>(null);
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  const [showProviderReg, setShowProviderReg] = useState(false);
+  const [showAgentReg, setShowAgentReg] = useState(false);
   const [supportTicketId, setSupportTicketId] = useState<number | null>(null);
   
   // Deep linking states
@@ -110,6 +114,7 @@ function App() {
 
   const {
     loginWithRedirect,
+    loginWithPopup,
     logout,
     user,
     isAuthenticated,
@@ -825,7 +830,9 @@ function App() {
           onLogoClick={handleLogoClick}
         />
 
-        {renderContent()}
+        <div className="pb-20 sm:pb-0 flex-1 flex flex-col">
+          {renderContent()}
+        </div>
 
         {mobileDialogOpen && appUser?.customerid && (
           <MobileNumberDialog
@@ -842,7 +849,36 @@ function App() {
           />
         )}
 
-        
+        <BottomNav 
+          currentSelection={selection}
+          onNavigate={(page) => {
+            if (page === "") {
+              setSelection(undefined);
+              setCurrentSection("HOME");
+            } else {
+              setSelection(page);
+            }
+          }}
+          onRegisterUserClick={() => {
+            void loginWithPopup({
+              authorizationParams: { screen_hint: "signup" },
+            }).catch(() => {});
+          }}
+          onRegisterProviderClick={() => setShowProviderReg(true)}
+          onRegisterAgentClick={() => setShowAgentReg(true)}
+        />
+
+        {showProviderReg && (
+          <ServiceProviderRegistration onBackToLogin={() => setShowProviderReg(false)} />
+        )}
+        {showAgentReg && (
+          <AgentRegistrationForm
+            onBackToLogin={(shouldClose) => {
+              if (shouldClose) setShowAgentReg(false);
+            }}
+            onClose={() => setShowAgentReg(false)}
+          />
+        )}
 
         <ChatGlobalSocket
           chatbotOpen={chatbotOpen}
