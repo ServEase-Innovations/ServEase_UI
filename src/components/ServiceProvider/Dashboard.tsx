@@ -59,7 +59,7 @@ import providerInstance from "src/services/providerInstance";
 import { PROFILE } from "src/Constants/pagesConstants";
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBWoIIAX-gE7fvfAkiquz70WFgDaL7YXSk';
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
 // Types for API response
 interface CustomerHoliday {
