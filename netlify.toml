@@ -1,3 +1,41 @@
+# Netlify configuration for ServEaso Booking App
 [build]
-  command = "npm install --legacy-peer-deps && npm run build"
+  # Build command
+  command = "npm run build:prod"
+  # Output directory
   publish = "build"
+
+# Environment variables
+[build.environment]
+  NODE_VERSION = "20"
+  CI = "false"  # Treat warnings as warnings, not errors
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for iframe embedding
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Allow embedding in iframes from your domain
+    X-Frame-Options = "ALLOW-FROM https://www.serveaso.com"
+    Content-Security-Policy = "frame-ancestors 'self' https://www.serveaso.com https://serveaso.netlify.app"
+    X-Content-Type-Options = "nosniff"
+    
+# CORS headers for API calls
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://www.serveaso.com"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Credentials = "true"
+
+# Cache static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
