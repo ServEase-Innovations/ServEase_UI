@@ -79,6 +79,7 @@ root.render(
           <Router>
             <Routes>
               <Route path="/" element={<App />} />
+              <Route path="/book" element={<App />} />
               <Route path="/cook" element={<App />} />
               <Route path="/maid" element={<App />} />
               <Route path="/nanny" element={<App />} />
