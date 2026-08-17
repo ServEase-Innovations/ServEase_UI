@@ -20,9 +20,8 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # Allow embedding in iframes from your domain
-    X-Frame-Options = "ALLOW-FROM https://www.serveaso.com"
-    Content-Security-Policy = "frame-ancestors 'self' https://www.serveaso.com https://serveaso.netlify.app"
+    # Allow embedding in iframes from any origin (for Netlify previews and custom domains)
+    Content-Security-Policy = "frame-ancestors *"
     X-Content-Type-Options = "nosniff"
     
 # CORS headers for API calls
