@@ -1,7 +1,7 @@
 # Netlify configuration for ServEaso Booking App
 [build]
-  # Build command
-  command = "npm run build:prod"
+  # Build command - use regular build, env vars set in Netlify UI
+  command = "npm run build"
   # Output directory
   publish = "build"
 
