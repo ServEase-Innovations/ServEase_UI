@@ -198,20 +198,11 @@ const ServicesDialog: React.FC<ServicesDialogProps> = (props) => {
     // Close booking dialog
     setBookingDialogOpen(false);
 
-    // Handle flow based on booking type
-    if (selectedRadioButtonValue === "Date") {
-      console.log("Opening service-specific dialog for Date booking");
-      setOpenServiceDialog(true);
-      // DO NOT navigate to DETAILS here - let the service dialog handle it after payment
-    } else {
-      console.log(`Non-Date booking (${selectedRadioButtonValue}), calling sendDataToParent with DETAILS`);
-      // For non-Date bookings, go directly to details page
-      if (sendDataToParent) {
-        sendDataToParent(DETAILS);
-      } else {
-        console.error("sendDataToParent is undefined in handleBookingSave");
-      }
-    }
+    // Open service-specific dialog for ALL booking types (Date, Monthly, Short term)
+    // This ensures the API call (createEngagement/bookAndPay) is made for all booking types
+    console.log(`Opening service-specific dialog for ${selectedRadioButtonValue} booking`);
+    setOpenServiceDialog(true);
+    // DO NOT navigate to DETAILS here - let the service dialog handle it after payment/API call
   };
 
   const handleServiceDialogClose = () => {

@@ -892,11 +892,9 @@ export const Header: React.FC<ChildComponentProps> = ({
 
     dispatch(addBooking(booking));
 
-    if (selectedRadioButtonValue === "Date") {
-      setOpenServiceDialog(true);
-    } else {
-      sendDataToParent(DETAILS);
-    }
+    // Open service-specific dialog for ALL booking types (Date, Monthly, Short term)
+    // This ensures the API call (createEngagement/bookAndPay) is made for all booking types
+    setOpenServiceDialog(true);
 
     setDialogOpen(false);
   };
