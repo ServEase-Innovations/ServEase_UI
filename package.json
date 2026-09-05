@@ -86,7 +86,8 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "env-cmd -f .env.prod craco start",
+    "start": "env-cmd -f .env.development craco start",
+    "start:local": "env-cmd -f .env.local.backup craco start",
     "start:dev": "env-cmd -f .env.dev craco start",
     "start:qa": "env-cmd -f .env.qa craco start",
     "start:prod": "env-cmd -f .env.prod craco start",
