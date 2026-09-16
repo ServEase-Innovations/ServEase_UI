@@ -238,7 +238,7 @@ const EngagementDetailsDrawer: React.FC<EngagementDetailsDrawerProps> = ({
 
       // Step 3: Open Razorpay checkout
       const options = {
-        key: razorpay_key_id || 'rzp_test_lTdgjtSRlEwreA',
+        key: razorpay_key_id, // From server response - required
         amount: amount,
         currency: currency || 'INR',
         order_id: razorpay_order_id,

@@ -191,7 +191,7 @@ export const BookingService = {
       const checkoutKey =
         razorpayKeyId ||
         process.env.REACT_APP_RAZORPAY_KEY ||
-        "rzp_test_lTdgjtSRlEwreA";
+        ""; // No fallback - must be provided by server or environment
 
       let settled = false;
       const finish = (

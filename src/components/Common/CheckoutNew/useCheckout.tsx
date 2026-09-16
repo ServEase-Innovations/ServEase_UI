@@ -88,7 +88,7 @@ export const useCheckout = () => {
         const currency = "INR";
 
         const options = {
-          key: "rzp_test_lTdgjtSRlEwreA",
+          key: process.env.REACT_APP_RAZORPAY_KEY, // From environment variable
           amount,
           currency,
           name: "Serveaso",

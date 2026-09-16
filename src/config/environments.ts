@@ -59,7 +59,7 @@ export const developmentConfig: EnvironmentConfig = {
   },
   secrets: {
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
-    razorpayKey: process.env.REACT_APP_RAZORPAY_KEY || 'rzp_test_lTdgjtSRlEwreA',
+    razorpayKey: process.env.REACT_APP_RAZORPAY_KEY || '', // No fallback - must be in .env
     adminPushSecret: process.env.REACT_APP_ADMIN_PUSH_SECRET || 'serveaso-test-push-secret',
     adminTicketSecret: process.env.REACT_APP_ADMIN_TICKET_SECRET || 'serveaso-test-push-secret',
     adminEmail: process.env.REACT_APP_ADMIN_EMAIL || 'admin@serveaso.com',
