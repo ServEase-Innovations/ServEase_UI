@@ -81,7 +81,7 @@ export const productionConfig: EnvironmentConfig = {
     reviews: 'https://reviews-4mls.onrender.com',
     tickets: 'https://tickets-1cfe.onrender.com',
     coupons: 'https://coupons-s9zq.onrender.com',
-    chat: 'https://chat-b3wl.onrender.com',
+    chat: 'https://chat-gzsg.onrender.com',
     imageUploader: 'https://imageuploader-5njj.onrender.com',
     tracking: 'https://tracking-api.onrender.com', // Update with actual URL
     trackingWebsocket: 'wss://tracking-api.onrender.com', // Update with actual URL
